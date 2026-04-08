@@ -20,20 +20,18 @@
 
 ---
 
-## What Is This? (For Medics)
+## What Is This? (For Clinicians)
 
-Imagine having a highly knowledgeable partner in the field who has read every medical protocol your agency uses — and can answer your questions out loud, hands-free, in plain English.
+Clinicians working in austere environments face a well-documented problem: cognitive bandwidth. The challenge is rarely a lack of clinical knowledge. It is the difficulty of accessing that knowledge quickly when the environment is working against you — gloved hands, noise, multiple casualties, compressed timelines.
 
-That's what this system does. You press a button, ask a clinical question ("RSI protocol for a 90kg burn patient"), and within seconds you hear a spoken response based on your protocol library — whether that's JTS Clinical Practice Guidelines, your agency's EMS protocols, or any PDF-based guidelines you load in.
+This prototype explores one approach to that problem: a lightweight, voice-activated system that retrieves protocol-based guidance at the point of care. It is not a diagnostic tool. It does not generate clinical recommendations from AI training data. It retrieves relevant sections from your indexed protocol library and summarizes them into concise, actionable steps using a technique called Retrieval-Augmented Generation (RAG).
 
-It runs on a small Raspberry Pi device you can carry in a cargo pocket, connects to cloud AI for processing, and speaks responses through a Bluetooth headset or speaker. When connectivity is limited, it can operate on cached protocols.
+The intent is cognitive offloading — reducing the deliberate recall burden on the clinician during high-stress patient care, not replacing clinical judgment.
+The system runs on low-cost edge hardware (Raspberry Pi Zero 2W), connects to a cloud backend for AI processing when connectivity is available, and falls back to locally cached protocols when it is not. It will run on any WiFi, cellular hotspot, or internet connection. The Starlink and WireGuard configurations in this repository represent a specific proof-of-concept for satellite-connected, encrypted field communications — one tested scenario, not a requirement.
 
-**Designed for:**
-- Tactical and austere medicine
-- Wilderness and remote EMS
-- Disaster response and mobile medical units
-- Medical training and simulation
-- Protocol familiarization
+This is a research prototype with real limitations — voice recognition degrades in high-noise environments, vector retrieval scores are low in dense clinical corpora, and AI systems can produce confident but incorrect outputs. Those limitations are discussed in detail in the related publication above.
+If you use this system for training or field evaluation, please reach out. Clinician feedback directly informs the next iteration of this work.
+
 
 ---
 
@@ -363,7 +361,7 @@ Contributions welcome — especially from medics, paramedics, and field medicine
 
 **Andrew Azelton, BS, NRP, LP, FP-C, WP-C**  
 MSc Candidate, Austere Critical Care (CoROM)  
-Founder, Arcane Knowledge Group (AKG)
+Arcane Knowledge Group (AKG)
 
 GitHub: [@aazelton](https://github.com/aazelton)  
 Organization: [AI-in-Austere-Medicine-Project](https://github.com/AI-in-Austere-Medicine-Project)
