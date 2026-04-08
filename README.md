@@ -361,8 +361,8 @@ Contributions welcome — especially from medics, paramedics, and field medicine
 
 ## Author
 
-**Andrew Azelton, NRP, LP, FP-C, WP-C**  
-Captain, ATCEMS | MSc Candidate, Austere Critical Care (CoROM)  
+**Andrew Azelton, BS, NRP, LP, FP-C, WP-C**  
+MSc Candidate, Austere Critical Care (CoROM)  
 Founder, Arcane Knowledge Group (AKG)
 
 GitHub: [@aazelton](https://github.com/aazelton)  
