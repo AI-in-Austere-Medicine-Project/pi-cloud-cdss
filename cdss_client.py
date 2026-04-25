@@ -38,14 +38,25 @@ def query_cdss(query: str, voice_mode: str = "brief") -> str:
 def speak(text: str):
     """Play response via ElevenLabs TTS"""
     try:
-        from elevenlabs import ElevenLabs, play
+        from elevenlabs.client import ElevenLabs
+        import pygame
+        import io
+        
         client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
         audio = client.text_to_speech.convert(
-            text=text,
             voice_id="JBFqnCBsd6RMkjVDRZzb",
+            text=text,
             model_id="eleven_multilingual_v2"
         )
-        play(audio)
+        
+        # Play audio
+        audio_bytes = b"".join(audio)
+        pygame.mixer.init()
+        pygame.mixer.music.load(io.BytesIO(audio_bytes))
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            pygame.time.Clock().tick(10)
+            
     except Exception as e:
         print(f"TTS unavailable: {e}")
         print(f"\nRESPONSE:\n{text}")
