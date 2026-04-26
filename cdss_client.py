@@ -1,8 +1,8 @@
 """
 EdgeCDSS Thin Client - Radxa Zero 3W
 Routes queries to arcaneone backend, plays response via ElevenLabs
-Version: 1.3.0
-- TTS medical term expansion
+Version: 1.4.0
+- TTS medical term expansion with number-attached unit handling
 - Voice speed control
 - lbs to kg auto-conversion for patient safety
 """
@@ -38,37 +38,6 @@ TTS_EXPANSIONS = {
     "s/p": "status post",
     "c/o": "complains of",
     "h/o": "history of",
-
-    # Units
-    "mL": "milliliters",
-    "mg": "milligrams",
-    "mcg": "micrograms",
-    "kg": "kilograms",
-    "g": "grams",
-    "L": "liters",
-    "mmHg": "millimeters of mercury",
-    "cmH2O": "centimeters of water",
-    "IU": "international units",
-    "mEq": "milliequivalents",
-    "mmol": "millimoles",
-
-    # Concentrations and rates
-    "mg/mL": "milligrams per milliliter",
-    "mcg/mL": "micrograms per milliliter",
-    "mg/kg": "milligrams per kilogram",
-    "mcg/kg": "micrograms per kilogram",
-    "mL/hr": "milliliters per hour",
-    "mL/min": "milliliters per minute",
-    "mg/min": "milligrams per minute",
-    "mcg/min": "micrograms per minute",
-    "mcg/kg/min": "micrograms per kilogram per minute",
-    "mg/kg/min": "milligrams per kilogram per minute",
-    "L/min": "liters per minute",
-    "breaths/min": "breaths per minute",
-    "beats/min": "beats per minute",
-    "/min": "per minute",
-    "/hr": "per hour",
-    "/kg": "per kilogram",
 
     # Routes
     "IV": "intravenous",
@@ -176,43 +145,62 @@ def preprocess_query(query: str) -> str:
     """
     Pre-process query before sending to backend.
     Converts lbs/pounds to kg for patient safety.
-    Always annotates weight in both units.
     """
     def convert_weight(match):
         lbs_val = float(match.group(1))
         kg_val = round(lbs_val / 2.2, 1)
         return f"{lbs_val} lbs ({kg_val} kg)"
 
-    # Match: 220lbs, 220 lbs, 220lb, 220 pounds, 220 pound
     processed = re.sub(
         r'(\d+\.?\d*)\s*(?:lbs?|pounds?)',
         convert_weight,
         query,
         flags=re.IGNORECASE
     )
-
     return processed
 
 
 def expand_for_tts(text: str) -> str:
     """Expand medical acronyms and units for natural TTS pronunciation"""
     tts_text = text
+
     # Remove markdown formatting
     tts_text = re.sub(r'\*\*(.*?)\*\*', r'\1', tts_text)
     tts_text = re.sub(r'[#*_`]', '', tts_text)
-    # Expand acronyms with word boundary match
+
+    # Handle number-attached compound units first (most specific to least)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mcg/kg/min', r'\1 micrograms per kilogram per minute', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mg/kg/min', r'\1 milligrams per kilogram per minute', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mcg/kg', r'\1 micrograms per kilogram', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mg/kg', r'\1 milligrams per kilogram', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mcg/mL', r'\1 micrograms per milliliter', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mg/mL', r'\1 milligrams per milliliter', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mL/hr', r'\1 milliliters per hour', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mL/min', r'\1 milliliters per minute', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*L/min', r'\1 liters per minute', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mmHg', r'\1 millimeters of mercury', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*cmH2O', r'\1 centimeters of water', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mEq', r'\1 milliequivalents', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mmol', r'\1 millimoles', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mcg', r'\1 micrograms', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mL', r'\1 milliliters', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*mg', r'\1 milligrams', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*kg', r'\1 kilograms', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*g\b', r'\1 grams', tts_text)
+    tts_text = re.sub(r'(\d+\.?\d*)\s*L\b', r'\1 liters', tts_text)
+
+    # Then expand standalone acronyms
     for acronym, expansion in TTS_EXPANSIONS.items():
         tts_text = re.sub(r'\b' + re.escape(acronym) + r'\b', expansion, tts_text)
+
     return tts_text
 
 
 def query_cdss(query: str, voice_mode: str = "brief") -> str:
     """Send query to arcaneone and return response"""
     try:
-        # Pre-process query — convert lbs to kg for safety
         processed_query = preprocess_query(query)
 
-        # Notify if weight was converted
         if processed_query != query:
             print(f"\n⚠️  Weight converted: {processed_query}")
 
