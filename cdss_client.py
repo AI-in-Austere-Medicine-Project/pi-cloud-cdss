@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SERVER_URL = os.getenv('CDSS_SERVER_URL', 'http://34.41.44.77:8000')
+SERVER_URL = os.getenv('CDSS_SERVER_URL', ')
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 DEVICE_ID = os.getenv('DEVICE_ID', 'radxa-zero3')
 
