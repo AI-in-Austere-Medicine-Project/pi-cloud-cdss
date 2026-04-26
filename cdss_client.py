@@ -11,11 +11,34 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+<<<<<<< HEAD
 SERVER_URL = os.getenv('CDSS_SERVER_URL', ')
+=======
+SERVER_URL = os.getenv('CDSS_SERVER_URL', 'http://34.63.127.8:8000')
+>>>>>>> 03f4b41 (Add gitignore, update TTS expansions and voice speed)
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 DEVICE_ID = os.getenv('DEVICE_ID', 'radxa-zero3')
 
 TTS_EXPANSIONS = {
+    # Common abbreviations
+    "e.g.": "for example",
+    "i.e.": "that is",
+    "etc.": "and so on",
+    "vs.": "versus",
+    "approx.": "approximately",
+    "max.": "maximum",
+    "min.": "minimum",
+    "sx": "symptoms",
+    "dx": "diagnosis",
+    "tx": "treatment",
+    "hx": "history",
+    "px": "patient",
+    "w/": "with",
+    "w/o": "without",
+    "s/p": "status post",
+    "c/o": "complains of",
+    "h/o": "history of",
+
     # Units
     "mL": "milliliters",
     "mg": "milligrams",
@@ -28,6 +51,24 @@ TTS_EXPANSIONS = {
     "IU": "international units",
     "mEq": "milliequivalents",
     "mmol": "millimoles",
+
+    # Concentrations and rates
+    "mg/mL": "milligrams per milliliter",
+    "mcg/mL": "micrograms per milliliter",
+    "mg/kg": "milligrams per kilogram",
+    "mcg/kg": "micrograms per kilogram",
+    "mL/hr": "milliliters per hour",
+    "mL/min": "milliliters per minute",
+    "mg/min": "milligrams per minute",
+    "mcg/min": "micrograms per minute",
+    "mcg/kg/min": "micrograms per kilogram per minute",
+    "mg/kg/min": "milligrams per kilogram per minute",
+    "L/min": "liters per minute",
+    "breaths/min": "breaths per minute",
+    "beats/min": "beats per minute",
+    "/min": "per minute",
+    "/hr": "per hour",
+    "/kg": "per kilogram",
 
     # Routes
     "IV": "intravenous",
@@ -169,6 +210,7 @@ def speak(text: str):
     """Play response via ElevenLabs TTS with medical term expansion"""
     try:
         from elevenlabs.client import ElevenLabs
+        from elevenlabs import VoiceSettings
         import pygame
         import io
 
@@ -178,7 +220,12 @@ def speak(text: str):
         audio = client.text_to_speech.convert(
             voice_id="JBFqnCBsd6RMkjVDRZzb",
             text=tts_text,
-            model_id="eleven_multilingual_v2"
+            model_id="eleven_multilingual_v2",
+            voice_settings=VoiceSettings(
+                stability=0.5,
+                similarity_boost=0.75,
+                speed=0.85
+            )
         )
 
         audio_bytes = b"".join(audio)
