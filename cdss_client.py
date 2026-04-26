@@ -1,6 +1,10 @@
 """
 EdgeCDSS Thin Client - Radxa Zero 3W
 Routes queries to arcaneone backend, plays response via ElevenLabs
+Version: 1.3.0
+- TTS medical term expansion
+- Voice speed control
+- lbs to kg auto-conversion for patient safety
 """
 
 import os
@@ -11,11 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-<<<<<<< HEAD
-SERVER_URL = os.getenv('CDSS_SERVER_URL', ')
-=======
 SERVER_URL = os.getenv('CDSS_SERVER_URL', 'http://34.63.127.8:8000')
->>>>>>> 03f4b41 (Add gitignore, update TTS expansions and voice speed)
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 DEVICE_ID = os.getenv('DEVICE_ID', 'radxa-zero3')
 
@@ -172,6 +172,28 @@ TTS_EXPANSIONS = {
 }
 
 
+def preprocess_query(query: str) -> str:
+    """
+    Pre-process query before sending to backend.
+    Converts lbs/pounds to kg for patient safety.
+    Always annotates weight in both units.
+    """
+    def convert_weight(match):
+        lbs_val = float(match.group(1))
+        kg_val = round(lbs_val / 2.2, 1)
+        return f"{lbs_val} lbs ({kg_val} kg)"
+
+    # Match: 220lbs, 220 lbs, 220lb, 220 pounds, 220 pound
+    processed = re.sub(
+        r'(\d+\.?\d*)\s*(?:lbs?|pounds?)',
+        convert_weight,
+        query,
+        flags=re.IGNORECASE
+    )
+
+    return processed
+
+
 def expand_for_tts(text: str) -> str:
     """Expand medical acronyms and units for natural TTS pronunciation"""
     tts_text = text
@@ -187,8 +209,15 @@ def expand_for_tts(text: str) -> str:
 def query_cdss(query: str, voice_mode: str = "brief") -> str:
     """Send query to arcaneone and return response"""
     try:
+        # Pre-process query — convert lbs to kg for safety
+        processed_query = preprocess_query(query)
+
+        # Notify if weight was converted
+        if processed_query != query:
+            print(f"\n⚠️  Weight converted: {processed_query}")
+
         payload = {
-            "query": query,
+            "query": processed_query,
             "device_id": DEVICE_ID,
             "timestamp": datetime.datetime.now().isoformat(),
             "voice_mode": voice_mode
