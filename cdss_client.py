@@ -1,21 +1,24 @@
 """
 EdgeCDSS Thin Client - Radxa Zero 3W
 Routes queries to arcaneone backend, plays response via ElevenLabs
-Version: 1.4.0
+Version: 1.5.1
 - TTS medical term expansion with number-attached unit handling
 - Voice speed control
 - lbs to kg auto-conversion for patient safety
+- Non-blocking async TTS — prompt returns immediately after response
+- Updated server IP
 """
 
 import os
 import re
 import requests
 import datetime
+import threading
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SERVER_URL = os.getenv('CDSS_SERVER_URL', 'http://34.63.127.8:8000')
+SERVER_URL = os.getenv('CDSS_SERVER_URL', 'http://35.223.131.104:8000')
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 DEVICE_ID = os.getenv('DEVICE_ID', 'radxa-zero3')
 
@@ -254,7 +257,13 @@ def speak(text: str):
 
     except Exception as e:
         print(f"TTS unavailable: {e}")
-        print(f"\nRESPONSE:\n{text}")
+
+
+def speak_async(text: str):
+    """Run TTS in background thread so prompt returns immediately"""
+    thread = threading.Thread(target=speak, args=(text,))
+    thread.daemon = True
+    thread.start()
 
 
 def main():
@@ -275,7 +284,7 @@ def main():
             print("\nQuerying JTS protocols...")
             response = query_cdss(query)
             print(f"\n{response}")
-            speak(response)
+            speak_async(response)
 
         except KeyboardInterrupt:
             print("\nShutting down.")
