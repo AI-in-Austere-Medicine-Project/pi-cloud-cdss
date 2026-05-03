@@ -357,12 +357,6 @@ Contributions welcome — especially from medics, paramedics, and field medicine
 
 ---
 
-## Author
-
-**Andrew Azelton, BS, NRP, LP, FP-C, WP-C**  
-MSc Candidate, Austere Critical Care (CoROM)  
-Arcane Knowledge Group (AKG)
-
 GitHub: [@aazelton](https://github.com/aazelton)  
 Organization: [AI-in-Austere-Medicine-Project](https://github.com/AI-in-Austere-Medicine-Project)
 
