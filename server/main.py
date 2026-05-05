@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
 CDSS Cloud API Server
-Version: 2.0.0
+Version: 2.1.0
 - Rate limiting: 10 queries per IP per 24hrs
 - CORS for GitHub Pages
 - Feedback/flag endpoint
 - Access token authentication
+- Server-side ElevenLabs TTS endpoint
 """
 
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import os
 import time
+import httpx
 from collections import defaultdict
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
@@ -21,18 +24,13 @@ from openai_client import query_with_rag
 
 load_dotenv()
 
-app = FastAPI(title="CDSS Cloud API", version="2.0.0")
+app = FastAPI(title="CDSS Cloud API", version="2.1.0")
 
-# CORS — allow GitHub Pages and local dev
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://ai-in-austere-medicine-project.github.io",
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "http://127.0.0.1:5500",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -46,17 +44,16 @@ except Exception as e:
     raise
 
 # ─────────────────────────────────────────
-# Rate limiting — 10 queries per IP per 24hrs
+# Rate limiting
 # ─────────────────────────────────────────
 RATE_LIMIT = 10
-RATE_WINDOW = 86400  # 24 hours in seconds
+RATE_WINDOW = 86400
 
-rate_store = defaultdict(list)  # {ip: [timestamps]}
+rate_store = defaultdict(list)
 
 def check_rate_limit(ip: str) -> dict:
     now = time.time()
     cutoff = now - RATE_WINDOW
-    # Clean old entries
     rate_store[ip] = [t for t in rate_store[ip] if t > cutoff]
     count = len(rate_store[ip])
     remaining = RATE_LIMIT - count
@@ -71,14 +68,9 @@ def check_rate_limit(ip: str) -> dict:
     }
 
 # ─────────────────────────────────────────
-# Access token check
+# Access token
 # ─────────────────────────────────────────
 ACCESS_TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
-
-def verify_token(request: Request):
-    token = request.headers.get("X-Access-Token", "")
-    if token != ACCESS_TOKEN:
-        raise HTTPException(status_code=401, detail="Invalid access token")
 
 # ─────────────────────────────────────────
 # Models
@@ -100,7 +92,7 @@ class QueryResponse(BaseModel):
 class FeedbackRequest(BaseModel):
     query: str
     response: str
-    feedback_type: str  # "helpful", "incorrect", "dangerous", "unclear", "other"
+    feedback_type: str
     comment: str = ""
     device_id: str = "web"
 
@@ -112,7 +104,7 @@ async def root():
     return {
         "message": "CDSS Cloud API",
         "status": "running",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "voice_support": True
     }
 
@@ -133,12 +125,10 @@ async def health_check():
 async def query_endpoint(request: QueryRequest, http_request: Request):
     """Main query endpoint with rate limiting and token auth"""
 
-    # Token check
     token = http_request.headers.get("X-Access-Token", "")
     if token != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid access token")
 
-    # Rate limit check
     ip = http_request.client.host
     rate = check_rate_limit(ip)
     if not rate["allowed"]:
@@ -148,7 +138,6 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             detail=f"Rate limit reached. 10 queries per 24 hours. Resets in {hours} hours."
         )
 
-    # Record this request
     rate_store[ip].append(time.time())
 
     start_time = datetime.now()
@@ -182,10 +171,8 @@ async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
         "response_preview": feedback.response[:200],
         "comment": feedback.comment
     }
-    # Append to feedback log
     with open("/home/akaclinicalco/cdss-cloud/feedback.log", "a") as f:
         f.write(str(log_entry) + "\n")
-
     return {"status": "received", "message": "Feedback recorded. Thank you."}
 
 @app.get("/feedback/summary")
@@ -201,15 +188,50 @@ async def feedback_summary(http_request: Request):
     except FileNotFoundError:
         return {"total_feedback": 0, "entries": []}
 
+@app.post("/speak")
+async def speak_endpoint(http_request: Request):
+    """Convert text to speech via ElevenLabs server-side"""
+    token = http_request.headers.get("X-Access-Token", "")
+    if token != ACCESS_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid access token")
+
+    body = await http_request.json()
+    text = body.get("text", "")
+
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+    VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
+            headers={
+                "xi-api-key": ELEVENLABS_API_KEY,
+                "Content-Type": "application/json"
+            },
+            json={
+                "text": text,
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.75,
+                    "speed": 0.85
+                }
+            },
+            timeout=30
+        )
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="ElevenLabs error")
+
+    return Response(
+        content=response.content,
+        media_type="audio/mpeg"
+    )
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
-
-    app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # temporarily open for testing
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
