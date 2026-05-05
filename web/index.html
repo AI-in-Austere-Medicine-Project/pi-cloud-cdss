@@ -113,13 +113,8 @@
             margin-bottom: 12px;
         }
 
-        .response-content {
-            display: none;
-        }
-
-        .response-content.active {
-            display: block;
-        }
+        .response-content { display: none; }
+        .response-content.active { display: block; }
 
         .query-echo {
             font-size: 11px;
@@ -135,9 +130,7 @@
             white-space: pre-wrap;
         }
 
-        .response-text strong {
-            color: #fff;
-        }
+        .response-text strong { color: #fff; }
 
         .response-meta {
             margin-top: 16px;
@@ -207,11 +200,7 @@
             transition: border-color 0.2s;
         }
 
-        .query-input:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-
+        .query-input:focus { outline: none; border-color: #2563eb; }
         .query-input::placeholder { color: #475569; }
 
         .send-btn {
@@ -258,11 +247,6 @@
             animation: pulse 1s infinite;
         }
 
-        .mic-btn.speaking {
-            border-color: #10b981;
-            background: #0a1a12;
-        }
-
         @keyframes pulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0.4); }
             50% { box-shadow: 0 0 0 8px rgba(233, 69, 96, 0); }
@@ -275,7 +259,6 @@
         }
 
         .mic-status.active { color: #e94560; }
-        .mic-status.speaking { color: #10b981; }
 
         .loading {
             display: none;
@@ -399,7 +382,9 @@
 
     <div class="disclaimer-banner">
         <strong>⚠️ Research Prototype — Not for Clinical Use</strong>
-        This system is under active development and has not been validated for clinical deployment. All responses are AI-generated and must not be used to make patient care decisions. Always follow your training, protocols, and the judgment of qualified medical personnel.
+        This system is under active development and has not been validated for clinical deployment.
+        All responses are AI-generated and must not be used to make patient care decisions.
+        Always follow your training, protocols, and the judgment of qualified medical personnel.
     </div>
 
     <div class="rate-bar">
@@ -470,15 +455,74 @@
     const API_URL = "https://arcaneone.duckdns.org";
     const ACCESS_TOKEN = "edgecdss-demo-2026";
     const RATE_LIMIT = 10;
-    const RATE_WINDOW = 86400000;
+    const RATE_WINDOW = 86400000; // 24hrs ms
 
     // ─── State ────────────────────────────────────────────────
     let currentQuery = "";
     let currentResponse = "";
     let recognition = null;
     let isListening = false;
-    let isSpeaking = false;
-    let currentAudio = null;
+
+    // ─────────────────────────────────────────────────────────
+    // ELEVENLABS TTS — DORMANT
+    // Server-side /speak endpoint is live on arcaneone.
+    // To re-enable: uncomment speakResponse() call in submitQuery()
+    // and uncomment the speakResponse() and stopAudio() functions below.
+    // Endpoint confirmed working via curl — returns valid MP3.
+    // Browser autoplay policy on mobile may require user gesture first.
+    // ─────────────────────────────────────────────────────────
+
+    // let isSpeaking = false;
+    // let currentAudio = null;
+
+    // async function speakResponse(text) {
+    //     try {
+    //         stopAudio();
+    //         document.getElementById('mic-btn').classList.add('speaking');
+    //         document.getElementById('mic-btn').textContent = '🔊';
+    //         document.getElementById('mic-status').textContent = 'Speaking response...';
+    //         document.getElementById('mic-status').className = 'mic-status speaking';
+    //         isSpeaking = true;
+    //
+    //         const res = await fetch(`${API_URL}/speak`, {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'X-Access-Token': ACCESS_TOKEN
+    //             },
+    //             body: JSON.stringify({ text: text })
+    //         });
+    //
+    //         if (!res.ok) throw new Error('TTS failed - status ' + res.status);
+    //
+    //         const audioBlob = await res.blob();
+    //         const audioUrl = URL.createObjectURL(audioBlob);
+    //         currentAudio = new Audio(audioUrl);
+    //         currentAudio.onended = () => { stopAudio(); };
+    //         currentAudio.onerror = (e) => { console.error('Audio error:', e); stopAudio(); };
+    //         await currentAudio.play();
+    //
+    //     } catch(e) {
+    //         console.error('TTS error:', e);
+    //         stopAudio();
+    //         // Fallback to browser TTS
+    //         const clean = text.replace(/\*\*/g, '').replace(/[#*_`]/g, '');
+    //         const utterance = new SpeechSynthesisUtterance(clean);
+    //         utterance.rate = 0.9;
+    //         utterance.onend = () => { stopAudio(); };
+    //         window.speechSynthesis.speak(utterance);
+    //     }
+    // }
+
+    // function stopAudio() {
+    //     window.speechSynthesis.cancel();
+    //     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    //     isSpeaking = false;
+    //     document.getElementById('mic-btn').classList.remove('speaking');
+    //     document.getElementById('mic-btn').textContent = '🎙️';
+    //     document.getElementById('mic-status').textContent = 'Tap mic to speak, or type below';
+    //     document.getElementById('mic-status').className = 'mic-status';
+    // }
 
     // ─── Rate limiting ────────────────────────────────────────
     function getRateData() {
@@ -520,9 +564,8 @@
         }
     }
 
-    // ─── Voice input ──────────────────────────────────────────
+    // ─── Voice input (STT only) ───────────────────────────────
     function toggleMic() {
-        if (isSpeaking) { stopAudio(); return; }
         if (isListening) { stopListening(); } else { startListening(); }
     }
 
@@ -567,63 +610,6 @@
         isListening = false;
         if (recognition) { try { recognition.stop(); } catch(e) {} }
         document.getElementById('mic-btn').classList.remove('listening');
-        document.getElementById('mic-btn').textContent = '🎙️';
-        document.getElementById('mic-status').textContent = 'Tap mic to speak, or type below';
-        document.getElementById('mic-status').className = 'mic-status';
-    }
-
-    // ─── TTS via ElevenLabs server-side ──────────────────────
-    async function speakResponse(text) {
-        try {
-            stopAudio();
-
-            document.getElementById('mic-btn').classList.add('speaking');
-            document.getElementById('mic-btn').textContent = '🔊';
-            document.getElementById('mic-status').textContent = 'Speaking response...';
-            document.getElementById('mic-status').className = 'mic-status speaking';
-            isSpeaking = true;
-
-            const res = await fetch(`${API_URL}/speak`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Access-Token': ACCESS_TOKEN
-                },
-                body: JSON.stringify({ text: text })
-            });
-
-            if (!res.ok) throw new Error('TTS failed - status ' + res.status);
-
-            const audioBlob = await res.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            currentAudio = new Audio(audioUrl);
-            currentAudio.onended = () => { stopAudio(); };
-            currentAudio.onerror = (e) => {
-                console.error('Audio playback error:', e);
-                stopAudio();
-            };
-            await currentAudio.play();
-
-        } catch(e) {
-            console.error('TTS error:', e);
-            stopAudio();
-            // Fallback to browser TTS
-            const clean = text.replace(/\*\*/g, '').replace(/[#*_`]/g, '');
-            const utterance = new SpeechSynthesisUtterance(clean);
-            utterance.rate = 0.9;
-            utterance.onend = () => { stopAudio(); };
-            window.speechSynthesis.speak(utterance);
-        }
-    }
-
-    function stopAudio() {
-        window.speechSynthesis.cancel();
-        if (currentAudio) {
-            currentAudio.pause();
-            currentAudio = null;
-        }
-        isSpeaking = false;
-        document.getElementById('mic-btn').classList.remove('speaking');
         document.getElementById('mic-btn').textContent = '🎙️';
         document.getElementById('mic-status').textContent = 'Tap mic to speak, or type below';
         document.getElementById('mic-status').className = 'mic-status';
@@ -676,7 +662,10 @@
 
             recordQuery();
             showResponse(query, data.response, elapsed);
-            speakResponse(data.response);
+
+            // TO RE-ENABLE ELEVENLABS: uncomment the line below
+            // speakResponse(data.response);
+
             document.getElementById('query-input').value = '';
 
         } catch (err) {
