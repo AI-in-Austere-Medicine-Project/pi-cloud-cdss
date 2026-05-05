@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdgeCDSS — Austere Medicine AI</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1923;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #1a2535;
+            border-bottom: 2px solid #e94560;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .logo span { color: #e94560; }
+
+        .badge {
+            background: #e94560;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .disclaimer-banner {
+            background: #1e3a5f;
+            border: 1px solid #2563eb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 16px;
+            font-size: 12px;
+            color: #93c5fd;
+            line-height: 1.5;
+        }
+
+        .disclaimer-banner strong {
+            color: #fff;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0 16px 16px;
+            max-width: 700px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .rate-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1a2535;
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .rate-bar .count {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .response-area {
+            flex: 1;
+            background: #1a2535;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            min-height: 300px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .response-placeholder {
+            color: #334155;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 80px;
+            line-height: 1.8;
+        }
+
+        .response-placeholder .icon {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .response-content {
+            display: none;
+        }
+
+        .response-content.active {
+            display: block;
+        }
+
+        .query-echo {
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        .response-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+        }
+
+        .response-text strong {
+            color: #fff;
+        }
+
+        .response-meta {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #0f1923;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .response-time {
+            font-size: 11px;
+            color: #475569;
+        }
+
+        .feedback-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .feedback-btn {
+            background: #0f1923;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .feedback-btn:hover { border-color: #64748b; color: #e2e8f0; }
+        .feedback-btn.helpful:hover { border-color: #10b981; color: #10b981; }
+        .feedback-btn.incorrect:hover { border-color: #f59e0b; color: #f59e0b; }
+        .feedback-btn.dangerous:hover { border-color: #e94560; color: #e94560; }
+
+        .feedback-sent {
+            font-size: 11px;
+            color: #10b981;
+            display: none;
+        }
+
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .text-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .query-input {
+            flex: 1;
+            background: #1a2535;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #e2e8f0;
+            font-size: 14px;
+            resize: none;
+            height: 52px;
+            transition: border-color 0.2s;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .query-input::placeholder { color: #475569; }
+
+        .send-btn {
+            background: #2563eb;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            width: 52px;
+            height: 52px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover { background: #1d4ed8; }
+        .send-btn:disabled { background: #334155; cursor: not-allowed; }
+
+        .mic-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mic-btn {
+            background: #1a2535;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            width: 64px;
+            height: 64px;
+            font-size: 26px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .mic-btn:hover { border-color: #e94560; }
+        .mic-btn.listening {
+            border-color: #e94560;
+            background: #1a0a0f;
+            animation: pulse 1s infinite;
+        }
+
+        .mic-btn.speaking {
+            border-color: #10b981;
+            background: #0a1a12;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(233, 69, 96, 0); }
+        }
+
+        .mic-status {
+            font-size: 13px;
+            color: #64748b;
+            flex: 1;
+        }
+
+        .mic-status.active { color: #e94560; }
+        .mic-status.speaking { color: #10b981; }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .loading.active { display: block; }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        .error-msg {
+            background: #1a0a0f;
+            border: 1px solid #e94560;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+            color: #f87171;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-msg.active { display: block; }
+
+        footer {
+            text-align: center;
+            padding: 12px;
+            font-size: 10px;
+            color: #334155;
+            border-top: 1px solid #1a2535;
+        }
+
+        footer a { color: #475569; text-decoration: none; }
+        footer a:hover { color: #94a3b8; }
+
+        .feedback-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .feedback-modal.active { display: flex; }
+
+        .feedback-box {
+            background: #1a2535;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #334155;
+        }
+
+        .feedback-box h3 {
+            font-size: 15px;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        .feedback-box textarea {
+            width: 100%;
+            background: #0f1923;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 13px;
+            padding: 10px;
+            height: 80px;
+            resize: none;
+            margin-bottom: 12px;
+        }
+
+        .feedback-box textarea:focus { outline: none; border-color: #2563eb; }
+
+        .modal-btns {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .modal-btns button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-cancel { background: #334155; color: #94a3b8; }
+        .btn-submit { background: #2563eb; color: white; }
+
+        @media (max-width: 480px) {
+            .logo { font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">Edge<span>CDSS</span></div>
+    <span class="badge">RESEARCH ONLY</span>
+</header>
+
+<div class="main">
+
+    <div class="disclaimer-banner">
+        <strong>⚠️ Research Prototype — Not for Clinical Use</strong>
+        This system is under active development and has not been validated for clinical deployment. All responses are AI-generated and must not be used to make patient care decisions. Always follow your training, protocols, and the judgment of qualified medical personnel.
+    </div>
+
+    <div class="rate-bar">
+        <span>Query limit: <span class="count" id="remaining">10</span> of 10 remaining today</span>
+        <span id="reset-time"></span>
+    </div>
+
+    <div class="response-area">
+        <div class="response-placeholder" id="placeholder">
+            <span class="icon">🎙️</span>
+            Tap the mic and ask a clinical question.<br>
+            <small style="font-size:12px; color:#1e3a5f;">e.g. "TXA dose for hemorrhagic shock 80kg patient"</small>
+        </div>
+        <div class="loading" id="loading">
+            <span class="loading-dots">Querying JTS protocols</span>
+        </div>
+        <div class="response-content" id="response-content">
+            <div class="query-echo" id="query-echo"></div>
+            <div class="response-text" id="response-text"></div>
+            <div class="response-meta">
+                <span class="response-time" id="response-time"></span>
+                <div class="feedback-row">
+                    <button class="feedback-btn helpful" onclick="submitFeedback('helpful')">👍 Helpful</button>
+                    <button class="feedback-btn incorrect" onclick="submitFeedback('incorrect')">⚠️ Incorrect</button>
+                    <button class="feedback-btn dangerous" onclick="submitFeedback('dangerous')">🚨 Dangerous</button>
+                    <button class="feedback-btn" onclick="openFeedbackModal()">💬 Comment</button>
+                </div>
+                <span class="feedback-sent" id="feedback-sent">✓ Feedback received</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="input-area">
+        <div class="mic-row">
+            <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎙️</button>
+            <span class="mic-status" id="mic-status">Tap mic to speak, or type below</span>
+        </div>
+        <div class="text-row">
+            <textarea class="query-input" id="query-input" placeholder="Or type your clinical question here..." onkeydown="handleKey(event)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="submitQuery()" title="Send">➤</button>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    AI in Austere Medicine Project &nbsp;·&nbsp;
+    <a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank">GitHub</a>
+    &nbsp;·&nbsp; Research prototype &nbsp;·&nbsp; Not for clinical use
+</footer>
+
+<!-- Feedback Modal -->
+<div class="feedback-modal" id="feedback-modal">
+    <div class="feedback-box">
+        <h3>Add a comment</h3>
+        <textarea id="feedback-comment" placeholder="Describe the issue or suggestion..."></textarea>
+        <div class="modal-btns">
+            <button class="btn-cancel" onclick="closeFeedbackModal()">Cancel</button>
+            <button class="btn-submit" onclick="submitFeedbackWithComment()">Submit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ─── Config ───────────────────────────────────────────────
+    const API_URL = "http://34.41.255.196:8000";
+    const ACCESS_TOKEN = "edgecdss-demo-2026";
+    const RATE_LIMIT = 10;
+    const RATE_WINDOW = 86400000; // 24hrs ms
+
+    // ─── State ────────────────────────────────────────────────
+    let currentQuery = "";
+    let currentResponse = "";
+    let recognition = null;
+    let isListening = false;
+    let isSpeaking = false;
+    let currentAudio = null;
+
+    // ─── Rate limiting (client side) ─────────────────────────
+    function getRateData() {
+        const raw = localStorage.getItem('cdss_rate');
+        if (!raw) return { queries: [], firstQuery: null };
+        return JSON.parse(raw);
+    }
+
+    function saveRateData(data) {
+        localStorage.setItem('cdss_rate', JSON.stringify(data));
+    }
+
+    function checkAndUpdateRate() {
+        let data = getRateData();
+        const now = Date.now();
+        const cutoff = now - RATE_WINDOW;
+        data.queries = data.queries.filter(t => t > cutoff);
+        const remaining = RATE_LIMIT - data.queries.length;
+        updateRateDisplay(remaining, data.queries);
+        return remaining > 0;
+    }
+
+    function recordQuery() {
+        let data = getRateData();
+        const now = Date.now();
+        data.queries.push(now);
+        saveRateData(data);
+        const remaining = RATE_LIMIT - data.queries.length;
+        updateRateDisplay(remaining, data.queries);
+    }
+
+    function updateRateDisplay(remaining, queries) {
+        document.getElementById('remaining').textContent = Math.max(0, remaining);
+        document.getElementById('remaining').style.color = remaining > 3 ? '#10b981' : remaining > 0 ? '#f59e0b' : '#e94560';
+        if (queries.length > 0) {
+            const resetAt = queries[0] + RATE_WINDOW;
+            const hoursLeft = Math.ceil((resetAt - Date.now()) / 3600000);
+            if (remaining <= 0) {
+                document.getElementById('reset-time').textContent = `Resets in ~${hoursLeft}h`;
+            }
+        }
+    }
+
+    // ─── Voice input ──────────────────────────────────────────
+    function toggleMic() {
+        if (isSpeaking) {
+            stopAudio();
+            return;
+        }
+        if (isListening) {
+            stopListening();
+        } else {
+            startListening();
+        }
+    }
+
+    function startListening() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            showError("Voice input not supported in this browser. Please use Chrome.");
+            return;
+        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            isListening = true;
+            document.getElementById('mic-btn').classList.add('listening');
+            document.getElementById('mic-btn').textContent = '⏹️';
+            document.getElementById('mic-status').textContent = 'Listening...';
+            document.getElementById('mic-status').className = 'mic-status active';
+        };
+
+        recognition.onresult = (e) => {
+            const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+            document.getElementById('query-input').value = transcript;
+            if (e.results[e.results.length-1].isFinal) {
+                stopListening();
+                submitQuery();
+            }
+        };
+
+        recognition.onerror = (e) => {
+            stopListening();
+            if (e.error !== 'no-speech') showError("Mic error: " + e.error);
+        };
+
+        recognition.onend = () => { stopListening(); };
+        recognition.start();
+    }
+
+    function stopListening() {
+        isListening = false;
+        if (recognition) { try { recognition.stop(); } catch(e) {} }
+        document.getElementById('mic-btn').classList.remove('listening');
+        document.getElementById('mic-btn').textContent = '🎙️';
+        document.getElementById('mic-status').textContent = 'Tap mic to speak, or type below';
+        document.getElementById('mic-status').className = 'mic-status';
+    }
+
+    // ─── TTS via ElevenLabs ───────────────────────────────────
+    async function speakResponse(text) {
+        const ELEVEN_KEY = ""; // Leave blank — TTS handled server-side
+        // Fallback to Web Speech API
+        const clean = text.replace(/\*\*/g, '').replace(/[#*_`]/g, '');
+        const utterance = new SpeechSynthesisUtterance(clean);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+
+        document.getElementById('mic-btn').classList.add('speaking');
+        document.getElementById('mic-btn').textContent = '🔊';
+        document.getElementById('mic-status').textContent = 'Speaking response...';
+        document.getElementById('mic-status').className = 'mic-status speaking';
+        isSpeaking = true;
+
+        utterance.onend = () => { stopAudio(); };
+        utterance.onerror = () => { stopAudio(); };
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function stopAudio() {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        document.getElementById('mic-btn').classList.remove('speaking');
+        document.getElementById('mic-btn').textContent = '🎙️';
+        document.getElementById('mic-status').textContent = 'Tap mic to speak, or type below';
+        document.getElementById('mic-status').className = 'mic-status';
+    }
+
+    // ─── Query submission ─────────────────────────────────────
+    async function submitQuery() {
+        const query = document.getElementById('query-input').value.trim();
+        if (!query) return;
+
+        if (!checkAndUpdateRate()) {
+            showError("Daily limit reached (10 queries). Resets in 24 hours.");
+            return;
+        }
+
+        currentQuery = query;
+        hideError();
+        showLoading();
+
+        try {
+            const start = Date.now();
+            const res = await fetch(`${API_URL}/query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Access-Token': ACCESS_TOKEN
+                },
+                body: JSON.stringify({
+                    query: query,
+                    device_id: 'web-interface',
+                    timestamp: new Date().toISOString(),
+                    voice_mode: 'brief'
+                })
+            });
+
+            if (res.status === 429) {
+                const data = await res.json();
+                showError(data.detail);
+                hideLoading();
+                return;
+            }
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.detail || 'Server error');
+            }
+
+            const data = await res.json();
+            const elapsed = Date.now() - start;
+
+            recordQuery();
+            showResponse(query, data.response, elapsed);
+            speakResponse(data.response);
+            document.getElementById('query-input').value = '';
+
+        } catch (err) {
+            hideLoading();
+            showError("Connection error: " + err.message);
+        }
+    }
+
+    function handleKey(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitQuery();
+        }
+    }
+
+    // ─── UI helpers ───────────────────────────────────────────
+    function showLoading() {
+        document.getElementById('placeholder').style.display = 'none';
+        document.getElementById('loading').classList.add('active');
+        document.getElementById('response-content').classList.remove('active');
+        document.getElementById('send-btn').disabled = true;
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('send-btn').disabled = false;
+    }
+
+    function showResponse(query, response, elapsed) {
+        hideLoading();
+        currentResponse = response;
+
+        // Format markdown bold
+        const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        document.getElementById('query-echo').textContent = 'Query: ' + query;
+        document.getElementById('response-text').innerHTML = formatted;
+        document.getElementById('response-time').textContent = `${elapsed}ms`;
+        document.getElementById('response-content').classList.add('active');
+        document.getElementById('feedback-sent').style.display = 'none';
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('error-msg');
+        el.textContent = msg;
+        el.classList.add('active');
+    }
+
+    function hideError() {
+        document.getElementById('error-msg').classList.remove('active');
+    }
+
+    // ─── Feedback ─────────────────────────────────────────────
+    async function submitFeedback(type, comment = '') {
+        try {
+            await fetch(`${API_URL}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: currentQuery,
+                    response: currentResponse,
+                    feedback_type: type,
+                    comment: comment,
+                    device_id: 'web-interface'
+                })
+            });
+            document.getElementById('feedback-sent').style.display = 'inline';
+        } catch (e) {
+            console.error('Feedback error:', e);
+        }
+    }
+
+    function openFeedbackModal() {
+        document.getElementById('feedback-modal').classList.add('active');
+        document.getElementById('feedback-comment').focus();
+    }
+
+    function closeFeedbackModal() {
+        document.getElementById('feedback-modal').classList.remove('active');
+        document.getElementById('feedback-comment').value = '';
+    }
+
+    function submitFeedbackWithComment() {
+        const comment = document.getElementById('feedback-comment').value.trim();
+        submitFeedback('comment', comment);
+        closeFeedbackModal();
+    }
+
+    // ─── Init ─────────────────────────────────────────────────
+    checkAndUpdateRate();
+</script>
+
+</body>
+</html>
