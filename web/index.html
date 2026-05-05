@@ -470,7 +470,7 @@
     const API_URL = "https://arcaneone.duckdns.org";
     const ACCESS_TOKEN = "edgecdss-demo-2026";
     const RATE_LIMIT = 10;
-    const RATE_WINDOW = 86400000; // 24hrs ms
+    const RATE_WINDOW = 86400000;
 
     // ─── State ────────────────────────────────────────────────
     let currentQuery = "";
@@ -480,10 +480,10 @@
     let isSpeaking = false;
     let currentAudio = null;
 
-    // ─── Rate limiting (client side) ─────────────────────────
+    // ─── Rate limiting ────────────────────────────────────────
     function getRateData() {
         const raw = localStorage.getItem('cdss_rate');
-        if (!raw) return { queries: [], firstQuery: null };
+        if (!raw) return { queries: [] };
         return JSON.parse(raw);
     }
 
@@ -503,41 +503,32 @@
 
     function recordQuery() {
         let data = getRateData();
-        const now = Date.now();
-        data.queries.push(now);
+        data.queries.push(Date.now());
         saveRateData(data);
         const remaining = RATE_LIMIT - data.queries.length;
         updateRateDisplay(remaining, data.queries);
     }
 
     function updateRateDisplay(remaining, queries) {
-        document.getElementById('remaining').textContent = Math.max(0, remaining);
-        document.getElementById('remaining').style.color = remaining > 3 ? '#10b981' : remaining > 0 ? '#f59e0b' : '#e94560';
-        if (queries.length > 0) {
+        const el = document.getElementById('remaining');
+        el.textContent = Math.max(0, remaining);
+        el.style.color = remaining > 3 ? '#10b981' : remaining > 0 ? '#f59e0b' : '#e94560';
+        if (queries.length > 0 && remaining <= 0) {
             const resetAt = queries[0] + RATE_WINDOW;
             const hoursLeft = Math.ceil((resetAt - Date.now()) / 3600000);
-            if (remaining <= 0) {
-                document.getElementById('reset-time').textContent = `Resets in ~${hoursLeft}h`;
-            }
+            document.getElementById('reset-time').textContent = `Resets in ~${hoursLeft}h`;
         }
     }
 
     // ─── Voice input ──────────────────────────────────────────
     function toggleMic() {
-        if (isSpeaking) {
-            stopAudio();
-            return;
-        }
-        if (isListening) {
-            stopListening();
-        } else {
-            startListening();
-        }
+        if (isSpeaking) { stopAudio(); return; }
+        if (isListening) { stopListening(); } else { startListening(); }
     }
 
     function startListening() {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            showError("Voice input not supported in this browser. Please use Chrome.");
+            showError("Voice input not supported. Please use Chrome.");
             return;
         }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -581,28 +572,56 @@
         document.getElementById('mic-status').className = 'mic-status';
     }
 
-    // ─── TTS via ElevenLabs ───────────────────────────────────
+    // ─── TTS via ElevenLabs server-side ──────────────────────
     async function speakResponse(text) {
-        const ELEVEN_KEY = ""; // Leave blank — TTS handled server-side
-        // Fallback to Web Speech API
-        const clean = text.replace(/\*\*/g, '').replace(/[#*_`]/g, '');
-        const utterance = new SpeechSynthesisUtterance(clean);
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
+        try {
+            stopAudio();
 
-        document.getElementById('mic-btn').classList.add('speaking');
-        document.getElementById('mic-btn').textContent = '🔊';
-        document.getElementById('mic-status').textContent = 'Speaking response...';
-        document.getElementById('mic-status').className = 'mic-status speaking';
-        isSpeaking = true;
+            document.getElementById('mic-btn').classList.add('speaking');
+            document.getElementById('mic-btn').textContent = '🔊';
+            document.getElementById('mic-status').textContent = 'Speaking response...';
+            document.getElementById('mic-status').className = 'mic-status speaking';
+            isSpeaking = true;
 
-        utterance.onend = () => { stopAudio(); };
-        utterance.onerror = () => { stopAudio(); };
-        window.speechSynthesis.speak(utterance);
+            const res = await fetch(`${API_URL}/speak`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Access-Token': ACCESS_TOKEN
+                },
+                body: JSON.stringify({ text: text })
+            });
+
+            if (!res.ok) throw new Error('TTS failed - status ' + res.status);
+
+            const audioBlob = await res.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            currentAudio = new Audio(audioUrl);
+            currentAudio.onended = () => { stopAudio(); };
+            currentAudio.onerror = (e) => {
+                console.error('Audio playback error:', e);
+                stopAudio();
+            };
+            await currentAudio.play();
+
+        } catch(e) {
+            console.error('TTS error:', e);
+            stopAudio();
+            // Fallback to browser TTS
+            const clean = text.replace(/\*\*/g, '').replace(/[#*_`]/g, '');
+            const utterance = new SpeechSynthesisUtterance(clean);
+            utterance.rate = 0.9;
+            utterance.onend = () => { stopAudio(); };
+            window.speechSynthesis.speak(utterance);
+        }
     }
 
     function stopAudio() {
         window.speechSynthesis.cancel();
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
         isSpeaking = false;
         document.getElementById('mic-btn').classList.remove('speaking');
         document.getElementById('mic-btn').textContent = '🎙️';
@@ -662,7 +681,7 @@
 
         } catch (err) {
             hideLoading();
-            showError("Connection error: " + err.message);
+            showError("Error: " + err.message);
         }
     }
 
@@ -689,10 +708,7 @@
     function showResponse(query, response, elapsed) {
         hideLoading();
         currentResponse = response;
-
-        // Format markdown bold
         const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
         document.getElementById('query-echo').textContent = 'Query: ' + query;
         document.getElementById('response-text').innerHTML = formatted;
         document.getElementById('response-time').textContent = `${elapsed}ms`;
@@ -725,7 +741,7 @@
                 })
             });
             document.getElementById('feedback-sent').style.display = 'inline';
-        } catch (e) {
+        } catch(e) {
             console.error('Feedback error:', e);
         }
     }
