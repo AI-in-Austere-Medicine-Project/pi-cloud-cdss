@@ -1,8 +1,40 @@
+# Environment
 .env
-*.key
-config/config.json
+*.env
+.env.*
+.env.local
+
+# Python
 __pycache__/
 *.pyc
-.DS_Store
-.vscode/
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Logs
 *.log
+server.log
+feedback.log
+
+# Data — too large for GitHub
+cache/
+data/
+chromadb/
+
+# Editor
+.vscode/
+*.code-workspace
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test output
+cdss_test_report_*.txt
+cdss_test_results_*.json
+
+# Keys
+*.pem
+*.key
