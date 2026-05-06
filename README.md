@@ -168,12 +168,10 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
 
 ## Documentation
 
-- [Proof of Concept Report](docs/EdgeCDSS_ProofOfConcept.pdf)
-- [System Architecture](docs/EdgeCDSS_Architecture.pdf)
-- [Development Roadmap](TODO.md)
-- [Changelog](CHANGELOG.md)
+## Documentation
 
----
+- [Proof of Concept Report](docs/EdgeCDSS_ProofOfConcept.pdf)
+- [Field Evaluation Report v1.1 — May 2026](docs/EdgeCDSS_FieldEvaluationReport_v1.pdf)
 
 ## License
 
