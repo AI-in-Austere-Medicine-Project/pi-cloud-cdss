@@ -30,7 +30,7 @@ The system operates across two knowledge domains:
 
 ## Live Demo
 
-**Web interface:** [https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Web interface:** - optional 
 
 - Voice input via Web Speech API (Chrome recommended)
 - Text response display
