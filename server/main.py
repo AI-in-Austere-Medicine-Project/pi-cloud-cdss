@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
 CDSS Cloud API Server
-Version: 2.1.0
-- Rate limiting: 10 queries per IP per 24hrs
-- CORS for GitHub Pages
-- Feedback/flag endpoint
-- Access token authentication
-- Server-side ElevenLabs TTS endpoint
+Version: 2.2.0
+- Rate limiting
+- CORS
+- Feedback endpoint
+- Access token auth
+- Server-side ElevenLabs TTS
+- Conversation history support
 """
 
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import time
 import httpx
@@ -24,9 +25,8 @@ from openai_client import query_with_rag
 
 load_dotenv()
 
-app = FastAPI(title="CDSS Cloud API", version="2.1.0")
+app = FastAPI(title="CDSS Cloud API", version="2.2.0")
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,7 +35,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize ChromaDB
 try:
     chromadb_client = ChromaDBClient()
     print("✅ ChromaDB and OpenAI clients initialized")
@@ -43,12 +42,9 @@ except Exception as e:
     print(f"❌ Error initializing clients: {e}")
     raise
 
-# ─────────────────────────────────────────
-# Rate limiting
-# ─────────────────────────────────────────
+# ─── Rate limiting ────────────────────────────────────────────
 RATE_LIMIT = 10
 RATE_WINDOW = 86400
-
 rate_store = defaultdict(list)
 
 def check_rate_limit(ip: str) -> dict:
@@ -57,29 +53,22 @@ def check_rate_limit(ip: str) -> dict:
     rate_store[ip] = [t for t in rate_store[ip] if t > cutoff]
     count = len(rate_store[ip])
     remaining = RATE_LIMIT - count
-    reset_time = None
-    if rate_store[ip]:
-        reset_time = int(rate_store[ip][0] + RATE_WINDOW - now)
-    return {
-        "allowed": count < RATE_LIMIT,
-        "count": count,
-        "remaining": remaining,
-        "reset_seconds": reset_time
-    }
+    reset_time = int(rate_store[ip][0] + RATE_WINDOW - now) if rate_store[ip] else None
+    return {"allowed": count < RATE_LIMIT, "count": count, "remaining": remaining, "reset_seconds": reset_time}
 
-# ─────────────────────────────────────────
-# Access token
-# ─────────────────────────────────────────
 ACCESS_TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
 
-# ─────────────────────────────────────────
-# Models
-# ─────────────────────────────────────────
+# ─── Models ──────────────────────────────────────────────────
+class ConversationTurn(BaseModel):
+    query: str
+    response: str
+
 class QueryRequest(BaseModel):
     query: str
     device_id: str
     timestamp: str
     voice_mode: str = "brief"
+    conversation_history: list = []
 
 class QueryResponse(BaseModel):
     response: str
@@ -96,35 +85,21 @@ class FeedbackRequest(BaseModel):
     comment: str = ""
     device_id: str = "web"
 
-# ─────────────────────────────────────────
-# Endpoints
-# ─────────────────────────────────────────
+# ─── Endpoints ───────────────────────────────────────────────
 @app.get("/")
 async def root():
-    return {
-        "message": "CDSS Cloud API",
-        "status": "running",
-        "version": "2.1.0",
-        "voice_support": True
-    }
+    return {"message": "CDSS Cloud API", "status": "running", "version": "2.2.0", "voice_support": True}
 
 @app.get("/health")
 async def health_check():
     try:
         doc_count = chromadb_client.get_collection_count()
-        return {
-            "status": "healthy",
-            "chromadb": "connected",
-            "openai": "connected",
-            "documents": doc_count,
-        }
+        return {"status": "healthy", "chromadb": "connected", "openai": "connected", "documents": doc_count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/query", response_model=QueryResponse)
 async def query_endpoint(request: QueryRequest, http_request: Request):
-    """Main query endpoint with rate limiting and token auth"""
-
     token = http_request.headers.get("X-Access-Token", "")
     if token != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid access token")
@@ -133,10 +108,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     rate = check_rate_limit(ip)
     if not rate["allowed"]:
         hours = round(rate["reset_seconds"] / 3600, 1)
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit reached. 10 queries per 24 hours. Resets in {hours} hours."
-        )
+        raise HTTPException(status_code=429, detail=f"Rate limit reached. Resets in {hours} hours.")
 
     rate_store[ip].append(time.time())
 
@@ -145,7 +117,8 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
         response_data = query_with_rag(
             request.query,
             chromadb_client,
-            voice_mode=(request.voice_mode == "brief")
+            voice_mode=(request.voice_mode == "brief"),
+            conversation_history=request.conversation_history
         )
         processing_time = int((datetime.now() - start_time).total_seconds() * 1000)
         return QueryResponse(
@@ -161,7 +134,6 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
 
 @app.post("/feedback")
 async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
-    """Collect user feedback on responses"""
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "ip": http_request.client.host,
@@ -177,7 +149,6 @@ async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
 
 @app.get("/feedback/summary")
 async def feedback_summary(http_request: Request):
-    """View feedback summary — token protected"""
     token = http_request.headers.get("X-Access-Token", "")
     if token != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -190,14 +161,12 @@ async def feedback_summary(http_request: Request):
 
 @app.post("/speak")
 async def speak_endpoint(http_request: Request):
-    """Convert text to speech via ElevenLabs server-side"""
     token = http_request.headers.get("X-Access-Token", "")
     if token != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid access token")
 
     body = await http_request.json()
     text = body.get("text", "")
-
     if not text:
         raise HTTPException(status_code=400, detail="No text provided")
 
@@ -207,18 +176,11 @@ async def speak_endpoint(http_request: Request):
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
-            headers={
-                "xi-api-key": ELEVENLABS_API_KEY,
-                "Content-Type": "application/json"
-            },
+            headers={"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"},
             json={
                 "text": text,
                 "model_id": "eleven_multilingual_v2",
-                "voice_settings": {
-                    "stability": 0.5,
-                    "similarity_boost": 0.75,
-                    "speed": 0.85
-                }
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": 0.85}
             },
             timeout=30
         )
@@ -226,10 +188,7 @@ async def speak_endpoint(http_request: Request):
     if response.status_code != 200:
         raise HTTPException(status_code=500, detail="ElevenLabs error")
 
-    return Response(
-        content=response.content,
-        media_type="audio/mpeg"
-    )
+    return Response(content=response.content, media_type="audio/mpeg")
 
 if __name__ == "__main__":
     import uvicorn

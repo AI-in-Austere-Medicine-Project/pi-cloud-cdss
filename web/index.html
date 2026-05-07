@@ -19,20 +19,26 @@
         header {
             background: #1a2535;
             border-bottom: 2px solid #e94560;
-            padding: 16px 20px;
+            padding: 12px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
         }
 
         .logo {
             font-size: 18px;
             font-weight: 700;
             color: #fff;
-            letter-spacing: 0.5px;
         }
 
         .logo span { color: #e94560; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         .badge {
             background: #e94560;
@@ -41,15 +47,31 @@
             font-weight: 600;
             padding: 3px 8px;
             border-radius: 4px;
-            letter-spacing: 0.5px;
+        }
+
+        .new-patient-btn {
+            background: #1e3a5f;
+            border: 1px solid #2563eb;
+            color: #93c5fd;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .new-patient-btn:hover {
+            background: #2563eb;
+            color: white;
         }
 
         .disclaimer-banner {
             background: #1e3a5f;
             border: 1px solid #2563eb;
             border-radius: 8px;
-            padding: 12px 16px;
-            margin: 16px;
+            padding: 10px 16px;
+            margin: 12px 16px 0;
             font-size: 12px;
             color: #93c5fd;
             line-height: 1.5;
@@ -58,99 +80,106 @@
         .disclaimer-banner strong {
             color: #fff;
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .main {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 0 16px 16px;
+            padding: 12px 16px 16px;
             max-width: 700px;
             margin: 0 auto;
             width: 100%;
         }
 
-        .rate-bar {
+        .status-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
             background: #1a2535;
             border-radius: 8px;
             padding: 8px 14px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             font-size: 12px;
             color: #64748b;
+            gap: 8px;
         }
 
-        .rate-bar .count {
-            color: #10b981;
-            font-weight: 600;
+        .status-bar .count { font-weight: 600; }
+        .context-indicator {
+            font-size: 11px;
+            color: #2563eb;
+            display: none;
         }
+        .context-indicator.active { display: block; }
 
-        .response-area {
+        .conversation-area {
             flex: 1;
             background: #1a2535;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            min-height: 300px;
-            position: relative;
+            padding: 16px;
+            margin-bottom: 12px;
+            min-height: 320px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .response-placeholder {
+        .placeholder {
             color: #334155;
             font-size: 14px;
             text-align: center;
-            margin-top: 80px;
+            margin: auto;
             line-height: 1.8;
         }
 
-        .response-placeholder .icon {
-            font-size: 40px;
-            display: block;
-            margin-bottom: 12px;
+        .placeholder .icon { font-size: 36px; display: block; margin-bottom: 10px; }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .response-content { display: none; }
-        .response-content.active { display: block; }
-
-        .query-echo {
-            font-size: 11px;
+        .message-query {
+            background: #0f1923;
+            border-radius: 8px 8px 8px 2px;
+            padding: 8px 12px;
+            font-size: 12px;
             color: #64748b;
-            margin-bottom: 12px;
             font-style: italic;
+            align-self: flex-start;
+            max-width: 90%;
         }
 
-        .response-text {
-            font-size: 14px;
-            line-height: 1.8;
+        .message-response {
+            background: #0c1e2e;
+            border-left: 3px solid #2563eb;
+            border-radius: 0 8px 8px 8px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.7;
             color: #e2e8f0;
             white-space: pre-wrap;
         }
 
-        .response-text strong { color: #fff; }
+        .message-response strong { color: #fff; }
 
-        .response-meta {
-            margin-top: 16px;
-            padding-top: 12px;
-            border-top: 1px solid #0f1923;
+        .message-meta {
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
 
-        .response-time {
-            font-size: 11px;
-            color: #475569;
-        }
+        .response-time { font-size: 10px; color: #475569; }
 
         .feedback-row {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             flex-wrap: wrap;
         }
 
@@ -158,8 +187,8 @@
             background: #0f1923;
             border: 1px solid #334155;
             color: #94a3b8;
-            font-size: 11px;
-            padding: 4px 10px;
+            font-size: 10px;
+            padding: 3px 8px;
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.2s;
@@ -169,101 +198,12 @@
         .feedback-btn.helpful:hover { border-color: #10b981; color: #10b981; }
         .feedback-btn.incorrect:hover { border-color: #f59e0b; color: #f59e0b; }
         .feedback-btn.dangerous:hover { border-color: #e94560; color: #e94560; }
-
-        .feedback-sent {
-            font-size: 11px;
-            color: #10b981;
-            display: none;
-        }
-
-        .input-area {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .text-row {
-            display: flex;
-            gap: 8px;
-        }
-
-        .query-input {
-            flex: 1;
-            background: #1a2535;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 12px 16px;
-            color: #e2e8f0;
-            font-size: 14px;
-            resize: none;
-            height: 52px;
-            transition: border-color 0.2s;
-        }
-
-        .query-input:focus { outline: none; border-color: #2563eb; }
-        .query-input::placeholder { color: #475569; }
-
-        .send-btn {
-            background: #2563eb;
-            border: none;
-            border-radius: 10px;
-            color: white;
-            width: 52px;
-            height: 52px;
-            font-size: 20px;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-
-        .send-btn:hover { background: #1d4ed8; }
-        .send-btn:disabled { background: #334155; cursor: not-allowed; }
-
-        .mic-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .mic-btn {
-            background: #1a2535;
-            border: 2px solid #334155;
-            border-radius: 50%;
-            width: 64px;
-            height: 64px;
-            font-size: 26px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .mic-btn:hover { border-color: #e94560; }
-        .mic-btn.listening {
-            border-color: #e94560;
-            background: #1a0a0f;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(233, 69, 96, 0); }
-        }
-
-        .mic-status {
-            font-size: 13px;
-            color: #64748b;
-            flex: 1;
-        }
-
-        .mic-status.active { color: #e94560; }
+        .feedback-sent { font-size: 10px; color: #10b981; display: none; }
 
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 16px;
             color: #64748b;
             font-size: 13px;
         }
@@ -286,25 +226,99 @@
             background: #1a0a0f;
             border: 1px solid #e94560;
             border-radius: 8px;
-            padding: 12px;
-            font-size: 13px;
+            padding: 10px;
+            font-size: 12px;
             color: #f87171;
-            margin-top: 8px;
             display: none;
         }
 
         .error-msg.active { display: block; }
 
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mic-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mic-btn {
+            background: #1a2535;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            width: 58px;
+            height: 58px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .mic-btn:hover { border-color: #e94560; }
+        .mic-btn.listening {
+            border-color: #e94560;
+            background: #1a0a0f;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(233,69,96,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(233,69,96,0); }
+        }
+
+        .mic-status { font-size: 12px; color: #64748b; flex: 1; }
+        .mic-status.active { color: #e94560; }
+
+        .text-row { display: flex; gap: 8px; }
+
+        .query-input {
+            flex: 1;
+            background: #1a2535;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: #e2e8f0;
+            font-size: 14px;
+            resize: none;
+            height: 48px;
+            transition: border-color 0.2s;
+        }
+
+        .query-input:focus { outline: none; border-color: #2563eb; }
+        .query-input::placeholder { color: #475569; }
+
+        .send-btn {
+            background: #2563eb;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover { background: #1d4ed8; }
+        .send-btn:disabled { background: #334155; cursor: not-allowed; }
+
         footer {
             text-align: center;
-            padding: 12px;
+            padding: 10px;
             font-size: 10px;
             color: #334155;
             border-top: 1px solid #1a2535;
         }
 
         footer a { color: #475569; text-decoration: none; }
-        footer a:hover { color: #94a3b8; }
 
         .feedback-modal {
             display: none;
@@ -322,17 +336,13 @@
         .feedback-box {
             background: #1a2535;
             border-radius: 12px;
-            padding: 24px;
+            padding: 20px;
             width: 100%;
             max-width: 420px;
             border: 1px solid #334155;
         }
 
-        .feedback-box h3 {
-            font-size: 15px;
-            margin-bottom: 16px;
-            color: #fff;
-        }
+        .feedback-box h3 { font-size: 14px; margin-bottom: 12px; color: #fff; }
 
         .feedback-box textarea {
             width: 100%;
@@ -344,30 +354,33 @@
             padding: 10px;
             height: 80px;
             resize: none;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
-        .feedback-box textarea:focus { outline: none; border-color: #2563eb; }
-
-        .modal-btns {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-        }
-
-        .modal-btns button {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            border: none;
-        }
-
+        .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+        .modal-btns button { padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
         .btn-cancel { background: #334155; color: #94a3b8; }
         .btn-submit { background: #2563eb; color: white; }
 
-        @media (max-width: 480px) {
-            .logo { font-size: 15px; }
+        .new-patient-toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 200;
+            display: none;
+            animation: fadeout 2s forwards;
+        }
+
+        @keyframes fadeout {
+            0%, 70% { opacity: 1; }
+            100% { opacity: 0; }
         }
     </style>
 </head>
@@ -375,45 +388,32 @@
 
 <header>
     <div class="logo">Edge<span>CDSS</span></div>
-    <span class="badge">RESEARCH ONLY</span>
+    <div class="header-right">
+        <button class="new-patient-btn" onclick="newPatient()">🔄 New Patient</button>
+        <span class="badge">RESEARCH ONLY</span>
+    </div>
 </header>
 
+<div class="disclaimer-banner">
+    <strong>⚠️ Research Prototype — Not for Clinical Use</strong>
+    AI-generated responses. Not validated for clinical deployment. Always follow training, protocols, and qualified medical judgment.
+</div>
+
 <div class="main">
-
-    <div class="disclaimer-banner">
-        <strong>⚠️ Research Prototype — Not for Clinical Use</strong>
-        This system is under active development and has not been validated for clinical deployment.
-        All responses are AI-generated and must not be used to make patient care decisions.
-        Always follow your training, protocols, and the judgment of qualified medical personnel.
-    </div>
-
-    <div class="rate-bar">
-        <span>Query limit: <span class="count" id="remaining">10</span> of 10 remaining today</span>
+    <div class="status-bar">
+        <span>Queries: <span class="count" id="remaining">10</span> of 10 remaining today</span>
+        <span class="context-indicator" id="context-indicator">💬 Patient context active</span>
         <span id="reset-time"></span>
     </div>
 
-    <div class="response-area">
-        <div class="response-placeholder" id="placeholder">
+    <div class="conversation-area" id="conversation-area">
+        <div class="placeholder" id="placeholder">
             <span class="icon">🎙️</span>
-            Tap the mic and ask a clinical question.<br>
-            <small style="font-size:12px; color:#1e3a5f;">e.g. "TXA dose for hemorrhagic shock 80kg patient"</small>
+            Tap mic or type a clinical question.<br>
+            <small style="font-size:11px; color:#1e3a5f;">System remembers last 5 exchanges per patient.<br>Say "new patient" or tap 🔄 to reset context.</small>
         </div>
         <div class="loading" id="loading">
-            <span class="loading-dots">Querying JTS protocols</span>
-        </div>
-        <div class="response-content" id="response-content">
-            <div class="query-echo" id="query-echo"></div>
-            <div class="response-text" id="response-text"></div>
-            <div class="response-meta">
-                <span class="response-time" id="response-time"></span>
-                <div class="feedback-row">
-                    <button class="feedback-btn helpful" onclick="submitFeedback('helpful')">👍 Helpful</button>
-                    <button class="feedback-btn incorrect" onclick="submitFeedback('incorrect')">⚠️ Incorrect</button>
-                    <button class="feedback-btn dangerous" onclick="submitFeedback('dangerous')">🚨 Dangerous</button>
-                    <button class="feedback-btn" onclick="openFeedbackModal()">💬 Comment</button>
-                </div>
-                <span class="feedback-sent" id="feedback-sent">✓ Feedback received</span>
-            </div>
+            <span class="loading-dots">Querying protocols</span>
         </div>
     </div>
 
@@ -425,11 +425,12 @@
             <span class="mic-status" id="mic-status">Tap mic to speak, or type below</span>
         </div>
         <div class="text-row">
-            <textarea class="query-input" id="query-input" placeholder="Or type your clinical question here..." onkeydown="handleKey(event)"></textarea>
+            <textarea class="query-input" id="query-input"
+                placeholder="Type your clinical question..."
+                onkeydown="handleKey(event)"></textarea>
             <button class="send-btn" id="send-btn" onclick="submitQuery()" title="Send">➤</button>
         </div>
     </div>
-
 </div>
 
 <footer>
@@ -438,7 +439,8 @@
     &nbsp;·&nbsp; Research prototype &nbsp;·&nbsp; Not for clinical use
 </footer>
 
-<!-- Feedback Modal -->
+<div class="new-patient-toast" id="new-patient-toast">✓ New patient — context cleared</div>
+
 <div class="feedback-modal" id="feedback-modal">
     <div class="feedback-box">
         <h3>Add a comment</h3>
@@ -451,78 +453,20 @@
 </div>
 
 <script>
-    // ─── Config ───────────────────────────────────────────────
     const API_URL = "https://arcaneone.duckdns.org";
     const ACCESS_TOKEN = "edgecdss-demo-2026";
     const RATE_LIMIT = 10;
-    const RATE_WINDOW = 86400000; // 24hrs ms
+    const RATE_WINDOW = 86400000;
+    const INACTIVITY_TIMEOUT = 1800000; // 30 min
 
-    // ─── State ────────────────────────────────────────────────
     let currentQuery = "";
     let currentResponse = "";
     let recognition = null;
     let isListening = false;
-
-    // ─────────────────────────────────────────────────────────
-    // ELEVENLABS TTS — DORMANT
-    // Server-side /speak endpoint is live on arcaneone.
-    // To re-enable: uncomment speakResponse() call in submitQuery()
-    // and uncomment the speakResponse() and stopAudio() functions below.
-    // Endpoint confirmed working via curl — returns valid MP3.
-    // Browser autoplay policy on mobile may require user gesture first.
-    // ─────────────────────────────────────────────────────────
-
-    // let isSpeaking = false;
-    // let currentAudio = null;
-
-    // async function speakResponse(text) {
-    //     try {
-    //         stopAudio();
-    //         document.getElementById('mic-btn').classList.add('speaking');
-    //         document.getElementById('mic-btn').textContent = '🔊';
-    //         document.getElementById('mic-status').textContent = 'Speaking response...';
-    //         document.getElementById('mic-status').className = 'mic-status speaking';
-    //         isSpeaking = true;
-    //
-    //         const res = await fetch(`${API_URL}/speak`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json',
-    //                 'X-Access-Token': ACCESS_TOKEN
-    //             },
-    //             body: JSON.stringify({ text: text })
-    //         });
-    //
-    //         if (!res.ok) throw new Error('TTS failed - status ' + res.status);
-    //
-    //         const audioBlob = await res.blob();
-    //         const audioUrl = URL.createObjectURL(audioBlob);
-    //         currentAudio = new Audio(audioUrl);
-    //         currentAudio.onended = () => { stopAudio(); };
-    //         currentAudio.onerror = (e) => { console.error('Audio error:', e); stopAudio(); };
-    //         await currentAudio.play();
-    //
-    //     } catch(e) {
-    //         console.error('TTS error:', e);
-    //         stopAudio();
-    //         // Fallback to browser TTS
-    //         const clean = text.replace(/\*\*/g, '').replace(/[#*_`]/g, '');
-    //         const utterance = new SpeechSynthesisUtterance(clean);
-    //         utterance.rate = 0.9;
-    //         utterance.onend = () => { stopAudio(); };
-    //         window.speechSynthesis.speak(utterance);
-    //     }
-    // }
-
-    // function stopAudio() {
-    //     window.speechSynthesis.cancel();
-    //     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    //     isSpeaking = false;
-    //     document.getElementById('mic-btn').classList.remove('speaking');
-    //     document.getElementById('mic-btn').textContent = '🎙️';
-    //     document.getElementById('mic-status').textContent = 'Tap mic to speak, or type below';
-    //     document.getElementById('mic-status').className = 'mic-status';
-    // }
+    let conversationHistory = [];
+    let lastActivityTime = Date.now();
+    let inactivityTimer = null;
+    let messageCount = 0;
 
     // ─── Rate limiting ────────────────────────────────────────
     function getRateData() {
@@ -538,8 +482,7 @@
     function checkAndUpdateRate() {
         let data = getRateData();
         const now = Date.now();
-        const cutoff = now - RATE_WINDOW;
-        data.queries = data.queries.filter(t => t > cutoff);
+        data.queries = data.queries.filter(t => t > now - RATE_WINDOW);
         const remaining = RATE_LIMIT - data.queries.length;
         updateRateDisplay(remaining, data.queries);
         return remaining > 0;
@@ -549,8 +492,7 @@
         let data = getRateData();
         data.queries.push(Date.now());
         saveRateData(data);
-        const remaining = RATE_LIMIT - data.queries.length;
-        updateRateDisplay(remaining, data.queries);
+        updateRateDisplay(RATE_LIMIT - data.queries.length, data.queries);
     }
 
     function updateRateDisplay(remaining, queries) {
@@ -558,13 +500,50 @@
         el.textContent = Math.max(0, remaining);
         el.style.color = remaining > 3 ? '#10b981' : remaining > 0 ? '#f59e0b' : '#e94560';
         if (queries.length > 0 && remaining <= 0) {
-            const resetAt = queries[0] + RATE_WINDOW;
-            const hoursLeft = Math.ceil((resetAt - Date.now()) / 3600000);
-            document.getElementById('reset-time').textContent = `Resets in ~${hoursLeft}h`;
+            const hoursLeft = Math.ceil((queries[0] + RATE_WINDOW - Date.now()) / 3600000);
+            document.getElementById('reset-time').textContent = "Resets in ~" + hoursLeft + "h";
         }
     }
 
-    // ─── Voice input (STT only) ───────────────────────────────
+    // ─── Conversation memory ──────────────────────────────────
+    function addToHistory(query, response) {
+        conversationHistory.push({ query, response });
+        if (conversationHistory.length > 5) conversationHistory.shift();
+        updateContextIndicator();
+        resetInactivityTimer();
+    }
+
+    function updateContextIndicator() {
+        const indicator = document.getElementById('context-indicator');
+        if (conversationHistory.length > 0) {
+            indicator.textContent = "💬 " + conversationHistory.length + " exchange" + (conversationHistory.length > 1 ? "s" : "") + " in context";
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    }
+
+    function newPatient() {
+        conversationHistory = [];
+        updateContextIndicator();
+        resetInactivityTimer();
+        const toast = document.getElementById('new-patient-toast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    function resetInactivityTimer() {
+        lastActivityTime = Date.now();
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+        if (conversationHistory.length > 0) {
+            inactivityTimer = setTimeout(() => {
+                conversationHistory = [];
+                updateContextIndicator();
+            }, INACTIVITY_TIMEOUT);
+        }
+    }
+
+    // ─── Voice input ──────────────────────────────────────────
     function toggleMic() {
         if (isListening) { stopListening(); } else { startListening(); }
     }
@@ -591,6 +570,16 @@
         recognition.onresult = (e) => {
             const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
             document.getElementById('query-input').value = transcript;
+
+            // Check for voice commands
+            const lower = transcript.toLowerCase().trim();
+            if (lower === 'new patient' || lower === 'reset' || lower === 'clear') {
+                stopListening();
+                newPatient();
+                document.getElementById('query-input').value = '';
+                return;
+            }
+
             if (e.results[e.results.length-1].isFinal) {
                 stopListening();
                 submitQuery();
@@ -620,6 +609,14 @@
         const query = document.getElementById('query-input').value.trim();
         if (!query) return;
 
+        // Check for text-based reset commands
+        const lower = query.toLowerCase();
+        if (lower === 'new patient' || lower === 'reset' || lower === 'clear patient') {
+            newPatient();
+            document.getElementById('query-input').value = '';
+            return;
+        }
+
         if (!checkAndUpdateRate()) {
             showError("Daily limit reached (10 queries). Resets in 24 hours.");
             return;
@@ -631,7 +628,7 @@
 
         try {
             const start = Date.now();
-            const res = await fetch(`${API_URL}/query`, {
+            const res = await fetch(API_URL + "/query", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -641,7 +638,8 @@
                     query: query,
                     device_id: 'web-interface',
                     timestamp: new Date().toISOString(),
-                    voice_mode: 'brief'
+                    voice_mode: 'brief',
+                    conversation_history: conversationHistory
                 })
             });
 
@@ -661,14 +659,12 @@
             const elapsed = Date.now() - start;
 
             recordQuery();
-            showResponse(query, data.response, elapsed);
-
-            // TO RE-ENABLE ELEVENLABS: uncomment the line below
-            // speakResponse(data.response);
-
+            currentResponse = data.response;
+            addToHistory(query, data.response);
+            appendMessage(query, data.response, elapsed);
             document.getElementById('query-input').value = '';
 
-        } catch (err) {
+        } catch(err) {
             hideLoading();
             showError("Error: " + err.message);
         }
@@ -685,7 +681,6 @@
     function showLoading() {
         document.getElementById('placeholder').style.display = 'none';
         document.getElementById('loading').classList.add('active');
-        document.getElementById('response-content').classList.remove('active');
         document.getElementById('send-btn').disabled = true;
     }
 
@@ -694,15 +689,41 @@
         document.getElementById('send-btn').disabled = false;
     }
 
-    function showResponse(query, response, elapsed) {
+    function appendMessage(query, response, elapsed) {
         hideLoading();
-        currentResponse = response;
+        messageCount++;
+        const msgId = 'msg-' + messageCount;
+
+        const placeholder = document.getElementById('placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+
         const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        document.getElementById('query-echo').textContent = 'Query: ' + query;
-        document.getElementById('response-text').innerHTML = formatted;
-        document.getElementById('response-time').textContent = `${elapsed}ms`;
-        document.getElementById('response-content').classList.add('active');
-        document.getElementById('feedback-sent').style.display = 'none';
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message';
+        msgDiv.id = msgId;
+        msgDiv.innerHTML =
+            '<div class="message-query">Query: ' + escapeHtml(query) + '</div>' +
+            '<div class="message-response">' + formatted + '</div>' +
+            '<div class="message-meta">' +
+                '<span class="response-time">' + elapsed + 'ms</span>' +
+                '<div class="feedback-row">' +
+                    '<button class="feedback-btn helpful" onclick="submitFeedback(\'helpful\',\'' + msgId + '\')">👍 Helpful</button>' +
+                    '<button class="feedback-btn incorrect" onclick="submitFeedback(\'incorrect\',\'' + msgId + '\')">⚠️ Incorrect</button>' +
+                    '<button class="feedback-btn dangerous" onclick="submitFeedback(\'dangerous\',\'' + msgId + '\')">🚨 Dangerous</button>' +
+                    '<button class="feedback-btn" onclick="openFeedbackModal(\'' + msgId + '\')">💬 Comment</button>' +
+                '</div>' +
+                '<span class="feedback-sent" id="fb-sent-' + msgId + '">✓ Feedback received</span>' +
+            '</div>';
+
+        const area = document.getElementById('conversation-area');
+        const loading = document.getElementById('loading');
+        area.insertBefore(msgDiv, loading);
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     function showError(msg) {
@@ -716,9 +737,11 @@
     }
 
     // ─── Feedback ─────────────────────────────────────────────
-    async function submitFeedback(type, comment = '') {
+    let activeFeedbackMsgId = null;
+
+    async function submitFeedback(type, msgId, comment = '') {
         try {
-            await fetch(`${API_URL}/feedback`, {
+            await fetch(API_URL + "/feedback", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -729,13 +752,15 @@
                     device_id: 'web-interface'
                 })
             });
-            document.getElementById('feedback-sent').style.display = 'inline';
+            const sentEl = document.getElementById('fb-sent-' + msgId);
+            if (sentEl) sentEl.style.display = 'inline';
         } catch(e) {
             console.error('Feedback error:', e);
         }
     }
 
-    function openFeedbackModal() {
+    function openFeedbackModal(msgId) {
+        activeFeedbackMsgId = msgId;
         document.getElementById('feedback-modal').classList.add('active');
         document.getElementById('feedback-comment').focus();
     }
@@ -743,13 +768,41 @@
     function closeFeedbackModal() {
         document.getElementById('feedback-modal').classList.remove('active');
         document.getElementById('feedback-comment').value = '';
+        activeFeedbackMsgId = null;
     }
 
     function submitFeedbackWithComment() {
         const comment = document.getElementById('feedback-comment').value.trim();
-        submitFeedback('comment', comment);
+        submitFeedback('comment', activeFeedbackMsgId, comment);
         closeFeedbackModal();
     }
+
+    // ─── ELEVENLABS TTS — DORMANT ─────────────────────────────
+    // Server-side /speak endpoint confirmed working via curl.
+    // To re-enable: uncomment speakResponse() call in submitQuery()
+    // and uncomment the speakResponse/stopAudio functions below.
+    // Browser autoplay policy on mobile requires user gesture first.
+    //
+    // async function speakResponse(text) {
+    //     try {
+    //         const res = await fetch(API_URL + "/speak", {
+    //             method: 'POST',
+    //             headers: { 'Content-Type': 'application/json', 'X-Access-Token': ACCESS_TOKEN },
+    //             body: JSON.stringify({ text: text })
+    //         });
+    //         if (!res.ok) throw new Error('TTS failed');
+    //         const audioBlob = await res.blob();
+    //         const audioUrl = URL.createObjectURL(audioBlob);
+    //         const audio = new Audio(audioUrl);
+    //         audio.play();
+    //     } catch(e) {
+    //         console.error('TTS error:', e);
+    //         const clean = text.replace(/\*\*/g,'').replace(/[#*_`]/g,'');
+    //         const u = new SpeechSynthesisUtterance(clean);
+    //         u.rate = 0.9;
+    //         window.speechSynthesis.speak(u);
+    //     }
+    // }
 
     // ─── Init ─────────────────────────────────────────────────
     checkAndUpdateRate();
