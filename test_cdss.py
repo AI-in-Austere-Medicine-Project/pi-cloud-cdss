@@ -334,8 +334,6 @@ TEST_CASES = [
         "description": "Lay language chest wound — tension pneumo"
     },
 ]
-
-
 def run_query(query: str) -> dict:
     try:
         start_time = time.time()
@@ -343,11 +341,13 @@ def run_query(query: str) -> dict:
             "query": query,
             "device_id": DEVICE_ID,
             "timestamp": datetime.datetime.now().isoformat(),
-            "voice_mode": "brief"
+            "voice_mode": "brief",
+            "conversation_history": []
         }
         response = requests.post(
             f"{SERVER_URL}/query",
             json=payload,
+            headers={"X-Access-Token": os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")},
             timeout=60
         )
         elapsed = round((time.time() - start_time) * 1000)
