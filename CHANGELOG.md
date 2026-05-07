@@ -1,5 +1,43 @@
 # EdgeCDSS Changelog
 
+## [2.5.0] - 2026-05-07
+
+### Clinical Accuracy (System Prompt v2.4.1)
+- Sepsis vs hemorrhagic shock differentiation — system now identifies shock etiology before DCR
+- TXA strict indications — hemorrhagic shock only, explicit contraindication list
+- Hypothermia dedicated protocol — correct rewarming, hypothermic arrest rules, "not dead until warm"
+- WPW contraindications — adenosine/AV nodal blockers explicitly prohibited
+- Pediatric rules — age/weight-based detection, pediatric VT calculation, weight-based dosing
+- Pediatric drowning protocol — 5 rescue breaths before CPR
+- Sepsis Hour-1 bundle — antibiotics within 45 min, vasopressors, source control
+- Multi-part query rule — system must answer ALL parts of complex queries
+- Resource-constrained queries — work within stated provider inventory
+- LTOWB explicit — all hemorrhage responses now use LTOWB by name
+- Ketamine zero math — mg/kg prohibited in all ketamine responses
+- Outside JTS scope attribution — mandatory phrase in all non-JTS responses
+- Lorazepam by name — seizure first line always states Lorazepam explicitly
+- No-weight strict enforcement — no dosing of any kind without confirmed weight
+
+### Infrastructure
+- Rate limiting removed — server on/off manually controlled
+- Custom maintenance page — personalized offline message via nginx 502/503
+- Conversation memory — last 5 exchanges passed to GPT per patient session
+- Memory reset — voice command "new patient", button, 30min inactivity timeout
+- New Patient button added to web interface header
+
+### Evaluation
+- Automated test suite pass rate: 85.3% (29/34) — up from 61.8%
+- Field evaluation report v1.1 published to docs/
+- 32 feedback entries analyzed across 6 testers
+- Critical gaps identified: WPW dangerous flag, pediatric vent VT, sepsis/DCR confusion
+
+### Web Interface
+- Conversation history display — all exchanges shown in scrollable thread
+- Context indicator — shows number of active exchanges in memory
+- Voice commands — "new patient" / "reset" / "clear" trigger patient context reset
+- Feedback buttons on every response — helpful, incorrect, dangerous, comment
+- Rate limit display removed from UI (server-controlled)
+
 ## [1.6.1] - 2026-05-03
 ### Client (cdss_client.py)
 - Fixed: Correct thin client restored — was accidentally overwritten with server code

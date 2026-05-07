@@ -26,19 +26,10 @@
             gap: 10px;
         }
 
-        .logo {
-            font-size: 18px;
-            font-weight: 700;
-            color: #fff;
-        }
-
+        .logo { font-size: 18px; font-weight: 700; color: #fff; }
         .logo span { color: #e94560; }
 
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .header-right { display: flex; align-items: center; gap: 8px; }
 
         .badge {
             background: #e94560;
@@ -61,10 +52,7 @@
             transition: all 0.2s;
         }
 
-        .new-patient-btn:hover {
-            background: #2563eb;
-            color: white;
-        }
+        .new-patient-btn:hover { background: #2563eb; color: white; }
 
         .disclaimer-banner {
             background: #1e3a5f;
@@ -77,11 +65,7 @@
             line-height: 1.5;
         }
 
-        .disclaimer-banner strong {
-            color: #fff;
-            display: block;
-            margin-bottom: 2px;
-        }
+        .disclaimer-banner strong { color: #fff; display: block; margin-bottom: 2px; }
 
         .main {
             flex: 1;
@@ -106,12 +90,7 @@
             gap: 8px;
         }
 
-        .status-bar .count { font-weight: 600; }
-        .context-indicator {
-            font-size: 11px;
-            color: #2563eb;
-            display: none;
-        }
+        .context-indicator { font-size: 11px; color: #2563eb; display: none; }
         .context-indicator.active { display: block; }
 
         .conversation-area {
@@ -137,11 +116,7 @@
 
         .placeholder .icon { font-size: 36px; display: block; margin-bottom: 10px; }
 
-        .message {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .message { display: flex; flex-direction: column; gap: 6px; }
 
         .message-query {
             background: #0f1923;
@@ -177,11 +152,7 @@
 
         .response-time { font-size: 10px; color: #475569; }
 
-        .feedback-row {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
+        .feedback-row { display: flex; gap: 5px; flex-wrap: wrap; }
 
         .feedback-btn {
             background: #0f1923;
@@ -200,14 +171,7 @@
         .feedback-btn.dangerous:hover { border-color: #e94560; color: #e94560; }
         .feedback-sent { font-size: 10px; color: #10b981; display: none; }
 
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 16px;
-            color: #64748b;
-            font-size: 13px;
-        }
-
+        .loading { display: none; text-align: center; padding: 16px; color: #64748b; font-size: 13px; }
         .loading.active { display: block; }
 
         .loading-dots::after {
@@ -234,17 +198,9 @@
 
         .error-msg.active { display: block; }
 
-        .input-area {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .input-area { display: flex; flex-direction: column; gap: 8px; }
 
-        .mic-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .mic-row { display: flex; align-items: center; gap: 10px; }
 
         .mic-btn {
             background: #1a2535;
@@ -262,11 +218,7 @@
         }
 
         .mic-btn:hover { border-color: #e94560; }
-        .mic-btn.listening {
-            border-color: #e94560;
-            background: #1a0a0f;
-            animation: pulse 1s infinite;
-        }
+        .mic-btn.listening { border-color: #e94560; background: #1a0a0f; animation: pulse 1s infinite; }
 
         @keyframes pulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(233,69,96,0.4); }
@@ -375,12 +327,6 @@
             font-weight: 600;
             z-index: 200;
             display: none;
-            animation: fadeout 2s forwards;
-        }
-
-        @keyframes fadeout {
-            0%, 70% { opacity: 1; }
-            100% { opacity: 0; }
         }
     </style>
 </head>
@@ -401,9 +347,8 @@
 
 <div class="main">
     <div class="status-bar">
-        <span>Queries: <span class="count" id="remaining">10</span> of 10 remaining today</span>
+        <span style="font-size:11px; color:#334155;">EdgeCDSS v2.5.0 — Research Prototype</span>
         <span class="context-indicator" id="context-indicator">💬 Patient context active</span>
-        <span id="reset-time"></span>
     </div>
 
     <div class="conversation-area" id="conversation-area">
@@ -453,12 +398,12 @@
 </div>
 
 <script>
+    // ─── Config ───────────────────────────────────────────────
     const API_URL = "https://arcaneone.duckdns.org";
     const ACCESS_TOKEN = "edgecdss-demo-2026";
-    const RATE_LIMIT = 10;
-    const RATE_WINDOW = 86400000;
     const INACTIVITY_TIMEOUT = 1800000; // 30 min
 
+    // ─── State ────────────────────────────────────────────────
     let currentQuery = "";
     let currentResponse = "";
     let recognition = null;
@@ -468,42 +413,10 @@
     let inactivityTimer = null;
     let messageCount = 0;
 
-    // ─── Rate limiting ────────────────────────────────────────
-    function getRateData() {
-        const raw = localStorage.getItem('cdss_rate');
-        if (!raw) return { queries: [] };
-        return JSON.parse(raw);
-    }
-
-    function saveRateData(data) {
-        localStorage.setItem('cdss_rate', JSON.stringify(data));
-    }
-
-    function checkAndUpdateRate() {
-        let data = getRateData();
-        const now = Date.now();
-        data.queries = data.queries.filter(t => t > now - RATE_WINDOW);
-        const remaining = RATE_LIMIT - data.queries.length;
-        updateRateDisplay(remaining, data.queries);
-        return remaining > 0;
-    }
-
-    function recordQuery() {
-        let data = getRateData();
-        data.queries.push(Date.now());
-        saveRateData(data);
-        updateRateDisplay(RATE_LIMIT - data.queries.length, data.queries);
-    }
-
-    function updateRateDisplay(remaining, queries) {
-        const el = document.getElementById('remaining');
-        el.textContent = Math.max(0, remaining);
-        el.style.color = remaining > 3 ? '#10b981' : remaining > 0 ? '#f59e0b' : '#e94560';
-        if (queries.length > 0 && remaining <= 0) {
-            const hoursLeft = Math.ceil((queries[0] + RATE_WINDOW - Date.now()) / 3600000);
-            document.getElementById('reset-time').textContent = "Resets in ~" + hoursLeft + "h";
-        }
-    }
+    // ─── Rate limiting disabled ───────────────────────────────
+    // Server on/off controlled manually — no client-side rate limiting
+    function checkAndUpdateRate() { return true; }
+    function recordQuery() {}
 
     // ─── Conversation memory ──────────────────────────────────
     function addToHistory(query, response) {
@@ -570,8 +483,6 @@
         recognition.onresult = (e) => {
             const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
             document.getElementById('query-input').value = transcript;
-
-            // Check for voice commands
             const lower = transcript.toLowerCase().trim();
             if (lower === 'new patient' || lower === 'reset' || lower === 'clear') {
                 stopListening();
@@ -579,7 +490,6 @@
                 document.getElementById('query-input').value = '';
                 return;
             }
-
             if (e.results[e.results.length-1].isFinal) {
                 stopListening();
                 submitQuery();
@@ -609,16 +519,10 @@
         const query = document.getElementById('query-input').value.trim();
         if (!query) return;
 
-        // Check for text-based reset commands
         const lower = query.toLowerCase();
         if (lower === 'new patient' || lower === 'reset' || lower === 'clear patient') {
             newPatient();
             document.getElementById('query-input').value = '';
-            return;
-        }
-
-        if (!checkAndUpdateRate()) {
-            showError("Daily limit reached (10 queries). Resets in 24 hours.");
             return;
         }
 
@@ -642,13 +546,6 @@
                     conversation_history: conversationHistory
                 })
             });
-
-            if (res.status === 429) {
-                const data = await res.json();
-                showError(data.detail);
-                hideLoading();
-                return;
-            }
 
             if (!res.ok) {
                 const data = await res.json();
@@ -779,9 +676,8 @@
 
     // ─── ELEVENLABS TTS — DORMANT ─────────────────────────────
     // Server-side /speak endpoint confirmed working via curl.
-    // To re-enable: uncomment speakResponse() call in submitQuery()
-    // and uncomment the speakResponse/stopAudio functions below.
-    // Browser autoplay policy on mobile requires user gesture first.
+    // To re-enable: uncomment speakResponse() in submitQuery()
+    // and uncomment speakResponse/stopAudio functions below.
     //
     // async function speakResponse(text) {
     //     try {
@@ -803,9 +699,6 @@
     //         window.speechSynthesis.speak(u);
     //     }
     // }
-
-    // ─── Init ─────────────────────────────────────────────────
-    checkAndUpdateRate();
 </script>
 
 </body>

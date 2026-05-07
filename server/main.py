@@ -25,7 +25,7 @@ from openai_client import query_with_rag
 
 load_dotenv()
 
-app = FastAPI(title="CDSS Cloud API", version="2.2.0")
+app = FastAPI(title="CDSS Cloud API", version="2.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,18 +43,11 @@ except Exception as e:
     raise
 
 # ─── Rate limiting ────────────────────────────────────────────
-RATE_LIMIT = 10
-RATE_WINDOW = 86400
-rate_store = defaultdict(list)
+# Rate limiting disabled — server on/off controlled manually
+# Re-enable by restoring RATE_LIMIT logic here
 
 def check_rate_limit(ip: str) -> dict:
-    now = time.time()
-    cutoff = now - RATE_WINDOW
-    rate_store[ip] = [t for t in rate_store[ip] if t > cutoff]
-    count = len(rate_store[ip])
-    remaining = RATE_LIMIT - count
-    reset_time = int(rate_store[ip][0] + RATE_WINDOW - now) if rate_store[ip] else None
-    return {"allowed": count < RATE_LIMIT, "count": count, "remaining": remaining, "reset_seconds": reset_time}
+    return {"allowed": True, "count": 0, "remaining": 999, "reset_seconds": None}
 
 ACCESS_TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
 
@@ -91,10 +84,9 @@ async def root():
     return {"message": "CDSS Cloud API", "status": "running", "version": "2.2.0", "voice_support": True}
 
 @app.get("/health")
-async def health_check():
-    try:
-        doc_count = chromadb_client.get_collection_count()
-        return {"status": "healthy", "chromadb": "connected", "openai": "connected", "documents": doc_count}
+@app.get("/")
+async def root():
+    return {"message": "CDSS Cloud API", "status": "running", "version": "2.5.0", "voice_support": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
