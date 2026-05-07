@@ -1,11 +1,12 @@
+cat > ~/cdss-cloud/app/main.py << 'EOF'
 #!/usr/bin/env python3
 """
 CDSS Cloud API Server
-Version: 2.2.0
-- Rate limiting
-- CORS
+Version: 2.5.0
+- Rate limiting disabled — server on/off controlled manually
+- CORS for GitHub Pages
 - Feedback endpoint
-- Access token auth
+- Access token authentication
 - Server-side ElevenLabs TTS
 - Conversation history support
 """
@@ -42,19 +43,11 @@ except Exception as e:
     print(f"❌ Error initializing clients: {e}")
     raise
 
-# ─── Rate limiting ────────────────────────────────────────────
 # Rate limiting disabled — server on/off controlled manually
-# Re-enable by restoring RATE_LIMIT logic here
-
 def check_rate_limit(ip: str) -> dict:
     return {"allowed": True, "count": 0, "remaining": 999, "reset_seconds": None}
 
 ACCESS_TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
-
-# ─── Models ──────────────────────────────────────────────────
-class ConversationTurn(BaseModel):
-    query: str
-    response: str
 
 class QueryRequest(BaseModel):
     query: str
@@ -78,15 +71,15 @@ class FeedbackRequest(BaseModel):
     comment: str = ""
     device_id: str = "web"
 
-# ─── Endpoints ───────────────────────────────────────────────
-@app.get("/")
-async def root():
-    return {"message": "CDSS Cloud API", "status": "running", "version": "2.2.0", "voice_support": True}
-
-@app.get("/health")
 @app.get("/")
 async def root():
     return {"message": "CDSS Cloud API", "status": "running", "version": "2.5.0", "voice_support": True}
+
+@app.get("/health")
+async def health_check():
+    try:
+        doc_count = chromadb_client.get_collection_count()
+        return {"status": "healthy", "chromadb": "connected", "openai": "connected", "documents": doc_count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -98,11 +91,6 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
 
     ip = http_request.client.host
     rate = check_rate_limit(ip)
-    if not rate["allowed"]:
-        hours = round(rate["reset_seconds"] / 3600, 1)
-        raise HTTPException(status_code=429, detail=f"Rate limit reached. Resets in {hours} hours.")
-
-    rate_store[ip].append(time.time())
 
     start_time = datetime.now()
     try:
@@ -119,7 +107,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             query_type="chromadb",
             processing_time_ms=processing_time,
             voice_mode=request.voice_mode,
-            rate_limit_remaining=rate["remaining"] - 1
+            rate_limit_remaining=999
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -186,3 +174,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+EOF
