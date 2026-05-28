@@ -64,17 +64,16 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     try:
         result = query_with_rag(request.query, chromadb_client, voice_mode=(request.voice_mode == "brief"), conversation_history=request.conversation_history)
         ms = int((datetime.now() - start).total_seconds() * 1000)
-
-    return QueryResponse(
-    response=result["response"],
-    sources=result["sources"],
-    query_type="chromadb",
-    processing_time_ms=ms,
-    voice_mode=request.voice_mode,
-    rate_limit_remaining=999,
-    validator_result=result.get("validator_result", ""),
-    validator_issues=result.get("validator_issues", [])
-)    
+        return QueryResponse(
+            response=result["response"],
+            sources=result["sources"],
+            query_type="chromadb",
+            processing_time_ms=ms,
+            voice_mode=request.voice_mode,
+            rate_limit_remaining=999,
+            validator_result=result.get("validator_result", ""),
+            validator_issues=result.get("validator_issues", [])
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
