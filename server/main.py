@@ -47,7 +47,7 @@ class FeedbackRequest(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"message": "CDSS Cloud API", "status": "running", "version": "2.5.0", "voice_support": True}
+    return {"message": "CDSS Cloud API", "status": "running", "version": "3.0.0", "voice_support": True}
 
 @app.get("/health")
 async def health_check():
