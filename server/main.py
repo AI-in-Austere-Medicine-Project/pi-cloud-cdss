@@ -35,6 +35,8 @@ class QueryResponse(BaseModel):
     processing_time_ms: int
     voice_mode: str
     rate_limit_remaining: int
+    validator_result: str = ""
+    validator_issues: list = []
 
 class FeedbackRequest(BaseModel):
     query: str
