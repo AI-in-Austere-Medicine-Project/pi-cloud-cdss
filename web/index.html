@@ -111,10 +111,10 @@
             font-size: 14px;
             text-align: center;
             margin: auto;
-            line-height: 1.8;
+            line-height: 2;
         }
 
-        .placeholder .icon { font-size: 36px; display: block; margin-bottom: 10px; }
+        .placeholder .icon { font-size: 40px; display: block; margin-bottom: 10px; }
 
         .message { display: flex; flex-direction: column; gap: 6px; }
 
@@ -347,15 +347,16 @@
 
 <div class="main">
     <div class="status-bar">
-        <span style="font-size:11px; color:#334155;">EdgeCDSS v2.5.0 — Research Prototype</span>
+        <span style="font-size:11px; color:#334155;">EdgeCDSS v3.0 — In Development</span>
         <span class="context-indicator" id="context-indicator">💬 Patient context active</span>
     </div>
 
     <div class="conversation-area" id="conversation-area">
         <div class="placeholder" id="placeholder">
-            <span class="icon">🎙️</span>
-            Tap mic or type a clinical question.<br>
-            <small style="font-size:11px; color:#1e3a5f;">System remembers last 5 exchanges per patient.<br>Say "new patient" or tap 🔄 to reset context.</small>
+            <span class="icon">🔧</span>
+            EdgeCDSS v2.5 is offline.<br>
+            <span style="font-size:13px; color:#2563eb; font-weight:600;">v3.0 is in development.</span><br>
+            <span style="font-size:11px; color:#475569;">Safety validation · Voice interface · Patient context memory</span>
         </div>
         <div class="loading" id="loading">
             <span class="loading-dots">Querying protocols</span>
@@ -380,7 +381,7 @@
 
 <footer>
     AI in Austere Medicine Project &nbsp;·&nbsp;
-    <a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank">GitHub</a>
+    <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank">GitHub</a>
     &nbsp;·&nbsp; Research prototype &nbsp;·&nbsp; Not for clinical use
 </footer>
 
@@ -401,7 +402,7 @@
     // ─── Config ───────────────────────────────────────────────
     const API_URL = "https://arcaneone.duckdns.org";
     const ACCESS_TOKEN = "edgecdss-demo-2026";
-    const INACTIVITY_TIMEOUT = 1800000; // 30 min
+    const INACTIVITY_TIMEOUT = 1800000;
 
     // ─── State ────────────────────────────────────────────────
     let currentQuery = "";
@@ -414,7 +415,7 @@
     let messageCount = 0;
 
     // ─── Rate limiting disabled ───────────────────────────────
-    // Server on/off controlled manually — no client-side rate limiting
+    // Server on/off controlled manually
     function checkAndUpdateRate() { return true; }
     function recordQuery() {}
 
@@ -548,8 +549,8 @@
             });
 
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.detail || 'Server error');
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || 'Server error ' + res.status);
             }
 
             const data = await res.json();
@@ -563,7 +564,7 @@
 
         } catch(err) {
             hideLoading();
-            showError("Error: " + err.message);
+            showOffline();
         }
     }
 
@@ -572,6 +573,35 @@
             e.preventDefault();
             submitQuery();
         }
+    }
+
+    // ─── Offline message ──────────────────────────────────────
+    function showOffline() {
+        hideLoading();
+        const area = document.getElementById('conversation-area');
+        const placeholder = document.getElementById('placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message';
+        msgDiv.innerHTML =
+            '<div class="message-response" style="border-left-color: #2563eb; text-align: center; padding: 28px 24px;">' +
+            '<div style="font-size: 36px; margin-bottom: 14px;">🔧</div>' +
+            '<div style="font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px;">EdgeCDSS v2.5 is offline</div>' +
+            '<div style="font-size: 13px; color: #64748b; line-height: 1.8; margin-bottom: 6px;">Down for improvements. v3.0 is in development.</div>' +
+            '<div style="font-size: 12px; color: #475569; line-height: 1.8; margin-bottom: 20px;">' +
+            'Safety validation layer &nbsp;·&nbsp; Voice interface &nbsp;·&nbsp; Patient context memory<br>' +
+            'Medication inventory system &nbsp;·&nbsp; BLS scope awareness' +
+            '</div>' +
+            '<a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" ' +
+            'style="display: inline-block; background: #1a2535; border: 1px solid #2563eb; color: #93c5fd; ' +
+            'text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 20px; border-radius: 8px;">' +
+            'Follow the project on GitHub →</a>' +
+            '</div>';
+
+        const loading = document.getElementById('loading');
+        area.insertBefore(msgDiv, loading);
+        area.scrollTop = area.scrollHeight;
     }
 
     // ─── UI helpers ───────────────────────────────────────────
