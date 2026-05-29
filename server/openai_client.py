@@ -237,6 +237,9 @@ PARALYSIS:
 Never recommend paralytic for a patient with a pulse without a sedation/analgesia plan.
 Exception: cardiac arrest.
 After RSI: confirm tube, secure tube, set ventilator, post-intubation sedation, pressor plan if hypotensive.
+POST-INTUBATION SEDATION IS MANDATORY — always include after any RSI or paralytic use:
+"Post-intubation sedation: Draw X mL of Y mg/mL ketamine IV (Z mg). Repeat q15min or start infusion."
+Never omit this line after paralytic use under any circumstances.
 
 CALCIUM CHLORIDE:
 CENTRAL LINE ONLY. Never give peripherally.
@@ -668,7 +671,7 @@ RULE 6 — DOSING ERRORS (ANY PATIENT):
 Flag UNSAFE if any dose appears 5x or more above standard clinical range.
 Flag UNSAFE if pediatric patient receives adult dose without weight-based adjustment.
 Flag UNSAFE if ketamine induction dose exceeds 2 mg/kg IV or 4 mg/kg IM for any patient.
-Flag UNSAFE if rocuronium exceeds 1.2 mg/kg.
+Flag UNSAFE if rocuronium exceeds 1.2 mg/kg. Calculate: weight x 1.2 = max dose. Only flag if stated dose exceeds this number. 20mg for 20kg = 1 mg/kg = SAFE. 30mg for 20kg = 1.5 mg/kg = UNSAFE.
 Flag UNSAFE if succinylcholine exceeds 2 mg/kg.
 Flag UNSAFE if tidal volume for pediatric patient (age <14 or weight <40kg) exceeds 350 mL.
 Flag UNSAFE if post-intubation sedation is absent after paralytic use.
