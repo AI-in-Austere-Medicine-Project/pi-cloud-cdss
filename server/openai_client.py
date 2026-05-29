@@ -560,6 +560,9 @@ JTS SCOPE:
 - VT: X mL | RR: X | PEEP: X | FiO2: X%
 - PPLAT target: ≤30 cmH2O
 
+**POST-INTUBATION SEDATION** (mandatory after ANY paralytic — never omit)
+- Draw X mL of Y mg/mL ketamine IV (Z mg). Repeat q15min or start infusion.
+
 **WATCH** (monitoring prompt for high-risk medications)
 - One line
 
