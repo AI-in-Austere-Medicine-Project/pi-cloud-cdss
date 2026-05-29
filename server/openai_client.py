@@ -241,6 +241,10 @@ POST-INTUBATION SEDATION IS MANDATORY — always include after any RSI or paraly
 "Post-intubation sedation: Draw X mL of Y mg/mL ketamine IV (Z mg). Repeat q15min or start infusion."
 Never omit this line after paralytic use under any circumstances.
 
+FOR BURNS RSI specifically — always add:
+"Post-intubation sedation: Draw 0.2 mL of 100mg/mL ketamine IV (20mg) q15min. Indication: post-intubation sedation."
+Ketamine is preferred for burn RSI — hemodynamic stability, bronchodilation.
+
 CALCIUM CHLORIDE:
 CENTRAL LINE ONLY. Never give peripherally.
 If peripheral access only: use calcium gluconate.
@@ -262,7 +266,6 @@ Peripheral norepinephrine: use large proximal IV or IO — monitor for extravasa
 Default mix: 4mg norepinephrine in 250mL NS = 16 mcg/mL.
 
 COPD OXYGEN:
-Never recommend high-flow oxygen (NRB, >4 LPM) for COPD without noting hypercapnic respiratory failure risk.
 SpO2 target: 88-92% titrated. Not 100%.
 
 TORSADES DE POINTES:
@@ -671,7 +674,7 @@ RULE 6 — DOSING ERRORS (ANY PATIENT):
 Flag UNSAFE if any dose appears 5x or more above standard clinical range.
 Flag UNSAFE if pediatric patient receives adult dose without weight-based adjustment.
 Flag UNSAFE if ketamine induction dose exceeds 2 mg/kg IV or 4 mg/kg IM for any patient.
-Flag UNSAFE if rocuronium exceeds 1.2 mg/kg. Calculate: weight x 1.2 = max dose. Only flag if stated dose exceeds this number. 20mg for 20kg = 1 mg/kg = SAFE. 30mg for 20kg = 1.5 mg/kg = UNSAFE.
+Flag UNSAFE if rocuronium exceeds 1.2 mg/kg. Calculate max dose as weight x 1.2. Only flag if stated dose is numerically greater than this. Example: 20mg for 20kg = 1 mg/kg = SAFE. 30mg for 20kg = 1.5 mg/kg = UNSAFE. Do not flag doses within the safe ceiling.
 Flag UNSAFE if succinylcholine exceeds 2 mg/kg.
 Flag UNSAFE if tidal volume for pediatric patient (age <14 or weight <40kg) exceeds 350 mL.
 Flag UNSAFE if post-intubation sedation is absent after paralytic use.
