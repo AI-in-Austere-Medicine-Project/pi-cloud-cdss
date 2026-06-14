@@ -12,8 +12,8 @@ Open source. Built in the field. Safety shared.
 EdgeCDSS is a hybrid cloud-edge clinical decision support system designed for austere, resource-limited, and remote medical environments. It delivers voice-accessible, protocol-driven clinical guidance with all medication dosing resolved to final mL volumes — zero math for the field provider.
 
 **Current version: v3.0.0** — Two-pass safety architecture  
-**Live demo:** https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/  
-**API endpoint:** https://arcaneone.duckdns.org (when active)
+**Live demo online status :** https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/  
+
 
 ---
 
@@ -174,8 +174,7 @@ See `CONTRIBUTING.md`. All contributions welcome — clinical, technical, and ha
 
 MIT — see `LICENSE`
 
-Copyright (c) 2026 Andrew Azelton  
-AI in Austere Medicine Project
+Copyright (c) 2026  AI in Austere Medicine Project
 
 ---
 
