@@ -592,6 +592,12 @@ JTS SCOPE:
 **GIVE** (if medications needed — induction agents BEFORE paralytics)
 - Drug: Draw X mL of Y mg/mL [route] (Z total). Indication: [reason].
 
+FOR ANY RSI QUERY — always include all three in GIVE:
+1. Induction: Draw X mL ketamine IV (Xmg). Indication: RSI induction.
+2. Paralytic: Draw X mL rocuronium IV (Xmg). Indication: RSI paralytic.
+3. Post-intubation sedation: Draw X mL ketamine IV (Xmg) q20-30min after tube confirmed. Indication: post-intubation sedation.
+Never omit line 3. The validator will block any RSI response missing post-intubation sedation.
+
 **DRIP** (if infusion needed)
 - Mix: X mg in Y mL NS (= Z mg/mL)
 - Start: X mL/hr | Titrate: +X mL/hr every Y min | Max: X mL/hr | Target: [MAP/sedation]
