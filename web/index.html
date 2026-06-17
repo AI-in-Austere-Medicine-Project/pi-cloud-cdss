@@ -353,11 +353,15 @@
 
     <div class="conversation-area" id="conversation-area">
         <div class="placeholder" id="placeholder">
-            <span class="icon">🎙️</span>
-            EdgeCDSS v3.0 is live.<br>
-            <span style="font-size:13px; color:#2563eb; font-weight:600;">Ask a clinical question to begin.</span><br>
-            <span style="font-size:11px; color:#475569;">JTS protocols · Voice input · Beta testing open</span>
+            <span class="icon">🔧</span>
+            EdgeCDSS v2.5 is offline.<br>
+            <span style="font-size:13px; color:#2563eb; font-weight:600;">v3.0 is in development.</span><br>
+            <span style="font-size:11px; color:#475569;">Safety validation · Voice interface · Patient context memory</span>
         </div>
+        <div class="loading" id="loading">
+            <span class="loading-dots">Querying protocols</span>
+        </div>
+    </div>
 
     <div class="error-msg" id="error-msg"></div>
 
@@ -378,6 +382,8 @@
 <footer>
     AI in Austere Medicine Project &nbsp;·&nbsp;
     <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank">GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/START-HERE/FIRST_TIME_GUIDE.md" target="_blank">First Time Guide</a>
     &nbsp;·&nbsp; Research prototype &nbsp;·&nbsp; Not for clinical use
 </footer>
 
@@ -411,7 +417,6 @@
     let messageCount = 0;
 
     // ─── Rate limiting disabled ───────────────────────────────
-    // Server on/off controlled manually
     function checkAndUpdateRate() { return true; }
     function recordQuery() {}
 
@@ -592,7 +597,7 @@
             '<a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" ' +
             'style="display: inline-block; background: #1a2535; border: 1px solid #2563eb; color: #93c5fd; ' +
             'text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 20px; border-radius: 8px;">' +
-            'Follow the project on GitHub →</a>' +
+            'Follow the project on GitHub \u2192</a>' +
             '</div>';
 
         const loading = document.getElementById('loading');
@@ -636,7 +641,7 @@
                     '<button class="feedback-btn dangerous" onclick="submitFeedback(\'dangerous\',\'' + msgId + '\')">🚨 Dangerous</button>' +
                     '<button class="feedback-btn" onclick="openFeedbackModal(\'' + msgId + '\')">💬 Comment</button>' +
                 '</div>' +
-                '<span class="feedback-sent" id="fb-sent-' + msgId + '">✓ Feedback received</span>' +
+                '<span class="feedback-sent" id="fb-sent-' + msgId + '">\u2713 Feedback received</span>' +
             '</div>';
 
         const area = document.getElementById('conversation-area');
@@ -701,10 +706,6 @@
     }
 
     // ─── ELEVENLABS TTS — DORMANT ─────────────────────────────
-    // Server-side /speak endpoint confirmed working via curl.
-    // To re-enable: uncomment speakResponse() in submitQuery()
-    // and uncomment speakResponse/stopAudio functions below.
-    //
     // async function speakResponse(text) {
     //     try {
     //         const res = await fetch(API_URL + "/speak", {
