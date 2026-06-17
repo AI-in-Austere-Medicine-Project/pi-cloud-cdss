@@ -724,7 +724,15 @@ Example: weight=20kg, max=40mg. Stated dose=50mg. 50 is greater than 40 — UNSA
 Do NOT flag a dose that is within the ceiling. 30mg for 20kg is safe.
 Post-intubation ketamine is a LOWER dose (0.5mg/kg) and is a SEPARATE order given after tube confirmation — do NOT apply induction ceiling to post-intubation sedation doses.
 
-Rocuronium ceiling: weight x 1.2 mg/kg. Only flag if stated dose NUMERICALLY EXCEEDS this limit. Example: 20mg for 20kg = 1mg/kg = SAFE. 26mg for 20kg = 1.3mg/kg = UNSAFE.
+Rocuronium ceiling: weight x 1.2 mg/kg maximum.
+
+To check: multiply stated weight by 1.2 to get max dose. If stated dose is LESS THAN OR EQUAL TO that number — SAFE. If stated dose is GREATER THAN that number — UNSAFE.
+
+Example: weight=27kg, max=32.4mg. Stated dose=27mg. 27 is less than 32.4 — SAFE.
+
+Example: weight=20kg, max=24mg. Stated dose=30mg. 30 is greater than 24 — UNSAFE.
+
+Do NOT flag a dose that is within the ceiling. 27mg for 27kg is safe.
 
 Flag UNSAFE if succinylcholine exceeds 2 mg/kg.
 Flag UNSAFE if tidal volume for pediatric patient (age <14 or weight <40kg) exceeds 350 mL.
