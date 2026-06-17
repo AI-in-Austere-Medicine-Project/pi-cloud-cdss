@@ -717,7 +717,11 @@ RULE 6 — DOSING ERRORS (ANY PATIENT):
 Flag UNSAFE if any dose appears 5x or more above standard clinical range.
 Flag UNSAFE if pediatric patient receives adult dose without weight-based adjustment.
 
-Ketamine induction ceiling: weight x 2 mg/kg IV. Only flag if stated induction dose NUMERICALLY EXCEEDS this limit. Example: 40mg for 20kg = 2mg/kg = SAFE. 60mg for 20kg = 3mg/kg = UNSAFE.
+Ketamine induction ceiling: weight x 2 mg/kg IV maximum.
+To check: multiply stated weight by 2 to get max dose. If stated dose is LESS THAN OR EQUAL TO that number — SAFE. If stated dose is GREATER THAN that number — UNSAFE.
+Example: weight=20kg, max=40mg. Stated dose=30mg. 30 is less than 40 — SAFE.
+Example: weight=20kg, max=40mg. Stated dose=50mg. 50 is greater than 40 — UNSAFE.
+Do NOT flag a dose that is within the ceiling. 30mg for 20kg is safe.
 Post-intubation ketamine is a LOWER dose (0.5mg/kg) and is a SEPARATE order given after tube confirmation — do NOT apply induction ceiling to post-intubation sedation doses.
 
 Rocuronium ceiling: weight x 1.2 mg/kg. Only flag if stated dose NUMERICALLY EXCEEDS this limit. Example: 20mg for 20kg = 1mg/kg = SAFE. 26mg for 20kg = 1.3mg/kg = UNSAFE.
@@ -986,7 +990,7 @@ Retrieved Protocol Context:
             model="gpt-4o-mini",
             messages=messages,
             temperature=0.3,
-            max_tokens=500
+            max_tokens=700
         )
 
         response_text = response.choices[0].message.content
