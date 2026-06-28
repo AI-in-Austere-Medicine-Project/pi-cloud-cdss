@@ -1,6 +1,6 @@
 """
 EdgeCDSS — AUSTERE-CDS Pipeline
-Version: 3.3.0
+Version: 3.4.0
 
 Architecture per code review recommendations (EdgeCDSS_openai_py_issue_recommendations.docx):
   1. Structured session state (PatientContext with confirmed vs estimated weight, access_state, route_preference)
@@ -14,6 +14,13 @@ Architecture per code review recommendations (EdgeCDSS_openai_py_issue_recommend
 
 Key design principle: prompts handle formatting and clinical language.
 Python handles gates, weight rules, route selection, calculators, and safety checks.
+
+v3.4 additions (EdgeCDSS_openai_py_issue_recommendations_2.docx):
+  - detect_requested_medication_overdose() — pre-generator overdose block
+  - Deterministic sepsis-DCR pre-gate
+  - FIXED_PREPS system with build_fixed_prep_response()
+  - ALLOWED_ACTIONS for weight-free protocol guidance
+  - normalize_validator_result() — UNSAFE with empty issues → NEEDS_HUMAN_REVIEW
 """
 
 import os
@@ -62,6 +69,9 @@ class PatientContext:
     @property
     def has_confirmed_weight(self) -> bool:
         return self.confirmed_weight_kg is not None
+
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
 @dataclass
@@ -209,17 +219,13 @@ SAFE_GATE_RESPONSES = {
 
 def wants_medication_dose(query: str) -> bool:
     q = query.lower()
+    if is_fixed_prep_request(q):
+        return False
     dose_terms = ['dose', 'give', 'draw', 'mg', 'ml', 'ketamine', 'roc',
                   'rocuronium', 'sux', 'succinylcholine', 'fentanyl', 'versed',
                   'midazolam', 'lorazepam', 'morphine', 'epi', 'epinephrine',
-                  'analges', 'sedat', 'intubat', 'rsi']
-    # Exclude pure assessment/triage queries that mention patient vitals but no medication
-    assessment_only = ['initiate dcr', 'what should i do', 'how do i manage',
-                       'what are', 'assess', 'evaluate', 'pus', 'wound', 'temp ',
-                       'heart rate', 'blood pressure']
-    if not any(t in q for t in dose_terms):
-        return False
-    return True
+                  'analges', 'pain', 'sedat', 'intubat', 'rsi', 'txa', 'keppra']
+    return any(t in q for t in dose_terms)
 
 
 def route_changes_dose(query: str) -> bool:
@@ -228,21 +234,19 @@ def route_changes_dose(query: str) -> bool:
     return any(x in q for x in route_sensitive)
 
 
-def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
+def pre_gate(query: str, ctx: PatientContext) -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
     """
-    combined = query + " " + prior_queries
-    if wants_medication_dose(combined):
+    if wants_medication_dose(query):
         # Pediatric weight gate
         if ctx.is_pediatric and not ctx.has_confirmed_weight:
             return "ASK", "Need weight in kg before dosing."
 
-        # Route gate for route-sensitive medications — skip for RSI (always IV)
-        is_rsi = any(x in combined for x in ["rsi", "intubat", "rapid sequence", "rocuronium", "roc", "succinylcholine", "sux"])
-        if route_changes_dose(combined) and ctx.route_preference == "UNKNOWN" and not is_rsi:
+        # Route gate for route-sensitive medications
+        if route_changes_dose(query) and ctx.route_preference == "UNKNOWN":
             return "ASK", "IV or IM? Do you have access?"
 
     return "CONTINUE", None
@@ -332,25 +336,22 @@ def lorazepam_seizure(weight_kg: float) -> DoseCandidate:
     )
 
 
-def build_allowed_doses(query: str, ctx: PatientContext,
-                        history_text: str = "") -> List[DoseCandidate]:
-    """Build route-specific deterministic dose candidates for the current query.
-    Uses conversation history to detect medication intent even in short replies like 'IM'."""
+def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+    """Build route-specific deterministic dose candidates for the current query."""
     if ctx.dosing_weight_kg is None:
         return []
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
-    combined = q + " " + history_text.lower()
     doses = []
 
-    is_rsi = any(x in combined for x in ['rsi', 'intubat', 'rapid sequence'])
-    is_analg = any(x in combined for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
-    is_seizure = any(x in combined for x in ['seizure', 'seizing', 'status'])
-    has_ketamine = any(x in combined for x in ['ketamine', 'ket ', 'vitamin k'])
-    has_roc = any(x in combined for x in ['rocuronium', 'roc'])
-    has_succ = any(x in combined for x in ['succinylcholine', 'sux', 'succs'])
-    has_loraz = any(x in combined for x in ['lorazepam', 'ativan', 'benzo'])
+    is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
+    is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
+    is_seizure = any(x in q for x in ['seizure', 'seizing', 'status'])
+    has_ketamine = any(x in q for x in ['ketamine', 'ket ', 'vitamin k'])
+    has_roc = any(x in q for x in ['rocuronium', 'roc'])
+    has_succ = any(x in q for x in ['succinylcholine', 'sux', 'succs'])
+    has_loraz = any(x in q for x in ['lorazepam', 'ativan', 'benzo'])
 
     if has_ketamine:
         if is_rsi:
@@ -393,6 +394,166 @@ def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
             lines.append(f"  Note: {d.warning}")
     return "\n".join(lines)
 
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REQUESTED OVERDOSE DETECTOR — runs BEFORE generator
+# ─────────────────────────────────────────────────────────────────────────────
+
+def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> list:
+    """
+    Detect explicit unsafe doses requested by the provider in the query text.
+    Run before the generator so unsafe user-provided doses cannot be silently normalized.
+    Returns list of issue strings. Empty = no overdose detected.
+    """
+    issues = []
+    wt = ctx.confirmed_weight_kg
+    if not wt:
+        return issues
+
+    q = query.lower()
+    patterns = {
+        "ketamine": (r"ketamine.{0,40}?(\d+(?:\.\d+)?)\s*mg", wt * 2.0),
+        "rocuronium": (r"rocuronium.{0,40}?(\d+(?:\.\d+)?)\s*mg|roc\b.{0,40}?(\d+(?:\.\d+)?)\s*mg", wt * 1.2),
+        "succinylcholine": (r"succinylcholine.{0,40}?(\d+(?:\.\d+)?)\s*mg|sux\b.{0,40}?(\d+(?:\.\d+)?)\s*mg", wt * 2.0),
+    }
+
+    for drug, (pattern, ceiling) in patterns.items():
+        for m in re.finditer(pattern, q):
+            dose_txt = next((g for g in m.groups() if g), None)
+            if dose_txt and float(dose_txt) > ceiling:
+                issues.append(
+                    f"Provider requested {drug} {float(dose_txt):g}mg, "
+                    f"which exceeds safety ceiling {ceiling:.1f}mg for {wt:g}kg patient."
+                )
+    return issues
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEPSIS-DCR DETERMINISTIC GATE
+# ─────────────────────────────────────────────────────────────────────────────
+
+def looks_like_sepsis(query: str) -> bool:
+    q = query.lower()
+    infection_terms = ["fever", "temp", "febrile", "pus", "purulent", "infected",
+                       "infection", "sepsis", "septic", "abscess", "wound drainage"]
+    shock_terms = ["bp ", "hypotension", "hypotensive", "shock", "map", "tachy", "hr "]
+    return any(t in q for t in infection_terms) and any(t in q for t in shock_terms)
+
+
+def asks_for_dcr_or_hemostatic_resus(query: str) -> bool:
+    q = query.lower()
+    return any(t in q for t in ["dcr", "damage control", "txa", "ltowb", "whole blood", "blood product"])
+
+
+def has_clear_hemorrhage(query: str) -> bool:
+    q = query.lower()
+    hemorrhage_terms = ["active bleeding", "arterial bleed", "hemorrhage", "hemorrhagic",
+                        "exsanguinating", "tourniquet", "amputation", "penetrating trauma",
+                        "abdominal bleeding", "massive bleeding"]
+    return any(t in q for t in hemorrhage_terms)
+
+
+SEPSIS_DCR_REFUSAL = """Sepsis suspected — do not initiate DCR/TXA/LTOWB unless hemorrhage is clearly present.
+
+**DO THIS**
+1. Treat as septic shock: oxygen, IV/IO access, monitor BP and mental status.
+2. Give crystalloid bolus per local protocol and reassess frequently.
+3. Start antibiotics if available and within protocol; evacuate urgently.
+
+**DON'T**
+- Do not give TXA or blood-product DCR for sepsis alone.
+
+**TLDR**
+- Fever plus pus plus hypotension is sepsis until proven otherwise.
+
+Guideline-based support only. Not a substitute for clinical judgment."""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FIXED PREPS — preparation recipes not tied to patient weight
+# ─────────────────────────────────────────────────────────────────────────────
+
+FIXED_PREP_TERMS = [
+    "push dose epi", "push-dose epi", "push dose epinephrine",
+    "dirty epi", "epi drip", "make epi", "prepare epi",
+    "mix norepi", "norepinephrine mix", "d50 amp", "dextrose prep"
+]
+
+
+def is_fixed_prep_request(query: str) -> bool:
+    q = query.lower()
+    return any(t in q for t in FIXED_PREP_TERMS)
+
+
+def build_fixed_prep_response(query: str) -> Optional[str]:
+    q = query.lower()
+    if any(x in q for x in ["push dose epi", "push-dose epi", "push dose epinephrine", "dirty epi"]):
+        return (
+            "**PUSH-DOSE EPINEPHRINE PREP**\n"
+            "- Make 10 mcg/mL epinephrine.\n"
+            "- Draw 1 mL of 1:10,000 epinephrine (0.1mg/mL) into a 10 mL syringe.\n"
+            "- Add 9 mL normal saline. Total 10 mL.\n"
+            "- Final concentration: 10 mcg/mL.\n\n"
+            "**GIVE**\n"
+            "- Administer 0.5-2 mL (5-20 mcg) IV push q2-5min. Titrate to effect.\n\n"
+            "**WATCH**\n"
+            "- Continuous cardiac monitoring required. Use only with local protocol.\n\n"
+            "**TLDR**\n"
+            "- 1 mL of 1:10,000 epi plus 9 mL NS = 10 mcg/mL push-dose epi.\n\n"
+            "Guideline-based support only. Not a substitute for clinical judgment."
+        )
+    if "epi drip" in q or "epinephrine drip" in q:
+        return (
+            "**EPINEPHRINE INFUSION PREP (Dirty Epi Drip)**\n"
+            "- Mix 1 mg epinephrine (1:10,000, 10 mL) in 250 mL NS = 4 mcg/mL.\n"
+            "- Start at 2-10 mcg/min (30-150 mL/hr). Titrate to MAP target.\n\n"
+            "**WATCH**\n"
+            "- Cardiac monitoring required. Peripheral line — monitor for extravasation.\n\n"
+            "**TLDR**\n"
+            "- 1mg epi in 250mL NS = 4 mcg/mL. Start 2-10 mcg/min.\n\n"
+            "Guideline-based support only. Not a substitute for clinical judgment."
+        )
+    return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ALLOWED ACTIONS — weight-free protocol guidance
+# ─────────────────────────────────────────────────────────────────────────────
+
+def patient_is_known_or_possible_pediatric(ctx: PatientContext, query: str) -> bool:
+    q = query.lower()
+    pediatric_words = ["child", "kid", "infant", "baby", "toddler", "pediatric",
+                       "paediatric", "yo", "year old", "year-old"]
+    return ctx.is_pediatric or any(w in q for w in pediatric_words)
+
+
+def build_allowed_actions(query: str, ctx: PatientContext) -> List[str]:
+    q = query.lower()
+    actions = []
+
+    if any(t in q for t in ["active bleeding", "hemorrhagic shock", "abdominal bleeding",
+                              "active abdominal", "massive bleeding", "exsanguinat"]):
+        actions.append(
+            "HEMORRHAGIC_SHOCK_DCR: Control hemorrhage immediately. "
+            "If hemorrhagic shock and within protocol, use damage-control resuscitation "
+            "with LTOWB/blood products if available. "
+            "Consider TXA if traumatic hemorrhage is within 3 hours and no contraindication. "
+            "Do NOT give large-volume crystalloid for hemorrhagic shock."
+        )
+
+    if "seizure" in q or "seizing" in q or "status epilepticus" in q:
+        if patient_is_known_or_possible_pediatric(ctx, q) and not ctx.dosing_weight_kg:
+            actions.append("SEIZURE_PEDIATRIC: Need weight in kg before benzodiazepine dosing.")
+        else:
+            actions.append(
+                "SEIZURE_ADULT_DEFAULT: For active adult seizure, lorazepam is first-line if available "
+                "and within protocol. Follow with levetiracetam (Keppra) 1500mg IV for maintenance. "
+                "Use local protocol for dose and route if weight is not confirmed."
+            )
+
+    return actions
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RETRIEVAL CLASSIFIER
@@ -479,11 +640,12 @@ cold / frozen / hypothermic → hypothermia — NOT DCR | excited delirium / ExD
 MEDICATION RULES
 ────────────────────────────────
 
-ALLOWED_DOSES RULE: If ALLOWED_DOSES is provided below — use those values exactly.
-Do not calculate alternatives. Do not adjust the dose. Do not show mg/kg math.
-If ALLOWED_DOSES is empty — do not provide medication doses in your response.
-However, ALWAYS provide full clinical guidance for non-medication actions: procedures, assessment, airway management, evacuation.
-CICO OVERRIDE: If scenario describes failed ETT + failed rescue airway + hypoxia/cyanosis — always state surgical airway/cricothyrotomy regardless of ALLOWED_DOSES.
+ALLOWED_DOSES RULE: If ALLOWED_DOSES is provided — use those exact values.
+Do not calculate alternative doses. Do not adjust. Do not show mg/kg math.
+Every GIVE line must include: drug name, concentration, route, volume in mL, and total mg/mcg.
+For RSI, GIVE must name both the induction agent and paralytic explicitly.
+Never say only "give induction" — name the drug (ketamine, etomidate).
+If ALLOWED_DOSES is empty — do not provide medication doses. Give protocol actions only.
 
 MORPHINE RESTRICTION: Never first-line. Default analgesic: ketamine subdissociative.
 
@@ -617,7 +779,8 @@ def build_patient_block(ctx: PatientContext) -> str:
         lines.append("IV/IO access confirmed.")
     elif ctx.access_state in ["NO_IV_IO", "FAILED_IV"]:
         lines.append("No working IV/IO access. Use IM route only.")
-    # Do not show access unknown for RSI — always assume IV for intubation
+    else:
+        lines.append("IV/IO access: unknown.")
 
     if ctx.route_preference != "UNKNOWN":
         lines.append(f"Provider requested route: {ctx.route_preference}")
@@ -761,7 +924,7 @@ Return UNSAFE ONLY for direct patient-harm errors:
 
 1. SEPSIS AS HEMORRHAGE: fever + infection source + hypotension, response gives TXA/LTOWB/DCR as primary treatment.
 2. TXA MISUSE: TXA for sepsis, hypothermia alone, burns alone, TBI alone, >3hrs post injury.
-3. CICO OMISSION: failed ETT + failed rescue airway + ongoing hypoxia, AND the response does not mention ANY of: surgical airway, cricothyrotomy, cric, front of neck access, needle cric, surgical cric. If ANY of these terms appear in the response — do NOT flag CICO OMISSION.
+3. CICO OMISSION: failed ETT + failed rescue airway + ongoing hypoxia, no surgical airway mentioned.
 4. WPW CONTRAINDICATION: WPW present, response gives adenosine/beta-blocker/CCB/digoxin.
 5. PARALYTIC WITHOUT SEDATION: paralytic for patient with pulse, no induction or sedation plan.
 6. TBI STEROIDS: TBI context, response recommends corticosteroids.
@@ -777,6 +940,13 @@ Do NOT flag: IM route recommendations, IV route recommendations, short responses
 missing non-critical monitoring details, sedation interval preferences when a plan exists,
 or any issue not explicitly listed above.
 
+ISSUE FORMAT REQUIREMENT:
+Issue descriptions must be specific and actionable. Do not use category-only labels.
+BAD: "CRITICAL MISSED DIAGNOSIS" or "TBI STEROIDS"
+GOOD: "Response recommends TXA for fever + pus + hypotension without confirmed hemorrhage."
+GOOD: "Response includes paralytic but no induction agent or sedation."
+Never return result=UNSAFE with an empty issues array.
+
 OUTPUT: Return only valid JSON. No markdown. No text outside the JSON.
 {
   "result": "SAFE" | "UNSAFE" | "NEEDS_HUMAN_REVIEW",
@@ -784,6 +954,30 @@ OUTPUT: Return only valid JSON. No markdown. No text outside the JSON.
   "rationale": "brief reason"
 }
 """
+
+
+
+def normalize_validator_result(data: dict) -> dict:
+    """Normalize validator output. UNSAFE with empty issues → NEEDS_HUMAN_REVIEW."""
+    result = data.get("result", "NEEDS_HUMAN_REVIEW")
+    issues = data.get("issues") or []
+    rationale = data.get("rationale") or ""
+
+    if result not in ["SAFE", "UNSAFE", "NEEDS_HUMAN_REVIEW"]:
+        result = "NEEDS_HUMAN_REVIEW"
+        issues.append("Validator returned unknown result value.")
+
+    if result == "UNSAFE" and not issues:
+        if rationale:
+            issues = [f"Validator marked UNSAFE: {rationale}"]
+        else:
+            result = "NEEDS_HUMAN_REVIEW"
+            issues = ["Validator marked unsafe but provided no specific issue."]
+
+    if result == "SAFE":
+        issues = []
+
+    return {"result": result, "issues": issues, "rationale": rationale, "safe": result == "SAFE"}
 
 
 def validate_response(full_transcript: str, response_text: str,
@@ -832,8 +1026,7 @@ def validate_response(full_transcript: str, response_text: str,
         else:
             print(f"✅ Validator [{result_val}]: {rationale}")
 
-        return {"result": result_val, "issues": issues, "rationale": rationale,
-                "safe": result_val == "SAFE"}
+        return normalize_validator_result({"result": result_val, "issues": issues, "rationale": rationale})
 
     except json.JSONDecodeError as e:
         print(f"🚨 Validator parse error: {e}")
@@ -876,17 +1069,10 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
         print(f"🚨 DETERMINISTIC BLOCK: {det_check.issues}")
         return build_safety_hold(det_check.issues, ""), True, det_check.issues
 
-    # LLM UNSAFE blocks — but check for CICO false positive first
+    # LLM UNSAFE blocks
     if llm_result["result"] == "UNSAFE":
-        issues = llm_result["issues"]
-        # If CICO is the only issue and response mentions surgical airway — override
-        cico_issues = [i for i in issues if "CICO" in i.upper()]
-        non_cico_issues = [i for i in issues if "CICO" not in i.upper()]
-        if cico_issues and not non_cico_issues and is_cico_response_adequate(response_text):
-            print(f"✅ CICO false positive overridden — surgical airway mentioned in response")
-            return response_text, False, []
-        print(f"🚨 LLM BLOCK: {issues}")
-        return build_safety_hold(issues, llm_result["rationale"]), True, issues
+        print(f"🚨 LLM BLOCK: {llm_result['issues']}")
+        return build_safety_hold(llm_result["issues"], llm_result["rationale"]), True, llm_result["issues"]
 
     # NEEDS_HUMAN_REVIEW appends warning
     if llm_result["result"] == "NEEDS_HUMAN_REVIEW":
@@ -920,15 +1106,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     8. Safety gate with safe-gate response allowlist
     """
     try:
-        # Step 1: Rebuild full context from entire conversation history
-        # session_ctx not persisted server-side — reconstruct from history on every call
-        running_ctx = PatientContext()
-        if conversation_history:
-            for turn in conversation_history:
-                running_ctx = extract_patient_context(
-                    turn.get("query", ""), prior_ctx=running_ctx
-                )
-        patient_ctx = extract_patient_context(query, prior_ctx=running_ctx,
+        # Step 1: Update session context
+        patient_ctx = extract_patient_context(query, prior_ctx=session_ctx,
                                               conversation_history=conversation_history)
         print(f"👤 confirmed_wt={patient_ctx.confirmed_weight_kg} "
               f"est_wt={patient_ctx.estimated_weight_kg} "
@@ -936,8 +1115,45 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
               f"route={patient_ctx.route_preference} "
               f"access={patient_ctx.access_state}")
 
-        # Step 2: Deterministic pre-gate
-        prior_queries = " ".join([t.get("query","") for t in (conversation_history or [])[-3:]])
+        # Step 2a: Fixed prep check — before any other gate
+        fixed_prep = build_fixed_prep_response(query)
+        if fixed_prep:
+            print(f"🔧 FIXED_PREP: {query[:40]}")
+            return {
+                "response": fixed_prep,
+                "sources": [],
+                "source_mode": "FIXED_PREP",
+                "validator_result": "SAFE",
+                "validator_issues": [],
+                "patient_context": patient_ctx.to_dict()
+            }
+
+        # Step 2b: Sepsis-DCR deterministic refusal
+        if looks_like_sepsis(full_query_history) and            asks_for_dcr_or_hemostatic_resus(full_query_history) and            not has_clear_hemorrhage(full_query_history):
+            print("🛑 SEPSIS-DCR PRE-GATE")
+            return {
+                "response": SEPSIS_DCR_REFUSAL,
+                "sources": [],
+                "source_mode": "DETERMINISTIC_PRE_GATE",
+                "validator_result": "SAFE",
+                "validator_issues": [],
+                "patient_context": patient_ctx.to_dict()
+            }
+
+        # Step 2c: Requested overdose pre-gate
+        requested_overdose = detect_requested_medication_overdose(full_query_history, patient_ctx)
+        if requested_overdose:
+            print(f"🚨 REQUESTED OVERDOSE: {requested_overdose}")
+            return {
+                "response": build_safety_hold(requested_overdose, "Requested dose exceeds safety ceiling."),
+                "sources": [],
+                "source_mode": "DETERMINISTIC_PRE_GATE",
+                "validator_result": "UNSAFE",
+                "validator_issues": requested_overdose,
+                "patient_context": patient_ctx.to_dict()
+            }
+
+        # Step 2d: Standard pre-gate (weight/route)
         gate_action, gate_response = pre_gate(query, patient_ctx, prior_queries)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
@@ -947,7 +1163,7 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                 "source_mode": "PRE_GATE",
                 "validator_result": "SKIPPED_SAFE_GATE",
                 "validator_issues": [],
-                "patient_context": asdict(patient_ctx)
+                "patient_context": patient_ctx.to_dict()
             }
 
         # Step 3: RAG retrieval
@@ -956,13 +1172,17 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
         print(f"📚 {assessment.source_mode} (top: {assessment.top_score})")
 
         # Step 4: Build dose candidates
-        history_text = " ".join([t.get("query","") for t in (conversation_history or [])])
-        allowed_doses = build_allowed_doses(query, patient_ctx, history_text)
+        allowed_doses = build_allowed_doses(query, patient_ctx)
         allowed_dose_block = build_allowed_dose_block(allowed_doses)
         print(f"💊 {len(allowed_doses)} dose candidates built")
 
+        # Build ALLOWED_ACTIONS for weight-free protocol guidance
+        allowed_actions = build_allowed_actions(full_query_history, patient_ctx)
+
         # Step 5: Build system prompt and generate response
         system_prompt = build_system_prompt(patient_ctx, assessment, allowed_dose_block)
+        if allowed_actions:
+            system_prompt += "\n\nALLOWED_ACTIONS:\n" + "\n".join(f"- {a}" for a in allowed_actions)
 
         messages = [{"role": "system", "content": system_prompt}]
         transcript_lines = []
@@ -999,7 +1219,7 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
             "source_mode": assessment.source_mode,
             "validator_result": "UNSAFE" if blocked else llm_result["result"],
             "validator_issues": combined_issues,
-            "patient_context": asdict(patient_ctx)
+            "patient_context": patient_ctx.to_dict()
         }
 
     except Exception as e:
