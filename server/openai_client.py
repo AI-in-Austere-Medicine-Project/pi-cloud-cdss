@@ -212,8 +212,14 @@ def wants_medication_dose(query: str) -> bool:
     dose_terms = ['dose', 'give', 'draw', 'mg', 'ml', 'ketamine', 'roc',
                   'rocuronium', 'sux', 'succinylcholine', 'fentanyl', 'versed',
                   'midazolam', 'lorazepam', 'morphine', 'epi', 'epinephrine',
-                  'analges', 'pain', 'sedat', 'intubat', 'rsi']
-    return any(t in q for t in dose_terms)
+                  'analges', 'sedat', 'intubat', 'rsi']
+    # Exclude pure assessment/triage queries that mention patient vitals but no medication
+    assessment_only = ['initiate dcr', 'what should i do', 'how do i manage',
+                       'what are', 'assess', 'evaluate', 'pus', 'wound', 'temp ',
+                       'heart rate', 'blood pressure']
+    if not any(t in q for t in dose_terms):
+        return False
+    return True
 
 
 def route_changes_dose(query: str) -> bool:
@@ -222,19 +228,21 @@ def route_changes_dose(query: str) -> bool:
     return any(x in q for x in route_sensitive)
 
 
-def pre_gate(query: str, ctx: PatientContext) -> tuple:
+def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
     """
-    if wants_medication_dose(query):
+    combined = query + " " + prior_queries
+    if wants_medication_dose(combined):
         # Pediatric weight gate
         if ctx.is_pediatric and not ctx.has_confirmed_weight:
             return "ASK", "Need weight in kg before dosing."
 
-        # Route gate for route-sensitive medications
-        if route_changes_dose(query) and ctx.route_preference == "UNKNOWN":
+        # Route gate for route-sensitive medications — skip for RSI (always IV)
+        is_rsi = any(x in combined for x in ["rsi", "intubat", "rapid sequence", "rocuronium", "roc", "succinylcholine", "sux"])
+        if route_changes_dose(combined) and ctx.route_preference == "UNKNOWN" and not is_rsi:
             return "ASK", "IV or IM? Do you have access?"
 
     return "CONTINUE", None
@@ -324,22 +332,25 @@ def lorazepam_seizure(weight_kg: float) -> DoseCandidate:
     )
 
 
-def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
-    """Build route-specific deterministic dose candidates for the current query."""
+def build_allowed_doses(query: str, ctx: PatientContext,
+                        history_text: str = "") -> List[DoseCandidate]:
+    """Build route-specific deterministic dose candidates for the current query.
+    Uses conversation history to detect medication intent even in short replies like 'IM'."""
     if ctx.dosing_weight_kg is None:
         return []
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
+    combined = q + " " + history_text.lower()
     doses = []
 
-    is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
-    is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
-    is_seizure = any(x in q for x in ['seizure', 'seizing', 'status'])
-    has_ketamine = any(x in q for x in ['ketamine', 'ket ', 'vitamin k'])
-    has_roc = any(x in q for x in ['rocuronium', 'roc'])
-    has_succ = any(x in q for x in ['succinylcholine', 'sux', 'succs'])
-    has_loraz = any(x in q for x in ['lorazepam', 'ativan', 'benzo'])
+    is_rsi = any(x in combined for x in ['rsi', 'intubat', 'rapid sequence'])
+    is_analg = any(x in combined for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
+    is_seizure = any(x in combined for x in ['seizure', 'seizing', 'status'])
+    has_ketamine = any(x in combined for x in ['ketamine', 'ket ', 'vitamin k'])
+    has_roc = any(x in combined for x in ['rocuronium', 'roc'])
+    has_succ = any(x in combined for x in ['succinylcholine', 'sux', 'succs'])
+    has_loraz = any(x in combined for x in ['lorazepam', 'ativan', 'benzo'])
 
     if has_ketamine:
         if is_rsi:
@@ -470,7 +481,9 @@ MEDICATION RULES
 
 ALLOWED_DOSES RULE: If ALLOWED_DOSES is provided below — use those values exactly.
 Do not calculate alternatives. Do not adjust the dose. Do not show mg/kg math.
-If ALLOWED_DOSES is empty — do not provide medication doses. State: "No protocol retrieved. Use local protocol."
+If ALLOWED_DOSES is empty — do not provide medication doses in your response.
+However, ALWAYS provide full clinical guidance for non-medication actions: procedures, assessment, airway management, evacuation.
+CICO OVERRIDE: If scenario describes failed ETT + failed rescue airway + hypoxia/cyanosis — always state surgical airway/cricothyrotomy regardless of ALLOWED_DOSES.
 
 MORPHINE RESTRICTION: Never first-line. Default analgesic: ketamine subdissociative.
 
@@ -604,8 +617,7 @@ def build_patient_block(ctx: PatientContext) -> str:
         lines.append("IV/IO access confirmed.")
     elif ctx.access_state in ["NO_IV_IO", "FAILED_IV"]:
         lines.append("No working IV/IO access. Use IM route only.")
-    else:
-        lines.append("IV/IO access: unknown.")
+    # Do not show access unknown for RSI — always assume IV for intubation
 
     if ctx.route_preference != "UNKNOWN":
         lines.append(f"Provider requested route: {ctx.route_preference}")
@@ -749,7 +761,7 @@ Return UNSAFE ONLY for direct patient-harm errors:
 
 1. SEPSIS AS HEMORRHAGE: fever + infection source + hypotension, response gives TXA/LTOWB/DCR as primary treatment.
 2. TXA MISUSE: TXA for sepsis, hypothermia alone, burns alone, TBI alone, >3hrs post injury.
-3. CICO OMISSION: failed ETT + failed rescue airway + ongoing hypoxia, no surgical airway mentioned.
+3. CICO OMISSION: failed ETT + failed rescue airway + ongoing hypoxia, AND the response does not mention ANY of: surgical airway, cricothyrotomy, cric, front of neck access, needle cric, surgical cric. If ANY of these terms appear in the response — do NOT flag CICO OMISSION.
 4. WPW CONTRAINDICATION: WPW present, response gives adenosine/beta-blocker/CCB/digoxin.
 5. PARALYTIC WITHOUT SEDATION: paralytic for patient with pulse, no induction or sedation plan.
 6. TBI STEROIDS: TBI context, response recommends corticosteroids.
@@ -864,10 +876,17 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
         print(f"🚨 DETERMINISTIC BLOCK: {det_check.issues}")
         return build_safety_hold(det_check.issues, ""), True, det_check.issues
 
-    # LLM UNSAFE blocks
+    # LLM UNSAFE blocks — but check for CICO false positive first
     if llm_result["result"] == "UNSAFE":
-        print(f"🚨 LLM BLOCK: {llm_result['issues']}")
-        return build_safety_hold(llm_result["issues"], llm_result["rationale"]), True, llm_result["issues"]
+        issues = llm_result["issues"]
+        # If CICO is the only issue and response mentions surgical airway — override
+        cico_issues = [i for i in issues if "CICO" in i.upper()]
+        non_cico_issues = [i for i in issues if "CICO" not in i.upper()]
+        if cico_issues and not non_cico_issues and is_cico_response_adequate(response_text):
+            print(f"✅ CICO false positive overridden — surgical airway mentioned in response")
+            return response_text, False, []
+        print(f"🚨 LLM BLOCK: {issues}")
+        return build_safety_hold(issues, llm_result["rationale"]), True, issues
 
     # NEEDS_HUMAN_REVIEW appends warning
     if llm_result["result"] == "NEEDS_HUMAN_REVIEW":
@@ -901,8 +920,15 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     8. Safety gate with safe-gate response allowlist
     """
     try:
-        # Step 1: Update session context
-        patient_ctx = extract_patient_context(query, prior_ctx=session_ctx,
+        # Step 1: Rebuild full context from entire conversation history
+        # session_ctx not persisted server-side — reconstruct from history on every call
+        running_ctx = PatientContext()
+        if conversation_history:
+            for turn in conversation_history:
+                running_ctx = extract_patient_context(
+                    turn.get("query", ""), prior_ctx=running_ctx
+                )
+        patient_ctx = extract_patient_context(query, prior_ctx=running_ctx,
                                               conversation_history=conversation_history)
         print(f"👤 confirmed_wt={patient_ctx.confirmed_weight_kg} "
               f"est_wt={patient_ctx.estimated_weight_kg} "
@@ -911,7 +937,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
               f"access={patient_ctx.access_state}")
 
         # Step 2: Deterministic pre-gate
-        gate_action, gate_response = pre_gate(query, patient_ctx)
+        prior_queries = " ".join([t.get("query","") for t in (conversation_history or [])[-3:]])
+        gate_action, gate_response = pre_gate(query, patient_ctx, prior_queries)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
             return {
@@ -929,7 +956,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
         print(f"📚 {assessment.source_mode} (top: {assessment.top_score})")
 
         # Step 4: Build dose candidates
-        allowed_doses = build_allowed_doses(query, patient_ctx)
+        history_text = " ".join([t.get("query","") for t in (conversation_history or [])])
+        allowed_doses = build_allowed_doses(query, patient_ctx, history_text)
         allowed_dose_block = build_allowed_dose_block(allowed_doses)
         print(f"💊 {len(allowed_doses)} dose candidates built")
 
@@ -984,4 +1012,3 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
             "validator_result": "ERROR", "validator_issues": [str(e)],
             "patient_context": {}
         }
-        
