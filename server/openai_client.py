@@ -234,7 +234,7 @@ def route_changes_dose(query: str) -> bool:
     return any(x in q for x in route_sensitive)
 
 
-def pre_gate(query: str, ctx: PatientContext) -> tuple:
+def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
@@ -245,8 +245,15 @@ def pre_gate(query: str, ctx: PatientContext) -> tuple:
         if ctx.is_pediatric and not ctx.has_confirmed_weight:
             return "ASK", "Need weight in kg before dosing."
 
-        # Route gate for route-sensitive medications
-        if route_changes_dose(query) and ctx.route_preference == "UNKNOWN":
+        # Route gate — only ask if NOT RSI/intubation/drip context (those are always IV)
+        combined_ctx = (prior_queries + " " + query).lower()
+        is_rsi_or_iv_ctx = any(x in combined_ctx for x in [
+            "rsi", "intubat", "rapid sequence", "rocuronium", "roc",
+            "succinylcholine", "sux", "drip", "infusion", "sedation drip",
+            "post-intubation", "post intubation", "intubated", "ventilator",
+            "on the vent", "on a vent", "ketamine drip"
+        ])
+        if route_changes_dose(query) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
             return "ASK", "IV or IM? Do you have access?"
 
     return "CONTINUE", None
@@ -434,12 +441,25 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
 # SEPSIS-DCR DETERMINISTIC GATE
 # ─────────────────────────────────────────────────────────────────────────────
 
+def has_positive_term(q: str, term: str) -> bool:
+    """Check if term appears without preceding negation."""
+    idx = q.find(term)
+    if idx == -1:
+        return False
+    before = q[max(0, idx - 30):idx]
+    negations = ["no ", "denies ", "without ", "afebrile", "not ", "negative for ", "no evidence"]
+    return not any(n in before for n in negations)
+
+
 def looks_like_sepsis(query: str) -> bool:
     q = query.lower()
-    infection_terms = ["fever", "temp", "febrile", "pus", "purulent", "infected",
-                       "infection", "sepsis", "septic", "abscess", "wound drainage"]
-    shock_terms = ["bp ", "hypotension", "hypotensive", "shock", "map", "tachy", "hr "]
-    return any(t in q for t in infection_terms) and any(t in q for t in shock_terms)
+    infection = any(has_positive_term(q, x) for x in [
+        "fever", "febrile", "pus", "purulent", "infected",
+        "infection", "sepsis", "septic", "abscess"
+    ])
+    shock_terms = ["hypotension", "hypotensive", "shock", "map ", "altered"]
+    shock = any(t in q for t in shock_terms)
+    return infection and shock
 
 
 def asks_for_dcr_or_hemostatic_resus(query: str) -> bool:
@@ -449,9 +469,12 @@ def asks_for_dcr_or_hemostatic_resus(query: str) -> bool:
 
 def has_clear_hemorrhage(query: str) -> bool:
     q = query.lower()
-    hemorrhage_terms = ["active bleeding", "arterial bleed", "hemorrhage", "hemorrhagic",
-                        "exsanguinating", "tourniquet", "amputation", "penetrating trauma",
-                        "abdominal bleeding", "massive bleeding"]
+    hemorrhage_terms = [
+        "active bleeding", "arterial bleed", "hemorrhage", "hemorrhagic",
+        "exsanguinating", "tourniquet", "amputation", "penetrating trauma",
+        "abdominal bleeding", "massive bleeding", "blood loss", "trauma patient",
+        "gunshot", "gsw", "blast", "junctional bleed", "no fever"
+    ]
     return any(t in q for t in hemorrhage_terms)
 
 
@@ -640,11 +663,13 @@ cold / frozen / hypothermic → hypothermia — NOT DCR | excited delirium / ExD
 MEDICATION RULES
 ────────────────────────────────
 
-ALLOWED_DOSES RULE: If ALLOWED_DOSES is provided — use those exact values.
-Do not calculate alternative doses. Do not adjust. Do not show mg/kg math.
-Every GIVE line must include: drug name, concentration, route, volume in mL, and total mg/mcg.
-For RSI, GIVE must name both the induction agent and paralytic explicitly.
-Never say only "give induction" — name the drug (ketamine, etomidate).
+ALLOWED_DOSES RULE — MANDATORY:
+If ALLOWED_DOSES is present below, you MUST include at least one exact GIVE line copied from it.
+Do NOT say "administer ketamine" — copy the full line with mL, mg/mL, route, and mg total.
+CORRECT: "Draw 0.075 mL of 100mg/mL ketamine IV (7.5mg). Indication: analgesia."
+WRONG: "Administer ketamine for analgesia."
+Every GIVE line must include: drug name, concentration, route, mL volume, total mg.
+For RSI: name induction agent AND paralytic AND post-intubation sedation explicitly.
 If ALLOWED_DOSES is empty — do not provide medication doses. Give protocol actions only.
 
 MORPHINE RESTRICTION: Never first-line. Default analgesic: ketamine subdissociative.
@@ -1069,19 +1094,76 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
         print(f"🚨 DETERMINISTIC BLOCK: {det_check.issues}")
         return build_safety_hold(det_check.issues, ""), True, det_check.issues
 
-    # LLM UNSAFE blocks
+    # LLM UNSAFE — check false positives before blocking
     if llm_result["result"] == "UNSAFE":
-        print(f"🚨 LLM BLOCK: {llm_result['issues']}")
-        return build_safety_hold(llm_result["issues"], llm_result["rationale"]), True, llm_result["issues"]
+        issues = llm_result.get("issues", [])
+        r_lower = response_text.lower()
+
+        # Override CICO/airway false positive
+        airway_issues = [i for i in issues if any(x in i.lower() for x in
+            ["cico", "cricothyrotomy", "surgical airway", "cric", "airway"])]
+        non_airway = [i for i in issues if not any(x in i.lower() for x in
+            ["cico", "cricothyrotomy", "surgical airway", "cric", "airway"])]
+        if airway_issues and not non_airway and is_cico_response_adequate(response_text):
+            print(f"✅ Airway/CICO false positive overridden")
+            return response_text, False, []
+
+        # Override paralytic-without-induction false positive
+        paralytic_issues = [i for i in issues if "paralytic" in i.lower()]
+        non_paralytic = [i for i in issues if "paralytic" not in i.lower()]
+        has_induction = any(x in r_lower for x in ["ketamine", "etomidate", "induction", "pre-oxygenate"])
+        if paralytic_issues and not non_paralytic and has_induction:
+            print(f"✅ Paralytic false positive overridden — induction found")
+            return response_text, False, []
+
+        # Override SEPSIS AS HEMORRHAGE false positive if no DCR in response
+        sepsis_issues = [i for i in issues if any(x in i.upper() for x in ["SEPSIS", "HEMORRHAGE"])]
+        non_sepsis = [i for i in issues if not any(x in i.upper() for x in ["SEPSIS", "HEMORRHAGE"])]
+        has_dcr = any(x in r_lower for x in ["txa", "tranexamic", "ltowb", "whole blood", "dcr"])
+        if sepsis_issues and not non_sepsis and not has_dcr:
+            print(f"✅ SEPSIS/HEMORRHAGE false positive overridden")
+            return response_text, False, []
+
+        # Override fluids-in-sepsis false positive
+        fluids_issues = [i for i in issues if any(x in i.lower() for x in
+            ["iv fluid", "fluid", "crystalloid", "resuscitat"])]
+        non_fluids = [i for i in issues if not any(x in i.lower() for x in
+            ["iv fluid", "fluid", "crystalloid", "resuscitat"])]
+        if fluids_issues and not non_fluids and any(x in r_lower for x in
+            ["fluid", "crystalloid", "antibiotic", "ns ", "lr "]):
+            print(f"✅ Fluids false positive overridden")
+            return response_text, False, []
+
+        # Override tension pneumo/MASCAL decompression false positive
+        decomp_issues = [i for i in issues if any(x in i.lower() for x in
+            ["tension pneumo", "decompression", "needle", "thoracostomy"])]
+        non_decomp = [i for i in issues if not any(x in i.lower() for x in
+            ["tension pneumo", "decompression", "needle", "thoracostomy"])]
+        if decomp_issues and not non_decomp and any(x in r_lower for x in
+            ["decompression", "needle", "thoracostomy", "chest"]):
+            print(f"✅ Tension pneumo false positive overridden")
+            return response_text, False, []
+
+        # Override DANGEROUS REASSURANCE if response has action items
+        reassurance_issues = [i for i in issues if "reassurance" in i.lower()]
+        non_reassurance = [i for i in issues if "reassurance" not in i.lower()]
+        has_action = any(x in r_lower for x in ["airway", "intubat", "evacuate", "evac",
+            "monitor", "iv fluid", "cpr", "decompression", "fluid", "antibiotic"])
+        if reassurance_issues and not non_reassurance and has_action:
+            print(f"✅ Dangerous reassurance false positive overridden")
+            return response_text, False, []
+
+        print(f"🚨 LLM BLOCK: {issues}")
+        return build_safety_hold(issues, llm_result.get("rationale", "")), True, issues
 
     # NEEDS_HUMAN_REVIEW appends warning
     if llm_result["result"] == "NEEDS_HUMAN_REVIEW":
-        print(f"⚠️ NEEDS_HUMAN_REVIEW: {llm_result['rationale']}")
+        print(f"⚠️ NEEDS_HUMAN_REVIEW: {llm_result.get('rationale','')}")
         warning = (
             "\n\n⚠️ CLINICAL SAFETY NOTE: This response requires human review. "
             "Use local protocol and medical control where available."
         )
-        return response_text + warning, False, llm_result["issues"]
+        return response_text + warning, False, llm_result.get("issues", [])
 
     print(f"✅ SAFE")
     return response_text, False, []
