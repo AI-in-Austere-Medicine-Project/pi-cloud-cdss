@@ -39,6 +39,7 @@ class PatientContext:
     sex: Optional[str] = None
     is_pediatric: bool = False
     provider_scope: str = "UNKNOWN"
+    iv_access: Optional[bool] = None  # True=confirmed | False=no access | None=unknown
 
 
 @dataclass
@@ -107,6 +108,16 @@ def extract_patient_context(query: str) -> PatientContext:
         (ctx.age_years is not None and ctx.age_years < 18) or
         (ctx.weight_kg is not None and ctx.weight_kg < 40)
     )
+
+    # IV/IO access detection
+    if any(x in q for x in ['iv access', 'iv established', 'got an iv', 'have an iv',
+                              'io access', 'io established', 'have io', 'line established',
+                              'iv in place', 'access established']):
+        ctx.iv_access = True
+    if any(x in q for x in ['no iv', 'no access', 'no line', "can't get iv",
+                              'cannot get iv', 'no io', 'unable to get iv',
+                              'no vascular access']):
+        ctx.iv_access = False
 
     # Provider scope
     scope_map = {
@@ -394,6 +405,10 @@ If rhythm is required for treatment selection and missing, respond:
 If height and sex are needed for vent settings, respond:
 "Need height and sex before vent settings."
 
+If route is unknown and it significantly changes the dose (ketamine IV vs IM differ 7x in dose):
+Ask only: "IV or IM? Do you have access?"
+If provider has already stated IV access or IM-only in this session — use that route without asking again.
+
 ────────────────────────────────
 SOURCE DISCIPLINE
 ────────────────────────────────
@@ -574,33 +589,31 @@ def build_patient_block(ctx: PatientContext) -> str:
         lines.append("PEDIATRIC PATIENT")
     if ctx.weight_kg:
         lines.append(f"Weight: {ctx.weight_kg}kg ({ctx.weight_source})")
-        if ctx.is_pediatric and ctx.weight_source == "estimated_from_age":
-            lines.append("Weight is ESTIMATED from age — not confirmed by provider.")
-            lines.append("DO NOT DOSE. Respond only: 'Need confirmed weight in kg before dosing.'")
-        elif ctx.is_pediatric:
+        if ctx.is_pediatric:
             ket_ceil = round(ctx.weight_kg * 2.0, 1)
             roc_ceil = round(ctx.weight_kg * 1.2, 1)
             ket_post = round(ctx.weight_kg * 0.5, 1)
             vt = int(pediatric_vt(ctx.weight_kg))
-            lines.append("PEDIATRIC DOSE — USE EXACTLY THESE VALUES:")
-            ket_analg_mg = round(ctx.weight_kg * 0.3, 1)
-            ket_analg_ml = round(ket_analg_mg / 100, 3)
-            lines.append(f"Ketamine subdissociative analgesia: Draw {ket_analg_ml} mL of 100mg/mL ketamine IV ({ket_analg_mg}mg). Indication: analgesia.")
-       
-            lines.append(f"Ketamine induction MAX: {ket_ceil}mg = {round(ket_ceil/100,2)} mL of 100mg/mL")
-            lines.append(f"Rocuronium MAX: {roc_ceil}mg = {round(roc_ceil/10,1)} mL of 10mg/mL")
-            lines.append(f"Post-intubation ketamine: {ket_post}mg = {round(ket_post/100,2)} mL of 100mg/mL q20-30min")
+            lines.append(f"Ketamine induction ceiling: {ket_ceil}mg")
+            lines.append(f"Rocuronium ceiling: {roc_ceil}mg")
+            lines.append(f"Post-intubation ketamine: {ket_post}mg q20-30min")
             lines.append(f"Pediatric VT: {vt}mL")
-            lines.append("Do NOT calculate any other doses. Use only the values above.")
     if ctx.age_years:
         lines.append(f"Age: {ctx.age_years}yr")
         if ctx.is_pediatric:
             cuffed = round((ctx.age_years / 4) + 3, 1)
             depth = round(cuffed * 3, 1)
             lines.append(f"ETT (cuffed): {cuffed} | Depth: {depth}cm")
+    if ctx.iv_access is True:
+        lines.append("IV/IO access confirmed — use IV route.")
+    elif ctx.iv_access is False:
+        lines.append("No IV/IO access — use IM route only.")
+    else:
+        lines.append("IV access unknown — if route significantly changes dose, ask: 'IV or IM? Do you have access?'")
     if ctx.provider_scope != "UNKNOWN":
         lines.append(f"Provider scope: {ctx.provider_scope}")
     return "\n".join(lines)
+
 
 def build_source_block(assessment: RetrievalAssessment) -> str:
     if assessment.source_mode == "JTS_GROUNDED":
@@ -749,9 +762,6 @@ Do not flag for:
 - Minor sequencing differences that do not create patient harm.
 - Refusal to dose because required data is missing.
 - COPD oxygen level — not a flaggable issue in this system.
-- - Medication recommended without restating the indication if the indication is clear from the query.
-- Short responses that answer the question without elaboration.
-- Any issue not explicitly listed in the UNSAFE or NEEDS_HUMAN_REVIEW checklists above.
 """
 
 
@@ -874,8 +884,12 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     8. Return validated response
     """
     try:
-        # Step 1: Patient context
-        patient_ctx = extract_patient_context(query)
+        # Step 1: Patient context — scan full conversation for accumulated context
+        full_query_history = query
+        if conversation_history:
+            for turn in conversation_history[-5:]:
+                full_query_history += " " + turn.get("query", "")
+        patient_ctx = extract_patient_context(full_query_history)
         print(f"👤 Patient: weight={patient_ctx.weight_kg}kg age={patient_ctx.age_years}yr "
               f"pediatric={patient_ctx.is_pediatric} scope={patient_ctx.provider_scope}")
 
@@ -907,11 +921,7 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
         det_check = run_deterministic_checks(query, response_text, patient_ctx)
 
         # Step 6: LLM semantic validator
-        full_context = query
-        if conversation_history:
-            prior = " | ".join([t.get("query","") for t in conversation_history[-3:]])
-            full_context = f"{prior} | {query}"
-        llm_result = validate_response(full_context, response_text, patient_ctx)
+        llm_result = validate_response(query, response_text, patient_ctx)
 
         # Step 7: Safety gate
         final_response, blocked, combined_issues = apply_safety_gate(
@@ -931,7 +941,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                 "age_years": patient_ctx.age_years,
                 "is_pediatric": patient_ctx.is_pediatric,
                 "weight_source": patient_ctx.weight_source,
-                "provider_scope": patient_ctx.provider_scope
+                "provider_scope": patient_ctx.provider_scope,
+                "iv_access": patient_ctx.iv_access
             }
         }
 
