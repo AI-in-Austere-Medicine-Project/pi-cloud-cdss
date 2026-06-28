@@ -574,7 +574,10 @@ def build_patient_block(ctx: PatientContext) -> str:
         lines.append("PEDIATRIC PATIENT")
     if ctx.weight_kg:
         lines.append(f"Weight: {ctx.weight_kg}kg ({ctx.weight_source})")
-        if ctx.is_pediatric:
+        if ctx.is_pediatric and ctx.weight_source == "estimated_from_age":
+            lines.append("Weight is ESTIMATED from age — not confirmed by provider.")
+            lines.append("DO NOT DOSE. Respond only: 'Need confirmed weight in kg before dosing.'")
+        elif ctx.is_pediatric:
             ket_ceil = round(ctx.weight_kg * 2.0, 1)
             roc_ceil = round(ctx.weight_kg * 1.2, 1)
             ket_post = round(ctx.weight_kg * 0.5, 1)
