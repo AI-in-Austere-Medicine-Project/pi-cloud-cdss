@@ -749,6 +749,9 @@ Do not flag for:
 - Minor sequencing differences that do not create patient harm.
 - Refusal to dose because required data is missing.
 - COPD oxygen level — not a flaggable issue in this system.
+- - Medication recommended without restating the indication if the indication is clear from the query.
+- Short responses that answer the question without elaboration.
+- Any issue not explicitly listed in the UNSAFE or NEEDS_HUMAN_REVIEW checklists above.
 """
 
 
@@ -904,7 +907,11 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
         det_check = run_deterministic_checks(query, response_text, patient_ctx)
 
         # Step 6: LLM semantic validator
-        llm_result = validate_response(query, response_text, patient_ctx)
+        full_context = query
+if conversation_history:
+    prior = " | ".join([t.get("query","") for t in conversation_history[-3:]])
+    full_context = f"{prior} | {query}"
+llm_result = validate_response(full_context, response_text, patient_ctx)
 
         # Step 7: Safety gate
         final_response, blocked, combined_issues = apply_safety_gate(
