@@ -908,10 +908,10 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
 
         # Step 6: LLM semantic validator
         full_context = query
-if conversation_history:
-    prior = " | ".join([t.get("query","") for t in conversation_history[-3:]])
-    full_context = f"{prior} | {query}"
-llm_result = validate_response(full_context, response_text, patient_ctx)
+        if conversation_history:
+            prior = " | ".join([t.get("query","") for t in conversation_history[-3:]])
+            full_context = f"{prior} | {query}"
+        llm_result = validate_response(full_context, response_text, patient_ctx)
 
         # Step 7: Safety gate
         final_response, blocked, combined_issues = apply_safety_gate(
