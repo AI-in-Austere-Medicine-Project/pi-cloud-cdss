@@ -579,10 +579,13 @@ def build_patient_block(ctx: PatientContext) -> str:
             roc_ceil = round(ctx.weight_kg * 1.2, 1)
             ket_post = round(ctx.weight_kg * 0.5, 1)
             vt = int(pediatric_vt(ctx.weight_kg))
-            lines.append(f"Ketamine induction ceiling: {ket_ceil}mg")
-            lines.append(f"Rocuronium ceiling: {roc_ceil}mg")
-            lines.append(f"Post-intubation ketamine: {ket_post}mg q20-30min")
+            lines.append("PEDIATRIC DOSE — USE EXACTLY THESE VALUES:")
+            lines.append(f"Ketamine subdissociative analgesia: Draw {round(ctx.weight_kg*0.3/100,2)} mL of 100mg/mL ketamine IV ({round(ctx.weight_kg*0.3,1)}mg). Indication: analgesia.")
+            lines.append(f"Ketamine induction MAX: {ket_ceil}mg = {round(ket_ceil/100,2)} mL of 100mg/mL")
+            lines.append(f"Rocuronium MAX: {roc_ceil}mg = {round(roc_ceil/10,1)} mL of 10mg/mL")
+            lines.append(f"Post-intubation ketamine: {ket_post}mg = {round(ket_post/100,2)} mL of 100mg/mL q20-30min")
             lines.append(f"Pediatric VT: {vt}mL")
+            lines.append("Do NOT calculate any other doses. Use only the values above.")
     if ctx.age_years:
         lines.append(f"Age: {ctx.age_years}yr")
         if ctx.is_pediatric:
@@ -592,7 +595,6 @@ def build_patient_block(ctx: PatientContext) -> str:
     if ctx.provider_scope != "UNKNOWN":
         lines.append(f"Provider scope: {ctx.provider_scope}")
     return "\n".join(lines)
-
 
 def build_source_block(assessment: RetrievalAssessment) -> str:
     if assessment.source_mode == "JTS_GROUNDED":
