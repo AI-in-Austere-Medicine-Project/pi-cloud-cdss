@@ -583,7 +583,10 @@ def build_patient_block(ctx: PatientContext) -> str:
             ket_post = round(ctx.weight_kg * 0.5, 1)
             vt = int(pediatric_vt(ctx.weight_kg))
             lines.append("PEDIATRIC DOSE — USE EXACTLY THESE VALUES:")
-            lines.append(f"Ketamine subdissociative analgesia: Draw {round(ctx.weight_kg*0.3/100,2)} mL of 100mg/mL ketamine IV ({round(ctx.weight_kg*0.3,1)}mg). Indication: analgesia.")
+            ket_analg_mg = round(ctx.weight_kg * 0.3, 1)
+            ket_analg_ml = round(ket_analg_mg / 100, 3)
+            lines.append(f"Ketamine subdissociative analgesia: Draw {ket_analg_ml} mL of 100mg/mL ketamine IV ({ket_analg_mg}mg). Indication: analgesia.")
+       
             lines.append(f"Ketamine induction MAX: {ket_ceil}mg = {round(ket_ceil/100,2)} mL of 100mg/mL")
             lines.append(f"Rocuronium MAX: {roc_ceil}mg = {round(roc_ceil/10,1)} mL of 10mg/mL")
             lines.append(f"Post-intubation ketamine: {ket_post}mg = {round(ket_post/100,2)} mL of 100mg/mL q20-30min")
