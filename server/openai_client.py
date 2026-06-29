@@ -441,6 +441,28 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
 # SEPSIS-DCR DETERMINISTIC GATE
 # ─────────────────────────────────────────────────────────────────────────────
 
+def has_fever(q: str) -> bool:
+    """Detect fever from text or numeric temperature. Negation-aware."""
+    q = q.lower()
+    if has_positive_term(q, "fever") or has_positive_term(q, "febrile"):
+        return True
+    m = re.search(r"temp(?:erature)?\s*(\d{2}(?:\.\d+)?)\s*c?", q)
+    if m:
+        try:
+            if float(m.group(1)) >= 38.0:
+                return True
+        except ValueError:
+            pass
+    m = re.search(r"(\d{2,3}(?:\.\d+)?)\s*f\b", q)
+    if m:
+        try:
+            if float(m.group(1)) >= 100.4:
+                return True
+        except ValueError:
+            pass
+    return False
+
+
 def has_positive_term(q: str, term: str) -> bool:
     """Check if term appears without preceding negation."""
     idx = q.find(term)
@@ -453,29 +475,44 @@ def has_positive_term(q: str, term: str) -> bool:
 
 def looks_like_sepsis(query: str) -> bool:
     q = query.lower()
-    infection = any(has_positive_term(q, x) for x in [
-        "fever", "febrile", "pus", "purulent", "infected",
-        "infection", "sepsis", "septic", "abscess"
+    infection = (
+        has_fever(q)
+        or any(has_positive_term(q, x) for x in [
+            "pus", "purulent", "infection", "infected",
+            "sepsis", "septic", "abscess"
+        ])
+    )
+    shock = any(x in q for x in [
+        "bp 90", "bp 80", "bp 70", "hypotension", "hypotensive",
+        "shock", "map ", "poor perfusion", "altered"
     ])
-    shock_terms = ["hypotension", "hypotensive", "shock", "map ", "altered"]
-    shock = any(t in q for t in shock_terms)
     return infection and shock
 
 
-def asks_for_dcr_or_hemostatic_resus(query: str) -> bool:
-    q = query.lower()
-    return any(t in q for t in ["dcr", "damage control", "txa", "ltowb", "whole blood", "blood product"])
+def asks_for_dcr_or_hemostatic_resus(q: str) -> bool:
+    q = q.lower()
+    return any(x in q for x in [
+        "dcr", "initiate dcr", "damage control resuscitation",
+        "ltowb", "whole blood", "blood product", "blood-product",
+        "massive transfusion", "hemostatic resus"
+    ])
 
 
 def has_clear_hemorrhage(query: str) -> bool:
     q = query.lower()
     hemorrhage_terms = [
-        "active bleeding", "arterial bleed", "hemorrhage", "hemorrhagic",
-        "exsanguinating", "tourniquet", "amputation", "penetrating trauma",
-        "abdominal bleeding", "massive bleeding", "blood loss", "trauma patient",
-        "gunshot", "gsw", "blast", "junctional bleed", "no fever"
+        "active bleeding", "active abdominal bleeding", "abdominal bleeding",
+        "arterial bleed", "junctional bleed", "massive bleeding",
+        "hemorrhage", "hemorrhagic", "hemorrhagic shock", "blood loss",
+        "tourniquet", "amputation", "penetrating trauma", "gunshot",
+        "gsw", "blast", "trauma patient", "massive transfusion"
     ]
     return any(t in q for t in hemorrhage_terms)
+
+
+def asks_for_txa(q: str) -> bool:
+    q = q.lower()
+    return "txa" in q or "tranexamic" in q
 
 
 SEPSIS_DCR_REFUSAL = """Sepsis suspected — do not initiate DCR/TXA/LTOWB unless hemorrhage is clearly present.
@@ -882,12 +919,21 @@ def run_deterministic_checks(query: str, response_text: str,
         if any(x in q for x in ['rsi', 'intubat', 'rapid sequence']) and 'arrest' not in q:
             issues.append("Paralytic without induction agent — awake paralysis risk.")
 
-    # ── TXA contraindications ─────────────────────────────────────────────
+    # ── TXA contraindications - negation-aware and hemorrhage-aware
     if 'txa' in r or 'tranexamic' in r:
-        if any(x in q for x in ['fever', 'infection', 'pus', 'sepsis', 'septic']):
-            issues.append("TXA in sepsis/infection context. TXA is for hemorrhagic shock only.")
-        if any(x in q for x in ['hypothermia', 'frozen', 'cold']) and \
-           not any(x in q for x in ['bleeding', 'hemorrhage', 'trauma']):
+        clear_hemorrhage = has_clear_hemorrhage(q)
+        has_infection = (
+            has_fever(q)
+            or any(has_positive_term(q, x) for x in [
+                "infection", "infected", "pus", "purulent",
+                "sepsis", "septic", "abscess"
+            ])
+        )
+        if has_infection and not clear_hemorrhage:
+            issues.append(
+                "TXA in sepsis/infection context. TXA is for hemorrhagic shock only."
+            )
+        if any(x in q for x in ['hypothermia', 'frozen', 'cold']) and not clear_hemorrhage:
             issues.append("TXA for hypothermia without hemorrhagic shock.")
 
     # ── WPW contraindications ─────────────────────────────────────────────
@@ -1084,7 +1130,8 @@ def is_safe_gate_response(text: str) -> bool:
 
 
 def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
-                      llm_result: dict) -> tuple:
+                      llm_result: dict,
+                      patient_ctx=None) -> tuple:
     # Safe gate responses always pass through
     if is_safe_gate_response(response_text):
         return response_text, False, []
@@ -1098,6 +1145,17 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
     if llm_result["result"] == "UNSAFE":
         issues = llm_result.get("issues", [])
         r_lower = response_text.lower()
+
+        # Override pediatric weight false positive when patient_ctx confirms weight
+        issue_text = " ".join(issues).lower()
+        confirmed_weight = getattr(patient_ctx, "confirmed_weight_kg", None) if patient_ctx else None
+        if (
+            "without confirmed pediatric" in issue_text
+            or "confirmed pediatric" in issue_text
+            or "confirmed weight" in issue_text
+        ) and confirmed_weight:
+            print(f"✅ Override: pediatric weight confirmed at {confirmed_weight}kg")
+            return response_text, False, []
 
         # Override CICO/airway false positive
         airway_issues = [i for i in issues if any(x in i.lower() for x in
@@ -1197,6 +1255,17 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
               f"route={patient_ctx.route_preference} "
               f"access={patient_ctx.access_state}")
 
+        # Build history_text once for all gates and generators
+        prior_queries = ""
+        history_text = query
+        if conversation_history:
+            parts = []
+            for turn in conversation_history[-5:]:
+                parts.append(turn.get("query", ""))
+                parts.append(turn.get("response", ""))
+            prior_queries = " ".join(p for p in parts if p).strip()
+            history_text = f"{prior_queries} {query}".strip()
+
         # Step 2a: Fixed prep check — before any other gate
         fixed_prep = build_fixed_prep_response(query)
         if fixed_prep:
@@ -1292,7 +1361,7 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
 
         # Step 8: Safety gate
         final_response, blocked, combined_issues = apply_safety_gate(
-            response_text, det_check, llm_result
+            response_text, det_check, llm_result, patient_ctx
         )
 
         return {
