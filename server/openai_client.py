@@ -1,6 +1,6 @@
 """
 EdgeCDSS — AUSTERE-CDS Pipeline
-Version: 3.4.2-multiturn-intent
+Version: 3.4.3-intent-state-fix
 
 Architecture per code review recommendations (EdgeCDSS_openai_py_issue_recommendations.docx):
   1. Structured session state (PatientContext with confirmed vs estimated weight, access_state, route_preference)
@@ -166,8 +166,12 @@ def extract_patient_context(query: str,
     q_stripped = q.strip()
     if q_stripped in ('im', 'intramuscular') or re.search(r'\bim\b', q):
         ctx.route_preference = "IM"
+        if q_stripped in ('im', 'intramuscular'):
+            ctx.access_state = "NO_IV_IO"
     if q_stripped in ('iv', 'intravenous') or re.search(r'\biv\b', q):
         ctx.route_preference = "IV"
+        if q_stripped in ('iv', 'intravenous'):
+            ctx.access_state = "CONFIRMED_IV_IO"
     if re.search(r'\bio\b', q):
         ctx.route_preference = "IO"
 
@@ -1363,7 +1367,8 @@ def is_non_medical_query(query: str) -> bool:
     ]
     non_medical_terms = [
         "weather", "sports", "stock", "news", "joke", "recipe",
-        "movie", "music", "capital of", "who won"
+        "movie", "music", "capital of", "who won", "test", "hello",
+        "hi", "ping"
     ]
     return any(t in q for t in non_medical_terms) and not any(t in q for t in medical_terms)
 
@@ -1413,6 +1418,16 @@ def is_ketamine_analgesia_context(text: str) -> bool:
         "pain", "analgesia", "analgesic", "fracture", "fx", "arm", "leg", "burn"
     ])
     return has_ketamine and has_pain
+
+
+def is_route_or_ketamine_followup(query: str) -> bool:
+    q = (query or "").lower().strip()
+    if q in ["iv", "im", "io", "intravenous", "intramuscular", "intraosseous"]:
+        return True
+    return any(x in q for x in [
+        "ketamine", "pain", "analgesia", "analgesic", "fracture", "fx",
+        "arm", "leg", "iv", "im", "io"
+    ])
 
 
 def build_pediatric_ketamine_route_response(ctx: PatientContext) -> Optional[str]:
@@ -1555,6 +1570,23 @@ def build_hemorrhagic_shock_dcr_response() -> str:
 - Active abdominal bleeding with hypotension is hemorrhagic shock: hemorrhage control, DCR, LTOWB/blood if available, consider TXA if within 3 hours.
 
 **SOURCE**: General Evidence-Based Medicine / TCCC damage-control resuscitation principles
+
+Guideline-based support only. Not a substitute for clinical judgment."""
+
+
+def build_blood_product_context_response() -> str:
+    return """**BLOOD PRODUCT CHECK**
+
+**DO THIS**
+1. Confirm indication before giving blood: active hemorrhage, hemorrhagic shock, or massive transfusion need.
+2. Control bleeding first and monitor BP, pulse, mental status, temperature, and ongoing blood loss.
+3. If hemorrhagic shock is present and within protocol, use LTOWB/blood products and evacuate urgently.
+
+**DON'T**
+- Do not give blood products for sepsis, dehydration, or unclear shock without a hemorrhage indication.
+
+**TLDR**
+- Need bleeding/shock context before blood: confirm hemorrhage, control bleeding, then DCR/LTOWB if indicated.
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
@@ -1900,6 +1932,18 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                 "patient_context": patient_ctx.to_dict()
             }
 
+        # Step 2g2: Blood product request without enough current hemorrhage context.
+        if asks_for_dcr_or_hemostatic_resus(query) and not has_clear_hemorrhage(query):
+            print("🩸 BLOOD PRODUCT CONTEXT PRE-GATE")
+            return {
+                "response": build_blood_product_context_response(),
+                "sources": [],
+                "source_mode": "DETERMINISTIC_PRE_GATE",
+                "validator_result": "SAFE",
+                "validator_issues": [],
+                "patient_context": patient_ctx.to_dict()
+            }
+
         # Step 2h: Sepsis management deterministic response
         if looks_like_sepsis(query) and not has_clear_hemorrhage(query):
             print("🧫 SEPSIS MANAGEMENT PRE-GATE")
@@ -1929,6 +1973,7 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
         if (
             is_ketamine_analgesia_context(full_query_history)
             and not is_rsi_or_post_intubation_context(query)
+            and is_route_or_ketamine_followup(query)
             and patient_ctx.is_pediatric
             and patient_ctx.confirmed_weight_kg
             and patient_ctx.route_preference in ["IV", "IM"]
