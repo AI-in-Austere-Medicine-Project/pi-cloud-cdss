@@ -1493,6 +1493,15 @@ def build_pediatric_ketamine_route_response(ctx: PatientContext) -> Optional[str
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
+def is_vent_settings_query(text: str) -> bool:
+    q = (text or "").lower()
+    return any(x in q for x in [
+        "vent setting", "ventilator setting", "tidal volume", "respiratory rate",
+        "peep", "fio2", "need vent", "set the vent", "vent the patient",
+        "start the vent", "vent management", "mechanical ventilation"
+    ])
+
+
 def is_rsi_or_post_intubation_context(text: str) -> bool:
     q = (text or "").lower()
     return any(x in q for x in [
@@ -2045,7 +2054,11 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 3: RAG retrieval — use router-enhanced query if available
+        # Improve vent query ChromaDB search
         search_query = query
+        if is_vent_settings_query(query):
+            search_query = query + " mechanical ventilation tidal volume PEEP lung protective"
+
         if _router:
             try:
                 routing = _router.route(query, patient_ctx, full_query_history)
