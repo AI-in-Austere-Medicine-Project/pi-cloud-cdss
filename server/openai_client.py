@@ -1360,23 +1360,33 @@ def build_full_query_history(query: str, conversation_history: Optional[list] = 
 
 
 def is_non_medical_query(query: str) -> bool:
-    """Fast reject obvious non-medical queries before RAG/validator."""
+    """Only reject clearly non-clinical queries. Default assumption is clinical."""
     q = (query or "").lower().strip()
     if not q:
         return False
 
-    medical_terms = [
-        "patient", "injury", "trauma", "bleeding", "shock", "pain", "dose",
-        "medication", "ketamine", "rsi", "intubat", "sepsis", "fever",
-        "bp", "hr", "gcs", "airway", "breathing", "burn", "snake",
-        "anaphylaxis", "seizure", "hypothermia", "cholera", "txa", "dcr",
-        "wound", "fracture", "fx", "epi", "lorazepam", "cric"
+    # Clinical overrides — never block if these appear
+    clinical_overrides = [
+        "vent", "setting", "peep", "fio2", "tidal", "intub", "airway",
+        "patient", "trauma", "pain", "bleed", "sepsis", "dose", "mg", "ml",
+        "bp", "hr", "spo2", "oxygen", "pulse", "shock", "fever", "wound",
+        "ketamine", "rsi", "epi", "txa", "fluid", "antibiotic", "seizure",
+        "fracture", "burn", "hypothermia", "cardiac", "arrest", "cpr",
+        "rocuronium", "succinylcholine", "fentanyl", "morphine", "lorazepam",
+        "albuterol", "adenosine", "amiodarone", "vasopressor", "pressor"
     ]
-    non_medical_terms = [
-        "weather", "sports", "stock", "news", "joke", "recipe",
-        "movie", "music", "capital of", "who won"
+    if any(x in q for x in clinical_overrides):
+        return False
+
+    # Hard non-medical patterns only
+    non_medical = [
+        "what is the weather", "weather in", "weather today",
+        "stock price", "sports score", "who won the game",
+        "tell me a joke", "write me a poem", "recipe for",
+        "capital of ", "what movie", "best restaurant",
+        "how do i cook", "what is the population"
     ]
-    return any(t in q for t in non_medical_terms) and not any(t in q for t in medical_terms)
+    return any(t in q for t in non_medical)
 
 
 def is_cico_query(text: str) -> bool:
