@@ -790,6 +790,12 @@ Infusion: "Mix X mg in Y mL NS (Z mg/mL). Start X mL/hr. Target: [goal]."
 GATE QUESTION RULE: If the response is a gate question (weight, route, concentration),
 answer ONLY the gate question. Do not add clinical warnings or extra content.
 
+ROUTE QUESTION RULE — MANDATORY:
+Only ask "IV or IM?" when the route changes the dose. That is KETAMINE ONLY.
+Never ask route for fentanyl, morphine, or any other analgesic/sedative — answer directly.
+- Morphine: never first-line. State that ketamine subdissociative analgesia is preferred and direct to it.
+- Fentanyl / other opioids: identify it as an opioid analgesic for pain. Give the value from ALLOWED_DOSES if present; otherwise defer the exact dose to local protocol. Never fabricate a dose.
+
 ────────────────────────────────
 SCOPE OF PRACTICE
 ────────────────────────────────
@@ -968,11 +974,14 @@ def build_system_prompt(ctx: PatientContext, assessment: RetrievalAssessment,
 
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
-                              allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
+                              allowed_doses: Optional[List[DoseCandidate]] = None,
+                              full_transcript: str = "") -> DeterministicCheck:
     """
     Post-generation safety checks.
     If allowed_doses provided: validate response doses match the contract.
     Also checks hard contraindications.
+    full_transcript: prior conversation turns (user + assistant), used to detect
+    context established in earlier turns (e.g. induction already given in an RSI).
     """
     issues = []
     r = response_text.lower()
@@ -985,9 +994,14 @@ def run_deterministic_checks(query: str, response_text: str,
             issues.append("Medication dose given without confirmed pediatric weight.")
 
     # ── Paralytic without induction ───────────────────────────────────────
+    induction_agents = ['ketamine', 'etomidate', 'propofol', 'midazolam']
     has_paralytic = any(x in r for x in ['rocuronium', 'succinylcholine', 'vecuronium'])
-    has_induction = any(x in r for x in ['ketamine', 'etomidate', 'propofol', 'midazolam'])
-    if has_paralytic and not has_induction:
+    has_induction = any(x in r for x in induction_agents)
+    # Multi-turn RSI: induction is often given in an earlier turn, so a follow-up
+    # that answers only the paralytic dose legitimately omits it. Treat induction
+    # as established if an induction agent appears anywhere in the prior transcript.
+    prior_induction = any(x in (full_transcript or "").lower() for x in induction_agents)
+    if has_paralytic and not has_induction and not prior_induction:
         if any(x in q for x in ['rsi', 'intubat', 'rapid sequence']) and 'arrest' not in q:
             issues.append("Paralytic without induction agent — awake paralysis risk.")
 
@@ -2127,11 +2141,11 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         )
         response_text = response.choices[0].message.content
 
-        # Step 6: Deterministic post-checks use full history.
-        det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
+        # Step 6: Deterministic post-checks use full history + transcript.
+        full_transcript = "\n".join(transcript_lines)
+        det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses, full_transcript)
 
         # Step 7: LLM validator with full transcript
-        full_transcript = "\n".join(transcript_lines)
         llm_result = validate_response(full_transcript, response_text, patient_ctx)
 
         # Step 8: Safety gate with full history context
