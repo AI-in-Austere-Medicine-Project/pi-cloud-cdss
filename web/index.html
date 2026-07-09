@@ -227,6 +227,7 @@
 
         .mic-status { font-size: 12px; color: #64748b; flex: 1; }
         .mic-status.active { color: #e94560; }
+        .mic-btn.voice-off { opacity: 0.4; border-color: #334155; }
 
         .text-row { display: flex; gap: 8px; }
 
@@ -369,6 +370,7 @@
         <div class="mic-row">
             <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎙️</button>
             <span class="mic-status" id="mic-status">Tap mic to speak, or type below</span>
+            <button class="mic-btn" id="voice-toggle" onclick="toggleVoice()" title="Voice output ON — tap to mute">🔊</button>
         </div>
         <div class="text-row">
             <textarea class="query-input" id="query-input"
@@ -415,6 +417,8 @@
     let lastActivityTime = Date.now();
     let inactivityTimer = null;
     let messageCount = 0;
+    let voiceEnabled = true;
+    let currentAudio = null;
 
     // ─── Rate limiting disabled ───────────────────────────────
     function checkAndUpdateRate() { return true; }
@@ -562,6 +566,7 @@
             addToHistory(query, data.response);
             appendMessage(query, data.response, elapsed);
             document.getElementById('query-input').value = '';
+            if (voiceEnabled) speakResponse(data.response);
 
         } catch(err) {
             hideLoading();
@@ -705,27 +710,67 @@
         closeFeedbackModal();
     }
 
-    // ─── ELEVENLABS TTS — DORMANT ─────────────────────────────
-    // async function speakResponse(text) {
-    //     try {
-    //         const res = await fetch(API_URL + "/speak", {
-    //             method: 'POST',
-    //             headers: { 'Content-Type': 'application/json', 'X-Access-Token': ACCESS_TOKEN },
-    //             body: JSON.stringify({ text: text })
-    //         });
-    //         if (!res.ok) throw new Error('TTS failed');
-    //         const audioBlob = await res.blob();
-    //         const audioUrl = URL.createObjectURL(audioBlob);
-    //         const audio = new Audio(audioUrl);
-    //         audio.play();
-    //     } catch(e) {
-    //         console.error('TTS error:', e);
-    //         const clean = text.replace(/\*\*/g,'').replace(/[#*_`]/g,'');
-    //         const u = new SpeechSynthesisUtterance(clean);
-    //         u.rate = 0.9;
-    //         window.speechSynthesis.speak(u);
-    //     }
-    // }
+    // ─── ELEVENLABS TTS ───────────────────────────────────────
+    function cleanForSpeech(text) {
+        return (text || '')
+            .replace(/\*\*/g, '')
+            .replace(/[#*_`>]/g, '')
+            .replace(/\n{2,}/g, '. ')
+            .replace(/\n/g, ' ')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
+
+    function stopSpeech() {
+        if (currentAudio) { try { currentAudio.pause(); } catch(e) {} currentAudio = null; }
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
+
+    async function speakResponse(text) {
+        const clean = cleanForSpeech(text);
+        if (!clean) return;
+        stopSpeech();
+        try {
+            const res = await fetch(API_URL + "/speak", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Access-Token': ACCESS_TOKEN },
+                body: JSON.stringify({ text: clean })
+            });
+            if (!res.ok) throw new Error('TTS failed ' + res.status);
+            const audioBlob = await res.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            currentAudio = audio;
+            audio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+                if (currentAudio === audio) currentAudio = null;
+            };
+            await audio.play();
+        } catch(e) {
+            // Fallback: browser speech synthesis (works offline / if ElevenLabs unavailable)
+            console.error('TTS error:', e);
+            try {
+                const u = new SpeechSynthesisUtterance(clean);
+                u.rate = 0.95;
+                window.speechSynthesis.speak(u);
+            } catch(e2) {}
+        }
+    }
+
+    function toggleVoice() {
+        voiceEnabled = !voiceEnabled;
+        const btn = document.getElementById('voice-toggle');
+        if (voiceEnabled) {
+            btn.textContent = '🔊';
+            btn.classList.remove('voice-off');
+            btn.title = 'Voice output ON — tap to mute';
+        } else {
+            btn.textContent = '🔇';
+            btn.classList.add('voice-off');
+            btn.title = 'Voice output OFF — tap to enable';
+            stopSpeech();
+        }
+    }
 </script>
 
 </body>
