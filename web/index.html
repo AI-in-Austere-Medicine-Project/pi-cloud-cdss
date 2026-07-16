@@ -1,776 +1,1018 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EdgeCDSS — Austere Medicine AI</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI in Austere Medicine Project</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #e94560;
+  --blue: #0a84ff;
+  --dark: #080e14;
+  --dark2: #0d1620;
+  --dark3: #111e2b;
+  --panel: #0f1e2d;
+  --border: rgba(255,255,255,0.07);
+  --text: #c8d8e8;
+  --muted: #4a6070;
+  --mono: 'Space Mono', monospace;
+  --head: 'Barlow Condensed', sans-serif;
+  --body: 'Barlow', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: var(--body);
+  font-weight: 300;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+nav {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  padding: 16px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(8,14,20,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--red);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+.nav-links a {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 40px 80px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(10,132,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10,132,255,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+}
+.hero-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(233,69,96,0.08) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.hero-content {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero-eyebrow::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 1px;
+  background: var(--red);
+}
+.hero-title {
+  font-family: var(--head);
+  font-size: clamp(52px, 8vw, 110px);
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.hero-title .accent { color: var(--red); }
+.hero-title .dim { color: var(--muted); font-weight: 300; }
+.hero-sub {
+  font-family: var(--head);
+  font-size: clamp(20px, 3vw, 32px);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 40px;
+  margin-top: 12px;
+}
+.hero-thesis {
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--text);
+  max-width: 600px;
+  margin-bottom: 48px;
+  border-left: 2px solid var(--red);
+  padding-left: 20px;
+}
+.hero-thesis strong { color: #fff; font-weight: 500; }
+.hero-cta { display: flex; gap: 16px; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--red);
+  color: white;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 14px 28px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+.btn-primary:hover { background: #ff2d4f; }
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 13px 28px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+}
+.btn-outline:hover { border-color: var(--text); color: #fff; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f1923;
-            color: #e2e8f0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+/* ── STAT BAR ── */
+.stat-bar {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 40px;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+}
+.stat {
+  flex: 1;
+  min-width: 160px;
+  padding: 0 32px;
+  border-right: 1px solid var(--border);
+}
+.stat:first-child { padding-left: 0; }
+.stat:last-child { border-right: none; }
+.stat-number {
+  font-family: var(--head);
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-number span { color: var(--red); }
+.stat-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 
-        header {
-            background: #1a2535;
-            border-bottom: 2px solid #e94560;
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
+/* ── SECTIONS ── */
+section {
+  padding: 100px 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  max-width: 200px;
+}
+.section-title {
+  font-family: var(--head);
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
+}
+.section-sub {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.8;
+  max-width: 700px;
+  margin-bottom: 0;
+}
+.section-sub strong { color: var(--text); font-weight: 400; }
 
-        .logo { font-size: 18px; font-weight: 700; color: #fff; }
-        .logo span { color: #e94560; }
+/* ── MISSION ── */
+.mission-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+  margin-top: 48px;
+}
+.mission-text p {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.mission-text p strong { color: #fff; font-weight: 500; }
+.mission-pillars { display: flex; flex-direction: column; gap: 16px; }
+.pillar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  padding: 20px 24px;
+}
+.pillar-title {
+  font-family: var(--head);
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+.pillar-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
-        .header-right { display: flex; align-items: center; gap: 8px; }
+/* ── PROJECTS ── */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 48px;
+  background: var(--border);
+}
+.project-card {
+  background: var(--dark2);
+  padding: 36px 32px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s;
+}
+.project-card:hover { background: var(--dark3); }
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s;
+}
+.project-card:hover::before { transform: scaleX(1); }
+.project-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+}
+.project-name {
+  font-family: var(--head);
+  font-size: 26px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+  line-height: 1.1;
+}
+.project-version {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--red);
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+.project-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+.project-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+.tag {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.project-link {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+}
+.project-link:hover { color: #fff; }
+.project-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: blink 2s infinite;
+}
+.status-dot.dev { background: #f59e0b; animation: none; }
+.status-dot.planned { background: var(--muted); animation: none; }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
 
-        .badge {
-            background: #e94560;
-            color: white;
-            font-size: 10px;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 4px;
-        }
+/* ── SAFETY ── */
+.safety-section {
+  background: var(--dark2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--red);
+  padding: 60px;
+  margin-top: 48px;
+}
+.safety-title {
+  font-family: var(--head);
+  font-size: 48px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 20px;
+  line-height: 1;
+}
+.safety-body {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--text);
+  max-width: 700px;
+  margin-bottom: 16px;
+}
+.safety-body strong { color: #fff; font-weight: 500; }
 
-        .new-patient-btn {
-            background: #1e3a5f;
-            border: 1px solid #2563eb;
-            color: #93c5fd;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 5px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+/* ── RESEARCH PAPERS ── */
+.papers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 48px;
+  background: var(--border);
+}
+.paper-card {
+  background: var(--dark2);
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 24px;
+  align-items: start;
+  transition: background 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.paper-card:hover { background: var(--dark3); }
+.paper-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 2px;
+  background: var(--red);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.3s;
+}
+.paper-card:hover::before { transform: scaleY(1); }
+.paper-date {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--red);
+  letter-spacing: 0.1em;
+  padding-top: 3px;
+}
+.paper-title {
+  font-family: var(--head);
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.paper-meta {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.paper-summary {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.paper-link {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.paper-link:hover { color: #fff; }
+.papers-empty {
+  background: var(--dark2);
+  padding: 40px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
 
-        .new-patient-btn:hover { background: #2563eb; color: white; }
+/* ── GET INVOLVED ── */
+.involve-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  background: var(--border);
+  margin-top: 48px;
+}
+.involve-card {
+  background: var(--dark2);
+  padding: 40px;
+  transition: background 0.3s;
+}
+.involve-card:hover { background: var(--dark3); }
+.involve-icon { font-size: 28px; margin-bottom: 16px; display: block; }
+.involve-title {
+  font-family: var(--head);
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+.involve-body { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
+.involve-action {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
-        .disclaimer-banner {
-            background: #1e3a5f;
-            border: 1px solid #2563eb;
-            border-radius: 8px;
-            padding: 10px 16px;
-            margin: 12px 16px 0;
-            font-size: 12px;
-            color: #93c5fd;
-            line-height: 1.5;
-        }
+/* ── SIGNUP ── */
+.signup-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 60px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.signup-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+}
+.signup-title {
+  font-family: var(--head);
+  font-size: 42px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.signup-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 32px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.signup-form {
+  display: flex;
+  gap: 0;
+  max-width: 480px;
+  margin: 0 auto 16px;
+}
+.signup-input {
+  flex: 1;
+  background: var(--dark);
+  border: 1px solid var(--border);
+  border-right: none;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 14px 18px;
+  outline: none;
+  letter-spacing: 0.05em;
+}
+.signup-input::placeholder { color: var(--muted); }
+.signup-input:focus { border-color: var(--red); }
+.signup-btn {
+  background: var(--red);
+  color: white;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 14px 24px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.signup-btn:hover { background: #ff2d4f; }
+.signup-note {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
 
-        .disclaimer-banner strong { color: #fff; display: block; margin-bottom: 2px; }
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footer-logo {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--red);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.footer-links { display: flex; gap: 24px; list-style: none; }
+.footer-links a {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--text); }
+.footer-disclaimer {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  opacity: 0.6;
+}
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+}
 
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 12px 16px 16px;
-            max-width: 700px;
-            margin: 0 auto;
-            width: 100%;
-        }
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  nav { padding: 14px 20px; }
+  .nav-links { display: none; }
+  .hero { padding: 100px 20px 60px; }
+  section { padding: 60px 20px; }
+  .mission-grid { grid-template-columns: 1fr; gap: 32px; }
+  .projects-grid { grid-template-columns: 1fr; }
+  .involve-grid { grid-template-columns: 1fr; }
+  .signup-section { padding: 40px 20px; }
+  .safety-section { padding: 40px 20px; }
+  .stat-bar { padding: 20px; }
+  footer { padding: 24px 20px; }
+  .signup-form { flex-direction: column; }
+  .signup-input { border-right: 1px solid var(--border); border-bottom: none; }
+  .paper-card { grid-template-columns: 1fr; gap: 8px; }
+}
 
-        .status-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #1a2535;
-            border-radius: 8px;
-            padding: 8px 14px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            color: #64748b;
-            gap: 8px;
-        }
-
-        .context-indicator { font-size: 11px; color: #2563eb; display: none; }
-        .context-indicator.active { display: block; }
-
-        .conversation-area {
-            flex: 1;
-            background: #1a2535;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            min-height: 320px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .placeholder {
-            color: #334155;
-            font-size: 14px;
-            text-align: center;
-            margin: auto;
-            line-height: 2;
-        }
-
-        .placeholder .icon { font-size: 40px; display: block; margin-bottom: 10px; }
-
-        .message { display: flex; flex-direction: column; gap: 6px; }
-
-        .message-query {
-            background: #0f1923;
-            border-radius: 8px 8px 8px 2px;
-            padding: 8px 12px;
-            font-size: 12px;
-            color: #64748b;
-            font-style: italic;
-            align-self: flex-start;
-            max-width: 90%;
-        }
-
-        .message-response {
-            background: #0c1e2e;
-            border-left: 3px solid #2563eb;
-            border-radius: 0 8px 8px 8px;
-            padding: 12px 14px;
-            font-size: 13px;
-            line-height: 1.7;
-            color: #e2e8f0;
-            white-space: pre-wrap;
-        }
-
-        .message-response strong { color: #fff; }
-
-        .message-meta {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .response-time { font-size: 10px; color: #475569; }
-
-        .feedback-row { display: flex; gap: 5px; flex-wrap: wrap; }
-
-        .feedback-btn {
-            background: #0f1923;
-            border: 1px solid #334155;
-            color: #94a3b8;
-            font-size: 10px;
-            padding: 3px 8px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .feedback-btn:hover { border-color: #64748b; color: #e2e8f0; }
-        .feedback-btn.helpful:hover { border-color: #10b981; color: #10b981; }
-        .feedback-btn.incorrect:hover { border-color: #f59e0b; color: #f59e0b; }
-        .feedback-btn.dangerous:hover { border-color: #e94560; color: #e94560; }
-        .feedback-sent { font-size: 10px; color: #10b981; display: none; }
-
-        .loading { display: none; text-align: center; padding: 16px; color: #64748b; font-size: 13px; }
-        .loading.active { display: block; }
-
-        .loading-dots::after {
-            content: '';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: ''; }
-            40% { content: '.'; }
-            60% { content: '..'; }
-            80%, 100% { content: '...'; }
-        }
-
-        .error-msg {
-            background: #1a0a0f;
-            border: 1px solid #e94560;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 12px;
-            color: #f87171;
-            display: none;
-        }
-
-        .error-msg.active { display: block; }
-
-        .input-area { display: flex; flex-direction: column; gap: 8px; }
-
-        .mic-row { display: flex; align-items: center; gap: 10px; }
-
-        .mic-btn {
-            background: #1a2535;
-            border: 2px solid #334155;
-            border-radius: 50%;
-            width: 58px;
-            height: 58px;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .mic-btn:hover { border-color: #e94560; }
-        .mic-btn.listening { border-color: #e94560; background: #1a0a0f; animation: pulse 1s infinite; }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(233,69,96,0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(233,69,96,0); }
-        }
-
-        .mic-status { font-size: 12px; color: #64748b; flex: 1; }
-        .mic-status.active { color: #e94560; }
-        .mic-btn.voice-off { opacity: 0.4; border-color: #334155; }
-
-        .text-row { display: flex; gap: 8px; }
-
-        .query-input {
-            flex: 1;
-            background: #1a2535;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 10px 14px;
-            color: #e2e8f0;
-            font-size: 14px;
-            resize: none;
-            height: 48px;
-            transition: border-color 0.2s;
-        }
-
-        .query-input:focus { outline: none; border-color: #2563eb; }
-        .query-input::placeholder { color: #475569; }
-
-        .send-btn {
-            background: #2563eb;
-            border: none;
-            border-radius: 10px;
-            color: white;
-            width: 48px;
-            height: 48px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-
-        .send-btn:hover { background: #1d4ed8; }
-        .send-btn:disabled { background: #334155; cursor: not-allowed; }
-
-        footer {
-            text-align: center;
-            padding: 10px;
-            font-size: 10px;
-            color: #334155;
-            border-top: 1px solid #1a2535;
-        }
-
-        footer a { color: #475569; text-decoration: none; }
-
-        .feedback-modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .feedback-modal.active { display: flex; }
-
-        .feedback-box {
-            background: #1a2535;
-            border-radius: 12px;
-            padding: 20px;
-            width: 100%;
-            max-width: 420px;
-            border: 1px solid #334155;
-        }
-
-        .feedback-box h3 { font-size: 14px; margin-bottom: 12px; color: #fff; }
-
-        .feedback-box textarea {
-            width: 100%;
-            background: #0f1923;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            color: #e2e8f0;
-            font-size: 13px;
-            padding: 10px;
-            height: 80px;
-            resize: none;
-            margin-bottom: 10px;
-        }
-
-        .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-        .modal-btns button { padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
-        .btn-cancel { background: #334155; color: #94a3b8; }
-        .btn-submit { background: #2563eb; color: white; }
-
-        .new-patient-toast {
-            position: fixed;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #10b981;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            z-index: 200;
-            display: none;
-        }
-    </style>
+/* ── SCROLL ANIMATIONS ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+</style>
 </head>
 <body>
 
-<header>
-    <div class="logo">Edge<span>CDSS</span></div>
-    <div class="header-right">
-        <button class="new-patient-btn" onclick="newPatient()">🔄 New Patient</button>
-        <span class="badge">RESEARCH ONLY</span>
-    </div>
-</header>
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">AI-AMP</div>
+  <ul class="nav-links">
+    <li><a href="#mission">Mission</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#safety">Safety</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="https://aiamp.substack.com" target="_blank">Substack</a></li>
+    <li><a href="#involve">Get Involved</a></li>
+    <li><a href="https://aiamp.substack.com" target="_blank">Substack ↗</a></li>
+    <li><a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank">GitHub ↗</a></li>
+  </ul>
+</nav>
 
-<div class="disclaimer-banner">
-    <strong>⚠️ Research Prototype — Not for Clinical Use</strong>
-    AI-generated responses. Not validated for clinical deployment. Always follow training, protocols, and qualified medical judgment.
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">AI-AMP // AI in Austere Medicine Project</div>
+    <h1 class="hero-title">
+      AI<br>
+      <span class="dim">for medicine</span><br>
+      <span class="accent">in the margins</span>
+    </h1>
+    <p class="hero-sub">Open source. Built in the field. Safety shared.</p>
+    <p class="hero-thesis">
+      We build open source AI tools for medicine where infrastructure ends — and we publish everything, including what fails. Clinical AI gets safer when it's built in the open.
+    </p>
+    <div class="hero-cta">
+      <a href="#projects" class="btn-primary">View Projects</a>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank" class="btn-outline">GitHub Org ↗</a>
+      <a href="#signup" class="btn-outline">Beta Test</a>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/START-HERE/FIRST_TIME_GUIDE.md" target="_blank" class="btn-outline">First Time Guide</a>
+      <a href="#research" class="btn-outline">Research</a>
+    </div>
+  </div>
 </div>
 
-<div class="main">
-    <div class="status-bar">
-        <span style="font-size:11px; color:#334155;">EdgeCDSS v3.0 — Beta Testing Open</span>
-        <span class="context-indicator" id="context-indicator">💬 Patient context active</span>
-    </div>
-
-    <div class="conversation-area" id="conversation-area">
-        <div class="placeholder" id="placeholder">
-            <span class="icon">🔧</span>
-            EdgeCDSS v3.0 is live.<br>
-            <span style="font-size:13px; color:#2563eb; font-weight:600;">Ask a clinical question to begin.</span><br>
-            <span style="font-size:11px; color:#475569;">JTS protocols · Voice input · Beta testing open</span>
-        </div>
-        <div class="loading" id="loading">
-            <span class="loading-dots">Querying protocols</span>
-        </div>
-    </div>
-
-    <div class="error-msg" id="error-msg"></div>
-
-    <div class="input-area">
-        <div class="mic-row">
-            <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎙️</button>
-            <span class="mic-status" id="mic-status">Tap mic to speak, or type below</span>
-            <button class="mic-btn" id="voice-toggle" onclick="toggleVoice()" title="Voice output ON — tap to mute">🔊</button>
-        </div>
-        <div class="text-row">
-            <textarea class="query-input" id="query-input"
-                placeholder="Type your clinical question..."
-                onkeydown="handleKey(event)"></textarea>
-            <button class="send-btn" id="send-btn" onclick="submitQuery()" title="Send">➤</button>
-        </div>
-    </div>
+<!-- STAT BAR -->
+<div class="stat-bar full-bleed">
+  <div class="stat">
+    <div class="stat-number">3<span>×</span></div>
+    <div class="stat-label">Open Source Projects</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">15<span>k+</span></div>
+    <div class="stat-label">Lines of Code Written</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">7<span>k</span></div>
+    <div class="stat-label">Knowledge Base Chunks</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">4</div>
+    <div class="stat-label">Research Docs Published</div>
+  </div>
 </div>
 
+<!-- MISSION -->
+<section id="mission">
+  <div class="section-label">Why We Exist</div>
+  <h2 class="section-title">The Gap<br>Nobody Filled</h2>
+  <div class="mission-grid">
+    <div class="mission-text reveal">
+      <p>AI-AMP believes that preventable mortality is highest exactly where clinical AI is least available. <strong>Combat medicine, wilderness rescue, austere field care, low-resource hospitals</strong> — the environments with the most to gain from decision support are the ones it was never designed for.</p>
+      <p>Existing tools assume hospital infrastructure. We design for the absence of it. No reliable power. No internet. No physician backup. A single provider who is the entire system.</p>
+      <p>We are an open-source research initiative building the tools, methodology, and evidence base for AI in austere medicine. <strong>Built by clinicians. Evaluated by working providers. Published openly so anyone can build on it.</strong></p>
+      <p>We document what fails, not just what works — because in clinical AI, understanding failure modes matters more than reporting accuracy scores.</p>
+    </div>
+    <div class="mission-pillars reveal reveal-delay-2">
+      <div class="pillar">
+        <div class="pillar-title">Open by Default</div>
+        <div class="pillar-body">Every line of code, every evaluation report, every safety finding is public. Closed systems hide their failure modes. Open systems let the community find and fix them.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Field Validated</div>
+        <div class="pillar-body">Not a demo. Not a simulation. Real deployments, real providers, real feedback. Field use reveals failure modes that automated testing never will.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Medic-Built</div>
+        <div class="pillar-body">Designed by advanced practice paramedics and clinicians who work in the environments this system is built for.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Affordable at the Margins</div>
+        <div class="pillar-body">Free software, minimal hardware. Every tool targets the lowest possible operational cost, because AI for medicine in the margins has to be affordable in the margins.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects" style="padding-top: 0;">
+  <div class="section-label">What We're Building</div>
+  <h2 class="section-title reveal">Three Projects.<br>One Mission.</h2>
+  <p class="section-sub reveal reveal-delay-1">
+    Each project pushes the technical limits of what's possible on off-the-shelf hardware in resource-denied environments.
+    Together they form a <strong>living roadmap</strong> — open source evidence that others can build on, adapt, and take further.
+    We don't just build tools. We establish what's possible and show exactly how we got there.
+  </p>
+  <div class="projects-grid">
+    <div class="project-card reveal reveal-delay-1">
+      <div class="project-num">PROJECT 01</div>
+      <div class="project-status"><span class="status-dot"></span> Active — v3.0</div>
+      <div class="project-name">EdgeCDSS<br>Cloud</div>
+      <div class="project-version">v3.0.0 // Two-Pass Safety Architecture</div>
+      <div class="project-desc">Hybrid cloud-edge clinical decision support. Voice-accessible, protocol-driven guidance in under 3 seconds. All medication dosing resolved to final mL volumes. Two-pass safety validator blocks dangerous responses before they reach the field.</div>
+      <div class="project-tags">
+        <span class="tag">FastAPI</span>
+        <span class="tag">GPT-4o-mini</span>
+        <span class="tag">ChromaDB</span>
+        <span class="tag">GCP</span>
+        <span class="tag">ElevenLabs</span>
+        <span class="tag">JTS CPGs</span>
+      </div>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" class="project-link">View on GitHub →</a>
+    </div>
+    <div class="project-card reveal reveal-delay-2">
+      <div class="project-num">PROJECT 02</div>
+      <div class="project-status"><span class="status-dot dev"></span> In Development</div>
+      <div class="project-name">EdgeCDSS<br>Offline</div>
+      <div class="project-version">Summer 2026 // Zero Infrastructure</div>
+      <div class="project-desc">Fully offline clinical AI on a $250 edge device. No internet. No cloud. No dependency. Local LLM inference on Jetson Orin Nano. Designed for truly denied environments — conflict zones, remote expeditions, communications blackouts.</div>
+      <div class="project-tags">
+        <span class="tag">Jetson Orin</span>
+        <span class="tag">Phi-3 / Mistral</span>
+        <span class="tag">Hugging Face</span>
+        <span class="tag">Iridium</span>
+        <span class="tag">Solar</span>
+      </div>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank" class="project-link">Follow Progress →</a>
+    </div>
+    <div class="project-card reveal reveal-delay-3">
+      <div class="project-num">PROJECT 03</div>
+      <div class="project-status"><span class="status-dot planned"></span> Planned</div>
+      <div class="project-name">EdgeCDSS<br>Hybrid</div>
+      <div class="project-version">Coming // Technical Frontier</div>
+      <div class="project-desc">A hybrid of Projects 01 and 02 — pushing the absolute limits of off-the-shelf hardware for denied-comms medical AI. Expanded Iridium satellite integration, LoRa mesh protocols for multi-device field networks, and fully autonomous local inference with opportunistic cloud sync. Built to operate where nothing else does.</div>
+      <div class="project-tags">
+        <span class="tag">Iridium SBD</span>
+        <span class="tag">LoRa Mesh</span>
+        <span class="tag">Edge LLM</span>
+        <span class="tag">Cloud Sync</span>
+        <span class="tag">Off-Grid</span>
+      </div>
+      <a href="#signup" class="project-link">Follow for Updates →</a>
+    </div>
+  </div>
+</section>
+
+<!-- SAFETY -->
+<section id="safety" style="padding-top: 0;">
+  <div class="section-label">Open Safety Research</div>
+  <div class="safety-section reveal">
+    <div class="safety-title">We Publish<br>Our Failures.</div>
+    <p class="safety-body">
+      In field evaluation, external clinical testers identified patient safety failures that our automated test suite completely missed. <strong>We published all of them.</strong> The dosing errors, the missing surgical airway, the dangerous oxygen recommendation — documented, analyzed, and fixed in the open.
+    </p>
+    <p class="safety-body">
+      This is how clinical AI gets safer. Not by hiding failure modes behind NDAs and closed evaluation processes. By building in public, testing with real providers, and publishing exactly what went wrong and exactly how it was fixed.
+    </p>
+    <p class="safety-body" style="margin-top: 16px;">
+      <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/tree/main/docs" target="_blank" style="color: var(--blue); font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none;">Read the evaluation reports →</a>
+    </p>
+  </div>
+</section>
+
+<!-- RESEARCH PAPERS -->
+<section id="research" style="padding-top: 0;">
+  <div class="section-label">Weekly Reading</div>
+  <h2 class="section-title reveal">Research<br>That Drives Us.</h2>
+  <p class="section-sub reveal reveal-delay-1">
+    Studies, benchmarks, and frameworks shaping AI in austere medicine — updated weekly.
+    Each entry notes how it connects to what we're building. <strong>External links, no paywalls where possible.</strong>
+  </p>
+  <div class="papers-list" id="papers-list">
+    <div class="papers-empty">Loading research entries…</div>
+  </div>
+</section>
+
+<!-- GET INVOLVED -->
+<section id="involve">
+  <div class="section-label">Join the Project</div>
+  <h2 class="section-title reveal">Four Ways<br>to Help.</h2>
+  <div class="involve-grid">
+    <div class="involve-card reveal reveal-delay-1">
+      <span class="involve-icon">🎙️</span>
+      <div class="involve-title">Beta Test</div>
+      <div class="involve-body">You're a medic, paramedic, nurse, physician, or rescuer. You understand what the system needs to get right. Test it, break it, flag what's wrong. Your feedback directly drives the next version.</div>
+      <a href="#signup" class="involve-action">Sign up for beta access →</a>
+    </div>
+    <div class="involve-card reveal reveal-delay-2">
+      <span class="involve-icon">⌨️</span>
+      <div class="involve-title">Contribute Code</div>
+      <div class="involve-body">Python, FastAPI, LLM prompt engineering, ChromaDB, edge hardware. Open issues on GitHub, submit PRs, build something that saves lives in the field.</div>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank" class="involve-action">View open issues on GitHub →</a>
+    </div>
+    <div class="involve-card reveal reveal-delay-3">
+      <span class="involve-icon">📡</span>
+      <div class="involve-title">Build Hardware</div>
+      <div class="involve-body">Off-grid communications, solar charging, edge computing, Iridium satellite, LoRa mesh, WireGuard networking. The offline and hybrid builds need people who know how to make hardware work where infrastructure doesn't.</div>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank" class="involve-action">See hardware roadmap →</a>
+    </div>
+    <div class="involve-card reveal reveal-delay-4">
+      <span class="involve-icon">🔬</span>
+      <div class="involve-title">Research</div>
+      <div class="involve-body">Read and cite the published evaluation reports. Contribute clinical expertise to protocol review. Collaborate on field research methodology. All data is open and reproducible.</div>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/tree/main/docs" target="_blank" class="involve-action">Read the research →</a>
+    </div>
+  </div>
+</section>
+
+<!-- BETA SIGNUP -->
+<section id="signup" style="padding-top: 0;">
+  <div class="signup-section reveal">
+    <div class="signup-title">Stay in the Loop.</div>
+    <p class="signup-sub">New versions ship. Field data gets published. Delivered via the AI-AMP Substack — one email per milestone.</p>
+    <div class="signup-form">
+      <input type="email" class="signup-input" placeholder="your@email.com">
+      <button class="signup-btn" onclick="handleSignup()">Notify Me</button>
+    </div>
+    <p class="signup-note">No spam. One email per major milestone. Unsubscribe anytime.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
 <footer>
-    AI in Austere Medicine Project &nbsp;·&nbsp;
-    <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank">GitHub</a>
-    &nbsp;·&nbsp;
-    <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/START-HERE/FIRST_TIME_GUIDE.md" target="_blank">First Time Guide</a>
-    &nbsp;·&nbsp; Research prototype &nbsp;·&nbsp; Not for clinical use
+  <div class="footer-logo">AI-AMP // AI in Austere Medicine Project</div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank">GitHub</a></li>
+    <li><a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/START-HERE/FIRST_TIME_GUIDE.md" target="_blank">First Time Guide</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/" target="_blank">Live Demo</a></li>
+  </ul>
+  <div class="footer-disclaimer">
+    Research prototype — not validated for clinical use — not for patient care decisions — do not enter patient names, dates of birth, or identifying information into any system on this site.
+    All code is open source under MIT license. AI in Austere Medicine Project 2026.
+  </div>
 </footer>
 
-<div class="new-patient-toast" id="new-patient-toast">✓ New patient — context cleared</div>
-
-<div class="feedback-modal" id="feedback-modal">
-    <div class="feedback-box">
-        <h3>Add a comment</h3>
-        <textarea id="feedback-comment" placeholder="Describe the issue or suggestion..."></textarea>
-        <div class="modal-btns">
-            <button class="btn-cancel" onclick="closeFeedbackModal()">Cancel</button>
-            <button class="btn-submit" onclick="submitFeedbackWithComment()">Submit</button>
-        </div>
-    </div>
-</div>
-
 <script>
-    // ─── Config ───────────────────────────────────────────────
-    const API_URL = "https://arcaneone.duckdns.org";
-    const ACCESS_TOKEN = "edgecdss-demo-2026";
-    const INACTIVITY_TIMEOUT = 1800000;
-
-    // ─── State ────────────────────────────────────────────────
-    let currentQuery = "";
-    let currentResponse = "";
-    let recognition = null;
-    let isListening = false;
-    let conversationHistory = [];
-    let lastActivityTime = Date.now();
-    let inactivityTimer = null;
-    let messageCount = 0;
-    let voiceEnabled = true;
-    let currentAudio = null;
-
-    // ─── Rate limiting disabled ───────────────────────────────
-    function checkAndUpdateRate() { return true; }
-    function recordQuery() {}
-
-    // ─── Conversation memory ──────────────────────────────────
-    function addToHistory(query, response) {
-        conversationHistory.push({ query, response });
-        if (conversationHistory.length > 5) conversationHistory.shift();
-        updateContextIndicator();
-        resetInactivityTimer();
+// ── Scroll reveal — full element visible on enter
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
     }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-    function updateContextIndicator() {
-        const indicator = document.getElementById('context-indicator');
-        if (conversationHistory.length > 0) {
-            indicator.textContent = "💬 " + conversationHistory.length + " exchange" + (conversationHistory.length > 1 ? "s" : "") + " in context";
-            indicator.classList.add('active');
-        } else {
-            indicator.classList.remove('active');
-        }
+// ── Research papers — loads papers.json from this repo
+async function loadPapers() {
+  const list = document.getElementById('papers-list');
+  try {
+    const res = await fetch('papers.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('papers.json not found');
+    const papers = await res.json();
+    if (!Array.isArray(papers) || papers.length === 0) {
+      list.innerHTML = '<div class="papers-empty">First entries coming soon.</div>';
+      return;
     }
+    papers.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    list.innerHTML = papers.map(p => `
+      <div class="paper-card">
+        <div class="paper-date">${escapeHtml(p.date || '')}</div>
+        <div>
+          <div class="paper-title">${escapeHtml(p.title || 'Untitled')}</div>
+          <div class="paper-meta">${escapeHtml(p.authors || '')}${p.source ? ' // ' + escapeHtml(p.source) : ''}</div>
+          ${p.summary ? `<div class="paper-summary">${escapeHtml(p.summary)}</div>` : ''}
+          ${p.link ? `<a class="paper-link" href="${escapeAttr(p.link)}" target="_blank" rel="noopener">Read the paper →</a>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="papers-empty">Research entries could not be loaded.</div>';
+  }
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/`/g, '&#96;');
+}
+loadPapers();
 
-    function newPatient() {
-        conversationHistory = [];
-        updateContextIndicator();
-        resetInactivityTimer();
-        const toast = document.getElementById('new-patient-toast');
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2000);
-    }
+// ── Signup — opens Substack with email pre-filled
+function handleSignup() {
+  const input = document.querySelector('.signup-input');
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) {
+    input.style.borderColor = '#e94560';
+    return;
+  }
+  const url = 'https://aiamp.substack.com/subscribe?email=' + encodeURIComponent(email);
+  window.open(url, '_blank');
+  input.style.borderColor = '#10b981';
+  input.value = '';
+  input.placeholder = 'Opening Substack...';
+}
 
-    function resetInactivityTimer() {
-        lastActivityTime = Date.now();
-        if (inactivityTimer) clearTimeout(inactivityTimer);
-        if (conversationHistory.length > 0) {
-            inactivityTimer = setTimeout(() => {
-                conversationHistory = [];
-                updateContextIndicator();
-            }, INACTIVITY_TIMEOUT);
-        }
-    }
-
-    // ─── Voice input ──────────────────────────────────────────
-    function toggleMic() {
-        if (isListening) { stopListening(); } else { startListening(); }
-    }
-
-    function startListening() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            showError("Voice input not supported. Please use Chrome.");
-            return;
-        }
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-
-        recognition.onstart = () => {
-            isListening = true;
-            document.getElementById('mic-btn').classList.add('listening');
-            document.getElementById('mic-btn').textContent = '⏹️';
-            document.getElementById('mic-status').textContent = 'Listening...';
-            document.getElementById('mic-status').className = 'mic-status active';
-        };
-
-        recognition.onresult = (e) => {
-            const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-            document.getElementById('query-input').value = transcript;
-            const lower = transcript.toLowerCase().trim();
-            if (lower === 'new patient' || lower === 'reset' || lower === 'clear') {
-                stopListening();
-                newPatient();
-                document.getElementById('query-input').value = '';
-                return;
-            }
-            if (e.results[e.results.length-1].isFinal) {
-                stopListening();
-                submitQuery();
-            }
-        };
-
-        recognition.onerror = (e) => {
-            stopListening();
-            if (e.error !== 'no-speech') showError("Mic error: " + e.error);
-        };
-
-        recognition.onend = () => { stopListening(); };
-        recognition.start();
-    }
-
-    function stopListening() {
-        isListening = false;
-        if (recognition) { try { recognition.stop(); } catch(e) {} }
-        document.getElementById('mic-btn').classList.remove('listening');
-        document.getElementById('mic-btn').textContent = '🎙️';
-        document.getElementById('mic-status').textContent = 'Tap mic to speak, or type below';
-        document.getElementById('mic-status').className = 'mic-status';
-    }
-
-    // ─── Query submission ─────────────────────────────────────
-    async function submitQuery() {
-        const query = document.getElementById('query-input').value.trim();
-        if (!query) return;
-
-        const lower = query.toLowerCase();
-        if (lower === 'new patient' || lower === 'reset' || lower === 'clear patient') {
-            newPatient();
-            document.getElementById('query-input').value = '';
-            return;
-        }
-
-        currentQuery = query;
-        hideError();
-        showLoading();
-
-        try {
-            const start = Date.now();
-            const res = await fetch(API_URL + "/query", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Access-Token': ACCESS_TOKEN
-                },
-                body: JSON.stringify({
-                    query: query,
-                    device_id: 'web-interface',
-                    timestamp: new Date().toISOString(),
-                    voice_mode: 'brief',
-                    conversation_history: conversationHistory
-                })
-            });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.detail || 'Server error ' + res.status);
-            }
-
-            const data = await res.json();
-            const elapsed = Date.now() - start;
-
-            recordQuery();
-            currentResponse = data.response;
-            addToHistory(query, data.response);
-            appendMessage(query, data.response, elapsed);
-            document.getElementById('query-input').value = '';
-            if (voiceEnabled) speakResponse(data.response);
-
-        } catch(err) {
-            hideLoading();
-            showOffline();
-        }
-    }
-
-    function handleKey(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            submitQuery();
-        }
-    }
-
-    // ─── Offline message ──────────────────────────────────────
-    function showOffline() {
-        hideLoading();
-        const area = document.getElementById('conversation-area');
-        const placeholder = document.getElementById('placeholder');
-        if (placeholder) placeholder.style.display = 'none';
-
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message';
-        msgDiv.innerHTML =
-            '<div class="message-response" style="border-left-color: #2563eb; text-align: center; padding: 28px 24px;">' +
-            '<div style="font-size: 36px; margin-bottom: 14px;">🔧</div>' +
-            '<div style="font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px;">EdgeCDSS server unreachable</div>' +
-            '<div style="font-size: 13px; color: #64748b; line-height: 1.8; margin-bottom: 6px;">Down for improvements. Ask a clinical question to begin.</div>' +
-            '<div style="font-size: 12px; color: #475569; line-height: 1.8; margin-bottom: 20px;">' +
-            'Safety validation layer &nbsp;·&nbsp; Voice interface &nbsp;·&nbsp; Patient context memory<br>' +
-            'Medication inventory system &nbsp;·&nbsp; BLS scope awareness' +
-            '</div>' +
-            '<a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" ' +
-            'style="display: inline-block; background: #1a2535; border: 1px solid #2563eb; color: #93c5fd; ' +
-            'text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px 20px; border-radius: 8px;">' +
-            'Follow the project on GitHub \u2192</a>' +
-            '</div>';
-
-        const loading = document.getElementById('loading');
-        area.insertBefore(msgDiv, loading);
-        area.scrollTop = area.scrollHeight;
-    }
-
-    // ─── UI helpers ───────────────────────────────────────────
-    function showLoading() {
-        document.getElementById('placeholder').style.display = 'none';
-        document.getElementById('loading').classList.add('active');
-        document.getElementById('send-btn').disabled = true;
-    }
-
-    function hideLoading() {
-        document.getElementById('loading').classList.remove('active');
-        document.getElementById('send-btn').disabled = false;
-    }
-
-    function appendMessage(query, response, elapsed) {
-        hideLoading();
-        messageCount++;
-        const msgId = 'msg-' + messageCount;
-
-        const placeholder = document.getElementById('placeholder');
-        if (placeholder) placeholder.style.display = 'none';
-
-        const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message';
-        msgDiv.id = msgId;
-        msgDiv.innerHTML =
-            '<div class="message-query">Query: ' + escapeHtml(query) + '</div>' +
-            '<div class="message-response">' + formatted + '</div>' +
-            '<div class="message-meta">' +
-                '<span class="response-time">' + elapsed + 'ms</span>' +
-                '<div class="feedback-row">' +
-                    '<button class="feedback-btn helpful" onclick="submitFeedback(\'helpful\',\'' + msgId + '\')">👍 Helpful</button>' +
-                    '<button class="feedback-btn incorrect" onclick="submitFeedback(\'incorrect\',\'' + msgId + '\')">⚠️ Incorrect</button>' +
-                    '<button class="feedback-btn dangerous" onclick="submitFeedback(\'dangerous\',\'' + msgId + '\')">🚨 Dangerous</button>' +
-                    '<button class="feedback-btn" onclick="openFeedbackModal(\'' + msgId + '\')">💬 Comment</button>' +
-                '</div>' +
-                '<span class="feedback-sent" id="fb-sent-' + msgId + '">\u2713 Feedback received</span>' +
-            '</div>';
-
-        const area = document.getElementById('conversation-area');
-        const loading = document.getElementById('loading');
-        area.insertBefore(msgDiv, loading);
-        area.scrollTop = area.scrollHeight;
-    }
-
-    function escapeHtml(text) {
-        return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    function showError(msg) {
-        const el = document.getElementById('error-msg');
-        el.textContent = msg;
-        el.classList.add('active');
-    }
-
-    function hideError() {
-        document.getElementById('error-msg').classList.remove('active');
-    }
-
-    // ─── Feedback ─────────────────────────────────────────────
-    let activeFeedbackMsgId = null;
-
-    async function submitFeedback(type, msgId, comment = '') {
-        try {
-            await fetch(API_URL + "/feedback", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: currentQuery,
-                    response: currentResponse,
-                    feedback_type: type,
-                    comment: comment,
-                    device_id: 'web-interface'
-                })
-            });
-            const sentEl = document.getElementById('fb-sent-' + msgId);
-            if (sentEl) sentEl.style.display = 'inline';
-        } catch(e) {
-            console.error('Feedback error:', e);
-        }
-    }
-
-    function openFeedbackModal(msgId) {
-        activeFeedbackMsgId = msgId;
-        document.getElementById('feedback-modal').classList.add('active');
-        document.getElementById('feedback-comment').focus();
-    }
-
-    function closeFeedbackModal() {
-        document.getElementById('feedback-modal').classList.remove('active');
-        document.getElementById('feedback-comment').value = '';
-        activeFeedbackMsgId = null;
-    }
-
-    function submitFeedbackWithComment() {
-        const comment = document.getElementById('feedback-comment').value.trim();
-        submitFeedback('comment', activeFeedbackMsgId, comment);
-        closeFeedbackModal();
-    }
-
-    // ─── ELEVENLABS TTS ───────────────────────────────────────
-    function cleanForSpeech(text) {
-        return (text || '')
-            .replace(/\*\*/g, '')
-            .replace(/[#*_`>]/g, '')
-            .replace(/\n{2,}/g, '. ')
-            .replace(/\n/g, ' ')
-            .replace(/\s{2,}/g, ' ')
-            .trim();
-    }
-
-    function stopSpeech() {
-        if (currentAudio) { try { currentAudio.pause(); } catch(e) {} currentAudio = null; }
-        try { window.speechSynthesis.cancel(); } catch(e) {}
-    }
-
-    async function speakResponse(text) {
-        const clean = cleanForSpeech(text);
-        if (!clean) return;
-        stopSpeech();
-        try {
-            const res = await fetch(API_URL + "/speak", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Access-Token': ACCESS_TOKEN },
-                body: JSON.stringify({ text: clean })
-            });
-            if (!res.ok) throw new Error('TTS failed ' + res.status);
-            const audioBlob = await res.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audio = new Audio(audioUrl);
-            currentAudio = audio;
-            audio.onended = () => {
-                URL.revokeObjectURL(audioUrl);
-                if (currentAudio === audio) currentAudio = null;
-            };
-            await audio.play();
-        } catch(e) {
-            // Fallback: browser speech synthesis (works offline / if ElevenLabs unavailable)
-            console.error('TTS error:', e);
-            try {
-                const u = new SpeechSynthesisUtterance(clean);
-                u.rate = 0.95;
-                window.speechSynthesis.speak(u);
-            } catch(e2) {}
-        }
-    }
-
-    function toggleVoice() {
-        voiceEnabled = !voiceEnabled;
-        const btn = document.getElementById('voice-toggle');
-        if (voiceEnabled) {
-            btn.textContent = '🔊';
-            btn.classList.remove('voice-off');
-            btn.title = 'Voice output ON — tap to mute';
-        } else {
-            btn.textContent = '🔇';
-            btn.classList.add('voice-off');
-            btn.title = 'Voice output OFF — tap to enable';
-            stopSpeech();
-        }
-    }
+// ── Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
+  });
+});
 </script>
 
 </body>
