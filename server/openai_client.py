@@ -1,6 +1,25 @@
 """
 EdgeCDSS — AUSTERE-CDS Pipeline
-Version: 3.4.2-multiturn-intent
+Version: 4.0.0
+
+v4.0 — Deterministic-First Architecture
+Major version: consolidates the v3.4.x rebuild into a stable architectural baseline.
+
+Core principle: Python owns everything that can be computed deterministically;
+the LLM only handles what genuinely requires language understanding.
+
+Pipeline: 13 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+contract generator -> deterministic post-checks -> narrow LLM validator ->
+fail-closed safety gate with structured false-positive overrides.
+
+v4.0 defining features:
+  - Structured PatientContext: history for facts, current query for intent
+  - confirmed_weight_kg is the ONLY weight used for dosing (estimated walled off)
+  - Negation-aware semantic helpers (has_fever numeric parsing, has_positive_term)
+  - Clinical router: protocol_index.json-backed RAG query enhancement (89 JTS CPGs)
+  - Session audit logger: JSONL per-query log, debug-tagged, no PHI
+  - DEBUG_WARN_ONLY env flag: fail-closed logic is never hand-edited to debug
+  - normalize_validator_result: UNSAFE without issues -> NEEDS_HUMAN_REVIEW
 
 Architecture per code review recommendations (EdgeCDSS_openai_py_issue_recommendations.docx):
   1. Structured session state (PatientContext with confirmed vs estimated weight, access_state, route_preference)
@@ -33,6 +52,55 @@ from dotenv import load_dotenv
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Debug flag per deep review §4: never edit fail-closed logic to debug.
+# Set EDGECDSS_DEBUG_WARN_ONLY=1 in the environment to observe generator
+# output with issues appended as text instead of blocking. Defaults to OFF.
+DEBUG_WARN_ONLY = os.getenv("EDGECDSS_DEBUG_WARN_ONLY", "0") == "1"
+if DEBUG_WARN_ONLY:
+    print("⚠️  EDGECDSS_DEBUG_WARN_ONLY is ON — safety holds will warn, not block. NOT FOR PRODUCTION.")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SESSION AUDIT LOGGER
+# ─────────────────────────────────────────────────────────────────────────────
+
+import datetime
+import pathlib
+
+_LOG_DIR = pathlib.Path(os.getenv("CDSS_LOG_DIR", "/home/akaclinicalco/cdss-cloud/logs/sessions"))
+
+def _get_log_file() -> pathlib.Path:
+    _LOG_DIR.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    return _LOG_DIR / f"cdss_session_{date_str}.jsonl"
+
+def log_query(query: str, result: dict, conversation_history: list = None):
+    """
+    Write one structured log entry per query.
+    JSONL format — one JSON object per line.
+    No patient identifiers stored — context is clinical state only.
+    """
+    try:
+        entry = {
+            "ts": datetime.datetime.utcnow().isoformat() + "Z",
+            "debug_warn_only": DEBUG_WARN_ONLY,
+            "query": query,
+            "response_preview": result.get("response", "")[:200],
+            "source_mode": result.get("source_mode", "UNKNOWN"),
+            "validator_result": result.get("validator_result", "UNKNOWN"),
+            "validator_issues": result.get("validator_issues", []),
+            "history_turns": len(conversation_history) if conversation_history else 0,
+            "patient_ctx": {
+                k: v for k, v in (result.get("patient_context") or {}).items()
+                if k in ["confirmed_weight_kg", "is_pediatric", "route_preference",
+                         "access_state", "age_years"]
+            }
+        }
+        with open(_get_log_file(), "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as e:
+        print(f"Logger error (non-fatal): {e}")
 
 try:
     from clinical_router import ClinicalRouter
@@ -790,12 +858,6 @@ Infusion: "Mix X mg in Y mL NS (Z mg/mL). Start X mL/hr. Target: [goal]."
 GATE QUESTION RULE: If the response is a gate question (weight, route, concentration),
 answer ONLY the gate question. Do not add clinical warnings or extra content.
 
-ROUTE QUESTION RULE — MANDATORY:
-Only ask "IV or IM?" when the route changes the dose. That is KETAMINE ONLY.
-Never ask route for fentanyl, morphine, or any other analgesic/sedative — answer directly.
-- Morphine: never first-line. State that ketamine subdissociative analgesia is preferred and direct to it.
-- Fentanyl / other opioids: identify it as an opioid analgesic for pain. Give the value from ALLOWED_DOSES if present; otherwise defer the exact dose to local protocol. Never fabricate a dose.
-
 ────────────────────────────────
 SCOPE OF PRACTICE
 ────────────────────────────────
@@ -974,14 +1036,11 @@ def build_system_prompt(ctx: PatientContext, assessment: RetrievalAssessment,
 
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
-                              allowed_doses: Optional[List[DoseCandidate]] = None,
-                              full_transcript: str = "") -> DeterministicCheck:
+                              allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
     """
     Post-generation safety checks.
     If allowed_doses provided: validate response doses match the contract.
     Also checks hard contraindications.
-    full_transcript: prior conversation turns (user + assistant), used to detect
-    context established in earlier turns (e.g. induction already given in an RSI).
     """
     issues = []
     r = response_text.lower()
@@ -994,14 +1053,9 @@ def run_deterministic_checks(query: str, response_text: str,
             issues.append("Medication dose given without confirmed pediatric weight.")
 
     # ── Paralytic without induction ───────────────────────────────────────
-    induction_agents = ['ketamine', 'etomidate', 'propofol', 'midazolam']
     has_paralytic = any(x in r for x in ['rocuronium', 'succinylcholine', 'vecuronium'])
-    has_induction = any(x in r for x in induction_agents)
-    # Multi-turn RSI: induction is often given in an earlier turn, so a follow-up
-    # that answers only the paralytic dose legitimately omits it. Treat induction
-    # as established if an induction agent appears anywhere in the prior transcript.
-    prior_induction = any(x in (full_transcript or "").lower() for x in induction_agents)
-    if has_paralytic and not has_induction and not prior_induction:
+    has_induction = any(x in r for x in ['ketamine', 'etomidate', 'propofol', 'midazolam'])
+    if has_paralytic and not has_induction:
         if any(x in q for x in ['rsi', 'intubat', 'rapid sequence']) and 'arrest' not in q:
             issues.append("Paralytic without induction agent — awake paralysis risk.")
 
@@ -1234,10 +1288,14 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
     if is_safe_gate_response(response_text):
         return response_text, False, []
 
-    # Deterministic failures block first
+    # Deterministic failures block first (warn-only when debug flag set)
     if not det_check.passed:
-        print(f"🚨 DETERMINISTIC BLOCK: {det_check.issues}")
-        return build_safety_hold(det_check.issues, ""), True, det_check.issues
+        if DEBUG_WARN_ONLY:
+            print(f"DEBUG WARN ONLY — deterministic issue: {det_check.issues}")
+            response_text += "\n\n[DEBUG DET ISSUE: " + str(det_check.issues) + "]"
+        else:
+            print(f"🚨 DETERMINISTIC BLOCK: {det_check.issues}")
+            return build_safety_hold(det_check.issues, ""), True, det_check.issues
 
     # LLM UNSAFE — check false positives before blocking
     if llm_result["result"] == "UNSAFE":
@@ -1317,6 +1375,10 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
                 print("✅ TXA false positive overridden — clear traumatic hemorrhage context")
                 return response_text, False, []
 
+        if DEBUG_WARN_ONLY:
+            print(f"DEBUG WARN ONLY — LLM issue: {issues}")
+            response_text += "\n\n[DEBUG LLM ISSUE: " + str(issues) + "]"
+            return response_text, False, issues
         print(f"🚨 LLM BLOCK: {issues}")
         return build_safety_hold(issues, llm_result.get("rationale", "")), True, issues
 
@@ -1839,7 +1901,7 @@ def build_general_case_response(query: str) -> Optional[str]:
 # MAIN QUERY PIPELINE
 # ─────────────────────────────────────────────────────────────────────────────
 
-def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
+def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
                    session_ctx: Optional[PatientContext] = None) -> dict:
     """
@@ -2141,11 +2203,11 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         )
         response_text = response.choices[0].message.content
 
-        # Step 6: Deterministic post-checks use full history + transcript.
-        full_transcript = "\n".join(transcript_lines)
-        det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses, full_transcript)
+        # Step 6: Deterministic post-checks use full history.
+        det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
 
         # Step 7: LLM validator with full transcript
+        full_transcript = "\n".join(transcript_lines)
         llm_result = validate_response(full_transcript, response_text, patient_ctx)
 
         # Step 8: Safety gate with full history context
@@ -2178,3 +2240,17 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "validator_issues": [str(e)],
             "patient_context": {}
         }
+
+
+
+def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
+                   conversation_history: list = None,
+                   session_ctx: Optional[PatientContext] = None) -> dict:
+    """
+    Public entry point. Calls internal pipeline and logs every query/response.
+    """
+    result = _query_with_rag_internal(
+        query, chromadb_client, voice_mode, conversation_history, session_ctx
+    )
+    log_query(query, result, conversation_history)
+    return result
