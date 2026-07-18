@@ -306,7 +306,7 @@ async function ask() {
       body: JSON.stringify({
         query: text, device_id: deviceId,
         timestamp: new Date().toISOString(),
-        voice_mode: mode, conversation_history: history.slice(-8)
+        voice_mode: mode, conversation_history: history.slice(-50)
       })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);

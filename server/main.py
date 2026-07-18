@@ -107,6 +107,38 @@ async def feedback_summary(http_request: Request):
     except FileNotFoundError:
         return {"total_feedback": 0, "entries": []}
 
+import re as _re
+
+def _normalize_for_speech(text: str) -> str:
+    """Rewrite clinical shorthand so TTS speaks doses intelligibly.
+    '0.24 mL of 100mg/mL ketamine IV' -> '0.24 milliliters of 100 milligrams per milliliter ketamine I-V'"""
+    t = text
+    t = _re.sub(r'\*\*', '', t)                    # markdown bold
+    t = _re.sub(r'\s*\|\s*', '. ', t)             # section pipes
+    # compound units FIRST (order matters)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mcg/kg/min\b', r'\1 micrograms per kilogram per minute', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mg/kg\b', r'\1 milligrams per kilogram', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mcg/kg\b', r'\1 micrograms per kilogram', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mg/mL\b', r'\1 milligrams per milliliter', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mcg/mL\b', r'\1 micrograms per milliliter', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mL/hr\b', r'\1 milliliters per hour', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mg/hr\b', r'\1 milligrams per hour', t, flags=_re.I)
+    # simple units
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mL\b', r'\1 milliliters', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mcg\b', r'\1 micrograms', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*mg\b', r'\1 milligrams', t, flags=_re.I)
+    t = _re.sub(r'(\d+(?:\.\d+)?)\s*kg\b', r'\1 kilograms', t, flags=_re.I)
+    # frequency shorthand: q5min, q 15 min
+    t = _re.sub(r'\bq\s*(\d+)\s*min\b', r'every \1 minutes', t, flags=_re.I)
+    t = _re.sub(r'\bq\s*(\d+)\s*(?:hr|h)\b', r'every \1 hours', t, flags=_re.I)
+    # routes and initialisms spoken letter-by-letter
+    for abbr, spoken in [('IV', 'I-V'), ('IO', 'I-O'), ('IM', 'I-M'),
+                         ('RSI', 'R-S-I'), ('TXA', 'T-X-A'), ('GCS', 'G-C-S'),
+                         ('SpO2', 'S-P-O-2'), ('ICP', 'I-C-P'), ('TBI', 'T-B-I'),
+                         ('DCR', 'D-C-R'), ('CPR', 'C-P-R'), ('PO', 'by mouth')]:
+        t = _re.sub(r'\b' + abbr + r'\b', spoken, t)
+    return t
+
 @app.post("/speak")
 async def speak_endpoint(http_request: Request):
     if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
@@ -118,7 +150,7 @@ async def speak_endpoint(http_request: Request):
     async with httpx.AsyncClient() as client:
         r = await client.post(f"https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb",
             headers={"xi-api-key": os.getenv("ELEVENLABS_API_KEY"), "Content-Type": "application/json"},
-            json={"text": text, "model_id": "eleven_multilingual_v2", "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": 0.85}},
+            json={"text": _normalize_for_speech(text), "model_id": "eleven_multilingual_v2", "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": 0.85}},
             timeout=30)
     if r.status_code != 200:
         raise HTTPException(status_code=500, detail="ElevenLabs error")

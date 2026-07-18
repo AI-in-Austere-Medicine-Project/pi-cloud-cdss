@@ -1412,7 +1412,9 @@ def rebuild_patient_context_from_history(
     ctx = session_ctx or PatientContext()
 
     if conversation_history:
-        for turn in conversation_history[-8:]:
+        # Durable patient facts (weight/age/route/access) replay over the FULL
+        # conversation — a weight given 30 turns ago is still the weight.
+        for turn in conversation_history:
             prior_q = turn.get("query", "")
             if prior_q:
                 ctx = extract_patient_context(prior_q, prior_ctx=ctx)
@@ -1426,7 +1428,8 @@ def build_full_query_history(query: str, conversation_history: Optional[list] = 
     prior_queries = ""
     if conversation_history:
         parts = []
-        for turn in conversation_history[-8:]:
+        event_turns = int(os.getenv("CDSS_EVENT_TURNS", "12"))
+        for turn in conversation_history[-event_turns:]:
             if turn.get("query"):
                 parts.append(turn.get("query", ""))
         prior_queries = " ".join(parts).strip()
