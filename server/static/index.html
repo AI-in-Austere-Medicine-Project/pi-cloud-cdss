@@ -97,6 +97,13 @@ header h1 span { color: var(--blue); }
 .disclaimer {
   font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.4;
 }
+.fb { display: inline-flex; gap: 4px; }
+.fbbtn {
+  cursor: pointer; background: none; border: 1px solid var(--border);
+  border-radius: 4px; font-size: 12px; padding: 2px 8px;
+}
+.fbbtn:hover { border-color: var(--blue); }
+.fbdone { font-family: var(--mono); font-size: 10px; color: var(--green); }
 .thinking { color: var(--dim); font-family: var(--mono); font-size: 12px; }
 .thinking::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
@@ -187,6 +194,26 @@ async function speak(text, btn) {
   } catch (e) { btn.textContent = 'audio unavailable'; }
 }
 
+async function sendFeedback(query, response, kind, btn) {
+  let comment = '';
+  if (kind === 'negative') {
+    comment = prompt('What was wrong or missing? (optional — helps us fix it)') || '';
+  }
+  const wrap = btn.parentElement;
+  try {
+    await fetch('/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'X-Access-Token': document.getElementById('token').value },
+      body: JSON.stringify({ query, response, feedback_type: kind,
+                             comment, device_id: deviceId })
+    });
+    wrap.innerHTML = '<span class="fbdone">✓ feedback recorded</span>';
+  } catch (e) {
+    wrap.innerHTML = '<span class="fbdone">feedback failed</span>';
+  }
+}
+
 async function ask() {
   const text = q.value.trim();
   if (!text) return;
@@ -210,15 +237,20 @@ async function ask() {
     let html = renderMd(d.response);
     let meta = '<div class="meta">' + validatorBadge(d.validator_result) +
       '<span class="badge time">' + d.processing_time_ms + ' ms</span>';
-    (d.sources || []).forEach(s => {
+    (d.sources || []).filter(s => s.confidence >= 0.1).forEach(s => {
       meta += '<span class="src"><b>' + esc(s.title) + '</b> p.' + s.page +
               ' · ' + (s.confidence * 100).toFixed(0) + '%</span>';
     });
-    meta += '<button class="listen">🔊 listen</button></div>';
+    meta += '<button class="listen">🔊 listen</button>' +
+      '<span class="fb"><button class="fbbtn" data-v="positive">👍</button>' +
+      '<button class="fbbtn" data-v="negative">👎</button></span></div>';
     pending.querySelector('.bubble').innerHTML = html + meta;
     pending.querySelector('.listen').onclick = function () {
       speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this);
     };
+    pending.querySelectorAll('.fbbtn').forEach(b => {
+      b.onclick = () => sendFeedback(text, d.response, b.dataset.v, b);
+    });
     history.push({ query: text, response: d.response });
   } catch (e) {
     pending.querySelector('.bubble').innerHTML =
