@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from pydantic import BaseModel
 from datetime import datetime
 import os, httpx
@@ -46,8 +46,17 @@ class FeedbackRequest(BaseModel):
     comment: str = ""
     device_id: str = "web"
 
+from pathlib import Path as _Path
+_WEB_CLIENT = _Path(__file__).parent / "static" / "index.html"
+
 @app.get("/")
 async def root():
+    if _WEB_CLIENT.exists():
+        return FileResponse(_WEB_CLIENT)
+    return {"message": "CDSS Cloud API", "status": "running", "version": "4.0.0", "voice_support": True}
+
+@app.get("/status")
+async def status():
     return {"message": "CDSS Cloud API", "status": "running", "version": "4.0.0", "voice_support": True}
 
 @app.get("/health")

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeCDSS — Clinical Decision Support</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --panel2: #1c2129; --border: #2d333b;
+  --text: #e6edf3; --dim: #8b949e; --blue: #58a6ff; --green: #3fb950;
+  --amber: #d29922; --red: #f85149; --mono: 'Space Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Barlow', sans-serif; min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+header {
+  border-bottom: 1px solid var(--border); padding: 14px 20px;
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  background: var(--panel);
+}
+header h1 {
+  font-family: 'Barlow Condensed', sans-serif; font-weight: 900;
+  font-size: 26px; letter-spacing: 0.06em;
+}
+header h1 span { color: var(--blue); }
+.statusline { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.statusline .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 5px; }
+.statusline .dot.ok { background: var(--green); }
+.statusline .dot.err { background: var(--red); }
+#chat {
+  flex: 1; overflow-y: auto; padding: 20px; max-width: 860px;
+  width: 100%; margin: 0 auto;
+}
+.msg { margin-bottom: 18px; }
+.msg .who {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.15em; color: var(--dim); margin-bottom: 5px;
+}
+.msg .bubble {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; font-size: 15px; line-height: 1.55;
+}
+.msg.user .bubble { background: var(--panel2); border-left: 3px solid var(--blue); }
+.msg .bubble strong { color: var(--blue); font-weight: 600; }
+.meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+.badge {
+  font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+  border-radius: 4px; border: 1px solid var(--border); letter-spacing: 0.08em;
+}
+.badge.safe { color: var(--green); border-color: var(--green); }
+.badge.warn { color: var(--amber); border-color: var(--amber); }
+.badge.err  { color: var(--red); border-color: var(--red); }
+.badge.time { color: var(--dim); }
+.src {
+  font-family: var(--mono); font-size: 10px; color: var(--dim);
+  background: var(--panel2); padding: 3px 8px; border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.src b { color: var(--text); font-weight: 400; }
+.listen {
+  cursor: pointer; background: none; border: 1px solid var(--border);
+  color: var(--dim); border-radius: 4px; font-size: 11px;
+  font-family: var(--mono); padding: 3px 8px;
+}
+.listen:hover { color: var(--blue); border-color: var(--blue); }
+#composer {
+  border-top: 1px solid var(--border); background: var(--panel);
+  padding: 14px 20px;
+}
+#composer .inner { max-width: 860px; margin: 0 auto; }
+#inputrow { display: flex; gap: 10px; }
+#q {
+  flex: 1; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); border-radius: 8px; padding: 12px 14px;
+  font-family: 'Barlow', sans-serif; font-size: 15px; resize: none;
+  min-height: 48px; max-height: 140px;
+}
+#q:focus { outline: none; border-color: var(--blue); }
+#send {
+  background: var(--blue); color: #06101f; border: none; border-radius: 8px;
+  font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+  font-size: 17px; letter-spacing: 0.1em; padding: 0 26px; cursor: pointer;
+}
+#send:disabled { opacity: 0.4; cursor: default; }
+#opts {
+  display: flex; gap: 16px; align-items: center; margin-top: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--dim); flex-wrap: wrap;
+}
+#opts label { cursor: pointer; }
+#opts input[type="radio"] { accent-color: var(--blue); }
+#token { background: var(--bg); border: 1px solid var(--border); color: var(--dim);
+  font-family: var(--mono); font-size: 11px; border-radius: 4px; padding: 3px 6px; width: 170px; }
+.disclaimer {
+  font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.4;
+}
+.thinking { color: var(--dim); font-family: var(--mono); font-size: 12px; }
+.thinking::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>EDGE<span>CDSS</span></h1>
+  <div class="statusline"><span class="dot" id="dot"></span><span id="stat">connecting…</span></div>
+</header>
+
+<div id="chat">
+  <div class="msg">
+    <div class="who">EdgeCDSS</div>
+    <div class="bubble">Clinical decision support for austere environments, grounded in Joint Trauma System Clinical Practice Guidelines. Describe the casualty and situation — include weight, access (IV/IO/IM), and vitals when known.<br><br><strong>Demo system. Guideline-based support only — not a substitute for clinical judgment.</strong></div>
+  </div>
+</div>
+
+<div id="composer"><div class="inner">
+  <div id="inputrow">
+    <textarea id="q" placeholder="e.g. 80kg male, blast injury, severe pain, IV access — analgesia options?" rows="1"></textarea>
+    <button id="send">SEND</button>
+  </div>
+  <div id="opts">
+    <span>MODE:</span>
+    <label><input type="radio" name="mode" value="brief" checked> brief</label>
+    <label><input type="radio" name="mode" value="detailed"> detailed</label>
+    <span style="margin-left:auto">TOKEN: <input id="token" value="edgecdss-demo-2026"></span>
+  </div>
+  <div class="disclaimer">Responses are generated decision support derived from JTS CPGs and deterministic dose logic. Verify against local protocol. No PHI is stored; queries are logged for system audit.</div>
+</div></div>
+
+<script>
+const chat = document.getElementById('chat');
+const q = document.getElementById('q');
+const send = document.getElementById('send');
+const history = [];   // {query, response} pairs, matching the server contract
+const deviceId = 'web-' + Math.random().toString(36).slice(2, 8);
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function renderMd(s) {
+  return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+}
+function addMsg(who, html, cls) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + (cls || '');
+  d.innerHTML = '<div class="who">' + who + '</div><div class="bubble">' + html + '</div>';
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+  return d;
+}
+
+async function refreshStatus() {
+  const dot = document.getElementById('dot'), stat = document.getElementById('stat');
+  try {
+    const h = await (await fetch('/health')).json();
+    const s = await (await fetch('/status')).json();
+    dot.className = 'dot ok';
+    stat.textContent = 'v' + s.version + ' · ' + h.documents.toLocaleString() + ' protocol chunks · online';
+  } catch (e) {
+    dot.className = 'dot err';
+    stat.textContent = 'offline';
+  }
+}
+refreshStatus(); setInterval(refreshStatus, 60000);
+
+function validatorBadge(v) {
+  if (v === 'SAFE') return '<span class="badge safe">VALIDATOR: SAFE</span>';
+  if (v === 'ERROR') return '<span class="badge err">SYSTEM ERROR</span>';
+  return '<span class="badge warn">' + esc(v || 'REVIEW') + '</span>';
+}
+
+async function speak(text, btn) {
+  btn.textContent = '…';
+  try {
+    const r = await fetch('/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'X-Access-Token': document.getElementById('token').value },
+      body: JSON.stringify({ text })
+    });
+    if (!r.ok) throw new Error();
+    const blob = await r.blob();
+    new Audio(URL.createObjectURL(blob)).play();
+    btn.textContent = '🔊 listen';
+  } catch (e) { btn.textContent = 'audio unavailable'; }
+}
+
+async function ask() {
+  const text = q.value.trim();
+  if (!text) return;
+  q.value = ''; send.disabled = true;
+  addMsg('Medic', esc(text), 'user');
+  const pending = addMsg('EdgeCDSS', '<span class="thinking">consulting guidelines</span>');
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  try {
+    const r = await fetch('/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'X-Access-Token': document.getElementById('token').value },
+      body: JSON.stringify({
+        query: text, device_id: deviceId,
+        timestamp: new Date().toISOString(),
+        voice_mode: mode, conversation_history: history.slice(-8)
+      })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    let html = renderMd(d.response);
+    let meta = '<div class="meta">' + validatorBadge(d.validator_result) +
+      '<span class="badge time">' + d.processing_time_ms + ' ms</span>';
+    (d.sources || []).forEach(s => {
+      meta += '<span class="src"><b>' + esc(s.title) + '</b> p.' + s.page +
+              ' · ' + (s.confidence * 100).toFixed(0) + '%</span>';
+    });
+    meta += '<button class="listen">🔊 listen</button></div>';
+    pending.querySelector('.bubble').innerHTML = html + meta;
+    pending.querySelector('.listen').onclick = function () {
+      speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this);
+    };
+    history.push({ query: text, response: d.response });
+  } catch (e) {
+    pending.querySelector('.bubble').innerHTML =
+      '<span class="badge err">REQUEST FAILED</span> ' + esc(e.message) +
+      ' — check token or server status.';
+  }
+  send.disabled = false; q.focus();
+  chat.scrollTop = chat.scrollHeight;
+}
+send.onclick = ask;
+q.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
+});
+q.addEventListener('input', () => {
+  q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 140) + 'px';
+});
+</script>
+</body>
+</html>
