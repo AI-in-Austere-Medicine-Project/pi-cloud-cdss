@@ -5,6 +5,8 @@ AI in Austere Medicine Project — July 2026
 - Live portal: https://cdss.arcanekg.com
 - Release notes page: https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.0.html
 - Repository: https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss
+- Project overview & research positioning: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
+- Technology explainer (PDF): [EdgeCDSS_v4_Technology.pdf](EdgeCDSS_v4_Technology.pdf)
 
 ---
 

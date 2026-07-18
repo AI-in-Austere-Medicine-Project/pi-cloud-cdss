@@ -110,7 +110,7 @@ You'll see `(venv)` at the start of your terminal line when it's active.
 ### Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r client/requirements.txt
 ```
 
 This installs everything the system needs. Takes a few minutes the first time.
@@ -206,7 +206,7 @@ Restart the client after changing it.
 source venv/bin/activate
 
 # Run
-python client.py
+python cdss_client.py
 ```
 
 You'll see a startup banner showing which AI backend is active. At the prompt:

@@ -223,11 +223,17 @@ def extract_patient_context(query: str,
             ctx.age_years = float(age_match2.group(1))
 
     # ── Pediatric detection ───────────────────────────────────────────────
-    pediatric_terms = ['infant', 'child', 'toddler', 'kid', 'boy', 'girl',
-                       'pediatric', 'paediatric', 'newborn', 'neonate', 'baby',
-                       'year-old', 'year old', 'yo ', 'y/o']
-    if (any(term in full_text for term in pediatric_terms) or
-            (ctx.age_years is not None and ctx.age_years < 18) or
+    # Word-boundary matched: 'kid' must not fire on "kidney", 'girl' on
+    # "girlfriend", 'boy' on "boyfriend" (fix 2026-07-18).
+    # Age phrasings ('year old', 'yo', 'y/o') are NOT pediatric terms — they are
+    # parsed into age_years above, and a known age is authoritative: "55 year
+    # old" must never be pediatric-gated.
+    pediatric_terms = ['infant', 'child', 'toddler', 'kid', 'kids', 'boy', 'girl',
+                       'pediatric', 'paediatric', 'newborn', 'neonate', 'baby']
+    if ctx.age_years is not None:
+        if ctx.age_years < 18:
+            ctx.is_pediatric = True
+    elif (_has_any_word(full_text, pediatric_terms) or
             (ctx.confirmed_weight_kg is not None and ctx.confirmed_weight_kg < 40)):
         ctx.is_pediatric = True
 
@@ -294,15 +300,25 @@ SAFE_GATE_RESPONSES = {
 }
 
 
+def _has_word(text: str, term: str) -> bool:
+    """Word-boundary match — 'roc' matches "give roc" but not "rock" or "procedure"."""
+    return re.search(r'\b' + re.escape(term) + r'\b', text) is not None
+
+
+def _has_any_word(text: str, terms) -> bool:
+    return any(_has_word(text, t) for t in terms)
+
+
 def wants_medication_dose(query: str) -> bool:
     q = query.lower()
     if is_fixed_prep_request(q):
         return False
-    dose_terms = ['dose', 'give', 'draw', 'mg', 'ml', 'ketamine', 'roc',
-                  'rocuronium', 'sux', 'succinylcholine', 'fentanyl', 'versed',
-                  'midazolam', 'lorazepam', 'morphine', 'epi', 'epinephrine',
-                  'analges', 'pain', 'sedat', 'intubat', 'rsi', 'txa', 'keppra']
-    return any(t in q for t in dose_terms)
+    stem_terms = ['rocuronium', 'succinylcholine', 'fentanyl', 'versed',
+                  'midazolam', 'lorazepam', 'morphine', 'epinephrine',
+                  'analges', 'sedat', 'intubat', 'ketamine']
+    word_terms = ['dose', 'give', 'draw', 'mg', 'ml', 'roc', 'sux', 'succs',
+                  'epi', 'pain', 'rsi', 'txa', 'keppra']
+    return any(t in q for t in stem_terms) or _has_any_word(q, word_terms)
 
 
 def route_changes_dose(query: str) -> bool:
@@ -342,11 +358,11 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
 
         # Route gate — only ask if NOT RSI/intubation/drip context (those are always IV)
         is_rsi_or_iv_ctx = any(x in combined_ctx for x in [
-            "rsi", "intubat", "rapid sequence", "rocuronium", "roc",
-            "succinylcholine", "sux", "drip", "infusion", "sedation drip",
+            "rsi", "intubat", "rapid sequence", "rocuronium",
+            "succinylcholine", "drip", "infusion", "sedation drip",
             "post-intubation", "post intubation", "intubated", "ventilator",
             "on the vent", "on a vent", "ketamine drip"
-        ])
+        ]) or _has_any_word(combined_ctx, ["roc", "sux", "succs"])
         if route_changes_dose(combined_ctx) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
             return "ASK", "IV or IM? Do you have access?"
 
@@ -449,9 +465,9 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
     is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
     is_seizure = any(x in q for x in ['seizure', 'seizing', 'status'])
-    has_ketamine = any(x in q for x in ['ketamine', 'ket ', 'vitamin k'])
-    has_roc = any(x in q for x in ['rocuronium', 'roc'])
-    has_succ = any(x in q for x in ['succinylcholine', 'sux', 'succs'])
+    has_ketamine = 'ketamine' in q or 'vitamin k' in q or _has_word(q, 'ket')
+    has_roc = 'rocuronium' in q or _has_word(q, 'roc')
+    has_succ = 'succinylcholine' in q or _has_any_word(q, ['sux', 'succs'])
     has_loraz = any(x in q for x in ['lorazepam', 'ativan', 'benzo'])
 
     if is_rsi:
@@ -2139,9 +2155,9 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
             "iv", "im", "io", "intramuscular", "intravenous",
             "only have im", "im only", "no iv", "only have iv"
         ]
-        _current_is_other_med = any(x in query.lower() for x in [
-            "epi", "epinephrine", "blood", "ltowb", "txa", "tranexamic",
-            "rocuronium", "roc", "succinylcholine", "sux", "fentanyl",
+        _current_is_other_med = _has_any_word(query.lower(), ["epi", "roc", "sux", "succs"]) or any(x in query.lower() for x in [
+            "epinephrine", "blood", "ltowb", "txa", "tranexamic",
+            "rocuronium", "succinylcholine", "fentanyl",
             "morphine", "lorazepam", "ativan", "amiodarone", "adenosine",
             "norepinephrine", "vasopressin", "dopamine", "albuterol",
             "vtach", "vfib", "arrest", "cpr", "shock", "sepsis", "hemorrhage"

@@ -38,3 +38,11 @@ cdss_test_results_*.json
 # Keys
 *.pem
 *.key
+# Local working files (review docs, drafts, old versions)
+EdgeCDSS_openai_*
+*.docx
+tests/
+
+# Runtime logs
+logs/
+*.jsonl

@@ -31,7 +31,7 @@ git clone https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss.git
 cd pi-cloud-cdss
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
+pip install -r client/requirements.txt
 cp .env.example .env
 ```
 
@@ -40,7 +40,7 @@ cp .env.example .env
 ```bash
 export CDSS_SERVER_URL=https://your-server
 export CDSS_ACCESS_TOKEN=your-token
-python test_cdss.py
+bash server/run_tests.sh
 ```
 
 ## Security

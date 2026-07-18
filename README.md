@@ -51,9 +51,9 @@ pi-cloud-cdss/
 │   └── index.html               Web testing interface (GitHub Pages)
 ├── client/
 │   ├── cdss_client.py           Edge device voice client
-│   └── client.py                Thin client
+│   └── requirements.txt         Voice client dependencies
 ├── tests/
-│   ├── test_cdss.py             34-case automated test suite
+│   ├── run_tests.sh             24-case live-endpoint test suite (server/)
 │   └── results/                 Test run outputs
 ├── docs/
 │   ├── EdgeCDSS_v25_Summary.pdf
@@ -68,7 +68,7 @@ pi-cloud-cdss/
 ├── LICENSE                      MIT
 ├── .env.example
 ├── .gitignore
-└── requirements.txt
+└── requirements-server.txt      Server dependencies
 ```
 
 ---
@@ -85,7 +85,7 @@ cd pi-cloud-cdss
 # Install dependencies
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r client/requirements.txt
 
 # Configure
 cp .env.example .env
@@ -96,7 +96,7 @@ cd server
 uvicorn main:app --host 0.0.0.0 --port 8000
 
 # Test
-python3 tests/test_cdss.py
+bash server/run_tests.sh
 ```
 
 See `START-HERE/FIRST_TIME_GUIDE.md` for full setup instructions.
