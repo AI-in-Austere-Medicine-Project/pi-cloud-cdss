@@ -2157,7 +2157,7 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
             except Exception as e:
                 print(f"Router error: {e}")
 
-        raw_results = chromadb_client.query(search_query, n_results=5)
+        raw_results = chromadb_client.query(search_query, n_results=int(os.getenv("CDSS_RAG_TOP_K", "10")))
         assessment = classify_retrieval(raw_results)
         print(f"📚 {assessment.source_mode} (top: {assessment.top_score})")
 
