@@ -9,7 +9,7 @@ from embeddings import ChromaDBClient
 from openai_client import query_with_rag
 
 load_dotenv()
-app = FastAPI(title="CDSS Cloud API", version="2.5.0")
+app = FastAPI(title="CDSS Cloud API", version="4.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
 try:
@@ -20,6 +20,7 @@ except Exception as e:
     raise
 
 ACCESS_TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
+FEEDBACK_LOG = os.getenv("FEEDBACK_LOG", "feedback.log")
 
 class QueryRequest(BaseModel):
     query: str
@@ -47,7 +48,7 @@ class FeedbackRequest(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"message": "CDSS Cloud API", "status": "running", "version": "3.0.0", "voice_support": True}
+    return {"message": "CDSS Cloud API", "status": "running", "version": "4.0.0", "voice_support": True}
 
 @app.get("/health")
 async def health_check():
@@ -80,7 +81,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
 @app.post("/feedback")
 async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
     entry = {"timestamp": datetime.now().isoformat(), "ip": http_request.client.host, "device_id": feedback.device_id, "feedback_type": feedback.feedback_type, "query": feedback.query, "response_preview": feedback.response[:200], "comment": feedback.comment}
-    with open("/home/akaclinicalco/cdss-cloud/feedback.log", "a") as f:
+    with open(FEEDBACK_LOG, "a") as f:
         f.write(str(entry) + "\n")
     return {"status": "received"}
 
@@ -89,7 +90,7 @@ async def feedback_summary(http_request: Request):
     if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Unauthorized")
     try:
-        lines = open("/home/akaclinicalco/cdss-cloud/feedback.log").readlines()
+        lines = open(FEEDBACK_LOG).readlines()
         return {"total_feedback": len(lines), "entries": lines[-20:]}
     except FileNotFoundError:
         return {"total_feedback": 0, "entries": []}
