@@ -1884,8 +1884,11 @@ def build_general_case_response(query: str) -> Optional[str]:
         return build_seizure_response()
     if "cardiac arrest" in q and any(x in q for x in ["hypothermic", "snow", "cold", "frozen"]):
         return build_hypothermic_arrest_response()
-    if any(x in q for x in ["severe tbi", "gcs 6", "traumatic brain injury"]):
-        return build_tbi_management_response()
+    # TBI intentionally NOT dispatched to a fixed card (decision 2026-07-18):
+    # severe TBI routes through RAG for guideline-grounded specifics
+    # (SBP floor, hypertonic saline, seizure prophylaxis). To revert, re-add:
+    #   if any(x in q for x in ["severe tbi", "gcs 6", "traumatic brain injury"]):
+    #       return build_tbi_management_response()
     if "mascal" in q:
         return build_mascal_response()
     if "ketamine drip" in q and any(x in q for x in ["intubated", "on the vent", "ventilator"]):
