@@ -1047,6 +1047,37 @@ def run_deterministic_checks(query: str, response_text: str,
     q = query.lower()
     allowed_doses = allowed_doses or []
 
+    # ── ALLOWED_DOSES contract enforcement (implemented 2026-07-18) ───────
+    # Parse canonical GIVE lines ("Draw X mL of Ymg/mL drug ... (Zmg)") and
+    # verify each stated dose against the deterministic contract. Scoped to
+    # the canonical format so warnings/DON'T-lines with numbers never trip it.
+    if allowed_doses:
+        give_lines = re.findall(
+            r'draw\s+(\d+(?:\.\d+)?)\s*ml\s+of\s+(\d+(?:\.\d+)?)\s*mg/ml\s+'
+            r'([a-z][a-z\- ]{2,30}?)\s*(?:i[vmo][^(]*)?\((\d+(?:\.\d+)?)\s*mg\)',
+            r)
+        contract_drugs = {d.drug.lower() for d in allowed_doses}
+        for vol_s, conc_s, drug_s, mg_s in give_lines:
+            stated_mg = float(mg_s)
+            drug_words = drug_s.strip().split()
+            matched_drug = None
+            for cd in contract_drugs:
+                if any(cd in w or w in cd for w in drug_words):
+                    matched_drug = cd
+                    break
+            if matched_drug is None:
+                issues.append(
+                    f"GIVE line doses '{drug_s.strip()}' ({stated_mg}mg) but that "
+                    f"medication is not in the ALLOWED_DOSES contract.")
+                continue
+            candidates = [d for d in allowed_doses if d.drug.lower() == matched_drug]
+            tol = lambda dm: max(0.5, dm * 0.05)
+            if not any(abs(stated_mg - d.dose_mg) <= tol(d.dose_mg) for d in candidates):
+                allowed_vals = ", ".join(f"{d.dose_mg:g}mg {d.route}" for d in candidates)
+                issues.append(
+                    f"GIVE line states {matched_drug} {stated_mg:g}mg, which does not "
+                    f"match any ALLOWED_DOSES value ({allowed_vals}).")
+
     # ── Pediatric: no dose without confirmed weight ───────────────────────
     if patient_ctx.is_pediatric and not patient_ctx.has_confirmed_weight:
         if re.search(r'\b\d+(?:\.\d+)?\s*(mg|mcg|ml|mL)\b', response_text):
@@ -1195,7 +1226,8 @@ def normalize_validator_result(data: dict) -> dict:
 
 
 def validate_response(full_transcript: str, response_text: str,
-                      patient_ctx: PatientContext) -> dict:
+                      patient_ctx: PatientContext,
+                      allowed_dose_block: str = "") -> dict:
     """
     LLM semantic validator. Receives full conversation transcript.
     Fail-closed: errors return NEEDS_HUMAN_REVIEW, not SAFE.
@@ -1206,9 +1238,11 @@ def validate_response(full_transcript: str, response_text: str,
 
     try:
         patient_summary = build_patient_block(patient_ctx) or "No patient context."
+        dose_section = f"{allowed_dose_block}\n\n" if allowed_dose_block else ""
         validation_input = (
             f"CONVERSATION TRANSCRIPT:\n{full_transcript}\n\n"
             f"PATIENT CONTEXT:\n{patient_summary}\n\n"
+            f"{dose_section}"
             f"PROPOSED RESPONSE:\n{response_text}"
         )
 
@@ -2229,7 +2263,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
 
         # Step 7: LLM validator with full transcript
         full_transcript = "\n".join(transcript_lines)
-        llm_result = validate_response(full_transcript, response_text, patient_ctx)
+        llm_result = validate_response(full_transcript, response_text, patient_ctx, allowed_dose_block)
 
         # Step 8: Safety gate with full history context
         final_response, blocked, combined_issues = apply_safety_gate(
