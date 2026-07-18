@@ -99,7 +99,7 @@ Return JSON only. No markdown. No explanation."""
 
 def get_chroma_collection():
     chroma_client = chromadb.PersistentClient(
-        path="/home/akaclinicalco/cdss-cloud/cache/chromadb"
+        path=os.getenv("CHROMADB_PATH", "./cache/chromadb")
     )
     return chroma_client.get_collection("jts_protocols")
 
@@ -495,7 +495,7 @@ def main():
     query_aliases = build_query_aliases()
 
     # Write files
-    output_dir = Path("/home/akaclinicalco/cdss-cloud/app")
+    output_dir = Path(os.getenv("CDSS_APP_DIR", Path(__file__).parent))
 
     with open(output_dir / "protocol_index.json", "w") as f:
         json.dump(protocol_index, f, indent=2)

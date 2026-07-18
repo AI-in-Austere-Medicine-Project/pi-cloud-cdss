@@ -39,8 +39,10 @@ class ClinicalRouter:
     Replaces string-matching keyword gates.
     """
 
-    def __init__(self, app_dir: str = "/home/akaclinicalco/cdss-cloud/app"):
-        self.app_dir = Path(app_dir)
+    def __init__(self, app_dir: str = None):
+        # default: alongside this file (server/); override with CDSS_APP_DIR
+        import os
+        self.app_dir = Path(app_dir or os.getenv("CDSS_APP_DIR") or Path(__file__).parent)
         self.protocol_index = self._load_json("protocol_index.json")
         self.safety_rules = self._load_json("safety_rules.json")
         self.query_aliases = self._load_json("query_aliases.json")
