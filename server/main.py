@@ -42,7 +42,10 @@ class QueryResponse(BaseModel):
 class FeedbackRequest(BaseModel):
     query: str
     response: str
-    feedback_type: str
+    feedback_type: str          # "appropriate" | "flagged" (legacy: positive/negative)
+    severity: str = ""          # "" | "minor" | "significant" | "dangerous"
+    issues: list = []           # structured issue tags
+    suggestion: str = ""        # what it should have said
     comment: str = ""
     device_id: str = "web"
 
@@ -89,7 +92,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
 
 @app.post("/feedback")
 async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
-    entry = {"timestamp": datetime.now().isoformat(), "ip": http_request.client.host, "device_id": feedback.device_id, "feedback_type": feedback.feedback_type, "query": feedback.query, "response_preview": feedback.response[:200], "comment": feedback.comment}
+    entry = {"timestamp": datetime.now().isoformat(), "ip": http_request.client.host, "device_id": feedback.device_id, "feedback_type": feedback.feedback_type, "query": feedback.query, "response_preview": feedback.response[:200], "severity": feedback.severity, "issues": feedback.issues, "suggestion": feedback.suggestion, "comment": feedback.comment}
     with open(FEEDBACK_LOG, "a") as f:
         f.write(str(entry) + "\n")
     return {"status": "received"}

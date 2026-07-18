@@ -97,13 +97,43 @@ header h1 span { color: var(--blue); }
 .disclaimer {
   font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.4;
 }
-.fb { display: inline-flex; gap: 4px; }
+.fb { display: inline-flex; gap: 6px; }
 .fbbtn {
   cursor: pointer; background: none; border: 1px solid var(--border);
-  border-radius: 4px; font-size: 12px; padding: 2px 8px;
+  color: var(--dim); border-radius: 4px; font-size: 11px;
+  font-family: var(--mono); padding: 3px 8px;
 }
-.fbbtn:hover { border-color: var(--blue); }
+.fbbtn:hover { border-color: var(--blue); color: var(--blue); }
+.fbbtn.flag:hover { border-color: var(--amber); color: var(--amber); }
 .fbdone { font-family: var(--mono); font-size: 10px; color: var(--green); }
+.flagpanel {
+  margin-top: 10px; border: 1px solid var(--amber); border-radius: 8px;
+  padding: 12px 14px; background: var(--panel2); font-size: 13px;
+}
+.flagpanel h4 {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
+}
+.flagpanel .sect { margin-bottom: 10px; }
+.flagpanel .sect-label {
+  font-family: var(--mono); font-size: 10px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px;
+}
+.flagpanel label { display: inline-block; margin: 2px 10px 2px 0; cursor: pointer; font-size: 13px; }
+.flagpanel input { accent-color: var(--amber); }
+.flagpanel textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 8px;
+  font-family: 'Barlow', sans-serif; font-size: 13px; min-height: 56px; resize: vertical;
+}
+.flagpanel .row { display: flex; gap: 8px; margin-top: 8px; }
+.flagpanel button {
+  cursor: pointer; border-radius: 6px; padding: 6px 14px;
+  font-family: var(--mono); font-size: 11px; border: 1px solid var(--border);
+  background: none; color: var(--dim);
+}
+.flagpanel button.primary { background: var(--amber); color: #1a1200; border: none; }
+.sev-dangerous { color: var(--red); }
 .thinking { color: var(--dim); font-family: var(--mono); font-size: 12px; }
 .thinking::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
@@ -194,24 +224,71 @@ async function speak(text, btn) {
   } catch (e) { btn.textContent = 'audio unavailable'; }
 }
 
-async function sendFeedback(query, response, kind, btn) {
-  let comment = '';
-  if (kind === 'negative') {
-    comment = prompt('What was wrong or missing? (optional — helps us fix it)') || '';
-  }
-  const wrap = btn.parentElement;
+function fbControls() {
+  return '<span class="fb">' +
+    '<button class="fbbtn" data-v="appropriate">\u2713 clinically appropriate</button>' +
+    '<button class="fbbtn flag" data-v="flagged">\u26a0 flag issue</button></span>';
+}
+
+const ISSUE_TAGS = [
+  'Dose incorrect', 'Medication choice inappropriate', 'Wrong route/access',
+  'Missing critical step', 'Contradicts current CPG', 'Sources wrong/irrelevant',
+  'Too vague / not actionable', 'Format hard to use in field'
+];
+
+async function postFeedback(payload, doneEl) {
   try {
     await fetch('/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json',
                  'X-Access-Token': document.getElementById('token').value },
-      body: JSON.stringify({ query, response, feedback_type: kind,
-                             comment, device_id: deviceId })
+      body: JSON.stringify(payload)
     });
-    wrap.innerHTML = '<span class="fbdone">✓ feedback recorded</span>';
+    doneEl.innerHTML = '<span class="fbdone">\u2713 feedback recorded \u2014 thank you</span>';
   } catch (e) {
-    wrap.innerHTML = '<span class="fbdone">feedback failed</span>';
+    doneEl.innerHTML = '<span class="fbdone">feedback failed to send</span>';
   }
+}
+
+function wireFeedback(container, queryText, responseText) {
+  container.querySelectorAll('.fbbtn').forEach(b => {
+    b.onclick = () => {
+      if (b.dataset.v === 'appropriate') {
+        postFeedback({ query: queryText, response: responseText,
+          feedback_type: 'appropriate', device_id: deviceId },
+          b.closest('.fb'));
+      } else {
+        openFlagPanel(container, queryText, responseText);
+      }
+    };
+  });
+}
+
+function openFlagPanel(container, queryText, responseText) {
+  if (container.querySelector('.flagpanel')) return;
+  const p = document.createElement('div');
+  p.className = 'flagpanel';
+  p.innerHTML =
+    '<h4>Clinical issue report</h4>' +
+    '<div class="sect"><div class="sect-label">Severity</div>' +
+      '<label><input type="radio" name="sev" value="minor"> minor issue</label>' +
+      '<label><input type="radio" name="sev" value="significant" checked> clinically significant</label>' +
+      '<label class="sev-dangerous"><input type="radio" name="sev" value="dangerous"> dangerous if followed</label></div>' +
+    '<div class="sect"><div class="sect-label">Issue type (all that apply)</div>' +
+      ISSUE_TAGS.map(t => '<label><input type="checkbox" value="' + t + '"> ' + t + '</label>').join('') + '</div>' +
+    '<div class="sect"><div class="sect-label">What should it have said? Cite protocol if possible.</div>' +
+      '<textarea placeholder="e.g. JTS Burn Care CPG calls for..."></textarea></div>' +
+    '<div class="row"><button class="primary">SUBMIT REPORT</button><button class="cancel">cancel</button></div>';
+  container.querySelector('.bubble').appendChild(p);
+  p.querySelector('.cancel').onclick = () => p.remove();
+  p.querySelector('.primary').onclick = () => {
+    const sev = p.querySelector('input[name=sev]:checked').value;
+    const issues = [...p.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value);
+    const suggestion = p.querySelector('textarea').value.trim();
+    postFeedback({ query: queryText, response: responseText,
+      feedback_type: 'flagged', severity: sev, issues, suggestion,
+      device_id: deviceId }, p);
+  };
 }
 
 async function ask() {
@@ -241,16 +318,12 @@ async function ask() {
       meta += '<span class="src"><b>' + esc(s.title) + '</b> p.' + s.page +
               ' · ' + (s.confidence * 100).toFixed(0) + '%</span>';
     });
-    meta += '<button class="listen">🔊 listen</button>' +
-      '<span class="fb"><button class="fbbtn" data-v="positive">👍</button>' +
-      '<button class="fbbtn" data-v="negative">👎</button></span></div>';
+    meta += '<button class="listen">🔊 listen</button>' + fbControls() + '</div>';
     pending.querySelector('.bubble').innerHTML = html + meta;
     pending.querySelector('.listen').onclick = function () {
       speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this);
     };
-    pending.querySelectorAll('.fbbtn').forEach(b => {
-      b.onclick = () => sendFeedback(text, d.response, b.dataset.v, b);
-    });
+    wireFeedback(pending, text, d.response);
     history.push({ query: text, response: d.response });
   } catch (e) {
     pending.querySelector('.bubble').innerHTML =
