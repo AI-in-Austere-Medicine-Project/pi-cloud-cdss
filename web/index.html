@@ -232,6 +232,14 @@ section {
   max-width: 1100px;
   margin: 0 auto;
 }
+.release-banner {
+  display: block; text-align: center; background: var(--dark3);
+  border-bottom: 1px solid var(--border); padding: 10px 16px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text); text-decoration: none;
+}
+.release-banner b { color: var(--red); font-weight: 700; }
+.release-banner:hover { color: #fff; background: var(--panel); }
 .section-label {
   font-family: var(--mono);
   font-size: 9px;
@@ -708,14 +716,17 @@ footer {
   <ul class="nav-links">
     <li><a href="#mission">Mission</a></li>
     <li><a href="#projects">Projects</a></li>
+    <li><a href="#architecture">Architecture</a></li>
     <li><a href="#safety">Safety</a></li>
+    <li><a href="#ethics">Ethics</a></li>
     <li><a href="#research">Research</a></li>
-    <li><a href="https://aiamp.substack.com" target="_blank">Substack</a></li>
     <li><a href="#involve">Get Involved</a></li>
-    <li><a href="https://aiamp.substack.com" target="_blank">Substack ↗</a></li>
+    <li><a href="https://aiamp.substack.com" target="_blank" rel="noopener">Substack ↗</a></li>
     <li><a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank">GitHub ↗</a></li>
   </ul>
 </nav>
+
+<a class="release-banner" href="release-notes-4.0.html"><b>NEW</b> &nbsp;EdgeCDSS Version 4.0 is live — read the release notes →</a>
 
 <!-- HERO -->
 <div class="hero">
@@ -728,12 +739,17 @@ footer {
       <span class="dim">for medicine</span><br>
       <span class="accent">in the margins</span>
     </h1>
-    <p class="hero-sub">Open source. Built in the field. Safety shared.</p>
+    <p class="hero-sub">Open source. Edge deployed. Safety findings published.</p>
     <p class="hero-thesis">
-      We build open source AI tools for medicine where infrastructure ends — and we publish everything, including what fails. Clinical AI gets safer when it's built in the open.
+      EdgeCDSS Version 4.0 places the knowledge base, retrieval engine, safety gates,
+      interface, and audit logs on an NVIDIA Jetson Orin Nano. The system is
+      deterministic-first, guideline-grounded, and designed for research in austere,
+      remote, and resource-limited environments.
     </p>
     <div class="hero-cta">
-      <a href="#projects" class="btn-primary">View Projects</a>
+      <a href="https://cdss.arcanekg.com" target="_blank" rel="noopener" class="btn-primary">Launch EdgeCDSS Portal ↗</a>
+      <a href="release-notes-4.0.html" class="btn-outline">v4.0 Release Notes</a>
+      <a href="#projects" class="btn-outline">View Projects</a>
       <a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank" class="btn-outline">GitHub Org ↗</a>
       <a href="#signup" class="btn-outline">Beta Test</a>
       <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/START-HERE/FIRST_TIME_GUIDE.md" target="_blank" class="btn-outline">First Time Guide</a>
@@ -745,20 +761,20 @@ footer {
 <!-- STAT BAR -->
 <div class="stat-bar full-bleed">
   <div class="stat">
-    <div class="stat-number">3<span>×</span></div>
-    <div class="stat-label">Open Source Projects</div>
+    <div class="stat-number">89</div>
+    <div class="stat-label">JTS Guidelines Indexed</div>
   </div>
   <div class="stat">
-    <div class="stat-number">15<span>k+</span></div>
-    <div class="stat-label">Lines of Code Written</div>
+    <div class="stat-number">8,559</div>
+    <div class="stat-label">Guideline Passages Indexed</div>
   </div>
   <div class="stat">
-    <div class="stat-number">7<span>k</span></div>
-    <div class="stat-label">Knowledge Base Chunks</div>
+    <div class="stat-number">24<span>/24</span></div>
+    <div class="stat-label">Regression Tests Passed</div>
   </div>
   <div class="stat">
-    <div class="stat-number">4</div>
-    <div class="stat-label">Research Docs Published</div>
+    <div class="stat-number">4<span>.0</span></div>
+    <div class="stat-label">Current EdgeCDSS Release</div>
   </div>
 </div>
 
@@ -779,8 +795,8 @@ footer {
         <div class="pillar-body">Every line of code, every evaluation report, every safety finding is public. Closed systems hide their failure modes. Open systems let the community find and fix them.</div>
       </div>
       <div class="pillar">
-        <div class="pillar-title">Field Validated</div>
-        <div class="pillar-body">Not a demo. Not a simulation. Real deployments, real providers, real feedback. Field use reveals failure modes that automated testing never will.</div>
+        <div class="pillar-title">Field Evaluated</div>
+        <div class="pillar-body">Evaluated by working clinicians and field providers using simulated and synthetic clinical scenarios. Structured feedback and audit logs are used to reproduce, correct, and regression-test failures.</div>
       </div>
       <div class="pillar">
         <div class="pillar-title">Medic-Built</div>
@@ -806,19 +822,28 @@ footer {
   <div class="projects-grid">
     <div class="project-card reveal reveal-delay-1">
       <div class="project-num">PROJECT 01</div>
-      <div class="project-status"><span class="status-dot"></span> Active — v3.0</div>
-      <div class="project-name">EdgeCDSS<br>Cloud</div>
-      <div class="project-version">v3.0.0 // Two-Pass Safety Architecture</div>
-      <div class="project-desc">Hybrid cloud-edge clinical decision support. Voice-accessible, protocol-driven guidance in under 3 seconds. All medication dosing resolved to final mL volumes. Two-pass safety validator blocks dangerous responses before they reach the field.</div>
+      <div class="project-status"><span class="status-dot"></span> Active — v4.0</div>
+      <div class="project-name">EdgeCDSS<br>Version 4.0</div>
+      <div class="project-version">Deterministic-First // Edge-Hosted // Guideline-Grounded</div>
+      <div class="project-desc">
+        Self-hosted clinical decision support on an NVIDIA Jetson Orin Nano.
+        Version 4.0 runs the guideline knowledge base, local retrieval engine,
+        deterministic safety gates, web interface, feedback system, and audit logs
+        on the edge device. AI is restricted to language generation, retrieval support,
+        and semantic validation.
+      </div>
       <div class="project-tags">
+        <span class="tag">Jetson Orin</span>
+        <span class="tag">Python</span>
         <span class="tag">FastAPI</span>
-        <span class="tag">GPT-4o-mini</span>
         <span class="tag">ChromaDB</span>
-        <span class="tag">GCP</span>
-        <span class="tag">ElevenLabs</span>
+        <span class="tag">Local RAG</span>
+        <span class="tag">Starlink</span>
         <span class="tag">JTS CPGs</span>
       </div>
-      <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" class="project-link">View on GitHub →</a>
+      <a href="https://cdss.arcanekg.com" target="_blank" rel="noopener" class="project-link">Launch Web Portal ↗</a>
+      <a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" rel="noopener" class="project-link" style="margin-top: 10px; display: inline-block;">View on GitHub →</a>
+      <a href="release-notes-4.0.html" class="project-link" style="margin-top: 10px; display: inline-block;">Read Version 4.0 Release Notes →</a>
     </div>
     <div class="project-card reveal reveal-delay-2">
       <div class="project-num">PROJECT 02</div>
@@ -853,7 +878,107 @@ footer {
   </div>
 </section>
 
+<!-- VERSION 4.0 ARCHITECTURE -->
+<section id="architecture" style="padding-top: 0;">
+  <div class="section-label">Version 4.0 Architecture</div>
+
+  <h2 class="section-title reveal">
+    The Whole System<br>Fits on a Desk.
+  </h2>
+
+  <p class="section-sub reveal reveal-delay-1">
+    The knowledge base, retrieval engine, deterministic safety gates, web interface,
+    feedback system, and audit logs run on an NVIDIA Jetson Orin Nano.
+  </p>
+
+  <div class="safety-section reveal" style="margin-top: 40px;">
+    <div class="safety-title" style="font-size: 36px;">
+      Knowledge → Logic → AI → Validation → Human
+    </div>
+
+    <p class="safety-body">
+      Deterministic Python code performs medication calculations, contraindication checks,
+      routing, patient-context handling, and safety gates. AI is used for language processing,
+      retrieval support, response generation, and semantic validation.
+    </p>
+  </div>
+
+  <p class="section-sub reveal">
+    EdgeCDSS Version 4.0 is network agnostic. The Jetson deployment may connect through
+    Starlink, broadband, Wi-Fi, Ethernet, LTE/5G, or another supported IP network.
+    Remote access during development and testing used Cloudflare Tunnel with
+    outbound-only HTTPS connections.
+  </p>
+
+  <div class="mission-pillars reveal reveal-delay-2">
+    <div class="pillar">
+      <div class="pillar-title">Edge Compute</div>
+      <div class="pillar-body">
+        NVIDIA Jetson Orin Nano with local storage, local retrieval, and application hosting.
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-title">Clinical Knowledge</div>
+      <div class="pillar-body">
+        89 Joint Trauma System Clinical Practice Guidelines indexed into 8,559 passages.
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-title">Safety</div>
+      <div class="pillar-body">
+        Thirteen pre-generation safety gates, deterministic dose verification,
+        semantic validation, and fail-closed response handling.
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-title">Testing</div>
+      <div class="pillar-body">
+        Structured field feedback, reproducible audit logs, and 24/24 automated regression cases.
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- SAFETY -->
+<!-- ETHICS & GOVERNANCE -->
+<section id="ethics">
+  <div class="section-label">Ethics &amp; Governance</div>
+
+  <h2 class="section-title reveal">
+    Responsible AI.<br>By Design, In Public.
+  </h2>
+
+  <p class="section-sub reveal reveal-delay-1">
+    The AI in Austere Medicine Project is committed to developing AI systems responsibly,
+    transparently, and with respect for privacy and human oversight — guided by established
+    principles from medicine, cybersecurity, AI governance, privacy, and open-source software.
+  </p>
+
+  <div class="mission-pillars reveal reveal-delay-2">
+    <div class="pillar">
+      <div class="pillar-title">Human Responsibility</div>
+      <div class="pillar-body">EdgeCDSS is a research prototype. It must not be used to diagnose, treat, or manage real patients. AI-generated information never replaces qualified clinical assessment or professional decision-making.</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-title">Privacy by Design</div>
+      <div class="pillar-body">Minimum data collection, clear disclosure of what is collected and why, no unnecessary retention. Never submit real patient information, PHI, or PII to any project system.</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-title">Open Development</div>
+      <div class="pillar-body">Transparency is a core safety feature. Code, documentation, and development decisions are shared openly — including lessons learned from unsuccessful approaches.</div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-title">Informed by Standards</div>
+      <div class="pillar-body">Guided by publicly available frameworks including the NIST AI RMF, OWASP guidance for AI/LLM applications, EFF privacy principles, OSI licensing, and WMA medical ethics.</div>
+    </div>
+  </div>
+
+  <a href="ethics-governance.html" class="project-link" style="display:inline-block; margin-top: 28px;">Read the full Ethics &amp; Governance policy →</a>
+</section>
+
 <section id="safety" style="padding-top: 0;">
   <div class="section-label">Open Safety Research</div>
   <div class="safety-section reveal">
@@ -935,11 +1060,21 @@ footer {
     <li><a href="https://github.com/AI-in-Austere-Medicine-Project" target="_blank">GitHub</a></li>
     <li><a href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/START-HERE/FIRST_TIME_GUIDE.md" target="_blank">First Time Guide</a></li>
     <li><a href="#research">Research</a></li>
-    <li><a href="https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/" target="_blank">Live Demo</a></li>
+    <li><a href="https://cdss.arcanekg.com" target="_blank" rel="noopener">Web Portal ↗</a></li>
+    <li><a href="ethics-governance.html">Ethics &amp; Governance</a></li>
   </ul>
   <div class="footer-disclaimer">
-    Research prototype — not validated for clinical use — not for patient care decisions — do not enter patient names, dates of birth, or identifying information into any system on this site.
-    All code is open source under MIT license. AI in Austere Medicine Project 2026.
+    Technologies and services used in Version 4.0 include NVIDIA Jetson, OpenAI,
+    Cloudflare, Starlink, ElevenLabs, GitHub, Cursor, Claude, Google Gemini,
+    Visual Studio Code, FastAPI, and ChromaDB. Provider names identify components
+    used by the project and do not imply endorsement, sponsorship, or affiliation.
+  </div>
+  <div class="footer-disclaimer">
+    Research prototype — not validated for clinical use — not for patient care decisions —
+    simulated and synthetic scenarios only — do not enter patient names, dates of birth,
+    or identifying information into any system on this site.
+    All code is open source under the MIT License.
+    AI in Austere Medicine Project 2026.
   </div>
 </footer>
 

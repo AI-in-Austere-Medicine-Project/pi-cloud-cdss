@@ -75,7 +75,7 @@ pi-cloud-cdss/
 
 ## Quick Start
 
-**Prerequisites:** Python 3.10+, OpenAI API key, GCP VM (or local FastAPI server)
+**Prerequisites:** Python 3.10+, OpenAI API key, NVIDIA Jetson Orin Nano (or any Linux host for the FastAPI server)
 
 ```bash
 # Clone
@@ -148,15 +148,15 @@ Full evaluation report: `docs/EdgeCDSS_FieldEvaluationReport_v1.pdf`
 
 | Component | Technology |
 |---|---|
-| Cloud VM | GCP e2-medium (arcaneone) |
-| API framework | FastAPI + Python |
-| Vector database | ChromaDB |
-| LLM | GPT-4o-mini (two-pass) |
-| TTS | ElevenLabs API |
-| Edge hardware | Radxa Zero 3W / Raspberry Pi 4 |
-| Connectivity | Starlink primary / T-Mobile 5G failover |
-| Hosting | GCP + GitHub Pages |
-| DNS | DuckDNS + Let's Encrypt SSL |
+| Edge server | NVIDIA Jetson Orin Nano Super 8GB (JetPack 6, aarch64) |
+| API framework | FastAPI + Uvicorn (Python 3.12) |
+| Vector database | ChromaDB (on-device, local embeddings) |
+| LLM | GPT-4o-mini (generation + narrow validation; swappable) |
+| TTS | ElevenLabs API (isolated from clinical core) |
+| Voice client hardware | Radxa Zero 3W / Raspberry Pi 4 |
+| Connectivity | Network agnostic — Starlink / broadband / Wi-Fi / LTE |
+| Public access | Cloudflare Tunnel (outbound-only) — cdss.arcanekg.com |
+| Site hosting | GitHub Pages |
 
 ---
 

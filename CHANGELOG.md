@@ -1,5 +1,33 @@
 # EdgeCDSS Changelog
 
+## [4.0.0] - 2026-07-18
+
+### Architecture (Deterministic-First)
+- ALLOWED_DOSES contract: all doses computed in Python; generator prohibited from medication math
+- Deterministic post-check parses GIVE lines and blocks any dose not matching the contract
+- 13 deterministic pre-generation safety gates (weight, route, pediatric, overdose, contraindications)
+- Structured PatientContext — confirmed vs estimated weight separation; facts replayed over full conversation
+- Clinical router: LLM-built protocol_index.json enhances retrieval queries (89 protocols)
+- Narrow LLM validator receives dose contract; fail-closed gate with structured false-positive overrides
+- Session audit logger — JSONL per query, no PHI
+- EDGECDSS_DEBUG_WARN_ONLY env flag for observation-mode debugging
+
+### Deployment (Cloud → Edge)
+- Migrated entire stack from GCP VM to NVIDIA Jetson Orin Nano (JetPack 6, aarch64)
+- Public access via outbound-only Cloudflare Tunnel (cdss.arcanekg.com); no open ports
+- systemd-managed services with Restart=always; health watchdog with escalating recovery
+- Knowledge base re-ingested on device: 89 JTS CPGs → 8,559 chunks (sentence-aware chunking, header/footer stripping, page-accurate metadata, idempotent upserts)
+- Server files added to repo: embeddings.py, ingest_jts.py, clinical_router.py + index files, jetson_cdss_setup_v2.sh
+
+### Interface & Evaluation
+- Web portal served from the device at the API root: conversation memory (50-turn window), source citations, validator status
+- Structured clinical feedback: severity triage, issue categories, protocol-cited corrections
+- TTS pronunciation normalization for clinical notation (units, concentrations, routes, acronyms)
+- Fixed TBI-steroid validator false positive (from beta field report, same-day fix + regression test)
+- Severe TBI routed through RAG instead of fixed card (clinical decision)
+- Automated suite: 24/24 passing against the live public endpoint
+
+
 ## [2.5.0] - 2026-05-07
 
 ### Clinical Accuracy (System Prompt v2.4.1)

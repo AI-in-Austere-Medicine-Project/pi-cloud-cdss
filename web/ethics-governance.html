@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ethics &amp; Governance | AI in Austere Medicine Project</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #e94560; --blue: #0a84ff; --dark: #080e14; --dark2: #0d1620;
+  --dark3: #111e2b; --panel: #0f1e2d; --border: rgba(255,255,255,0.07);
+  --text: #c8d8e8; --muted: #4a6070; --mono: 'Space Mono', monospace;
+  --head: 'Barlow Condensed', sans-serif; --body: 'Barlow', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--dark); color: var(--text); font-family: var(--body); line-height: 1.65; }
+.wrap { max-width: 840px; margin: 0 auto; padding: 40px 24px 80px; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.back { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.back:hover { color: var(--blue); }
+.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--red); margin: 40px 0 12px; }
+h1 { font-family: var(--head); font-weight: 900; font-size: clamp(40px, 6.5vw, 64px); line-height: 0.98; color: #fff; }
+.lede { font-size: 18px; color: var(--text); margin: 20px 0 0; max-width: 680px; }
+.lede-sub { font-size: 15px; color: var(--muted); margin-top: 12px; max-width: 680px; }
+h2 { font-family: var(--head); font-weight: 700; font-size: 28px; color: #fff; margin: 50px 0 12px; letter-spacing: 0.02em; }
+h2::before { content: '// '; color: var(--red); font-family: var(--mono); font-size: 18px; vertical-align: 3px; }
+p { margin-bottom: 14px; font-size: 16px; }
+p.em { color: #fff; font-weight: 500; }
+ul { margin: 0 0 16px 22px; }
+li { margin-bottom: 9px; font-size: 16px; }
+li strong { color: #fff; font-weight: 500; }
+.callout { background: var(--dark3); border: 1px solid var(--border); border-left: 3px solid var(--red); padding: 18px 22px; margin: 20px 0; font-size: 15px; }
+.callout strong { color: #fff; }
+.muted { color: var(--muted); font-size: 14px; }
+.disclaimer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← AI in Austere Medicine Project</a>
+
+  <div class="kicker">Data Privacy · Ethics · Governance</div>
+  <h1>Ethics &amp;<br>Governance</h1>
+  <p class="lede">The AI in Austere Medicine Project is committed to developing AI systems responsibly, transparently, and with respect for privacy and human oversight.</p>
+  <p class="lede-sub">As an open-source research project, EdgeCDSS is guided by established principles from the fields of medicine, cybersecurity, artificial intelligence, privacy, and open-source software. These frameworks inform project development and governance as the project evolves.</p>
+
+  <h2>Guiding Principles</h2>
+  <p>The project is committed to:</p>
+  <ul>
+    <li>Transparency in development, data collection, and project governance.</li>
+    <li>Collecting the minimum data necessary to support research, security, and system improvement.</li>
+    <li>Respecting user privacy and discouraging the submission of protected health information (PHI) or personally identifiable information (PII).</li>
+    <li>Open-source development under the MIT License.</li>
+    <li>Public documentation of significant changes to project functionality, data collection, and privacy practices.</li>
+    <li>Responsible disclosure of security vulnerabilities.</li>
+    <li>Human oversight of AI-generated information.</li>
+    <li>Continuous evaluation of system limitations, failure modes, and potential risks.</li>
+    <li>Community participation through open discussion, issue reporting, and code contributions.</li>
+    <li>Sharing both successful outcomes and lessons learned from unsuccessful approaches whenever practical.</li>
+  </ul>
+
+  <h2>Human Responsibility</h2>
+  <p class="em">EdgeCDSS is a research prototype.</p>
+  <p>The system is designed to support research into AI-assisted clinical decision support and must not be used to diagnose, treat, or manage real patients.</p>
+  <p>Human judgment remains essential. AI-generated information should never replace qualified clinical assessment, established medical guidelines, or professional decision-making.</p>
+
+  <h2>Privacy by Design</h2>
+  <p class="em">Privacy is considered throughout project development.</p>
+  <p>The project strives to:</p>
+  <ul>
+    <li>Collect only information necessary for research and operation.</li>
+    <li>Clearly disclose what information is collected and why.</li>
+    <li>Avoid unnecessary retention of data.</li>
+    <li>Protect collected information using reasonable security practices.</li>
+    <li>Review privacy practices as the project evolves.</li>
+  </ul>
+  <div class="callout"><strong>Users should never submit real patient information, PHI, or other sensitive personal information.</strong></div>
+
+  <h2>Open Development</h2>
+  <p class="em">Transparency is a core safety feature.</p>
+  <p>Source code, documentation, project updates, and development decisions are shared openly whenever practical. Community review helps identify bugs, improve security, strengthen documentation, and encourage responsible AI development.</p>
+  <p>Constructive criticism and independent review are welcomed.</p>
+
+  <h2>Frameworks That Inform This Project</h2>
+  <p>The AI in Austere Medicine Project is informed by publicly available guidance and best practices, including:</p>
+  <ul>
+    <li><strong><a href="https://www.eff.org" target="_blank" rel="noopener">Electronic Frontier Foundation (EFF)</a></strong> — Privacy, transparency, digital rights, and user autonomy.</li>
+    <li><strong><a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener">NIST AI Risk Management Framework (AI RMF)</a></strong> — AI governance, risk management, and trustworthy AI.</li>
+    <li><strong><a href="https://owasp.org" target="_blank" rel="noopener">OWASP</a></strong> — Secure software development and guidance for AI and large language model applications.</li>
+    <li><strong><a href="https://opensource.org" target="_blank" rel="noopener">Open Source Initiative (OSI)</a></strong> — Open-source software principles and licensing.</li>
+    <li><strong><a href="https://www.wma.net" target="_blank" rel="noopener">World Medical Association (WMA)</a></strong> — Medical ethics and professional responsibility.</li>
+    <li>Applicable privacy, cybersecurity, and research ethics standards as the project evolves.</li>
+  </ul>
+  <p class="muted">These resources inform project decisions but do not imply endorsement, certification, or affiliation with their respective organizations.</p>
+
+  <h2>Governance</h2>
+  <p class="em">The project aims to make governance transparent.</p>
+  <p>Significant changes to project direction, data collection practices, privacy policies, or system architecture should be documented publicly through project documentation, release notes, or repository updates whenever practical.</p>
+
+  <h2>Community Participation</h2>
+  <p class="em">Community participation is essential to improving the project.</p>
+  <p>Feedback is encouraged on:</p>
+  <ul>
+    <li>Software quality</li>
+    <li>Clinical safety considerations</li>
+    <li>Privacy</li>
+    <li>Security</li>
+    <li>Documentation</li>
+    <li>Human factors</li>
+    <li>Hardware deployment</li>
+    <li>Edge computing</li>
+    <li>Satellite communications</li>
+    <li>AI performance</li>
+    <li>Research methodology</li>
+  </ul>
+  <p>Open discussion, reproducible testing, and respectful collaboration are valued as part of responsible open-source research.</p>
+
+  <h2>A Living Document</h2>
+  <p>Ethics and governance are ongoing processes rather than fixed goals.</p>
+  <p>This document will continue to evolve as the project grows, incorporates community feedback, and responds to advances in AI, medicine, cybersecurity, and privacy.</p>
+
+  <div class="disclaimer">
+    Research prototype — not validated for clinical use — not for patient care decisions — simulated and synthetic scenarios only — do not enter patient names, dates of birth, or identifying information into any system on this site. All code is open source under the MIT License. AI in Austere Medicine Project 2026.
+  </div>
+</div>
+</body>
+</html>

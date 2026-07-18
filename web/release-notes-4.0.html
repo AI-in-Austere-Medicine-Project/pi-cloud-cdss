@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeCDSS 4.0 — Release Notes | AI in Austere Medicine Project</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #e94560; --blue: #0a84ff; --dark: #080e14; --dark2: #0d1620;
+  --dark3: #111e2b; --panel: #0f1e2d; --border: rgba(255,255,255,0.07);
+  --text: #c8d8e8; --muted: #4a6070; --mono: 'Space Mono', monospace;
+  --head: 'Barlow Condensed', sans-serif; --body: 'Barlow', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--dark); color: var(--text); font-family: var(--body); line-height: 1.6; }
+.wrap { max-width: 880px; margin: 0 auto; padding: 40px 24px 80px; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.back { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.back:hover { color: var(--blue); }
+.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--red); margin: 40px 0 12px; }
+h1 { font-family: var(--head); font-weight: 900; font-size: clamp(42px, 7vw, 72px); line-height: 0.95; color: #fff; letter-spacing: 0.01em; }
+.sub { font-size: 18px; color: var(--muted); margin: 18px 0 0; max-width: 640px; }
+.meta { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 20px; }
+h2 { font-family: var(--head); font-weight: 700; font-size: 30px; color: #fff; margin: 52px 0 14px; letter-spacing: 0.02em; }
+h3 { font-family: var(--head); font-weight: 600; font-size: 21px; color: var(--blue); margin: 28px 0 8px; }
+p { margin-bottom: 14px; font-size: 16px; }
+ul { margin: 0 0 16px 22px; }
+li { margin-bottom: 8px; font-size: 16px; }
+li strong { color: #fff; font-weight: 500; }
+.statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin: 28px 0; }
+.stat { background: var(--dark2); padding: 22px 18px; }
+.stat b { font-family: var(--head); font-weight: 900; font-size: 40px; color: #fff; display: block; line-height: 1; }
+.stat b span { color: var(--red); }
+.stat small { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.pipeline { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--red); padding: 22px 24px; margin: 24px 0; }
+.pipeline .flow { font-family: var(--head); font-weight: 700; font-size: 26px; color: #fff; letter-spacing: 0.03em; }
+.pipeline p { color: var(--muted); font-size: 15px; margin: 10px 0 0; }
+.callout { background: var(--dark3); border: 1px solid var(--border); padding: 18px 22px; margin: 22px 0; font-size: 15px; color: var(--muted); }
+.callout strong { color: var(--text); }
+.links { margin-top: 48px; display: flex; gap: 14px; flex-wrap: wrap; }
+.btn { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 22px; border: 1px solid var(--blue); color: var(--blue); }
+.btn:hover { background: var(--blue); color: var(--dark); text-decoration: none; }
+.disclaimer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← AI in Austere Medicine Project</a>
+
+  <div class="kicker">Release Notes · July 2026</div>
+  <h1>EdgeCDSS<br>Version 4.0</h1>
+  <p class="sub">Deterministic-first clinical decision support, self-hosted on an NVIDIA Jetson Orin Nano — guideline-grounded, safety-gated, and network agnostic.</p>
+  <div class="meta">Project 01 · Active · MIT License</div>
+
+  <div class="statgrid">
+    <div class="stat"><b>89</b><small>JTS Guidelines Indexed</small></div>
+    <div class="stat"><b>8,559</b><small>Guideline Passages Indexed</small></div>
+    <div class="stat"><b>24<span>/24</span></b><small>Regression Tests Passed</small></div>
+    <div class="stat"><b>13</b><small>Pre-Generation Safety Gates</small></div>
+  </div>
+
+  <h2>Headline: the whole system fits on a desk</h2>
+  <p>Version 4.0 moves EdgeCDSS off rented cloud infrastructure entirely. The guideline knowledge base, retrieval engine, deterministic safety gates, web interface, structured feedback system, and audit logs all run on a single NVIDIA Jetson Orin Nano at the point of care. Remote access flows through an outbound-only encrypted tunnel — no open ports, no exposed addresses, no cloud vendor between a provider and the guidance. The deployment is network agnostic: Starlink, broadband, Wi-Fi, Ethernet, or LTE/5G.</p>
+
+  <div class="pipeline">
+    <div class="flow">Knowledge → Logic → AI → Validation → Human</div>
+    <p>Deterministic Python code performs medication calculations, contraindication checks, routing, patient-context handling, and safety gates. AI is restricted to language generation, retrieval support, and semantic validation.</p>
+  </div>
+
+  <h2>What's new in 4.0</h2>
+
+  <h3>Deterministic-first architecture</h3>
+  <ul>
+    <li><strong>Every stated dose is computed by code, not AI.</strong> Doses are calculated in Python from confirmed patient weight and drug concentration, then passed to the language model as a fixed ALLOWED_DOSES contract. The model formats language; it is prohibited from doing medication math.</li>
+    <li><strong>Thirteen pre-generation safety gates</strong> decide missing-weight, missing-route, pediatric limits, and absolute contraindications in code, before any AI is consulted — many queries resolve in milliseconds without an AI call.</li>
+    <li><strong>Deterministic dose verification.</strong> Generated responses are parsed and every stated dose is checked against the computed contract. A response that states a dose the code did not calculate is blocked.</li>
+    <li><strong>Fail-closed validation.</strong> A narrow semantic validator reviews every draft; failures produce a safety hold, never a corrected guess. Structured false-positive overrides — written in code from observed field reports — keep the gate honest without weakening it.</li>
+  </ul>
+
+  <h3>Edge self-hosting</h3>
+  <ul>
+    <li>Full stack migrated from a cloud VM to the Jetson Orin Nano after a provider capacity outage took the previous deployment offline.</li>
+    <li>On-device retrieval: 89 JTS CPGs ingested into 8,559 passages with sentence-aware chunking, header/footer stripping, and page-accurate citations; embeddings computed locally at zero per-query cost.</li>
+    <li>Clinical router: an LLM-built protocol index maps field language to the correct CPG and sharpens retrieval before it runs.</li>
+    <li>Services are systemd-managed and survive power loss; the tunnel reconnects automatically on any network.</li>
+  </ul>
+
+  <h3>Field evaluation loop</h3>
+  <ul>
+    <li>Structured clinical feedback on every response: one tap for "clinically appropriate," or a flag with severity (minor / significant / dangerous-if-followed), issue categories, and a protocol-cited correction.</li>
+    <li>Session audit logging (no PHI) makes reported failures reproducible; a beta-reported wrongful safety block was diagnosed from the log and fixed, with a regression test, the same day.</li>
+    <li>Automated 24-case clinical suite — pediatric gates, P1 safety blocks, RSI protocols, grounded scenarios — passes 24/24 against the live endpoint, up from 61.8% two versions ago.</li>
+    <li>Patient context now persists across the entire conversation: durable facts (weight, age, route, access) hold for the full encounter, while clinical events are windowed to recent turns by design.</li>
+    <li>Voice responses speak clinical notation correctly — "0.24 mL of 100mg/mL" is pronounced as words, with routes and acronyms spelled out.</li>
+  </ul>
+
+  <h2>Cost profile</h2>
+  <p>Compute is a one-time ~$249 (plus ~$50 storage). Recurring cost is dominated by connectivity — roughly $120–150/month for satellite service where used — while language-model API usage runs in single-digit dollars per month at evaluation volume. The AI is nearly free; the pipes are not.</p>
+
+  <h2>Known boundaries</h2>
+  <div class="callout">
+    <strong>EdgeCDSS is decision support, not a decision-maker.</strong> It is a research prototype evaluated with simulated and synthetic scenarios only — not validated for clinical use and not for patient care decisions. Language generation currently requires connectivity to a cloud model; the generation layer is deliberately swappable, and a cross-model comparison (OpenAI / Claude / Gemini) is planned. A fully offline on-device model remains the research goal (Project 02).
+  </div>
+
+  <div class="links">
+    <a class="btn" href="https://cdss.arcanekg.com" target="_blank" rel="noopener">Launch Web Portal</a>
+    <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" rel="noopener">View on GitHub</a>
+    <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/docs/TECH_NOTES_v4.0.md" target="_blank" rel="noopener">Technical Notes (GitHub)</a>
+    <a class="btn" href="index.html#signup">Join the Beta</a>
+  </div>
+
+  <div class="disclaimer">
+    Research prototype — not validated for clinical use — not for patient care decisions — simulated and synthetic scenarios only — do not enter patient names, dates of birth, or identifying information into any system on this site. All code is open source under the MIT License. Technologies and services used include NVIDIA Jetson, OpenAI, Cloudflare, Starlink, ElevenLabs, GitHub, Cursor, Claude, Google Gemini, Visual Studio Code, FastAPI, and ChromaDB; provider names identify components used by the project and do not imply endorsement, sponsorship, or affiliation. AI in Austere Medicine Project 2026.
+  </div>
+</div>
+</body>
+</html>
