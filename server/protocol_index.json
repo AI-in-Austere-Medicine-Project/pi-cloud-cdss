@@ -1,0 +1,3003 @@
+{
+  "analgesia_and_sedation_management_during_prolonged_field_care": {
+    "title": "Analgesia and Sedation Management during Prolonged Field Care",
+    "source_file": "Analgesia and Sedation Management during Prolonged Field Care",
+    "clinical_domain": "analgesia_sedation",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [
+      "expert in TCCC",
+      "evacuation to higher level of care is not immediately possible"
+    ],
+    "contraindications": [
+      "Do not give analgesia and/or sedation if there are other priorities of care (e.g., hemorrhage control)",
+      "Do not give medications that lower blood pressure or suppress respiration if the patient is in hemorrhagic shock or respiratory distress"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "Always give more, but it is very difficult to take away",
+      "Start low, go slow"
+    ],
+    "search_terms": []
+  },
+  "frostbite_and_immersion_foot_care": {
+    "title": "Frostbite and Immersion Foot Care",
+    "source_file": "Frostbite and Immersion Foot Care",
+    "clinical_domain": "environmental",
+    "aliases": [],
+    "primary_conditions": [
+      "cold injuries",
+      "frostbite",
+      "immersion foot"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "debridement",
+      "supportive care"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "exposure duration",
+      "temperature"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "hypothermia",
+      "prolonged environmental cold exposure"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "cold injury",
+      "frostbite",
+      "immersion foot"
+    ]
+  },
+  "airway_management_in_prolonged_field_care": {
+    "title": "Airway Management in Prolonged Field Care",
+    "source_file": "Airway Management in Prolonged Field Care",
+    "clinical_domain": "airway",
+    "aliases": [],
+    "primary_conditions": [
+      "airway compromise",
+      "insufficient oxygenation",
+      "ventilation issues"
+    ],
+    "medications": [
+      "medications for induction",
+      "rapid sequence intubation",
+      "paralysis",
+      "post-intubation management"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "airway placement",
+      "cricothyroidotomy",
+      "bag-valve-mask technique",
+      "supraglottic airway placement"
+    ],
+    "required_context": [
+      "Tactical Combat Casualty Care (TCCC) Guidelines",
+      "evacuation status",
+      "provider experience",
+      "available equipment"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "complete airway occlusion",
+      "signs of suffocation"
+    ],
+    "evacuation_triggers": [
+      "when evacuation to higher level of care is not immediately possible"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "airway management",
+      "prolonged field care",
+      "TCCC"
+    ]
+  },
+  "airway_management_of_traumatic_injuries": {
+    "title": "Airway Management of Traumatic Injuries",
+    "source_file": "Airway Management of Traumatic Injuries",
+    "clinical_domain": "airway",
+    "aliases": [],
+    "primary_conditions": [
+      "airway obstruction",
+      "traumatic injury"
+    ],
+    "medications": [
+      "Ketamine"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Rapid Sequence Intubation",
+      "cricothyroidotomy",
+      "tracheostomy"
+    ],
+    "required_context": [
+      "initial GCS",
+      "AIS head and neck",
+      "AIS face",
+      "initial ED SpO2",
+      "initial ED ETCO2"
+    ],
+    "contraindications": [
+      "blind nasal intubation"
+    ],
+    "red_flags": [
+      "obtundation (GCS<8)",
+      "apnea",
+      "respiratory distress",
+      "airway obstruction",
+      "impending airway loss"
+    ],
+    "evacuation_triggers": [
+      "secure and definitive airway not established"
+    ],
+    "safety_gates": [
+      "never perform blind nasal intubation",
+      "always verify tube placement with capnography if available"
+    ],
+    "search_terms": [
+      "airway management",
+      "trauma airway assessment",
+      "difficult airway management"
+    ]
+  },
+  "burn_care": {
+    "title": "Burn Care",
+    "source_file": "Burn Care CPG",
+    "clinical_domain": "burns",
+    "aliases": [],
+    "primary_conditions": [
+      "burn injury assessment",
+      "resuscitation",
+      "wound care",
+      "chemical injuries",
+      "electrical injuries"
+    ],
+    "medications": [
+      "antimicrobial prophylaxis"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "escharotomy",
+      "burn excision and grafting"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "weight",
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [
+      "patients who cannot be evacuated from theater"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "burn care",
+      "burn injury",
+      "burn resuscitation"
+    ]
+  },
+  "burn_management_pfc": {
+    "title": "Burn Wound Management in Prolonged Field Care",
+    "source_file": "Burn Management PFC",
+    "clinical_domain": "burns",
+    "aliases": [],
+    "primary_conditions": [
+      "burns",
+      "smoke inhalation injury"
+    ],
+    "medications": [
+      "antibiotics"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "escharotomy",
+      "fluid resuscitation",
+      "intubation"
+    ],
+    "required_context": [
+      "burn size",
+      "smoke inhalation",
+      "temperature"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "burns covering >20% TBSA",
+      "smoke inhalation injury",
+      "respiratory distress",
+      "stridor"
+    ],
+    "evacuation_triggers": [
+      "burns covering >20% TBSA",
+      "smoke inhalation injury"
+    ],
+    "safety_gates": [
+      "intubate patients with burns covering >40% TBSA",
+      "avoid airway obstruction due to inhalation injury"
+    ],
+    "search_terms": [
+      "burn care",
+      "prolonged field care",
+      "TCCC"
+    ]
+  },
+  "catastrophic_non_survivable_brain_injury": {
+    "title": "Catastrophic Non-Survivable Brain Injury",
+    "source_file": "Catastrophic Non-Survivable Brain Injury",
+    "clinical_domain": "neurologic",
+    "aliases": [],
+    "primary_conditions": [
+      "catastrophic brain injury",
+      "severe Traumatic Brain Injury (TBI)"
+    ],
+    "medications": [
+      "T3",
+      "thyroxin (T4)"
+    ],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [
+      "imaging evaluation",
+      "clinical exam"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "multiorgan system failure",
+      "cardiovascular collapse",
+      "asystole"
+    ],
+    "evacuation_triggers": [
+      "opportunity for these casualties to be evacuated safely and appropriately"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "catastrophic brain injury",
+      "non-survivable brain injury",
+      "brain death determination"
+    ]
+  },
+  "damage_control_resuscitation": {
+    "title": "Damage Control Resuscitation",
+    "source_file": "Damage Control Resuscitation",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "massively hemorrhaging casualties",
+      "severely injured casualties"
+    ],
+    "medications": [
+      "calcium",
+      "tranexamic acid (TXA)"
+    ],
+    "blood_products": [
+      "whole blood",
+      "LTOWB",
+      "plasma",
+      "RBC",
+      "platelets"
+    ],
+    "procedures": [
+      "Resuscitative Endovascular Balloon Occlusion of the Aorta (REBOA)"
+    ],
+    "required_context": [
+      "time since injury",
+      "mechanism of injury"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "systolic blood pressure (SBP) below 100 mmHg",
+      "SBP below 110 mmHg for traumatic brain injury (TBI)"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "never give calcium for patients with ionized calcium greater than 1.2mmol/L"
+    ],
+    "search_terms": [
+      "DCR",
+      "damage control resuscitation",
+      "massive transfusion protocol"
+    ]
+  },
+  "damage_control_resuscitation_pfc": {
+    "title": "Damage Control Resuscitation in Prolonged Field Care",
+    "source_file": "Damage Control Resuscitation PFC",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [
+      "whole blood"
+    ],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "DCR",
+      "Damage Control Resuscitation",
+      "Prolonged Field Care"
+    ]
+  },
+  "infection_prevention_in_combat_related_injuries": {
+    "title": "Infection Prevention in Combat-related Injuries",
+    "source_file": "Infection Prevention in Combat-related Injuries",
+    "clinical_domain": "infection_sepsis",
+    "aliases": [],
+    "primary_conditions": [
+      "combat-related injuries",
+      "infections"
+    ],
+    "medications": [
+      "vancomycin",
+      "clindamycin"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "surgical wound care"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "duration of hospitalization",
+      "patient transfer details"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "multi-drug resistant organisms (MDROs)"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "monitor adherence to antimicrobial prophylaxis regimens"
+    ],
+    "search_terms": [
+      "infection prevention",
+      "combat injuries",
+      "antimicrobial stewardship"
+    ]
+  },
+  "invasive_fungal_infection_in_war_wounds": {
+    "title": "Invasive Fungal Infection in War Wounds",
+    "source_file": "Invasive Fungal Infection in War Wounds",
+    "clinical_domain": "infection_sepsis",
+    "aliases": [],
+    "primary_conditions": [
+      "invasive fungal infections",
+      "war wounds"
+    ],
+    "medications": [
+      "IV voriconazole",
+      "posaconazole",
+      "isavuconazole"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "surgical debridement",
+      "biopsy",
+      "tissue culture"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "suspicious wound appearance",
+      "history of surgical debridements"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "recurrent tissue necrosis",
+      "suspicious wound appearance"
+    ],
+    "evacuation_triggers": [
+      "massive packed red blood cell transfusion (\u226520 units in the first 24 hours)"
+    ],
+    "safety_gates": [
+      "never delay surgical debridement for antifungal therapy"
+    ],
+    "search_terms": [
+      "IFI",
+      "invasive fungal infection",
+      "fungal wound infection"
+    ]
+  },
+  "nursing_intervention_prolonged_field_care": {
+    "title": "Nursing Intervention in Prolonged Field Care",
+    "source_file": "Nursing Intervention Prolonged Field Care",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "deep vein thrombosis (DVT)",
+      "pneumonia",
+      "pressure sores",
+      "wound infection",
+      "urinary tract infection"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Flush Saline Locks",
+      "Suction Advanced Airway",
+      "Reposition and Check Padding",
+      "Oral Care",
+      "Foley Catheter Care",
+      "Wash and Dry Skin, Apply Lotion",
+      "Change Intravenous Bag and Tubing",
+      "Check Blood Glucose Level",
+      "Change Tape",
+      "Lower Extremity Massage, DVT Prevention",
+      "Range of Motion Exercises",
+      "Turn, Cough, Deep Breathe"
+    ],
+    "required_context": [
+      "extended casualty evacuation times",
+      "austere environments"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "prolonged field care",
+      "nursing interventions",
+      "TCCC"
+    ]
+  },
+  "pain_anxiety_delirium": {
+    "title": "Pain, Anxiety and Delirium",
+    "source_file": "Pain Anxiety Delirium",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "pain",
+      "anxiety",
+      "delirium"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "epidural catheters",
+      "peripheral nerve catheters"
+    ],
+    "required_context": [],
+    "contraindications": [
+      "local anesthetic toxicity"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [
+      "air evacuation considerations"
+    ],
+    "safety_gates": [
+      "Contraindications To The Daily Sedation Holiday"
+    ],
+    "search_terms": [
+      "sedation",
+      "agitation",
+      "pain management"
+    ]
+  },
+  "progressive_return_to_activity_following_acute_concussion_mtbi": {
+    "title": "Progressive Return to Activity Following Acute Concussion/Mild Traumatic Brain Injury",
+    "source_file": "Progressive Return to Activity Following Acute Concussion mTBI Clinical Recommendation 2021",
+    "clinical_domain": "neurologic",
+    "aliases": [
+      "PRA",
+      "mTBI"
+    ],
+    "primary_conditions": [
+      "concussion",
+      "mild traumatic brain injury"
+    ],
+    "medications": [
+      "acetaminophen",
+      "NSAIDs"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Return to Duty Screening",
+      "Physical RTD Screening",
+      "Cognitive RTD Screening",
+      "Initial Concussion Management"
+    ],
+    "required_context": [
+      "time of injury",
+      "number of concussions in past 12 months",
+      "progression through PRA stages",
+      "RTD screening results",
+      "deployed status"
+    ],
+    "contraindications": [
+      "Do not advance to Stage 6 until cleared by appropriate specialist",
+      "Avoid tramadol, acetaminophen/caffeine/butalbital, and opioids"
+    ],
+    "red_flags": [
+      "new or worsening symptoms",
+      "alteration of mental status",
+      "loss of consciousness",
+      "loss of memory for events immediately before or after the injury"
+    ],
+    "evacuation_triggers": [
+      "presence within 50 meters of a blast",
+      "direct blow to the head",
+      "involvement in a vehicle blast event"
+    ],
+    "safety_gates": [
+      "never give NSAIDs within 48 hours after concussion",
+      "always perform MAC E 2 as close to time of injury as possible"
+    ],
+    "search_terms": [
+      "concussion management",
+      "return to duty",
+      "mTBI protocol"
+    ]
+  },
+  "reboa_for_hemorrhagic_shock": {
+    "title": "Resuscitative Endovascular Balloon Occlusion of the Aorta (REBOA) for Hemorrhagic Shock",
+    "source_file": "Resuscitative Endovascular Balloon Occlusion of the Aorta (REBOA) for Hemorrhagic Shock",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "hemorrhagic shock",
+      "profound shock",
+      "post-traumatic cardiac arrest"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Resuscitative Endovascular Balloon Occlusion of the Aorta (REBOA)",
+      "Resuscitative Thoracotomy",
+      "Trans-abdominal Aortic Occlusion"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "REBOA",
+      "Resuscitative Endovascular Balloon Occlusion of the Aorta"
+    ]
+  },
+  "sepsis_management_pfc": {
+    "title": "Sepsis Management in Prolonged Field Care",
+    "source_file": "Sepsis Management PFC",
+    "clinical_domain": "infection_sepsis",
+    "aliases": [],
+    "primary_conditions": [
+      "sepsis"
+    ],
+    "medications": [
+      "antimicrobial therapy",
+      "antiparasitic regimens",
+      "antifungal regimens",
+      "epinephrine",
+      "norepinephrine"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "fluid resuscitation",
+      "source control"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [
+      "Evacuate to Definitive Care"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "sepsis management",
+      "prolonged field care"
+    ]
+  },
+  "tbi_neurosurgery_deployed_environment": {
+    "title": "Traumatic Brain Injury Management and Basic Neurosurgery in the Deployed Environment",
+    "source_file": "TBI Neurosurgery Deployed Environment",
+    "clinical_domain": "neurologic",
+    "aliases": [],
+    "primary_conditions": [
+      "moderate to severe head injuries"
+    ],
+    "medications": [
+      "Antiepileptic Medications"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Dural Management",
+      "Decompression",
+      "Skull Flap Management",
+      "Exploratory Burr Holes"
+    ],
+    "required_context": [
+      "environment where personnel, resources and follow-on care are limited"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [
+      "Role 3 transfer for neurosurgical evaluation & care"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "hypertonic saline sodium management",
+      "seizure prophylaxis levetiracetam",
+      "SBP blood pressure target hypotension",
+      "intracranial pressure herniation",
+      "cerebral perfusion oxygenation airway",
+      "TBI",
+      "neurosurgery",
+      "deployed environment"
+    ]
+  },
+  "traumatic_brain_injury_management_pfc": {
+    "title": "Traumatic Brain Injury Management in Prolonged Field Care",
+    "source_file": "Traumatic Brain Injury PFC",
+    "clinical_domain": "neurologic",
+    "aliases": [],
+    "primary_conditions": [
+      "traumatic brain injury",
+      "TBI"
+    ],
+    "medications": [
+      "Levetiracetam"
+    ],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [
+      "mechanism of injury",
+      "weight",
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "alteration in consciousness",
+      "focal neurologic deficits"
+    ],
+    "evacuation_triggers": [
+      "moderate and severe TBIs",
+      "second head injury risk"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "hypertonic saline sodium management",
+      "seizure prophylaxis levetiracetam",
+      "SBP blood pressure target hypotension",
+      "intracranial pressure herniation",
+      "cerebral perfusion oxygenation airway",
+      "TBI",
+      "traumatic brain injury",
+      "prolonged field care"
+    ]
+  },
+  "use_of_tbi_wb_biomarkers_after_potentially_concussive_event": {
+    "title": "Use of Traumatic Brain Injury Biomarkers after a Potentially Concussive Event",
+    "source_file": "Use of TBI WB Biomarkers after Potentially Concussive Event",
+    "clinical_domain": "neurologic",
+    "aliases": [],
+    "primary_conditions": [
+      "mild TBI",
+      "concussion"
+    ],
+    "medications": [],
+    "blood_products": [
+      "whole blood"
+    ],
+    "procedures": [
+      "evaluation of casualties with mild TBI",
+      "testing TBI WB biomarkers"
+    ],
+    "required_context": [
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "GCS \u2264 12"
+    ],
+    "evacuation_triggers": [
+      "evac for CT as indicated"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "TBI biomarkers",
+      "concussive event",
+      "whole blood biomarkers"
+    ]
+  },
+  "advisor_teleconsultation": {
+    "title": "ADVISOR Teleconsultation",
+    "source_file": "ADVISOR Teleconsultation Flyer",
+    "clinical_domain": "other",
+    "aliases": [
+      "ADVISOR",
+      "Teleconsultation"
+    ],
+    "primary_conditions": [
+      "COVID-19",
+      "Critical Care",
+      "Infectious Disease",
+      "Pediatric Infectious Disease",
+      "Pediatric Critical Care",
+      "Palliative Care",
+      "General Surgery",
+      "Hematology/Oncology",
+      "Toxicology",
+      "Chemical Casualty Care",
+      "Veterinary Care for MWD",
+      "Veterinary Care for Equid",
+      "Emergency Department",
+      "Dental",
+      "Neurosurgery",
+      "Ophthalmology",
+      "Neonatology",
+      "Orthopedics",
+      "Burns",
+      "Pediatrics",
+      "OB/GYN"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Prolonged Field Care",
+      "Specialty Training"
+    ],
+    "required_context": [
+      "Pre-coordination for training"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "ADVISOR",
+      "Teleconsultation",
+      "COVID-19",
+      "Operational Medicine"
+    ]
+  },
+  "acute_coronary_syndrome": {
+    "title": "Acute Coronary Syndrome",
+    "source_file": "Acute Coronary Syndrome",
+    "clinical_domain": "cardiac",
+    "aliases": [],
+    "primary_conditions": [
+      "Acute Coronary Syndrome"
+    ],
+    "medications": [
+      "Nitroglycerin",
+      "Beta Blockers",
+      "ACE Inhibitors",
+      "ARBs"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Reperfusion Therapy"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "ACS",
+      "Acute Coronary Syndrome",
+      "cardiac care"
+    ]
+  },
+  "acute_extremity_compartment_syndrome": {
+    "title": "Acute Extremity Compartment Syndrome and Role of Fasciotomy in Extremity War Wounds",
+    "source_file": "Acute Extremity Compartment Syndrome and Role of Fasciotomy (CS) in Extremity War Wounds",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "acute extremity compartment syndrome",
+      "extremity war wounds"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "fasciotomy"
+    ],
+    "required_context": [
+      "evaluation of extremity war wounds",
+      "risk of compartment syndrome"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "delay in diagnosis can be lethal"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "prophylactic fasciotomy should be routine when compartment syndrome is likely"
+    ],
+    "search_terms": [
+      "compartment syndrome",
+      "fasciotomy",
+      "extremity injuries"
+    ]
+  },
+  "acute_respiratory_failure": {
+    "title": "Acute Respiratory Failure",
+    "source_file": "Acute Respiratory Failure",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "Acute Respiratory Distress Syndrome (ARDS)"
+    ],
+    "medications": [
+      "Corticosteroids"
+    ],
+    "blood_products": [
+      "Blood Product Transfusions"
+    ],
+    "procedures": [
+      "Ventilator and Gas Exchange Management",
+      "Neuromuscular Blockade",
+      "Prone Positioning",
+      "Fluid Management",
+      "Sedation Management and Physical Therapy"
+    ],
+    "required_context": [
+      "combat casualties",
+      "forward deployed environment"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "ARDS",
+      "Acute Respiratory Failure",
+      "aeromedical transport"
+    ]
+  },
+  "altitude_emergencies_prehospital_environment": {
+    "title": "Altitude Emergencies in the Prehospital Environment",
+    "source_file": "Altitude Emergencies Prehospital Environment",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "Acute Mountain Sickness (AMS)",
+      "High Altitude Cerebral Edema (HACE)",
+      "High Altitude Pulmonary Edema (HAPE)"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Portable Hyperbaric Chamber (PHC) use"
+    ],
+    "required_context": [
+      "pre-existing conditions",
+      "acclimatization status",
+      "altitude level"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "altitude emergencies",
+      "mountain sickness",
+      "high altitude illness"
+    ]
+  },
+  "amputation_evaluation_and_treatment": {
+    "title": "Amputation: Evaluation and Treatment",
+    "source_file": "Amputation Evaluation and Treatment",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "musculoskeletal injuries",
+      "traumatic amputations",
+      "vascular injuries",
+      "nerve injuries",
+      "nonviable tissue"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "amputation",
+      "wound management",
+      "limb salvage"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "co-morbidities",
+      "physiologic status of the casualty"
+    ],
+    "contraindications": [
+      "do not amputate through the most proximal fracture if stabilization can improve functional outcome"
+    ],
+    "red_flags": [
+      "severe blood loss",
+      "massive resuscitation",
+      "compartment syndrome",
+      "tourniquet use",
+      "contamination load"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "never add iodine or castile soap to irrigation solution when irrigating open wounds",
+      "always allow for targeted muscle reinnervation if deemed appropriate"
+    ],
+    "search_terms": [
+      "amputation",
+      "wound management",
+      "limb preservation"
+    ]
+  },
+  "anesthesia_for_trauma_patients": {
+    "title": "Anesthesia for Trauma Patients",
+    "source_file": "Anesthesia for Trauma Patients",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [
+      "Calcium",
+      "Tranexamic acid (TXA)",
+      "Vasopressin"
+    ],
+    "blood_products": [
+      "Whole Blood (WB)"
+    ],
+    "procedures": [
+      "Induction of Anesthesia",
+      "Maintenance of Anesthesia",
+      "Resuscitation"
+    ],
+    "required_context": [
+      "mechanism",
+      "weight",
+      "access",
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "Do not delay induction of the patient in extremis in order to place the central venous access or invasive monitoring."
+    ],
+    "search_terms": [
+      "trauma anesthesia",
+      "anesthesia guidelines",
+      "trauma resuscitation"
+    ]
+  },
+  "arachnid_snake_envenomation_mwd_cpg_c11": {
+    "title": "Arachnid and Snake Envenomation",
+    "source_file": "Arachnid Snake Envenomation MWD CPG c11",
+    "clinical_domain": "other",
+    "aliases": [
+      "K9 CPG: 11"
+    ],
+    "primary_conditions": [
+      "scorpion stings",
+      "spider bites",
+      "snake bites"
+    ],
+    "medications": [
+      "POLYSERP\u2122",
+      "antivenom"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "supportive care",
+      "monitoring"
+    ],
+    "required_context": [
+      "clinical signs",
+      "availability of antivenom",
+      "time since injury"
+    ],
+    "contraindications": [
+      "cutting and/or suctioning the wound",
+      "ice",
+      "prophylactic antibiotics",
+      "prophylactic fasciotomy",
+      "routine use of blood products",
+      "tourniquets"
+    ],
+    "red_flags": [
+      "severe clinical signs"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "antivenom must be given within 4 hours after a snake bite"
+    ],
+    "search_terms": [
+      "envenomation",
+      "antivenom",
+      "snake bite",
+      "scorpion sting",
+      "spider bite"
+    ]
+  },
+  "aural_blast_injury_acoustic_trauma_and_hearing_loss": {
+    "title": "Aural Blast Injury/Acoustic Trauma and Hearing Loss",
+    "source_file": "Aural Blast Injury Acoustic Trauma and Hearing Loss",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "aural trauma",
+      "hearing loss",
+      "acoustic trauma"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "screening audiogram",
+      "otolaryngology referral",
+      "Dix-Hallpike Test",
+      "Epley Maneuver"
+    ],
+    "required_context": [
+      "exposure to hazardous noise",
+      "impact noise greater than 140dB"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "persistent hearing loss beyond 8 weeks",
+      "symptoms of tinnitus, aural fullness, recruitment, difficulty localizing sounds, difficulty hearing in noise, vertigo"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "acoustic trauma",
+      "hearing loss",
+      "aural injury"
+    ]
+  },
+  "austere_resuscitative_surgical_care": {
+    "title": "Austere Resuscitative and Surgical Care",
+    "source_file": "Austere Resuscitative Surgical Care",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": []
+  },
+  "behavioral_health_forward_management": {
+    "title": "Guideline for Forward Management of Acute Behavioral Health Conditions by Non-Specialty Medical Personnel",
+    "source_file": "Behavioral Health",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "acute behavioral health conditions"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [
+      "operational environment",
+      "mission",
+      "availability of specialty behavioral health care"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "behavioral health",
+      "non-specialty medical personnel",
+      "acute stress disorder",
+      "combat stress"
+    ]
+  },
+  "blunt_abdominal_trauma_splenectomy_post_splenectomy_vaccination": {
+    "title": "Blunt Abdominal Trauma, Splenectomy, and Post-Splenectomy Vaccination",
+    "source_file": "Blunt Abdominal Trauma Splenectomy Post-splenectomy Vaccination",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "blunt abdominal trauma",
+      "splenic injury"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "exploratory laparotomy",
+      "splenectomy"
+    ],
+    "required_context": [
+      "hemodynamic stability",
+      "positive FAST exam",
+      "evidence of hemoperitoneum"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "evolving peritonitis",
+      "continuing to consume blood products to maintain blood pressure"
+    ],
+    "evacuation_triggers": [
+      "ongoing intra-abdominal hemorrhage",
+      "hemodynamically unstable trauma patients"
+    ],
+    "safety_gates": [
+      "never transfer patients with ongoing intra-abdominal hemorrhage until assessed and controlled"
+    ],
+    "search_terms": [
+      "blunt abdominal trauma",
+      "splenectomy",
+      "post-splenectomy vaccination"
+    ]
+  },
+  "cbrn_injury_response_medical_management_radiation_exposure": {
+    "title": "Medical Management of Radiation Exposure and Nuclear Events",
+    "source_file": "CBRN 3",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "radiation exposure",
+      "nuclear events"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "decontamination",
+      "initial medical care",
+      "early surgical intervention"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "CBRN",
+      "radiation exposure",
+      "nuclear events",
+      "acute radiation syndrome"
+    ]
+  },
+  "cbrn_general_approach_biological_casualties": {
+    "title": "General Approach to Biological Casualties",
+    "source_file": "CBRN Part 4 General Approach to Biological Casualties",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "biological casualties"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "biological casualties",
+      "CBRN",
+      "biothreats",
+      "infectious diseases",
+      "toxins"
+    ]
+  },
+  "airway_management_for_prolonged_field_care": {
+    "title": "Airway Management for Prolonged Field Care",
+    "source_file": "CPG Index",
+    "clinical_domain": "airway",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": []
+  },
+  "cervical_thoracolumbar_spine_injury": {
+    "title": "Cervical and Thoracolumbar Spine Injury Evaluation, Transport and Surgery in the Deployed Setting",
+    "source_file": "Cervical Thoracolumbar Spine Injury",
+    "clinical_domain": "neurologic",
+    "aliases": [],
+    "primary_conditions": [
+      "spine injury",
+      "spinal cord injury"
+    ],
+    "medications": [
+      "Gabapentinoid",
+      "Non-Gabapentinoid Medications",
+      "Corticosteroids"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Cervical Spine Clearance Algorithms",
+      "Transporting Patients with Spinal Injuries",
+      "Surgical Intervention"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "neurologic exam results"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "spine injury",
+      "spinal cord injury",
+      "cervical spine clearance"
+    ]
+  },
+  "cbrn_injury_response_medical_management": {
+    "title": "Medical Management of Chemical Agent Exposure",
+    "source_file": "Chemical Biological Radiological Nuclear Injury Response Part 2 Medical Management",
+    "clinical_domain": "other",
+    "aliases": [
+      "CBRN Injury Response",
+      "Chemical Biological Radiological Nuclear Injury Response"
+    ],
+    "primary_conditions": [
+      "Chemical Agent Exposure",
+      "Nerve Agent Exposure",
+      "Pulmonary Agent Exposure",
+      "Vesicant or Blister Agents",
+      "Incapacitating Agents"
+    ],
+    "medications": [
+      "Naloxone",
+      "Atropine",
+      "Scopolamine",
+      "Benzodiazepines"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Decontamination",
+      "Diagnostics",
+      "Treatment"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "CBRN",
+      "Chemical Agent",
+      "Nerve Agent",
+      "Pulmonary Agent",
+      "Vesicant Agents"
+    ]
+  },
+  "cbrn_initial_response": {
+    "title": "Chemical, Biological, Radiological and Nuclear (CBRN) Injury Part I: Initial Response",
+    "source_file": "Chemical Biological, Radiological Nuclear Injury Part1 Initial Response",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "CBRN casualties"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "decontamination",
+      "triage",
+      "evacuation"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "agent identification"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "CBRN",
+      "chemical injury",
+      "biological injury",
+      "radiological injury",
+      "nuclear injury"
+    ]
+  },
+  "crush_syndrome_pfc": {
+    "title": "Crush Syndrome - Prolonged Field Care",
+    "source_file": "Crush Syndrome PFC",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "crush syndrome"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "fluid resuscitation",
+      "tourniquets for management of crush",
+      "fasciotomy"
+    ],
+    "required_context": [
+      "time since injury",
+      "mechanism of injury"
+    ],
+    "contraindications": [
+      "hypotensive resuscitation principles according to TCCC"
+    ],
+    "red_flags": [
+      "kidney damage",
+      "cardiac arrhythmias",
+      "hyperkalemia"
+    ],
+    "evacuation_triggers": [
+      "if evacuation to higher level of care is not immediately possible"
+    ],
+    "safety_gates": [
+      "never apply hypotensive resuscitation in extremity crush injury requiring extrication"
+    ],
+    "search_terms": [
+      "crush injury",
+      "prolonged field care",
+      "rhabdomyolysis"
+    ]
+  },
+  "documentation_prolonged_field_care": {
+    "title": "Documentation in Prolonged Field Care",
+    "source_file": "Documentation Prolonged Field Care",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "severely injured patients",
+      "sick patients"
+    ],
+    "medications": [
+      "tranexamic acid"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "documentation of prehospital care",
+      "completion of after-action report"
+    ],
+    "required_context": [
+      "mechanism",
+      "injuries",
+      "signs and symptoms",
+      "treatments",
+      "time of injury",
+      "time of key interventions"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "signs of shock",
+      "decompensation"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "PFC",
+      "TCCC",
+      "documentation",
+      "austere environments"
+    ]
+  },
+  "documentation_requirements_for_combat_casualty_care": {
+    "title": "Documentation Requirements for Combat Casualty Care",
+    "source_file": "Documentation Requirements for Combat Casualty Care",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "documentation",
+      "combat casualty care",
+      "trauma documentation"
+    ]
+  },
+  "drowning_management": {
+    "title": "Drowning Management",
+    "source_file": "Drowning Management",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "drowning",
+      "in-water pathologies"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "initial resuscitation",
+      "advanced prehospital care",
+      "terminating resuscitation efforts",
+      "initial ER assessment and interventions"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "drowning",
+      "water rescue",
+      "hypothermia management"
+    ]
+  },
+  "emergency_general_surgery_in_deployed_locations": {
+    "title": "Emergency General Surgery in Deployed Locations",
+    "source_file": "Emergency General Surgery in Deployed Locations",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "Kidney stones",
+      "Appendicitis",
+      "Hernia",
+      "Testicular Torsion",
+      "Cholecystitis",
+      "Inflammatory bowel disease",
+      "Bowel obstruction",
+      "Ectopic pregnancy",
+      "Obstetric emergency",
+      "Ruptured ovarian cyst",
+      "Anorectal disorders",
+      "Diverticulitis",
+      "Soft tissue infection/Abscess",
+      "Gastrointestinal bleeding"
+    ],
+    "medications": [
+      "antimicrobial therapy"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "drainage of a soft tissue abscess"
+    ],
+    "required_context": [
+      "clinical stability",
+      "timing of surgical intervention",
+      "tactical and resource constraints"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "ongoing bleeding",
+      "suspected tissue ischemia",
+      "evidence of septic shock"
+    ],
+    "evacuation_triggers": [
+      "emergent situations requiring immediate intervention"
+    ],
+    "safety_gates": [
+      "consider complex tactical and clinical data in decision-making"
+    ],
+    "search_terms": [
+      "acute surgical conditions",
+      "deployed surgical care",
+      "austere surgical environments"
+    ]
+  },
+  "emergency_life_saving_cranial_procedures_by_non_neurosurgeons_deployed_setting": {
+    "title": "Emergency Life-Saving Cranial Procedures by Non-Neurosurgeons in Deployed Setting",
+    "source_file": "Emergency Life-saving Cranial Procedures by Non-neurosurgeons Deployed Setting",
+    "clinical_domain": "neurologic",
+    "aliases": [],
+    "primary_conditions": [
+      "severe Traumatic Brain Injury (TBI)"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "craniectomy"
+    ],
+    "required_context": [
+      "surgical capability",
+      "forward deployed location",
+      "mechanism of injury"
+    ],
+    "contraindications": [
+      "Catastrophic Non-Survivable Brain Injury"
+    ],
+    "red_flags": [
+      "rapidly fatal severe TBI"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "there is no substitution for a fully trained neurosurgeon"
+    ],
+    "search_terms": [
+      "cranial procedures",
+      "TBI management",
+      "non-neurosurgeon cranial surgery"
+    ]
+  },
+  "emergent_resuscitative_thoracotomy": {
+    "title": "Emergent Resuscitative Thoracotomy (ERT)",
+    "source_file": "Emergent Resuscitative Thoracotomy ERT",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "post-injury cardiovascular collapse",
+      "full arrest from a potentially reversible cause"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Emergency Resuscitative Thoracotomy"
+    ],
+    "required_context": [
+      "performed at a forward military treatment facility with surgical and resuscitation capability",
+      "individuals familiar with and trained in this procedure"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "impending cardiac arrest",
+      "refractory shock"
+    ],
+    "evacuation_triggers": [
+      "penetrating truncal/extremity trauma with recent loss of vitals (less than 15 minutes)",
+      "blunt truncal/extremity trauma with witnessed arrest after arrival"
+    ],
+    "safety_gates": [
+      "ERT should only be performed at a forward military treatment facility"
+    ],
+    "search_terms": [
+      "ERT",
+      "Emergency Resuscitative Thoracotomy"
+    ]
+  },
+  "en_route_care_patient_packaging": {
+    "title": "En Route Care (ERC) Patient Packaging",
+    "source_file": "En Route Care Patient Packaging",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Patient movement",
+      "Medical regulating",
+      "Patient evacuation",
+      "En route care (ERC)"
+    ],
+    "required_context": [
+      "Tactical situation",
+      "Clinical needs"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "patient packaging",
+      "en route care",
+      "patient movement"
+    ]
+  },
+  "eye_trauma_initial_care": {
+    "title": "Eye Trauma: Initial Care",
+    "source_file": "Eye Trauma Initial Care",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "eye trauma injuries"
+    ],
+    "medications": [
+      "Promethazine"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "initial evaluation",
+      "management of eye trauma"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "history of eye injury"
+    ],
+    "contraindications": [
+      "do not use injectable Promethazine"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "eye trauma",
+      "initial care",
+      "combat eye injuries"
+    ]
+  },
+  "frozen_deglycerolized_red_blood_cells": {
+    "title": "Frozen and Deglycerolized Red Blood Cells",
+    "source_file": "Frozen Deglycerolized Red-Blood Cells",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [
+      "frozen red blood cells",
+      "deglycerolized red blood cells",
+      "whole blood"
+    ],
+    "procedures": [
+      "glycerolization",
+      "deglycerolization"
+    ],
+    "required_context": [
+      "operational environment",
+      "availability of whole blood",
+      "FDA licensed product"
+    ],
+    "contraindications": [
+      "whole blood is always preferable to using deglycerolized Red Blood Cells"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "DRBC",
+      "frozen blood",
+      "deglycerolized RBC"
+    ]
+  },
+  "genitourinary_injury_trauma_management": {
+    "title": "Genitourinary Injury Trauma Management",
+    "source_file": "Genitourinary Injury Trauma Management",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "genitourinary injuries"
+    ],
+    "medications": [],
+    "blood_products": [
+      "whole blood"
+    ],
+    "procedures": [
+      "unilateral orchiectomy",
+      "suture of laceration of scrotum and tunica vaginalis",
+      "nephroureterectomy",
+      "suprapubic cystostomy"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "GU injury",
+      "genitourinary trauma",
+      "urologic trauma"
+    ]
+  },
+  "global_spider_and_scorpion_envenomation_management": {
+    "title": "Global Spider and Scorpion Envenomation Management",
+    "source_file": "Global Spider and Scorpion Envenomation Management",
+    "clinical_domain": "toxicology",
+    "aliases": [],
+    "primary_conditions": [
+      "spider envenomation",
+      "scorpion envenomation"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "spider envenomation",
+      "scorpion envenomation",
+      "toxicology"
+    ]
+  },
+  "heat_injury_mwd_cpg_c9": {
+    "title": "Heat Injury in Military Working Dogs",
+    "source_file": "Heat Injury MWD CPG c9",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "heat injury",
+      "heat stress",
+      "heat exhaustion",
+      "heat stroke"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "cooling measures",
+      "monitoring body temperature"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "environmental conditions",
+      "hydration status"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "excessive thirst",
+      "weakness",
+      "collapse",
+      "clinical signs of shock"
+    ],
+    "evacuation_triggers": [
+      "severe heat injury",
+      "uncontrolled panting",
+      "development of petechiae or ecchymoses"
+    ],
+    "safety_gates": [
+      "never leave MWDs in closed vehicles",
+      "always monitor for signs of heat injury"
+    ],
+    "search_terms": [
+      "heat injury",
+      "military working dogs",
+      "heat stress",
+      "heat exhaustion",
+      "heat stroke"
+    ]
+  },
+  "high_bilateral_amputations_dismounted_complex_blast_injury": {
+    "title": "High Bilateral Amputations and Dismounted Complex Blast Injury",
+    "source_file": "High Bilateral Amputations Dismounted Complex Blast Injury",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "bilateral lower extremity amputations",
+      "pelvic injuries",
+      "perineal injuries"
+    ],
+    "medications": [
+      "systemic antibiotics",
+      "topical antibiotics"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "hemorrhage control",
+      "soft tissue debridement",
+      "proximal vascular control",
+      "surgical intervention"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "bilateral amputations",
+      "blast injury",
+      "trauma management"
+    ]
+  },
+  "hyperkalemia_and_dialysis": {
+    "title": "Hyperkalemia and Dialysis in the Deployed Setting",
+    "source_file": "Hyperkalemia and Dialysis in Deployed Setting",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "acute kidney injury",
+      "hyperkalemia"
+    ],
+    "medications": [
+      "oral potassium binders"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Continuous Renal Replacement Therapy (CRRT)",
+      "Continuous Venovenous Hemodialysis (CVVHD)",
+      "peritoneal dialysis"
+    ],
+    "required_context": [],
+    "contraindications": [
+      "use of sodium bicarbonate for hyperkalemia"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "hyperkalemia",
+      "dialysis",
+      "acute kidney injury"
+    ]
+  },
+  "hypothermia_prevention_treatment": {
+    "title": "Hypothermia: Prevention and Treatment",
+    "source_file": "Hypothermia Prevention Treatment",
+    "clinical_domain": "other",
+    "aliases": [
+      "Hypothermia Prevention Monitoring and Management CPG",
+      "HPMK",
+      "Heat Reflective Shell",
+      "TCCC"
+    ],
+    "primary_conditions": [
+      "trauma-induced hypothermia",
+      "hemorrhagic shock",
+      "burns",
+      "cerebrospinal injuries"
+    ],
+    "medications": [],
+    "blood_products": [
+      "warm resuscitation fluids/blood products"
+    ],
+    "procedures": [
+      "replace wet clothing with dry clothing",
+      "monitor patient\u2019s temperature during rewarming",
+      "use passive and active methods of rewarming"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "temperature monitoring",
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "core temperatures < 97\u00b0 F and > 100\u00b0 F"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "never allow hypothermia to persist",
+      "always monitor temperature during rewarming"
+    ],
+    "search_terms": [
+      "hypothermia",
+      "trauma-induced hypothermia",
+      "TCCC guidelines"
+    ]
+  },
+  "inhalation_injury_toxic_industrial_chemical_exposure": {
+    "title": "Inhalation Injury and Toxic Industrial Chemical Exposure",
+    "source_file": "Inhalation Injury Toxic and Industrial Chemical Exposure",
+    "clinical_domain": "toxicology",
+    "aliases": [],
+    "primary_conditions": [
+      "inhalation injury",
+      "toxic industrial chemical exposure"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "mechanical ventilation"
+    ],
+    "required_context": [
+      "type of chemical exposure",
+      "severity of inhalation injury"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "patients with both burn and inhalation injury"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "toxic industrial chemicals",
+      "inhalation injury",
+      "chemical asphyxiants"
+    ]
+  },
+  "interfacility_transport_of_patients_between_theater_medical_treatment_facilities": {
+    "title": "Interfacility Transport of Patients Between Theater Medical Treatment Facilities",
+    "source_file": "Interfacility Transport of Patients between Theater Medical Treatment Facilities",
+    "clinical_domain": "other",
+    "aliases": [
+      "interfacility transport CPG"
+    ],
+    "primary_conditions": [
+      "critical care casualties"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "patient transport"
+    ],
+    "required_context": [
+      "evacuation times",
+      "en route care capability"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "interfacility transport",
+      "patient movement",
+      "critical care transport"
+    ]
+  },
+  "jts_cpg_author_guidance": {
+    "title": "Guidance for JTS CPG Authors",
+    "source_file": "JTS CPG Author Guidance",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": []
+  },
+  "jts_cpg_development_process": {
+    "title": "Joint Trauma System Clinical Practice Guideline Development Process",
+    "source_file": "JTS CPG Development Process",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": []
+  },
+  "k9_euthanasia_cpg_21": {
+    "title": "Euthanasia (K9 CPG:21)",
+    "source_file": "K9 Euthanasia MWD CPG c21",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "undue suffering in Military Working Dogs (MWDs)",
+      "catastrophic wounding",
+      "contagious disease",
+      "incurable terminal disease",
+      "severe behavioral disorders"
+    ],
+    "medications": [
+      "sodium pentobarbital",
+      "sodium phenytoin",
+      "potassium chloride"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "euthanasia procedures",
+      "confirmation of death",
+      "postmortem procedures"
+    ],
+    "required_context": [
+      "undue suffering",
+      "decision-making authority of attending provider",
+      "consultation with senior command veterinarian"
+    ],
+    "contraindications": [
+      "neuromuscular blocking agents",
+      "death by asphyxiation",
+      "cranial blunt force trauma"
+    ],
+    "red_flags": [
+      "catastrophic traumatic brain injury",
+      "decompensatory refractory shock",
+      "major abdominal evisceration",
+      "rapid clinical deterioration"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "never use neuromuscular blocking agents as euthanasia agents",
+      "always perform euthanasia humanely"
+    ],
+    "search_terms": [
+      "K9 euthanasia",
+      "MWD euthanasia",
+      "humane euthanasia"
+    ]
+  },
+  "military_working_dogs": {
+    "title": "Clinical Practice Guidelines for Military Working Dogs",
+    "source_file": "MWD CPG",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": []
+  },
+  "management_of_covid_19_in_austere_operational_environments": {
+    "title": "Management of COVID-19 in Austere Operational Environments",
+    "source_file": "Management of COVID-19 in Austere Operational Environments",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "COVID-19"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "COVID-19",
+      "austere environments",
+      "prehospital care",
+      "prolonged field care"
+    ]
+  },
+  "mechanical_ventilation_ccatt": {
+    "title": "Mechanical Ventilation during Critical Care Air Transport",
+    "source_file": "Mechanical Ventilation CCATT",
+    "clinical_domain": "airway",
+    "aliases": [],
+    "primary_conditions": [
+      "Acute Respiratory Distress Syndrome (ARDS)",
+      "ventilator induced lung injury"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "mechanical ventilation",
+      "airway suctioning"
+    ],
+    "required_context": [
+      "PEEP and FIO2",
+      "patient stability for flight",
+      "sending facility characteristics",
+      "expertise of CCAT team members",
+      "flight characteristics"
+    ],
+    "contraindications": [
+      "concurrent hemodynamic compromise",
+      "severe metabolic acidosis",
+      "traumatic brain injury"
+    ],
+    "red_flags": [
+      "PEEP / FiO2 greater than 14 cm H2O / 70%",
+      "decrease in PO2 at altitude"
+    ],
+    "evacuation_triggers": [
+      "unstable patients requiring aggressive support",
+      "marginal gas exchange"
+    ],
+    "safety_gates": [
+      "consult the ECMO team if in doubt about respiratory stability for transport"
+    ],
+    "search_terms": [
+      "CCATT",
+      "mechanical ventilation",
+      "aeromedical transport"
+    ]
+  },
+  "mechanical_ventilation_basics": {
+    "title": "Mechanical Ventilation Basics",
+    "source_file": "Mechnical Ventilation Basics",
+    "clinical_domain": "airway",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "ventilator management",
+      "initial ventilator settings",
+      "troubleshooting"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "mechanical ventilation",
+      "ventilator management",
+      "ventilator settings"
+    ]
+  },
+  "negative_pressure_wound_therapy": {
+    "title": "Negative Pressure Wound Therapy during Aeromedical Evacuation",
+    "source_file": "NPWT CCATT",
+    "clinical_domain": "other",
+    "aliases": [
+      "NPWT",
+      "wound VAC"
+    ],
+    "primary_conditions": [
+      "soft tissue battle wounds"
+    ],
+    "medications": [
+      "saline",
+      "antibiotics"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "negative pressure wound therapy",
+      "troubleshooting device and dressing malfunctions"
+    ],
+    "required_context": [
+      "aeromedical evacuation environment",
+      "wound characteristics"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "significant bleeding develops in-flight"
+    ],
+    "evacuation_triggers": [
+      "bleeding that may occur during patient evacuation"
+    ],
+    "safety_gates": [
+      "never use NPWT without understanding equipment",
+      "always troubleshoot device and dressing malfunctions"
+    ],
+    "search_terms": [
+      "aeromedical evacuation",
+      "NPWT guidelines",
+      "wound management"
+    ]
+  },
+  "normal_clinical_parameters_mwd_c2": {
+    "title": "Normal Clinical Parameters for MWDs",
+    "source_file": "Normal Clinical Parameters MWD c2",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "Military Working Dogs (MWDs) clinical parameters"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "venous blood sampling",
+      "IV catheterization"
+    ],
+    "required_context": [
+      "weight of 50 to 80 pounds (23 \u2013 36 kilograms)"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "MWD clinical parameters",
+      "Military Working Dogs",
+      "canine anatomy"
+    ]
+  },
+  "nutritional_support_using_enteral_and_parenteral_methods": {
+    "title": "Nutritional Support Using Enteral and Parenteral Methods",
+    "source_file": "Nutrition Using Enteral and Parenteral Methods",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "critically injured or ill patient"
+    ],
+    "medications": [
+      "Dobutamine",
+      "Milrinone"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Enteral Nutrition",
+      "Parenteral Nutrition"
+    ],
+    "required_context": [],
+    "contraindications": [
+      "Absolute Contraindications for Enteral Nutrition",
+      "Relative Contraindications for Enteral Nutrition"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "enteral nutrition",
+      "parenteral nutrition",
+      "nutritional support"
+    ]
+  },
+  "ocular_evaluation_disposition_after_laser_exposure": {
+    "title": "Ocular Evaluation and Disposition after Suspected Laser Exposure",
+    "source_file": "Ocular Evaluation Disposition After Laser Exposure",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "suspected directed energy exposure involving the visual system"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "evaluation of suspected injury",
+      "treatment & disposition"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "ocular evaluation",
+      "laser exposure",
+      "directed energy exposure"
+    ]
+  },
+  "ocular_injuries_vision_threatening_conditions": {
+    "title": "Ocular Injuries and Vision-Threatening Conditions in Prolonged Field Care",
+    "source_file": "Ocular Injuries Vision-Threatening Conditions PFC",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "Open Globe Injury",
+      "Retrobulbar Hemorrhage/Orbital Compartment Syndrome",
+      "Blunt/Closed Globe Injury",
+      "Eyelid Laceration"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [
+      "Prioritize Evacuation"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "ocular injuries",
+      "vision-threatening conditions",
+      "prolonged field care"
+    ]
+  },
+  "orthopaedic_trauma_extremity_fractures": {
+    "title": "Orthopaedic Trauma: Extremity Fractures",
+    "source_file": "Orthopaedic Trauma Extremity Fractures",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "extremity fractures"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Early and Thorough Wound Debridement",
+      "Fracture Stabilization",
+      "External Fixation"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "extremity fractures",
+      "orthopaedic trauma"
+    ]
+  },
+  "pelvic_fracture_care": {
+    "title": "Pelvic Fracture Care",
+    "source_file": "Pelvic Fracture Care",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "pelvic fractures",
+      "blunt trauma pelvic injuries"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "surgical packing",
+      "embolization"
+    ],
+    "required_context": [
+      "hemodynamic stability",
+      "mechanical stability of pelvic fracture",
+      "site(s) of hemorrhage"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "hemodynamically compromised patients",
+      "open pelvic fractures",
+      "associated life threatening injuries"
+    ],
+    "evacuation_triggers": [
+      "acute blood loss",
+      "large vessel injury",
+      "head injury",
+      "injury to solid abdominal organs"
+    ],
+    "safety_gates": [
+      "identify all site(s) of hemorrhage",
+      "thorough examination of the pelvis and perineum"
+    ],
+    "search_terms": [
+      "pelvic fracture",
+      "combat pelvic injuries",
+      "blunt trauma"
+    ]
+  },
+  "prehospital_blood_transfusion": {
+    "title": "Prehospital Blood Transfusion",
+    "source_file": "Prehospital Blood Transfusion",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "hemorrhagic shock"
+    ],
+    "medications": [
+      "calcium"
+    ],
+    "blood_products": [
+      "CS-LTOWB",
+      "whole blood"
+    ],
+    "procedures": [
+      "prehospital blood use",
+      "resuscitation procedures using blood products",
+      "transfusion procedures"
+    ],
+    "required_context": [
+      "en route care environment",
+      "competent prehospital and en route care providers"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "hypocalcemia"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "minimal to no use of crystalloid"
+    ],
+    "search_terms": [
+      "prehospital blood transfusion",
+      "blood products",
+      "resuscitation"
+    ]
+  },
+  "prevention_of_venous_thromboembolism": {
+    "title": "Prevention of Venous Thromboembolism",
+    "source_file": "Prevention of Venous Thromboembolism",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "deep venous thrombosis",
+      "pulmonary embolism"
+    ],
+    "medications": [
+      "Fresh Frozen Plasma"
+    ],
+    "blood_products": [
+      "whole blood",
+      "plasma",
+      "RBC"
+    ],
+    "procedures": [
+      "management of inferior vena cava filters"
+    ],
+    "required_context": [
+      "hemostasis has been achieved"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "prolonged immobility",
+      "traumatic brain injury",
+      "multiple and/or above the knee amputations"
+    ],
+    "evacuation_triggers": [
+      "prolonged evacuation",
+      "long flights"
+    ],
+    "safety_gates": [
+      "early prophylaxis in this patient population is recommended provided hemostasis has been achieved"
+    ],
+    "search_terms": [
+      "VTE prophylaxis",
+      "venous thromboembolism prevention",
+      "DVT prevention"
+    ]
+  },
+  "prolonged_casualty_care": {
+    "title": "Prolonged Casualty Care Guidelines",
+    "source_file": "Prolonged Casualty Care Guidelines",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [
+      "Promethazine"
+    ],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [
+      "Discontinuation of Injectable Promethazine Usage at MTFs"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "PCC",
+      "Prolonged Casualty Care"
+    ]
+  },
+  "suspected_radio_frequency_emf_overexposure": {
+    "title": "Suspected Radio Frequency Electromagnetic Field Overexposure",
+    "source_file": "Radio Frequency EMF Overexposure CPG",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "radio frequency electromagnetic field overexposure"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [
+      "evaluation by a medical provider as soon as possible"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "sensation of warmth potentially escalating to pain",
+      "profuse sweating"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "RF-EMF overexposure",
+      "radio frequency overexposure",
+      "electromagnetic field overexposure"
+    ]
+  },
+  "radiology_imaging_trauma_patients": {
+    "title": "Radiology: Imaging Trauma Patients in a Deployed Setting",
+    "source_file": "Radiology Imaging Trauma Patients in Deployed Setting",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "polytrauma",
+      "trauma"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "radiographic evaluation",
+      "CT scan",
+      "ultrasound imaging",
+      "Focused Abdominal Sonographic Assessment for Trauma (FAST)"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "patient stability",
+      "time since injury"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "major cardiopulmonary injury",
+      "pelvic fracture dislocations"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "imaging guidelines",
+      "trauma imaging",
+      "deployed setting imaging"
+    ]
+  },
+  "us_army_aeromedical_evacuations": {
+    "title": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG)",
+    "source_file": "SMOG CY24 REVISION FINAL",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [
+      "Acetaminophen",
+      "Acetazolamide",
+      "Acetylsalicylic Acid",
+      "Activated Charcoal",
+      "Adenosine",
+      "Albuterol",
+      "Amiodarone",
+      "Atropine Sulfate",
+      "Calcium Chloride",
+      "Calcium Gluconate",
+      "Cefazolin",
+      "Dexamethasone"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Tactical Evacuation",
+      "Rapid Sequence Intubation",
+      "Ventilator Management",
+      "Transfusion Reactions",
+      "IV/IO"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": []
+  },
+  "management_of_stroke_and_cerebrovascular_emergencies_in_deployed_setting": {
+    "title": "Management of Stroke and Cerebrovascular Emergencies in the Deployed Setting",
+    "source_file": "Stroke Cerebrovascular Emergencies Deployed Setting",
+    "clinical_domain": "neurologic",
+    "aliases": [],
+    "primary_conditions": [
+      "Ischemic Stroke",
+      "Hemorrhagic Stroke",
+      "Nontraumatic Aneurysmal or non-aneurysmal subarachnoid hemorrhage"
+    ],
+    "medications": [
+      "Systemic TPA"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "Neurosurgery Consultation",
+      "Endovascular intervention for large vessel occlusion",
+      "Emergency life-saving interventions"
+    ],
+    "required_context": [
+      "mechanism",
+      "weight",
+      "access",
+      "time since injury"
+    ],
+    "contraindications": [
+      "Contraindications of systemic thrombolytics in acute ischemic stroke"
+    ],
+    "red_flags": [
+      "Balance loss",
+      "Eyesight changes",
+      "Facial droop",
+      "Arm weakness",
+      "Speech difficulty"
+    ],
+    "evacuation_triggers": [
+      "Coordination with host nation facilities if available",
+      "Aeromedical evacuation is being arranged"
+    ],
+    "safety_gates": [],
+    "search_terms": [
+      "cerebrovascular accidents",
+      "stroke management",
+      "deployed setting stroke care"
+    ]
+  },
+  "critical_care_air_transport": {
+    "title": "Critical Care Air Transport Clinical Practice Guideline (CCATT CPG)",
+    "source_file": "TVTCP CCATT",
+    "clinical_domain": "cardiac",
+    "aliases": [],
+    "primary_conditions": [
+      "symptomatic bradycardia",
+      "bundle branch blocks",
+      "2nd degree heart block",
+      "3rd degree heart block"
+    ],
+    "medications": [
+      "atropine",
+      "epinephrine",
+      "dobutamine"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "transcutaneous pacing",
+      "transvenous pacing",
+      "epicardial pacing"
+    ],
+    "required_context": [
+      "hemodynamically significant dysrhythmias",
+      "hypotension",
+      "signs of poor perfusion",
+      "syncope",
+      "altered mental status",
+      "signs of end organ ischemia"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "CCATT",
+      "cardiac pacing",
+      "aeromedical environment"
+    ]
+  },
+  "telemedicine_guidance_in_the_deployed_setting": {
+    "title": "Telemedicine Guidance in the Deployed Setting",
+    "source_file": "Telemedicine Deployed Setting",
+    "clinical_domain": "other",
+    "aliases": [
+      "Teleconsultation",
+      "TC",
+      "Virtual Health",
+      "VH"
+    ],
+    "primary_conditions": [
+      "care of Military Working Dogs",
+      "casualty management"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "teleconsultation",
+      "eConsult"
+    ],
+    "required_context": [
+      "deployed environment",
+      "contingency settings",
+      "operational constraints"
+    ],
+    "contraindications": [
+      "never leave the casualty to get help if the casualty's condition may worsen"
+    ],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "lifesaving direct patient care takes priority over calling for help"
+    ],
+    "search_terms": [
+      "telemedicine",
+      "teleconsultation",
+      "virtual health",
+      "deployed setting"
+    ]
+  },
+  "transfusion_in_military_working_dog": {
+    "title": "Transfusion for the Military Working Dog",
+    "source_file": "Transfusion in Military Working Dog",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "trauma in military working dogs"
+    ],
+    "medications": [],
+    "blood_products": [
+      "whole blood",
+      "fresh frozen plasma",
+      "freeze dried plasma"
+    ],
+    "procedures": [
+      "blood collection",
+      "typing/crossmatching of MWDs"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "anatomical site",
+      "severity of injury"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "presence of hemorrhagic circulatory shock"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "canine blood transfusion",
+      "military working dog transfusion"
+    ]
+  },
+  "type_a_specific_wb_transfusion": {
+    "title": "Transfusion of Type A Whole Blood for the Role 3",
+    "source_file": "Type A Specific WB Transfusion",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "hemorrhaging casualties"
+    ],
+    "medications": [],
+    "blood_products": [
+      "Type A Whole Blood",
+      "LTOWB"
+    ],
+    "procedures": [
+      "transfusion of Type A Whole Blood"
+    ],
+    "required_context": [
+      "availability of Type A Whole Blood",
+      "combat casualty situation"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "Type A Whole Blood",
+      "ASBP",
+      "whole blood transfusion"
+    ]
+  },
+  "universal_portable_anesthesia_complete": {
+    "title": "Universal Portable Anesthesia Complete (UPAC) Vaporizer and Mechanical Ventilation",
+    "source_file": "UPAC Ventilation Guide",
+    "clinical_domain": "other",
+    "aliases": [
+      "UPAC"
+    ],
+    "primary_conditions": [
+      "general anesthesia"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "setup of the UPAC with HAMILTON T-1 ventilator",
+      "manual setup with assisted ventilation"
+    ],
+    "required_context": [
+      "mechanical ventilation",
+      "anesthesia delivery",
+      "resource-limited environment"
+    ],
+    "contraindications": [
+      "use of HAMILTON T-1 in pull-through configuration with high-pressure oxygen (45-55 psi)"
+    ],
+    "red_flags": [
+      "risk of barotrauma"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "never use HAMILTON T-1 in pull-through configuration with high-pressure oxygen"
+    ],
+    "search_terms": [
+      "UPAC Drawover",
+      "mechanical ventilation",
+      "anesthesia delivery"
+    ]
+  },
+  "unexploded_ordnance_management": {
+    "title": "Unexploded Ordnance (UXO) Management",
+    "source_file": "Unexploded Ordnance (UXO) Management",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "unexploded ordnance management"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "safely remove unexploded ordnance from combat patients"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "presence of unexploded ordnance",
+      "patient's condition"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "UXO",
+      "unexploded ordnance",
+      "combat patients"
+    ]
+  },
+  "vascular_injury": {
+    "title": "Vascular Injury",
+    "source_file": "Vascular Injury",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "vascular injuries"
+    ],
+    "medications": [
+      "antiplatelet therapy",
+      "systemic anticoagulation"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "ligation of vessels",
+      "thrombectomy",
+      "temporary vascular shunts",
+      "harvesting & use of autologous vein",
+      "use of prosthetic graft material",
+      "anastomosis technique"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "vascular injury",
+      "combat casualties",
+      "vascular trauma"
+    ]
+  },
+  "ventilator_associated_pneumonia": {
+    "title": "Ventilator Associated Pneumonia (VAP)",
+    "source_file": "Ventilator Associated Pneumonia (VAP)",
+    "clinical_domain": "infection_sepsis",
+    "aliases": [],
+    "primary_conditions": [
+      "Ventilator Associated Pneumonia"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "VAP",
+      "Ventilator Associated Pneumonia"
+    ]
+  },
+  "war_wounds_debridement_and_irrigation": {
+    "title": "War Wounds: Debridement and Irrigation",
+    "source_file": "War Wounds Debridement and Irrigation",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "battle related wound debridement",
+      "penetrating war wounds"
+    ],
+    "medications": [
+      "Ancef"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "debridement",
+      "irrigation"
+    ],
+    "required_context": [
+      "mechanism of injury",
+      "vaccination history"
+    ],
+    "contraindications": [],
+    "red_flags": [
+      "wounds at high risk for invasive fungal infection"
+    ],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "always perform thorough inspection of wounds"
+    ],
+    "search_terms": [
+      "wound management",
+      "combat injuries",
+      "surgical procedures"
+    ]
+  },
+  "wartime_thoracic_injury": {
+    "title": "Wartime Thoracic Injury",
+    "source_file": "Wartime Thoracic Injury",
+    "clinical_domain": "trauma_resuscitation",
+    "aliases": [],
+    "primary_conditions": [
+      "Pneumothorax",
+      "Hemothorax",
+      "Tension Pneumothorax",
+      "Open Pneumothorax",
+      "Rib Fractures",
+      "Flail Chest",
+      "Pulmonary Contusion",
+      "Cardiac Tamponade",
+      "Great Vessel Injury",
+      "Esophageal Perforation",
+      "Tracheobronchial Injuries",
+      "Diaphragmatic Injuries"
+    ],
+    "medications": [],
+    "blood_products": [],
+    "procedures": [
+      "Initial Management for Thoracic Trauma",
+      "Surgical Management of Thoracic Trauma",
+      "Damage Control Techniques",
+      "Extracorporeal Membrane Oxygenation (ECMO)"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "thoracic injury",
+      "combat injury",
+      "surgical management",
+      "trauma"
+    ]
+  },
+  "whole_blood_transfusion": {
+    "title": "Whole Blood Transfusion",
+    "source_file": "Whole Blood Transfusion",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [],
+    "blood_products": [
+      "whole blood",
+      "SWB",
+      "FWB"
+    ],
+    "procedures": [
+      "transfusion",
+      "collection",
+      "storage",
+      "testing",
+      "documentation"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [
+      "donor red blood cells (RBCs) must be compatible with the recipient"
+    ],
+    "search_terms": [
+      "whole blood",
+      "transfusion",
+      "blood bank"
+    ]
+  },
+  "acute_traumatic_wound_management": {
+    "title": "Acute Traumatic Wound Management in the Prolonged Field Care Setting",
+    "source_file": "Wound Management PFC",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [
+      "simple wounds",
+      "complex wounds"
+    ],
+    "medications": [
+      "analgesia"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "irrigation",
+      "debridement",
+      "dressing",
+      "closure",
+      "infection prevention",
+      "infection treatment"
+    ],
+    "required_context": [
+      "austere environment"
+    ],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "wound management",
+      "prolonged field care",
+      "PFC"
+    ]
+  },
+  "i_stat_portable_blood_analyzer_austere_locations": {
+    "title": "i-STAT Portable Blood Analyzer in Austere Locations",
+    "source_file": "i-STAT Portable CCATT Final",
+    "clinical_domain": "other",
+    "aliases": [],
+    "primary_conditions": [],
+    "medications": [
+      "medications that can affect i-STAT results"
+    ],
+    "blood_products": [],
+    "procedures": [
+      "procedure for handling new cartridge or control shipments",
+      "blood sample collection: procedure for arterial and venous draws",
+      "procedure for preparing and running an i-STAT sample",
+      "procedure for running the external simulator",
+      "procedure for running controls",
+      "updating i-STAT CLEW software using i-STAT device"
+    ],
+    "required_context": [],
+    "contraindications": [],
+    "red_flags": [],
+    "evacuation_triggers": [],
+    "safety_gates": [],
+    "search_terms": [
+      "i-STAT",
+      "portable blood analyzer",
+      "CCATT CPG"
+    ]
+  }
+}

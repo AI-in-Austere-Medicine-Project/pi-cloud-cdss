@@ -1,0 +1,223 @@
+{
+  "txa_tranexamic_acid": {
+    "drug": "TXA / Tranexamic Acid",
+    "indications": [
+      "Traumatic hemorrhagic shock",
+      "Within 3 hours of injury",
+      "Active hemorrhage with hemodynamic instability"
+    ],
+    "contraindications": [
+      "Sepsis without confirmed hemorrhage",
+      "Hypothermia alone without hemorrhage",
+      "Burns alone without hemorrhage",
+      "Isolated TBI without hemorrhage",
+      "More than 3 hours after injury"
+    ],
+    "timing_constraints": [
+      "Must be given within 3 hours of injury for benefit"
+    ]
+  },
+  "ketamine": {
+    "drug": "Ketamine",
+    "indications": [
+      "Subdissociative analgesia (IV 0.3mg/kg)",
+      "Dissociative analgesia IM (2mg/kg)",
+      "RSI induction (IV 1.5mg/kg)",
+      "Post-intubation sedation (IV 0.5mg/kg q20-30min)"
+    ],
+    "contraindications": [
+      "blind nasal intubation"
+    ],
+    "dose_limits": {
+      "iv_analgesic": "0.3 mg/kg IV",
+      "im_analgesic": "2.0 mg/kg IM",
+      "rsi_induction": "1.5 mg/kg IV (max 2.0 mg/kg)",
+      "post_intubation": "0.5 mg/kg IV q20-30min"
+    },
+    "notes": "IV and IM doses differ 7x \u2014 do not cross-compare"
+  },
+  "rocuronium": {
+    "drug": "Rocuronium",
+    "indications": [
+      "RSI paralytic"
+    ],
+    "contraindications": [],
+    "dose_limits": {
+      "rsi": "1.0 mg/kg IV (max 1.2 mg/kg)"
+    },
+    "sequencing": "Give AFTER induction agent only"
+  },
+  "succinylcholine": {
+    "drug": "Succinylcholine",
+    "indications": [
+      "RSI paralytic (alternative to rocuronium)"
+    ],
+    "contraindications": [
+      "Hyperkalemia or risk of hyperkalemia",
+      "Burns greater than 24 hours old",
+      "Crush injury",
+      "Denervation injuries",
+      "Known personal or family history of malignant hyperthermia"
+    ],
+    "dose_limits": {
+      "rsi_adult": "1.5 mg/kg IV",
+      "rsi_pediatric": "2.0 mg/kg IV"
+    }
+  },
+  "wpw_contraindicated_drugs": {
+    "condition": "WPW / Wolf-Parkinson-White / Pre-excitation",
+    "never_give": [
+      "adenosine",
+      "metoprolol",
+      "atenolol",
+      "diltiazem",
+      "verapamil",
+      "digoxin",
+      "any beta-blocker",
+      "any calcium channel blocker"
+    ],
+    "reason": "Risk of VF via accessory pathway",
+    "treatment": "Synchronized cardioversion if unstable"
+  },
+  "steroids_in_tbi": {
+    "condition": "Traumatic Brain Injury",
+    "never_give": [
+      "dexamethasone",
+      "methylprednisolone",
+      "solu-medrol",
+      "decadron",
+      "any corticosteroid"
+    ],
+    "reason": "Increases mortality per CRASH trial",
+    "also_avoid": [
+      "albumin",
+      "routine hyperventilation unless herniation signs"
+    ]
+  },
+  "paralytic_sequencing": {
+    "rule": "Never give paralytic before induction agent in patient with pulse",
+    "required_sequence": [
+      "induction agent first",
+      "paralytic second",
+      "post-intubation sedation after tube confirmed"
+    ],
+    "exception": "Cardiac arrest \u2014 paralytic alone may be acceptable per local protocol"
+  },
+  "acetaminophen": {
+    "drug": "acetaminophen",
+    "indications": [],
+    "contraindications": [
+      "Do not advance to Stage 6 until cleared by appropriate specialist",
+      "Avoid tramadol, acetaminophen/caffeine/butalbital, and opioids"
+    ],
+    "source_protocol": "progressive_return_to_activity_following_acute_concussion_mtbi"
+  },
+  "nsaids": {
+    "drug": "NSAIDs",
+    "indications": [],
+    "contraindications": [
+      "Do not advance to Stage 6 until cleared by appropriate specialist",
+      "Avoid tramadol, acetaminophen/caffeine/butalbital, and opioids"
+    ],
+    "source_protocol": "progressive_return_to_activity_following_acute_concussion_mtbi"
+  },
+  "polyserp\u2122": {
+    "drug": "POLYSERP\u2122",
+    "indications": [],
+    "contraindications": [
+      "cutting and/or suctioning the wound",
+      "ice",
+      "prophylactic antibiotics",
+      "prophylactic fasciotomy",
+      "routine use of blood products",
+      "tourniquets"
+    ],
+    "source_protocol": "arachnid_snake_envenomation_mwd_cpg_c11"
+  },
+  "antivenom": {
+    "drug": "antivenom",
+    "indications": [],
+    "contraindications": [
+      "cutting and/or suctioning the wound",
+      "ice",
+      "prophylactic antibiotics",
+      "prophylactic fasciotomy",
+      "routine use of blood products",
+      "tourniquets"
+    ],
+    "source_protocol": "arachnid_snake_envenomation_mwd_cpg_c11"
+  },
+  "promethazine": {
+    "drug": "Promethazine",
+    "indications": [],
+    "contraindications": [
+      "do not use injectable Promethazine",
+      "Discontinuation of Injectable Promethazine Usage at MTFs"
+    ],
+    "source_protocol": "eye_trauma_initial_care"
+  },
+  "oral_potassium_binders": {
+    "drug": "oral potassium binders",
+    "indications": [],
+    "contraindications": [
+      "use of sodium bicarbonate for hyperkalemia"
+    ],
+    "source_protocol": "hyperkalemia_and_dialysis"
+  },
+  "sodium_pentobarbital": {
+    "drug": "sodium pentobarbital",
+    "indications": [],
+    "contraindications": [
+      "neuromuscular blocking agents",
+      "death by asphyxiation",
+      "cranial blunt force trauma"
+    ],
+    "source_protocol": "k9_euthanasia_cpg_21"
+  },
+  "sodium_phenytoin": {
+    "drug": "sodium phenytoin",
+    "indications": [],
+    "contraindications": [
+      "neuromuscular blocking agents",
+      "death by asphyxiation",
+      "cranial blunt force trauma"
+    ],
+    "source_protocol": "k9_euthanasia_cpg_21"
+  },
+  "potassium_chloride": {
+    "drug": "potassium chloride",
+    "indications": [],
+    "contraindications": [
+      "neuromuscular blocking agents",
+      "death by asphyxiation",
+      "cranial blunt force trauma"
+    ],
+    "source_protocol": "k9_euthanasia_cpg_21"
+  },
+  "dobutamine": {
+    "drug": "Dobutamine",
+    "indications": [],
+    "contraindications": [
+      "Absolute Contraindications for Enteral Nutrition",
+      "Relative Contraindications for Enteral Nutrition"
+    ],
+    "source_protocol": "nutritional_support_using_enteral_and_parenteral_methods"
+  },
+  "milrinone": {
+    "drug": "Milrinone",
+    "indications": [],
+    "contraindications": [
+      "Absolute Contraindications for Enteral Nutrition",
+      "Relative Contraindications for Enteral Nutrition"
+    ],
+    "source_protocol": "nutritional_support_using_enteral_and_parenteral_methods"
+  },
+  "systemic_tpa": {
+    "drug": "Systemic TPA",
+    "indications": [],
+    "contraindications": [
+      "Contraindications of systemic thrombolytics in acute ischemic stroke"
+    ],
+    "source_protocol": "management_of_stroke_and_cerebrovascular_emergencies_in_deployed_setting"
+  }
+}
