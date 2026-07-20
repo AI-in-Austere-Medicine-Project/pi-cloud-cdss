@@ -3,7 +3,7 @@
 # EdgeCDSS Jetson setup v2 — fresh rebuild for Jetson Orin Nano (JetPack/Ubuntu)
 # Rebuilt 2026-07-18 to replace the lost jetson_cdss_setup.sh.
 #
-# Run as the normal user (andrew), NOT root:   bash jetson_cdss_setup_v2.sh
+# Run as the normal use, NOT root:   bash jetson_cdss_setup_v2.sh
 # Safe to re-run; each phase is idempotent.
 #
 # Phases:
