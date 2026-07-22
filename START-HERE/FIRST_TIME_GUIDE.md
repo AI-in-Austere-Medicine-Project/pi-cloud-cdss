@@ -1,261 +1,141 @@
 # First-Time User Guide
-### Pi Cloud CDSS — For Clinicians New to This Kind of Technology
+### EdgeCDSS 4.0 — For Clinicians New to This Kind of Technology
 
 ---
 
-> **You don't need to be a developer to run this.**
+> **You don't need to install anything to try this.**
 >
-> If you can install an app on your phone, you can get this running. This guide walks you through everything from scratch with no assumptions about prior coding experience.
+> EdgeCDSS 4.0 runs in your web browser. If you can open a webpage, you can evaluate this system in the next sixty seconds. Everything past Path 1 in this guide is optional.
 
 ---
 
 ## Start Here — What Is This Actually?
 
-This system is a voice-activated protocol reference that runs on a small computer you can carry in a cargo pocket.
+EdgeCDSS is a clinical decision support system for austere and prolonged field care. You describe a casualty in ordinary field language — *"80kg male, blast injury, severe pain, IV access"* — and it answers in seconds with structured guidance: what to do, exact volumes to draw, what to watch, what never to give, cited to the Joint Trauma System Clinical Practice Guidelines it retrieved the answer from.
 
-You ask it a clinical question. It searches your protocol library and either displays or reads you the relevant guidance. That's the core of it. Everything in this guide is just the one-time setup to make that work.
+The entire system runs on a computer the size of a paperback (an NVIDIA Jetson Orin Nano) and reaches you through an encrypted tunnel. There is no cloud server. The knowledge base — 89 JTS CPGs — lives on the device itself.
 
-The system is a research prototype — not a finished product and not approved for patient care. It exists to explore whether lightweight AI tools can reduce cognitive load in austere environments. If you're here, you're part of that evaluation.
+The system is a research prototype — not a finished product and not approved for patient care. It exists to explore whether guideline-grounded AI tools can reduce cognitive load in austere environments. If you're here, you're part of that evaluation. **Use simulated scenarios only — never real patient information.**
 
 ---
 
-## The Pieces and Why They Exist
+## Path 1 — Use the Web Portal (60 seconds, nothing to install)
+
+1. Open **https://cdss.arcanekg.com** on any device — phone, tablet, laptop.
+2. The access token is already filled in. Type a scenario in the box.
+3. Read the response. Note the **validator badge**, the **source citations** (protocol + page), and the response time.
+4. Tap **🔊 listen** to hear it spoken (useful hands-free).
+
+### Example scenarios to try
+
+```
+80kg male, blast injury to the leg, severe pain, IV access — what can I give?
+Need RSI meds for a 100kg male with facial burns. Give me doses.
+When do I convert a tourniquet to a pressure dressing in prolonged field care?
+40% TBSA burns on an 80kg male — fluid rate for the first 24 hours?
+22kg child, femur fracture, IO access. Ketamine dose for pain?
+```
+
+Notice what it does when you *don't* give it enough: ask for a pediatric dose without a weight and it will refuse to dose until you provide one. That refusal is the safety architecture working.
+
+### Give feedback — this is the whole point
+
+Every response has two buttons:
+
+- **✓ clinically appropriate** — one tap, you're done.
+- **⚠ flag issue** — opens a short clinical report: severity (minor / significant / dangerous-if-followed), what kind of problem, and what it *should* have said. Cite the protocol if you can.
+
+Flagged responses are reproduced from audit logs and fixed with regression tests. A field flag has turned into a same-day fix more than once. Your clinical judgment is the most valuable input this project receives.
+
+---
+
+## Path 2 — Run Your Own Server (for the technically curious)
+
+Everything in Path 1 is served by one Python application you can run yourself — on a Jetson, a Linux box, or a Mac. Your own instance, your own guideline library.
+
+### The pieces and why they exist
 
 | Piece | What It Is | Why You Need It |
 |---|---|---|
 | **Python** | Programming language | The system is written in it |
-| **Git** | Version control tool | How you download and update the code |
-| **GitHub** | Website for storing code | Where the code lives |
-| **Virtual Environment** | Isolated Python workspace | Keeps this project's dependencies separate |
-| **Raspberry Pi** | Small field computer | Runs the voice interface in the field |
-| **Cloud VM** | Rented internet computer | Stores and searches your protocol library |
-| **Claude or GPT API** | AI service | Reads protocols and summarizes them |
-| **ElevenLabs** | Text-to-speech service | Speaks responses through your headset |
-| **.env file** | Private config file | Stores your API keys securely on your computer |
+| **Git / GitHub** | Code download tools | Where the code lives and how you get it |
+| **Virtual environment** | Isolated Python workspace | Keeps this project's dependencies separate |
+| **OpenAI API key** | AI service credential | Powers language generation and validation |
+| **ChromaDB** | Local search database | Stores and searches your guideline library on-device |
+| **.env file** | Private config file | Stores your API keys — never shared to GitHub |
 
-You don't need to understand all of these deeply. You just need to get each one set up once.
-
----
-
-## Section 1 — Getting the Code
-
-### What is GitHub?
-
-GitHub is where developers store and share code — like Google Drive for software. The CDSS code lives there and you download it from there. You won't need to understand much about it beyond the two commands below.
-
-### Install Git
-
-**Mac:** Open Terminal (search "Terminal" in Spotlight) and run:
-```bash
-git --version
-```
-If Git isn't installed, Mac will prompt you to install it automatically.
-
-**Windows:** Download from [git-scm.com](https://git-scm.com) and install. All defaults are fine. Then open **Git Bash** from your Start menu instead of Command Prompt.
-
-**Raspberry Pi / Linux:**
-```bash
-sudo apt install git -y
-```
-
-### Download the Code
+### Setup
 
 ```bash
+# 1. Get the code
 git clone https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss.git
 cd pi-cloud-cdss
+
+# 2. Python environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-server.txt
+
+# 3. Configure — create server/.env with your keys
+cp .env.example server/.env
+nano server/.env       # add OPENAI_API_KEY and a CDSS_ACCESS_TOKEN of your choosing
+
+# 4. Run
+cd server
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-You now have all the code on your computer.
+Open http://localhost:8000 in a browser — that's your own portal.
 
-### Update the Code Anytime
+Your server starts with an **empty knowledge base** ("documents: 0" on the health check). Load it with any PDF protocol library:
 
 ```bash
-cd pi-cloud-cdss
-git pull
+python ingest_jts.py --pdf-dir ./data/your_protocols
+python build_protocol_index.py     # builds the clinical router index
 ```
+
+**Getting an OpenAI API key:** create an account at [platform.openai.com](https://platform.openai.com), add a payment method, then API Keys → Create. Copy it immediately — it's shown once. Cost is roughly $0.001 per query at the model tier this project uses; $5 lasts a long evaluation.
+
+**Optional voice output:** add `ELEVENLABS_API_KEY` from [elevenlabs.io](https://elevenlabs.io) (free tier: 10,000 characters/month). Without it, the 🔊 button reports audio unavailable and everything else works normally.
+
+**Deploying on a Jetson Orin Nano:** run `bash jetson_cdss_setup_v2.sh` — it installs packages, builds the environment, and registers the server as a system service that starts on boot.
 
 ---
 
-## Section 2 — Python Setup
+## Path 3 — The Voice Client (edge devices)
 
-### Install Python
-
-Go to [python.org/downloads](https://python.org/downloads) and download Python 3.10 or newer.
-
-On Windows: during installation, check **"Add Python to PATH"** — this is important.
-
-Verify it worked:
-```bash
-python3 --version
-# Should show: Python 3.10.x or newer
-```
-
-### Create a Virtual Environment
-
-A virtual environment is an isolated workspace for this project. It keeps dependencies for this project separate from everything else on your computer. You only create it once.
-
-```bash
-# Inside the pi-cloud-cdss folder
-python3 -m venv venv
-```
-
-**Activate it** — do this every time you open a new terminal to work on the project:
-```bash
-source venv/bin/activate        # Mac/Linux
-venv\Scripts\activate           # Windows
-```
-
-You'll see `(venv)` at the start of your terminal line when it's active.
-
-### Install Dependencies
-
-```bash
-pip install -r client/requirements.txt
-```
-
-This installs everything the system needs. Takes a few minutes the first time.
-
----
-
-## Section 3 — API Accounts
-
-An API key is a private password that lets your code access a service like Claude or ElevenLabs. It also tracks your usage for billing. Keep it private — treat it like a password.
-
-### Anthropic Claude (Recommended AI)
-
-1. Go to [console.anthropic.com](https://console.anthropic.com)
-2. Create an account and add a payment method
-3. Go to **API Keys** → **Create Key** → name it `CDSS`
-4. Copy the key immediately — it starts with `sk-ant-`
-5. You cannot view it again after closing the page — save it somewhere secure
-
-**Cost:** Roughly $0.001–0.002 per clinical query. $5 in credit lasts hundreds of queries during testing.
-
-### OpenAI GPT (Alternative AI)
-
-1. Go to [platform.openai.com](https://platform.openai.com)
-2. Create an account and add a payment method
-3. Go to **API Keys** → **Create new secret key** → name it `CDSS`
-4. Copy the key — starts with `sk-`
-
-**Cost:** Similar to Claude at the mini model tier.
-
-> You can configure both and switch between them with one line change. No code modification needed.
-
-### ElevenLabs (Voice Output)
-
-1. Go to [elevenlabs.io](https://elevenlabs.io)
-2. Create a free account — no credit card needed to start
-3. Go to **Profile** → copy your **API Key**
-4. Go to **Voices** → **Voice Library** → find **Adam** or **Rachel** → **Add to My Voices**
-5. Click your chosen voice → copy the **Voice ID**
-
-**Free tier:** 10,000 characters/month — sufficient for initial evaluation.
-
----
-
-## Section 4 — Configuration
-
-Your API keys are stored in a file called `.env` in the project folder. This file never gets shared to GitHub — it lives on your computer only.
-
-```bash
-# Create your config file from the template
-cp .env.example .env
-
-# Open it to edit
-nano .env                       # Mac/Linux terminal
-notepad .env                    # Windows
-```
-
-Fill in your keys:
-
-```bash
-# Which AI to use — change this one line to switch
-AI_BACKEND=claude               # or: openai
-
-ANTHROPIC_API_KEY=sk-ant-your-key-here
-ANTHROPIC_MODEL=claude-sonnet-4-6
-
-OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-5.4-mini
-
-ELEVENLABS_API_KEY=your-key-here
-ELEVENLABS_VOICE_ID=your-voice-id-here
-
-CLOUD_API_URL=http://your-vm-ip:8000
-```
-
-Save and close. That's your configuration.
-
-### Switching Between Claude and GPT
-
-One line in `.env`:
-```bash
-AI_BACKEND=claude    # Use Claude
-AI_BACKEND=openai    # Use GPT
-```
-
-Restart the client after changing it.
-
----
-
-## Section 5 — Running the System
-
-```bash
-# Activate your environment (if not already active)
-source venv/bin/activate
-
-# Run
-python cdss_client.py
-```
-
-You'll see a startup banner showing which AI backend is active. At the prompt:
-
-- Type any clinical question and press Enter
-- Type `test` to verify your API connections
-- Type `switch` to see how to change backends
-- Type `quit` to exit
-
-### Example Queries to Try
-
-```
-Management of tension pneumothorax in the field
-RSI protocol for 90kg burn patient
-TXA dosing — patient approximately 80 kilograms
-MARCH protocol for blast injury with 2 hour ETOC
-Pediatric airway — patient approximately 20 kilograms
-```
+`client/cdss_client.py` is a voice interface for small field devices (Radxa Zero, Raspberry Pi): push-to-talk in, spoken response out, pointed at any EdgeCDSS server. It has its own dependencies (`pip install -r client/requirements.txt`) and reads the server URL and token from `.env`. It is under active development — check `TODO.md` for current status before relying on it.
 
 ---
 
 ## Frequently Asked Questions
 
 **Do I need to know how to code?**
-No. Once set up, you type questions and read or hear answers. The setup is a one-time process this guide covers completely.
+No. Path 1 is a webpage. Paths 2–3 are copy-paste terminal commands this guide covers completely.
 
 **Is this safe to use for patient care?**
-No — and this matters. This is a research prototype for training, simulation, and evaluation only. It is not FDA approved, not clinically validated, and not a substitute for your training and protocols. Treat it like a study tool.
+No — and this matters. Research prototype, for training, simulation, and evaluation only. Not FDA approved, not clinically validated, not a substitute for your training and protocols. Never enter real patient information.
 
 **What does it cost?**
-API costs are very low for testing — expect to spend $1–5 during initial evaluation. ElevenLabs has a free tier. The cloud VM (~$30–50/month on Google Cloud) is only needed for the full RAG pipeline. Without a VM, the system still works using AI knowledge alone, just without protocol-specific retrieval.
+Path 1: nothing. Path 2: API costs of roughly $1–5 across an entire evaluation; there is no cloud server to rent. The reference hardware (Jetson Orin Nano) is ~$249 one-time.
 
 **Can I use my own agency's protocols?**
-Yes — that's a core design goal. Place your PDFs in `data/protocols/` and run the ingestion script. Works with any PDF-based protocol library.
+Yes — that's a core design goal. Point `ingest_jts.py` at a folder of your protocol PDFs and the system builds its knowledge base from them. Works with any PDF-based library.
 
-**What if the voice recognition doesn't work well?**
-Switch to text mode — type your question instead of speaking it. Text mode is fully functional and avoids all audio hardware issues. It's also more reliable in noisy environments.
+**Why did it refuse to answer / ask me for more information?**
+By design. The system will not dose a pediatric patient without a confirmed weight, will not calculate from estimated weights, and blocks contraindicated requests outright. If a refusal seems clinically wrong, flag it — wrongful blocks are treated as bugs and fixed.
 
 **Something broke — what do I do?**
-Open an issue at the GitHub repository. Include what you were doing, what you expected, and what happened. Screenshots help.
+Open an issue at the GitHub repository with what you did, what you expected, and what happened. Screenshots help.
 
-**I used this for training — now what?**
-Please reach out to azelton@proton.me. Feedback from clinicians in the field is the most valuable input this project can receive and directly shapes the next version.
+**I tested it — now what?**
+Use the in-interface feedback buttons, and/or reach out: azelton@proton.me. Feedback from clinicians is the most valuable input this project receives and directly shapes the next version.
 
 ---
 
 ## Free Learning Resources
 
-If this sparked interest in learning more — here are honest recommendations, all free.
+If this sparked interest in learning more — honest recommendations, all free.
 
 ### Python
 
@@ -288,12 +168,13 @@ If this sparked interest in learning more — here are honest recommendations, a
 | [The Missing Semester — MIT](https://missing.csail.mit.edu) | Everything they don't teach in school |
 | [Command Line Crash Course](https://learnpythonthehardway.org/book/appendixa.html) | 15 minutes, covers the basics |
 
-### Raspberry Pi
+### Edge Hardware
 
 | Resource | Why |
 |---|---|
-| [Raspberry Pi Official Docs](https://www.raspberrypi.com/documentation/) | Comprehensive, well maintained |
-| [Jeff Geerling YouTube](https://www.youtube.com/@JeffGeerling) | Best Pi content on YouTube |
+| [NVIDIA Jetson documentation](https://developer.nvidia.com/embedded/jetson-developer-kits) | The reference platform for this project |
+| [JetsonHacks](https://jetsonhacks.com) | Practical Jetson guides and setup walkthroughs |
+| [Jeff Geerling YouTube](https://www.youtube.com/@JeffGeerling) | Best small-computer content on YouTube |
 
 ---
 
@@ -304,21 +185,18 @@ If this sparked interest in learning more — here are honest recommendations, a
 | **API** | A way for two programs to talk to each other |
 | **API Key** | A private password for accessing an AI service |
 | **Terminal** | A text-based way to control your computer |
-| **Python** | The programming language this system is written in |
-| **Git** | A tool that tracks changes to code |
-| **GitHub** | A website for storing and sharing code |
 | **Virtual Environment** | An isolated Python workspace for one project |
-| **pip** | Python's package installer |
 | **.env file** | A local file storing private configuration |
 | **RAG** | Retrieval-Augmented Generation — searching a document library before generating an AI response |
-| **LLM** | Large Language Model — the AI engine (Claude, GPT, etc.) |
-| **ChromaDB** | The vector database storing your indexed protocol library |
-| **VM** | Virtual Machine — a rented computer in the cloud |
-| **SSH** | A secure way to connect to a remote computer |
-| **WireGuard** | An encrypted VPN tunnel |
+| **LLM** | Large Language Model — the AI engine used for language generation |
+| **ChromaDB** | The database storing your indexed protocol library |
+| **Embedding** | A numerical fingerprint of meaning, used for semantic search |
+| **Deterministic** | Computed by ordinary code with one right answer — not by AI |
+| **Jetson Orin Nano** | The small NVIDIA computer the reference system runs on |
+| **Cloudflare Tunnel** | An outbound-only encrypted connection that makes the device reachable without opening ports |
+| **Fail-closed** | When in doubt, refuse — the system blocks rather than guesses |
 
 ---
 
-*Part of the Pi Cloud CDSS project — [AI-in-Austere-Medicine-Project](https://github.com/AI-in-Austere-Medicine-Project)*  
+*Part of the AI in Austere Medicine Project — [GitHub](https://github.com/AI-in-Austere-Medicine-Project) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/) · [Substack](https://aiamp.substack.com)*
 *Questions or feedback: azelton@proton.me*
-
