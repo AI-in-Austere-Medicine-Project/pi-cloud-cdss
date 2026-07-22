@@ -1,186 +1,148 @@
-# EdgeCDSS — AI-Powered Clinical Decision Support for Austere Medicine
+# EdgeCDSS — Clinical Decision Support for Austere Medicine
 
 **AI in Austere Medicine Project (AI-AMP)**
-Open source. Built in the field. Safety shared.
+Open source. Edge deployed. Safety findings published.
 
-> ⚠️ **Research Prototype** — Not validated for clinical use. Not for patient care decisions. Do not enter patient names, dates of birth, or identifying information into this system.
+> ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
----
-
-## What This Is
-
-EdgeCDSS is a hybrid cloud-edge clinical decision support system designed for austere, resource-limited, and remote medical environments. It delivers voice-accessible, protocol-driven clinical guidance with all medication dosing resolved to final mL volumes — zero math for the field provider.
-
-**Current version: v3.0.0** — Two-pass safety architecture  
-**Live demo online status :** https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/  
-
+**Current release: 4.0.0** · [Release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.0.html) · [Technical notes](docs/TECH_NOTES_v4.0.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
 ---
+
+## What this is
+
+EdgeCDSS is a self-hosted clinical decision support system for austere, remote, and resource-limited environments. A provider describes a casualty in plain field language — by text or voice — and receives structured, guideline-cited guidance in seconds, with every medication dose resolved to a final mL draw. Zero math for the field provider.
+
+The entire system — knowledge base, retrieval engine, safety gates, web interface, feedback system, and audit logs — runs on a single **NVIDIA Jetson Orin Nano** at the point of care. Public access flows through an outbound-only Cloudflare Tunnel. The deployment is network agnostic: satellite, broadband, Wi-Fi, Ethernet, or LTE/5G.
+
+**Try it:** the live portal is at **https://cdss.arcanekg.com** (demo access token is pre-filled in the interface).
 
 ## Architecture
 
+Pipeline principle: **never ask an AI a question that code can answer.**
+
 ```
-Voice/Text Query
+Query (text or voice)
       ↓
-Edge Device (Radxa Zero 3W / Raspberry Pi 4)
+13 deterministic pre-gates ── weight, route, pediatric limits, contraindications
+      ↓                       (many queries resolve here in milliseconds, no AI)
+Patient context ───────────── rebuilt from the full conversation, deterministic
       ↓
-ChromaDB RAG — 89 JTS CPGs, 7,186 semantic chunks
+Clinical router ───────────── protocol index aims retrieval at the right CPG
       ↓
-Pass 1 — GPT-4o-mini (AUSTERE-CDS generator)
+On-device RAG ─────────────── 89 JTS CPGs / 8,559 chunks, local embeddings
       ↓
-Pass 2 — GPT-4o-mini (Clinical Safety Validator, temp=0)
+LLM generation ────────────── receives an ALLOWED_DOSES contract computed in
+      ↓                       Python; prohibited from doing medication math
+Deterministic post-checks ─── every stated dose verified against the contract
       ↓
-Gate: SAFE → deliver | UNSAFE → block | NEEDS_HUMAN_REVIEW → append warning
+LLM validator + gate ──────── narrow semantic check; fail-closed on any doubt
       ↓
-ElevenLabs TTS → provider earpiece
+Provider ──────────────────── cited response, validator status, feedback tools
 ```
 
----
+AI is restricted to language generation, retrieval support, and semantic validation. Everything safety-critical is deterministic Python: inspectable, testable, and pinned by regression tests.
 
-## Repository Structure
+## Repository structure
 
 ```
 pi-cloud-cdss/
-├── START-HERE/                  ← New here? Start with this
-│   └── FIRST_TIME_GUIDE.md
-├── server/
-│   ├── main.py                  FastAPI backend
-│   ├── openai_client.py         Two-pass LLM pipeline
-│   └── embeddings.py            ChromaDB client
-├── web/
-│   └── index.html               Web testing interface (GitHub Pages)
+├── START-HERE/
+│   └── FIRST_TIME_GUIDE.md      ← New here? Start with this
+├── server/                      The entire system (runs on the Jetson)
+│   ├── main.py                  FastAPI app: /query /speak /feedback + web portal
+│   ├── openai_client.py         Deterministic-first pipeline, gates, validator
+│   ├── embeddings.py            ChromaDB client (local embeddings)
+│   ├── ingest_jts.py            Guideline ingestion (PDF → chunks)
+│   ├── clinical_router.py       Query → protocol routing
+│   ├── build_protocol_index.py  Builds the router index from the knowledge base
+│   ├── static/index.html        Web portal (served at the API root)
+│   ├── run_tests.sh             24-case live-endpoint clinical suite
+│   └── test_deterministic.py    Offline unit suite for parsers and gates
 ├── client/
-│   ├── cdss_client.py           Edge device voice client
+│   ├── cdss_client.py           Voice client for edge devices
 │   └── requirements.txt         Voice client dependencies
-├── tests/
-│   ├── run_tests.sh             24-case live-endpoint test suite (server/)
-│   └── results/                 Test run outputs
-├── docs/
-│   ├── EdgeCDSS_v25_Summary.pdf
-│   ├── EdgeCDSS_v30_Goals.pdf
-│   ├── EdgeCDSS_FieldEvaluationReport_v1.pdf
-│   ├── EdgeCDSS_ProjectOverview.pdf
-│   └── AILM_Resources_Reference.pdf
-├── README.md
-├── TODO.md
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── LICENSE                      MIT
-├── .env.example
-├── .gitignore
+├── web/                         Project website (GitHub Pages)
+├── docs/                        Current documentation + archive of prior versions
+├── publications/                Articles and papers written by the project
+├── jetson_cdss_setup_v2.sh      One-script Jetson deployment
 └── requirements-server.txt      Server dependencies
 ```
 
----
+## Quick start
 
-## Quick Start
+**Just want to use it?** Open https://cdss.arcanekg.com — nothing to install. See the [First-Time Guide](START-HERE/FIRST_TIME_GUIDE.md).
 
-**Prerequisites:** Python 3.10+, OpenAI API key, NVIDIA Jetson Orin Nano (or any Linux host for the FastAPI server)
+**Run your own server** (Jetson Orin Nano or any Linux/macOS host):
 
 ```bash
-# Clone
 git clone https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss.git
 cd pi-cloud-cdss
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-server.txt
 
-# Install dependencies
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r client/requirements.txt
-
-# Configure
-cp .env.example .env
-# Add your OPENAI_API_KEY and CDSS_ACCESS_TOKEN to .env
-
-# Run the server
+cp .env.example server/.env        # add OPENAI_API_KEY, CDSS_ACCESS_TOKEN
 cd server
 uvicorn main:app --host 0.0.0.0 --port 8000
-
-# Test
-bash server/run_tests.sh
+curl localhost:8000/health         # {"status":"healthy", ...}
 ```
 
-See `START-HERE/FIRST_TIME_GUIDE.md` for full setup instructions.
+Ingest your guideline library (PDFs → searchable knowledge base):
 
----
+```bash
+python ingest_jts.py --pdf-dir ./data/your_protocols
+python build_protocol_index.py     # builds the clinical router index
+```
 
-## Safety Architecture (v3.0)
+On a Jetson, `jetson_cdss_setup_v2.sh` performs the full deployment (packages, venv, systemd service) in one run.
 
-v3.0 introduced a two-pass safety pipeline. Every LLM-generated response passes through an independent safety validator before reaching the provider.
+**Test it:**
 
-**Validator checks:**
-- Pediatric dosing ceiling violations (ketamine >2mg/kg, rocuronium >1.2mg/kg)
-- Contraindicated drugs (adenosine in WPW, high-flow O2 in COPD)
-- CICO pathway — failed ETT + failed supraglottic = surgical airway required
-- Sepsis/DCR misclassification — fever + infection ≠ hemorrhagic shock
-- Route mismatch, missing post-intubation sedation, paralytic without sedation
+```bash
+python server/test_deterministic.py   # offline unit suite — free, instant
+bash server/run_tests.sh              # 24 clinical cases against the live endpoint
+```
 
-**Gate logic:**
-- `SAFE` — response delivered
-- `UNSAFE` — response blocked, safety hold message delivered
-- `NEEDS_HUMAN_REVIEW` — warning appended to response
+## Clinical knowledge base
 
----
+- **Primary:** Joint Trauma System (JTS) Clinical Practice Guidelines — 89 protocols ingested into 8,559 passages with page-accurate citations
+- **Embeddings:** computed on-device (all-MiniLM via ChromaDB) — zero per-query API cost, works with degraded connectivity
+- **Ingestion:** sentence-aware chunking, header/footer stripping, idempotent re-runs (`server/ingest_jts.py`) — works with any PDF-based protocol library
 
-## Clinical Knowledge Base
+## Validation status
 
-- **Primary:** Joint Trauma System (JTS) Clinical Practice Guidelines — 89 protocols, 7,186 indexed chunks
-- **Secondary:** Evidence-based guidance for non-JTS presentations (sepsis, tropical disease, envenomation, obstetrics, environmental emergencies)
-- **Embeddings:** OpenAI text-embedding-ada-002 via ChromaDB
+- Automated clinical suite: **24/24** against the live public endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
+- Offline deterministic unit suite (`server/test_deterministic.py`) pins every parser and gate fix
+- Active field beta with structured clinical feedback: severity triage, issue categories, protocol-cited corrections — reported failures are reproduced from audit logs and fixed with regression tests
+- Prior-version evaluation history: [`docs/archive/v3/`](docs/archive/v3/)
 
----
+## Documentation & publications
 
-## v2.5 Evaluation Summary
-
-| Metric | Result |
+| Document | What it is |
 |---|---|
-| Automated test pass rate | 85.3% (29/34 cases) |
-| External testers | 26 unique devices |
-| Feedback entries | 70 |
-| Helpful rate | 61% |
-| P1 safety gaps identified | 3 (all fixed in v3.0) |
-| Mean response time | 2,836ms |
-
-Full evaluation report: `docs/EdgeCDSS_FieldEvaluationReport_v1.pdf`
-
----
-
-## Infrastructure
-
-| Component | Technology |
-|---|---|
-| Edge server | NVIDIA Jetson Orin Nano Super 8GB (JetPack 6, aarch64) |
-| API framework | FastAPI + Uvicorn (Python 3.12) |
-| Vector database | ChromaDB (on-device, local embeddings) |
-| LLM | GPT-4o-mini (generation + narrow validation; swappable) |
-| TTS | ElevenLabs API (isolated from clinical core) |
-| Voice client hardware | Radxa Zero 3W / Raspberry Pi 4 |
-| Connectivity | Network agnostic — Starlink / broadband / Wi-Fi / LTE |
-| Public access | Cloudflare Tunnel (outbound-only) — cdss.arcanekg.com |
-| Site hosting | GitHub Pages |
-
----
+| [`docs/TECH_NOTES_v4.0.md`](docs/TECH_NOTES_v4.0.md) | 4.0 technical release notes |
+| [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | Research positioning, design principles, references |
+| [`docs/EdgeCDSS_v4_Technology.pdf`](docs/EdgeCDSS_v4_Technology.pdf) | Technology explainer |
+| [`publications/`](publications/) | Articles and papers written by the project |
+| [Ethics & Governance](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/ethics-governance.html) | Data privacy, responsible AI, governance |
 
 ## Contributing
 
-See `CONTRIBUTING.md`. All contributions welcome — clinical, technical, and hardware.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). All contributions welcome — clinical, technical, and hardware.
 
-**Clinical:** Protocol review, scenario testing, safety gap identification  
-**Technical:** Python, FastAPI, prompt engineering, ChromaDB, edge hardware  
-**Hardware:** Off-grid comms, solar power, Iridium satellite, LoRa mesh  
-
----
+**Clinical:** protocol review, scenario testing, safety gap identification
+**Technical:** Python, FastAPI, RAG, prompt engineering, edge hardware
+**Hardware:** off-grid comms, solar power, satellite connectivity, LoRa mesh
 
 ## License
 
-MIT — see `LICENSE`
+MIT — see [`LICENSE`](LICENSE). Copyright (c) 2026 AI in Austere Medicine Project.
 
-Copyright (c) 2026  AI in Austere Medicine Project
+Technologies and provider names identify components used by the project and do not imply endorsement, sponsorship, or affiliation.
 
----
+## Project links
 
-## Project Links
-
+- **Live portal:** https://cdss.arcanekg.com
+- **Project site:** https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/
 - **Organization:** https://github.com/AI-in-Austere-Medicine-Project
-- **Web demo:** https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/
-- **Research docs:** `/docs`
 - **Newsletter:** https://aiamp.substack.com
