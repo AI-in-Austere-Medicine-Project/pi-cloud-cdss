@@ -57,11 +57,11 @@ li strong { color: #fff; font-weight: 500; }
   <div class="statgrid">
     <div class="stat"><b>89</b><small>JTS Guidelines Indexed</small></div>
     <div class="stat"><b>8,559</b><small>Guideline Passages Indexed</small></div>
-    <div class="stat"><b>24<span>/24</span></b><small>Regression Tests Passed</small></div>
+    <div class="stat"><b>~$300</b><small>One-Time Hardware Cost</small></div>
     <div class="stat"><b>13</b><small>Pre-Generation Safety Gates</small></div>
   </div>
 
-  <h2>Headline: the whole system fits on a desk</h2>
+  <h2>Overview</h2>
   <p>Version 4.0 moves EdgeCDSS off rented cloud infrastructure entirely. The guideline knowledge base, retrieval engine, deterministic safety gates, web interface, structured feedback system, and audit logs all run on a single NVIDIA Jetson Orin Nano at the point of care. Remote access flows through an outbound-only encrypted tunnel — no open ports, no exposed addresses, no cloud vendor between a provider and the guidance. The deployment is network agnostic: Starlink, broadband, Wi-Fi, Ethernet, or LTE/5G.</p>
 
   <div class="pipeline">
@@ -91,7 +91,7 @@ li strong { color: #fff; font-weight: 500; }
   <ul>
     <li>Structured clinical feedback on every response: one tap for "clinically appropriate," or a flag with severity (minor / significant / dangerous-if-followed), issue categories, and a protocol-cited correction.</li>
     <li>Session audit logging (no PHI) makes reported failures reproducible; a beta-reported wrongful safety block was diagnosed from the log and fixed, with a regression test, the same day.</li>
-    <li>Automated 24-case clinical suite — pediatric gates, P1 safety blocks, RSI protocols, grounded scenarios — passes 24/24 against the live endpoint, up from 61.8% two versions ago.</li>
+    <li>An automated suite of clinical test scenarios — pediatric safety gates, critical-medication blocks, airway protocols — runs against the live system before every release, and every previously reported failure is re-tested to confirm it stays fixed.</li>
     <li>Patient context now persists across the entire conversation: durable facts (weight, age, route, access) hold for the full encounter, while clinical events are windowed to recent turns by design.</li>
     <li>Voice responses speak clinical notation correctly — "0.24 mL of 100mg/mL" is pronounced as words, with routes and acronyms spelled out.</li>
   </ul>
