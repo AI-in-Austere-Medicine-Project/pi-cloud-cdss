@@ -1,0 +1,18 @@
+[
+  {
+    "date": "2026-07-14",
+    "title": "Patient Safety in the Era of AI: Draft Conditions for the Design of Safe Care",
+    "authors": "National Academy of Medicine",
+    "source": "NAM Perspectives",
+    "link": "https://nam.edu/perspectives/patient-safety-in-the-era-of-ai-draft-conditions-for-the-design-of-safe-care/",
+    "summary": "Draft national framework for AI patient safety. EdgeCDSS gap analysis against these conditions drove our session audit logging and confidence indicator roadmap."
+  },
+  {
+    "date": "2026-07-07",
+    "title": "An Evaluation of LLM Inference on Popular Single-Board Computers",
+    "authors": "arXiv preprint",
+    "source": "arXiv",
+    "link": "https://arxiv.org/html/2511.07425v1",
+    "summary": "Benchmarks 25 quantized open-source models on Pi 4, Pi 5, and Orange Pi 5 Pro. Directly informs EdgeCDSS Offline hardware selection: SBCs reliably support models up to 1.5B parameters."
+  }
+]
