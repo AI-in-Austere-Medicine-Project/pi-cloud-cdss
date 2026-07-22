@@ -46,7 +46,7 @@ Version 4.0 introduces a new system architecture designed for edge deployment an
 ### Architecture
 
 - Self-hosted on an NVIDIA Jetson Orin Nano.
-- Global connectivity through Starlink and Cloudflare Tunnel.
+- Opportunistic connectivity over any available network — low-earth-orbit satellite, LTE/5G, Wi-Fi, or broadband — with remote access through an outbound-only encrypted tunnel.
 - Retrieval-Augmented Generation (RAG) with an on-device vector database.
 - Deterministic-first clinical pipeline.
 - AI restricted to language generation and semantic validation.
@@ -70,7 +70,7 @@ Current research includes:
 
 - Guideline-grounded clinical decision support.
 - Edge computing.
-- Satellite-enabled medical infrastructure.
+- Off-grid and remote medical infrastructure.
 - Retrieval-Augmented Generation (RAG).
 - Clinical safety validation.
 - Human-AI interaction.
@@ -79,7 +79,7 @@ Current research includes:
 
 ## Related Work
 
-The design philosophy behind EdgeCDSS reflects current research supporting retrieval-grounded, human-supervised clinical AI rather than autonomous large language model (LLM)-based decision making.
+The design philosophy behind EdgeCDSS reflects current research supporting retrieval-grounded generation ([Lewis et al., 2020](https://arxiv.org/abs/2005.11401)) and human-supervised clinical AI ([Sutton et al., 2020](https://www.nature.com/articles/s41746-020-0221-9)) rather than autonomous large language model (LLM)-based decision making. Recent evaluations of LLM clinical knowledge ([Singhal et al., 2023](https://www.nature.com/articles/s41586-023-06291-2)) and of LLM inference on low-power edge hardware ([arXiv, 2025](https://arxiv.org/html/2511.07425v1)) inform the boundaries this architecture is built around, with risk management guided by the [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework).
 
 Rather than treating an LLM as the source of clinical reasoning, EdgeCDSS combines deterministic clinical logic, retrieval from authoritative clinical guidelines, structured validation, and constrained language generation within a transparent and auditable architecture.
 
