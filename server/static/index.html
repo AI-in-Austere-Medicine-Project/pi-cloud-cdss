@@ -197,7 +197,9 @@ async function refreshStatus() {
     stat.textContent = 'v' + s.version + ' · ' + h.documents.toLocaleString() + ' protocol chunks · online';
   } catch (e) {
     dot.className = 'dot err';
-    stat.textContent = 'offline';
+    stat.innerHTML = '<b style="color:var(--red)">v4.0 SERVER OFFLINE</b> — check back soon · ' +
+      '<a href="https://aiamp.substack.com" target="_blank" rel="noopener" ' +
+      'style="color:var(--dim);text-decoration:underline">updates on Substack</a>';
   }
 }
 refreshStatus(); setInterval(refreshStatus, 60000);
@@ -329,6 +331,7 @@ async function ask() {
     pending.querySelector('.bubble').innerHTML =
       '<span class="badge err">REQUEST FAILED</span> ' + esc(e.message) +
       ' — check token or server status.';
+    refreshStatus();
   }
   send.disabled = false; q.focus();
   chat.scrollTop = chat.scrollHeight;
