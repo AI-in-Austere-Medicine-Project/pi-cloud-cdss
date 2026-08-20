@@ -74,8 +74,11 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid access token")
     start = datetime.now()
+    # T-2: self-declared test-suite traffic. Log hygiene only — run_tests.sh
+    # fires at the live endpoint by design, and nothing may branch on this.
+    synthetic = http_request.headers.get("X-Test-Run", "") == "1"
     try:
-        result = query_with_rag(request.query, chromadb_client, voice_mode=(request.voice_mode == "brief"), conversation_history=request.conversation_history)
+        result = query_with_rag(request.query, chromadb_client, voice_mode=(request.voice_mode == "brief"), conversation_history=request.conversation_history, synthetic=synthetic)
         ms = int((datetime.now() - start).total_seconds() * 1000)
         return QueryResponse(
             response=result["response"],

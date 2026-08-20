@@ -45,6 +45,7 @@ v3.4 additions (EdgeCDSS_openai_py_issue_recommendations_2.docx):
 import os
 import re
 import json
+import time
 from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, List
 try:
@@ -104,7 +105,16 @@ def _get_log_file() -> pathlib.Path:
     date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     return _LOG_DIR / f"cdss_session_{date_str}.jsonl"
 
-def log_query(query: str, result: dict, conversation_history: list = None):
+# Bumped when the entry shape changes. v4.1 (schema 2) adds pipeline_ms,
+# synthetic and override_fired. Entries written before v4.1 carry no
+# log_schema key at all; analysis tooling must read a missing key as UNKNOWN,
+# never as a default. Defaulting a missing `synthetic` to false would
+# re-classify the 48 known test-suite entries as real user traffic.
+LOG_SCHEMA_VERSION = 2
+
+
+def log_query(query: str, result: dict, conversation_history: list = None,
+              pipeline_ms: Optional[int] = None, synthetic: bool = False):
     """
     Write one structured log entry per query.
     JSONL format — one JSON object per line.
@@ -113,13 +123,16 @@ def log_query(query: str, result: dict, conversation_history: list = None):
     try:
         entry = {
             "ts": datetime.datetime.utcnow().isoformat() + "Z",
+            "log_schema": LOG_SCHEMA_VERSION,
             "debug_warn_only": DEBUG_WARN_ONLY,
+            "synthetic": bool(synthetic),
             "query": query,
             "response_preview": result.get("response", "")[:200],
             "source_mode": result.get("source_mode", "UNKNOWN"),
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
+            "pipeline_ms": pipeline_ms,
             "history_turns": len(conversation_history) if conversation_history else 0,
             "patient_ctx": {
                 k: v for k, v in (result.get("patient_context") or {}).items()
@@ -2476,12 +2489,26 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
 
 def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
-                   session_ctx: Optional[PatientContext] = None) -> dict:
+                   session_ctx: Optional[PatientContext] = None,
+                   synthetic: bool = False) -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
+
+    `synthetic` marks test-suite traffic (T-2). It is self-declared by the
+    caller via the X-Test-Run header and is therefore trivially spoofable: it
+    is a log-hygiene flag, NOT a security control, and nothing in the pipeline
+    may branch on it. Pinned by test_synthetic_does_not_alter_pipeline.
+
+    `pipeline_ms` (T-1) times this function, not the HTTP round trip: it
+    excludes FastAPI request parsing and response serialisation, so it reads
+    lower than the processing_time_ms badge the client shows. The names are
+    kept distinct so the two are never compared as if interchangeable.
     """
+    t0 = time.perf_counter()
     result = _query_with_rag_internal(
         query, chromadb_client, voice_mode, conversation_history, session_ctx
     )
-    log_query(query, result, conversation_history)
+    pipeline_ms = int((time.perf_counter() - t0) * 1000)
+    log_query(query, result, conversation_history,
+              pipeline_ms=pipeline_ms, synthetic=synthetic)
     return result

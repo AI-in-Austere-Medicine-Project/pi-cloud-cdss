@@ -11,6 +11,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -128,3 +129,121 @@ def test_no_served_response_is_logged_unsafe_end_to_end():
     assert entry["validator_result"] != "UNSAFE"
     assert entry["override_fired"] == "fluids_resuscitation"
     assert entry["validator_issues"] != []
+
+
+# ── T-1 / T-2: pipeline timing and synthetic-traffic tagging ────────────────
+# Both ride the same log entry, so they share one stub harness. The real
+# pipeline needs ChromaDB and two LLM calls; _query_with_rag_internal is
+# replaced with a recording stub so query_with_rag's own contract — what it
+# times, what it forwards, what it logs — is what gets asserted.
+
+class _RecordingInternal:
+    """Stands in for _query_with_rag_internal; records how it was called."""
+
+    def __init__(self, sleep_s=0.0, result=None):
+        self.sleep_s = sleep_s
+        self.result = result if result is not None else dict(BASE_RESULT)
+        self.calls = []
+
+    def __call__(self, *args, **kwargs):
+        self.calls.append((args, kwargs))
+        if self.sleep_s:
+            time.sleep(self.sleep_s)
+        return dict(self.result)
+
+
+def run_and_read(stub, query="test query", history=None, **kwargs):
+    """Call query_with_rag against a stubbed pipeline; return the log entry."""
+    with tempfile.TemporaryDirectory() as tmp:
+        original_dir, original_internal = oc._LOG_DIR, oc._query_with_rag_internal
+        oc._LOG_DIR = pathlib.Path(tmp)
+        oc._query_with_rag_internal = stub
+        try:
+            result = oc.query_with_rag(query, None, conversation_history=history, **kwargs)
+            written = sorted(pathlib.Path(tmp).glob("*.jsonl"))
+            assert len(written) == 1, f"expected one log file, got {written}"
+            lines = written[0].read_text().strip().splitlines()
+            assert len(lines) == 1
+            return json.loads(lines[0]), result
+        finally:
+            oc._LOG_DIR, oc._query_with_rag_internal = original_dir, original_internal
+
+
+def test_pipeline_ms_is_logged():
+    entry, _ = run_and_read(_RecordingInternal())
+    assert "pipeline_ms" in entry
+    assert isinstance(entry["pipeline_ms"], int)
+    assert entry["pipeline_ms"] >= 0
+
+
+def test_pipeline_ms_reflects_elapsed_time():
+    """Without this, a hard-coded 0 satisfies the existence test forever."""
+    slow, fast = _RecordingInternal(sleep_s=0.15), _RecordingInternal(sleep_s=0.0)
+    slow_entry, _ = run_and_read(slow)
+    fast_entry, _ = run_and_read(fast)
+    assert slow_entry["pipeline_ms"] >= 140, slow_entry["pipeline_ms"]
+    assert slow_entry["pipeline_ms"] < 5000, "timing the wrong thing entirely"
+    assert slow_entry["pipeline_ms"] > fast_entry["pipeline_ms"]
+
+
+def test_pipeline_ms_is_not_the_http_round_trip():
+    """T-1 names the field pipeline_ms, not processing_time_ms, on purpose.
+
+    main.py measures a wider span (request parsing and response serialisation
+    included) and reports it to the client. Two different numbers; if the log
+    ever adopts the client's name, they will be compared as if they were one.
+    """
+    entry, _ = run_and_read(_RecordingInternal())
+    assert "processing_time_ms" not in entry
+
+
+def test_synthetic_flag_defaults_false():
+    entry, _ = run_and_read(_RecordingInternal())
+    assert entry["synthetic"] is False
+
+
+def test_synthetic_flag_propagates():
+    entry, _ = run_and_read(_RecordingInternal(), synthetic=True)
+    assert entry["synthetic"] is True
+
+
+def test_synthetic_does_not_alter_pipeline():
+    """The flag must never grow teeth.
+
+    It is self-declared via a request header and trivially spoofable, so any
+    behaviour branching on it would be a safety control an attacker sets. The
+    pipeline must receive byte-identical arguments either way.
+    """
+    on, off = _RecordingInternal(), _RecordingInternal()
+    entry_on, result_on = run_and_read(on, synthetic=True)
+    entry_off, result_off = run_and_read(off, synthetic=False)
+
+    assert on.calls == off.calls, "synthetic must not reach the pipeline"
+    assert all("synthetic" not in kwargs for _args, kwargs in on.calls)
+    assert result_on == result_off
+    for field in ("validator_result", "validator_issues", "response_preview",
+                  "source_mode", "override_fired"):
+        assert entry_on[field] == entry_off[field], field
+
+
+def test_run_tests_sends_the_synthetic_header():
+    """The half that actually keeps the production log clean.
+
+    run_tests.sh fires 24 cases at the live public endpoint — 48 of the 135
+    audit-corpus entries came from two such runs, indistinguishable from real
+    traffic.
+    """
+    here = pathlib.Path(__file__).parent
+    script = (here / "run_tests.sh").read_text()
+    assert "X-Test-Run: 1" in script
+    assert script.count("X-Test-Run: 1") == script.count("X-Access-Token: $TOKEN"), \
+        "every authenticated test request must carry the tag"
+
+
+def test_log_schema_version_is_stamped():
+    """Pre-v4.1 entries carry no log_schema key; the two formats must be
+    distinguishable without inferring it from which fields are present."""
+    entry, _ = run_and_read(_RecordingInternal())
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 2
+    for field in ("pipeline_ms", "synthetic", "override_fired"):
+        assert field in entry, f"schema 2 must carry {field}"
