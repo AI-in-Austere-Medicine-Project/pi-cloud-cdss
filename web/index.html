@@ -413,6 +413,55 @@ section {
   50% { opacity: 0.3; }
 }
 
+/* ── TOOLS ── */
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin-top: 48px;
+  background: var(--border);
+}
+.tool-card {
+  background: var(--dark2);
+  padding: 36px 32px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: start;
+  transition: background 0.3s;
+}
+.tool-card:hover { background: var(--dark3); }
+.tool-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s;
+}
+.tool-card:hover::before { transform: scaleX(1); }
+.tool-terminal {
+  background: var(--dark);
+  border: 1px solid var(--border);
+  padding: 20px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.9;
+  color: var(--muted);
+  overflow-x: auto;
+}
+.tool-terminal .cmd {
+  display: block;
+  white-space: pre;
+  color: var(--text);
+}
+.tool-terminal .cmd::before { content: '$ '; color: var(--red); }
+.tool-terminal .note { display: block; white-space: pre; }
+
 /* ── SAFETY ── */
 .safety-section {
   background: var(--dark2);
@@ -681,6 +730,7 @@ footer {
   section { padding: 60px 20px; }
   .mission-grid { grid-template-columns: 1fr; gap: 32px; }
   .projects-grid { grid-template-columns: 1fr; }
+  .tool-card { grid-template-columns: 1fr; gap: 28px; padding: 32px 20px; }
   .involve-grid { grid-template-columns: 1fr; }
   .signup-section { padding: 40px 20px; }
   .safety-section { padding: 40px 20px; }
@@ -716,6 +766,7 @@ footer {
   <ul class="nav-links">
     <li><a href="#mission">Mission</a></li>
     <li><a href="#projects">Projects</a></li>
+    <li><a href="#tools">Tools</a></li>
     <li><a href="#architecture">Architecture</a></li>
     <li><a href="#ethics">Ethics</a></li>
     <li><a href="#safety">Safety</a></li>
@@ -872,6 +923,53 @@ footer {
         <span class="tag">Off-Grid</span>
       </div>
       <a href="#signup" class="project-link">Follow for Updates →</a>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORTING TOOLS -->
+<section id="tools" style="padding-top: 0;">
+  <div class="section-label">Supporting Tools</div>
+  <h2 class="section-title reveal">Know the Link<br>Before You Trust It.</h2>
+  <p class="section-sub reveal reveal-delay-1">
+    Hybrid routing is only as good as the link it can measure. Alongside EdgeCDSS we build and
+    open-source small, dependency-light utilities for characterizing the network a deployment
+    actually has &mdash; not the one the coverage map promises.
+  </p>
+  <div class="tools-grid">
+    <div class="tool-card reveal reveal-delay-1">
+      <div>
+        <div class="project-num">TOOL 01</div>
+        <div class="project-status"><span class="status-dot"></span> Active &mdash; Open Source</div>
+        <div class="project-name">netpath</div>
+        <div class="project-version">Traceroute // Geo + ASN // Interactive Map</div>
+        <div class="project-desc">
+          A network path visualizer. netpath traces the route to a host, enriches every hop with
+          geolocation and ASN/ISP data, and plots the physical path your traffic takes on an
+          interactive world map. Built for understanding satellite versus terrestrial routing
+          &mdash; the question behind whether an edge node reaches cloud inference or falls back
+          to running locally. Color-coded latency tables, an optional speed test, and saved runs
+          that can be diffed or drawn on a single map to compare two links side by side.
+        </div>
+        <div class="project-tags">
+          <span class="tag">Python 3.9+</span>
+          <span class="tag">Traceroute</span>
+          <span class="tag">ASN / ISP</span>
+          <span class="tag">Leaflet</span>
+          <span class="tag">Starlink</span>
+          <span class="tag">No Root</span>
+          <span class="tag">MIT</span>
+        </div>
+        <a href="https://github.com/AI-in-Austere-Medicine-Project/netpath" target="_blank" rel="noopener" class="project-link">View on GitHub &rarr;</a>
+      </div>
+      <div class="tool-terminal">
+        <span class="cmd">netpath.py 8.8.8.8 --map</span>
+        <span class="note">  hop table + interactive world map</span>
+        <span class="cmd">netpath.py nhif.or.ke --speed --save starlink_ke</span>
+        <span class="note">  measure the link, log the run</span>
+        <span class="cmd">netpath.py --compare-map starlink_ke fibre_ke</span>
+        <span class="note">  two paths, one map, one color each</span>
+      </div>
     </div>
   </div>
 </section>
