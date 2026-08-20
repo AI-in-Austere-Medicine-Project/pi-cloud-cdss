@@ -5,7 +5,7 @@ Open source. Edge deployed. Safety findings published.
 
 > ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
-**Current release: 4.1.0** · [Release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [Changelog](CHANGELOG.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Current release: 4.1.0** · [Release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [Technical notes](docs/TECH_NOTES_v4.1.md) · [Changelog](CHANGELOG.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
 ---
 
@@ -159,7 +159,8 @@ no key and no vector database, so it runs on a clean checkout in CI or on a lapt
 |---|---|
 | [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 4.1 entry |
 | [`TODO.md`](TODO.md) | Roadmap, and every audit finding 4.1 knowingly deferred with its residual risk |
-| [`docs/TECH_NOTES_v4.0.md`](docs/TECH_NOTES_v4.0.md) | 4.0 technical release notes |
+| [`docs/TECH_NOTES_v4.1.md`](docs/TECH_NOTES_v4.1.md) | **Current** technical notes — architecture, changes in 4.1, testing, known limitations |
+| [`docs/TECH_NOTES_v4.0.md`](docs/TECH_NOTES_v4.0.md) | 4.0 technical notes (superseded; kept as the record of what 4.0 claimed) |
 | [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | Research positioning, design principles, references |
 | [`docs/EdgeCDSS_v4_Technology.pdf`](docs/EdgeCDSS_v4_Technology.pdf) | Technology explainer |
 | [`publications/`](publications/) | Articles and papers written by the project |
