@@ -1,5 +1,75 @@
 # EdgeCDSS Changelog
 
+## [4.1.0] - UNRELEASED (branch `v4.1-audit`)
+
+Hardening release driven by `AUDIT_v4.1.md` — a review of 135 logged queries and
+26 feedback entries from the v4.0 field period. Convention: one fix, one commit,
+one regression test. Every fix below has a mutation check recorded in its commit
+message: revert the fix, watch the named test fail, restore.
+
+**Incomplete.** SC-1 (patient-boundary reset), the fix for the audit's most
+serious finding, is not in this branch yet — it is held for owner review. Do not
+cut a release from this state.
+
+### Safety
+- Safety-gate overrides now **downgrade instead of releasing**. The nine
+  hand-rolled false-positive branches became a named `SAFETY_OVERRIDES` registry;
+  a fired override serves the response with the human-review banner and
+  **preserves the validator's issue list** instead of discarding it. Invariant,
+  pinned over a 216-case matrix: a served response can never be logged `UNSAFE`.
+  (audit S-2)
+- **Dose contract enforced when the contract is empty.** Canonical GIVE lines
+  were only checked when Python had computed dose candidates — that is, the check
+  was skipped in exactly the state where the generator is most likely to invent a
+  dose. An empty contract now hard-blocks any canonical GIVE line, for adults as
+  well as pediatrics. (audit S-3)
+- `is_pediatric` is **re-derived every turn** rather than latched True and never
+  cleared. (audit S-1, partial)
+- The hard-coded `levetiracetam (Keppra) 1500mg` was removed from
+  `ALLOWED_ACTIONS`. That block carries weight-free protocol guidance only; every
+  number with a dose unit belongs in `ALLOWED_DOSES`, which requires a confirmed
+  weight.
+
+### Quality
+- Ventilator-settings queries no longer route into the RSI paralytic bundle. A
+  bare `"ventilator"` substring match dispatched them before vent settings were
+  ever considered. (audit S-4)
+- The clinical router's alias table matches on **word boundaries**. Plain
+  substring matching against single- and double-letter keys meant any query
+  containing *patient* had "physician assistant" appended to its RAG search, and
+  *dka* pulled in "ketamine". 143 spurious matches removed across the logged
+  corpus. (audit F-2)
+
+### Observability
+- Session JSONL gains `override_fired`, `pipeline_ms` and `synthetic`, stamped
+  `log_schema: 2`. Pre-v4.1 entries carry none of these and no schema key;
+  analysis tooling must read a missing key as **unknown**, never as a default —
+  defaulting an absent `synthetic` to false would re-classify 48 known
+  test-suite entries as real user traffic.
+- `run_tests.sh` tags its requests `X-Test-Run: 1`. The suite fires at the live
+  public endpoint by design, so the flag is self-declared and spoofable: it is
+  log hygiene, **not** a security control, and nothing in the pipeline branches
+  on it (pinned by test).
+
+### Testing
+- Offline regression suite: 65 tests, ~0.5 s, no network, no API key, no
+  ChromaDB. `cd server && ./run_unit_tests.sh`. `openai_client` is now importable
+  without the OpenAI SDK or a key, which is what made the suite possible.
+
+### Corrections to earlier changelog entries
+- **[2.5.0] "Memory reset — voice command \"new patient\", button, 30min
+  inactivity timeout" and "New Patient button added to web interface header" are
+  inaccurate as they stand.** No patient-boundary reset exists in the shipped
+  server: no inactivity timeout, and no server-side handling of a "new patient"
+  utterance. The S-1 sequence was replayed against shipped `HEAD`
+  (`PLAN_v4.1.md` §1.1): `new session` at `cdss_session_2026-07-18.jsonl:13`
+  parses as an ordinary query and clears nothing — the 17 kg carries straight
+  through to the next patient. Whatever shipped in 2.5 did not survive into
+  the v4 client/server split. SC-1 is the item that will make the claim true; it
+  is **not** in this release. The 2.5.0 entry is left as written — it is a
+  historical record — and corrected here rather than edited.
+
+
 ## [4.0.0] - 2026-07-18
 
 ### Architecture (Deterministic-First)
