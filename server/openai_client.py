@@ -823,8 +823,9 @@ def build_allowed_actions(query: str, ctx: PatientContext) -> List[str]:
         else:
             actions.append(
                 "SEIZURE_ADULT_DEFAULT: For active adult seizure, lorazepam is first-line if available "
-                "and within protocol. Follow with levetiracetam (Keppra) 1500mg IV for maintenance. "
-                "Use local protocol for dose and route if weight is not confirmed."
+                "and within protocol. Follow with levetiracetam (Keppra) IV for maintenance. "
+                "Dose and route per local protocol. State no numeric dose unless it appears "
+                "verbatim in ALLOWED_DOSES."
             )
 
     return actions

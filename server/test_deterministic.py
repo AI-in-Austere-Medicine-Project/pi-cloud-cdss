@@ -9,6 +9,7 @@ Requires no third-party packages beyond pytest, and no OPENAI_API_KEY.
 """
 
 import os
+import re
 import subprocess
 import sys
 
@@ -16,8 +17,10 @@ os.environ.setdefault("OPENAI_API_KEY", "test-offline")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from openai_client import (  # noqa: E402
-    extract_patient_context, wants_medication_dose, _has_word,
+    PatientContext, build_allowed_actions, extract_patient_context,
+    wants_medication_dose, _has_word,
 )
+from test_fixtures import S3_QUERY  # noqa: E402
 
 
 # ── P-0: the module must import with no SDK and no API key ──────────────────
@@ -136,3 +139,81 @@ if __name__ == "__main__":
                 print(f"FAIL {name}")
                 fails += 1
     sys.exit(1 if fails else 0)
+
+
+# ── SC-7 (minimal form): ALLOWED_ACTIONS carries no hard-coded dose ─────────
+# Owner decision 2026-08-20 (PLAN_v4.1.md §5.5): pull SC-7's minimal form in so
+# the S-3 seizure case becomes a weight-free protocol answer instead of the
+# safety hold SC-6 would otherwise produce.
+
+DOSE_TOKEN_RE = re.compile(r'\d+(?:\.\d+)?\s*(?:mg|mcg|ml|g|units?|meq)\b', re.I)
+
+
+SEIZURE_TRIGGER_QUERY = "patient having active seizure"   # 07-18.jsonl:35, :62
+
+
+def test_seizure_adult_default_carries_no_numeric_dose():
+    """A hard-coded 'levetiracetam (Keppra) 1500mg' reached the prompt verbatim.
+
+    ALLOWED_ACTIONS is weight-free protocol guidance; a number in it is a dose
+    the generator can copy without any contract having authorised it.
+    """
+    ctx = PatientContext()                      # adult, no confirmed weight
+    actions = build_allowed_actions(SEIZURE_TRIGGER_QUERY, ctx)
+    joined = " ".join(actions)
+    assert "SEIZURE_ADULT_DEFAULT" in joined
+    assert "levetiracetam" in joined.lower(), "the drug stays; only the number goes"
+    assert DOSE_TOKEN_RE.search(joined) is None, f"hard-coded dose still present: {joined}"
+
+
+def test_s3_query_never_reached_the_hard_coded_action():
+    """Pins a correction to PLAN_v4.1.md §0/§5.5, measured 2026-08-20.
+
+    The plan asserted the hard-coded 1500mg in build_allowed_actions() was the
+    source of the S-3 GIVE line, and that stripping it would turn S-3 into a
+    weight-free protocol answer. It is not the source: the S-3 query reads
+    "ststus SZ", which matches none of the three seizure triggers
+    ("seizure" / "seizing" / "status epilepticus"), and the record logged
+    history_turns=0, so no earlier turn supplied one either. The 1500mg was
+    generator-produced under source_mode=GENERAL_MEDICAL.
+
+    Consequence: SC-7-minimal does NOT soften SC-6 for S-3. That case is still
+    a safety hold. Changing that would need the trigger list widened (a
+    different change, with its own false-positive surface), not this one.
+    """
+    for ctx in (PatientContext(), PatientContext(age_years=40.0)):
+        assert build_allowed_actions(S3_QUERY, ctx) == []
+
+
+def test_no_allowed_action_anywhere_carries_a_dose():
+    """Meta-test: the same defect must not arrive via a different branch.
+
+    ALLOWED_ACTIONS is weight-free protocol guidance by contract; every number
+    with a dose unit belongs in ALLOWED_DOSES, which is built from a confirmed
+    weight. Non-dose numbers ('within 3 hours') are fine and stay allowed.
+    """
+    queries = [
+        S3_QUERY,
+        "adult in status epilepticus",
+        "6 year old seizing",
+        "active abdominal bleeding, hemorrhagic shock",
+        "massive bleeding after blast",
+    ]
+    contexts = [
+        PatientContext(),
+        PatientContext(age_years=4.0, is_pediatric=True),
+        PatientContext(age_years=4.0, is_pediatric=True, confirmed_weight_kg=17.0),
+        PatientContext(age_years=40.0, confirmed_weight_kg=80.0),
+    ]
+    for q in queries:
+        for ctx in contexts:
+            for action in build_allowed_actions(q, ctx):
+                assert DOSE_TOKEN_RE.search(action) is None, (
+                    f"ALLOWED_ACTIONS must carry no dose; query={q!r} action={action!r}")
+
+
+def test_pediatric_seizure_branch_unchanged():
+    """SC-7-minimal touches the adult branch only; SC-9 stays out of scope."""
+    ctx = PatientContext(age_years=6.0, is_pediatric=True)
+    actions = build_allowed_actions("6 year old seizing", ctx)
+    assert any(a.startswith("SEIZURE_PEDIATRIC") for a in actions)
