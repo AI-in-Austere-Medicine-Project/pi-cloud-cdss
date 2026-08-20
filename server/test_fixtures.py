@@ -85,3 +85,21 @@ ALIAS_STANDALONE_CASES = [
     ("rocky onium please",    "rocky onium",   "rocuronium"),
     ("vitamin k for pain",    "vitamin k",     "ketamine"),
 ]
+
+# ── SC-6 unchanged-path case: a populated contract, three real issues ────────
+# cdss_session_2026-07-19.jsonl:6 — validator_issues verbatim; patient_ctx has
+# confirmed_weight_kg 72.1, so the contract was non-empty.
+S6_POPULATED_CONTRACT_ISSUES = [
+    "GIVE line doses 'ketamine' (75.0mg) but that medication is not in the ALLOWED_DOSES contract.",
+    "GIVE line doses 'rocuronium' (75.0mg) but that medication is not in the ALLOWED_DOSES contract.",
+    "GIVE line states lorazepam 1mg, which does not match any ALLOWED_DOSES value (4mg IV).",
+]
+# RECONSTRUCTED: the log stores a 200-character preview of the *blocked* text,
+# not the generated response. These are the canonical GIVE lines that produce
+# the three issues above; volumes follow from the standard concentrations.
+S6_POPULATED_CONTRACT_RESPONSE = (
+    "**GIVE**\n"
+    "- Draw 0.75 mL of 100mg/mL ketamine IV (75mg). Indication: RSI induction.\n"
+    "- Draw 7.5 mL of 10mg/mL rocuronium IV (75mg). Indication: RSI paralysis.\n"
+    "- Draw 0.5 mL of 2mg/mL lorazepam IV (1mg). Indication: sedation.\n"
+)

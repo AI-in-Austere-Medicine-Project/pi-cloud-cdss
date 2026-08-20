@@ -10,16 +10,21 @@ which is out of scope for v4.1.
 """
 
 import os
+import re
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from openai_client import (  # noqa: E402
-    SAFETY_OVERRIDES, DeterministicCheck, PatientContext,
-    apply_safety_gate, find_fired_override,
+    CANONICAL_GIVE_RE, SAFETY_OVERRIDES, DeterministicCheck, DoseCandidate,
+    PatientContext, apply_safety_gate, find_fired_override,
+    run_deterministic_checks,
 )
-from test_fixtures import S2_GATE_QUESTION_PREVIEW, S2_IED_PREVIEW  # noqa: E402
+from test_fixtures import (  # noqa: E402
+    FIXED_PREP_PUSH_DOSE_EPI, S2_GATE_QUESTION_PREVIEW, S2_IED_PREVIEW,
+    S3_GIVE_LINE, S6_POPULATED_CONTRACT_ISSUES, S6_POPULATED_CONTRACT_RESPONSE,
+)
 
 PASS = DeterministicCheck(passed=True)
 FAIL = DeterministicCheck(passed=False, issues=["Deterministic issue for test."])
@@ -269,3 +274,111 @@ def test_find_fired_override_returns_registry_members():
         fired = find_fired_override(c["issues"], c["response"], c.get("ctx"),
                                     c.get("history", ""))
         assert fired in SAFETY_OVERRIDES
+
+
+# ── SC-6: the dose contract must be enforced when the contract is EMPTY ─────
+# v4.0 guarded the whole canonical-GIVE parse behind `if allowed_doses:`, so
+# "no contract" read as "nothing to check" rather than "nothing authorised".
+# That is the S-3 gap: an adult with no confirmed weight, an empty contract,
+# and a served 1500mg dose. The pediatric net below it never covered adults.
+
+ADULT_NO_WEIGHT = PatientContext()
+ADULT_WITH_WEIGHT = PatientContext(age_years=44.0, confirmed_weight_kg=72.1)
+PEDS_NO_WEIGHT = PatientContext(age_years=6.0, is_pediatric=True)
+
+LORAZEPAM_4MG_IV = DoseCandidate(
+    drug="lorazepam", indication="status epilepticus", route="IV",
+    dose_mg=4.0, volume_ml=2.0, concentration_mg_ml=2.0, source="test",
+)
+
+
+def checks(response, ctx, allowed_doses=None, query="status seizure"):
+    return run_deterministic_checks(query, response, ctx, allowed_doses)
+
+
+def test_empty_contract_blocks_canonical_give_line():
+    """S-3, verbatim: cdss_session_2026-07-21.jsonl:2."""
+    result = checks(S3_GIVE_LINE, ADULT_NO_WEIGHT, [])
+    assert result.passed is False
+    joined = " ".join(result.issues)
+    assert "levetiracetam" in joined
+    assert "1500" in joined
+    assert "empty" in joined.lower() and "ALLOWED_DOSES" in joined
+
+
+def test_empty_contract_blocks_for_adults_specifically():
+    """The exact gap S-3 describes — the pediatric net only covered pediatrics.
+
+    Same response, same empty contract, adult context. If the empty-contract
+    branch were made pediatric-only this would pass and the gap would reopen.
+    """
+    adult = checks(S3_GIVE_LINE, ADULT_NO_WEIGHT, [])
+    peds = checks(S3_GIVE_LINE, PEDS_NO_WEIGHT, [])
+    assert adult.passed is False, "an adult with no contract must be blocked"
+    assert peds.passed is False
+    assert any("empty" in i.lower() for i in adult.issues), (
+        f"adult block must come from the contract check, not another net: {adult.issues}")
+
+
+def test_empty_contract_passes_none_and_empty_list_alike():
+    """allowed_doses=None is 'no contract built', not 'check skipped'."""
+    assert checks(S3_GIVE_LINE, ADULT_NO_WEIGHT, None).passed is False
+
+
+def test_empty_contract_allows_response_without_give_line():
+    """Guards against over-blocking: numbers outside a canonical GIVE line."""
+    narrative = (
+        "**DO THIS**\n1. Protect the airway; suction ready.\n"
+        "2. Benzodiazepine per local protocol.\n\n"
+        "**WATCH**\n- Recheck glucose; treat below 70 mg/dL.\n"
+        "- Seizures beyond 5 minutes are status.\n\n"
+        "**DON'T**\n- Do not give 1500mg of anything without a confirmed weight.\n"
+    )
+    result = checks(narrative, ADULT_NO_WEIGHT, [])
+    assert result.passed is True, result.issues
+
+
+def test_fixed_prep_text_is_not_a_canonical_give_line():
+    """07-18.jsonl:40 and :67 — push-dose epi prep must stay unblocked.
+
+    Two independent reasons in production (FIXED_PREP returns at the pre-gate,
+    and the text does not match the canonical regex). This pins the second, so
+    a future loosening of CANONICAL_GIVE_RE cannot silently start blocking
+    preparation recipes.
+    """
+    assert re.findall(CANONICAL_GIVE_RE, FIXED_PREP_PUSH_DOSE_EPI.lower()) == []
+    assert checks(FIXED_PREP_PUSH_DOSE_EPI, ADULT_NO_WEIGHT, [],
+                  query="need to make push dose epi").passed is True
+
+
+def test_populated_contract_behaviour_unchanged():
+    """cdss_session_2026-07-19.jsonl:6 — the three real issues, unchanged.
+
+    SC-6 moved this path into an else branch; it must produce byte-identical
+    issues.
+    """
+    result = checks(S6_POPULATED_CONTRACT_RESPONSE, ADULT_WITH_WEIGHT,
+                    [LORAZEPAM_4MG_IV],
+                    query="159lb male unable to ventilate effectively status post oral trauma")
+    assert result.passed is False
+    assert sorted(result.issues) == sorted(S6_POPULATED_CONTRACT_ISSUES)
+
+
+def test_matching_dose_under_a_populated_contract_still_passes():
+    """The contract's own value must not be blocked by the new branch."""
+    response = "**GIVE**\n- Draw 2 mL of 2mg/mL lorazepam IV (4mg). Indication: status.\n"
+    assert checks(response, ADULT_WITH_WEIGHT, [LORAZEPAM_4MG_IV]).passed is True
+
+
+def test_empty_contract_block_reaches_the_gate_as_a_hard_block():
+    """SC-6 issues must block, not downgrade — no SC-3 override may release one.
+
+    The S-3 case is the whole point: a served dose with nothing authorising it.
+    """
+    det = checks(S3_GIVE_LINE, ADULT_NO_WEIGHT, [])
+    outcome = apply_safety_gate(S3_GIVE_LINE, det,
+                                {"result": "SAFE", "issues": [], "rationale": ""},
+                                ADULT_NO_WEIGHT, "")
+    assert outcome.blocked is True
+    assert outcome.verdict == "UNSAFE"
+    assert outcome.issues == det.issues

@@ -1109,6 +1109,16 @@ def build_system_prompt(ctx: PatientContext, assessment: RetrievalAssessment,
 # DETERMINISTIC POST-CHECKS
 # ─────────────────────────────────────────────────────────────────────────────
 
+# The canonical GIVE line the generator is instructed to emit:
+#   "Draw X mL of Ymg/mL <drug> <route> (Zmg)."
+# Module-level so the contract check and its tests share one definition —
+# broadening it silently broadens what SC-6 blocks.
+CANONICAL_GIVE_RE = (
+    r'draw\s+(\d+(?:\.\d+)?)\s*ml\s+of\s+(\d+(?:\.\d+)?)\s*mg/ml\s+'
+    r'([a-z][a-z\- ]{2,30}?)\s*(?:i[vmo][^(]*)?\((\d+(?:\.\d+)?)\s*mg\)'
+)
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
                               allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
@@ -1126,11 +1136,17 @@ def run_deterministic_checks(query: str, response_text: str,
     # Parse canonical GIVE lines ("Draw X mL of Ymg/mL drug ... (Zmg)") and
     # verify each stated dose against the deterministic contract. Scoped to
     # the canonical format so warnings/DON'T-lines with numbers never trip it.
-    if allowed_doses:
-        give_lines = re.findall(
-            r'draw\s+(\d+(?:\.\d+)?)\s*ml\s+of\s+(\d+(?:\.\d+)?)\s*mg/ml\s+'
-            r'([a-z][a-z\- ]{2,30}?)\s*(?:i[vmo][^(]*)?\((\d+(?:\.\d+)?)\s*mg\)',
-            r)
+    give_lines = re.findall(CANONICAL_GIVE_RE, r)
+
+    if not allowed_doses:
+        # SC-6: no contract was built — no weight, so no dose was authorised.
+        # Any canonical GIVE line here is a number the generator supplied on its
+        # own. This is the adult gap: the pediatric net below never covered it.
+        for _vol_s, _conc_s, drug_s, mg_s in give_lines:
+            issues.append(
+                f"GIVE line doses '{drug_s.strip()}' ({float(mg_s):g}mg) with an empty "
+                f"ALLOWED_DOSES contract — no deterministic dose was authorised.")
+    else:
         contract_drugs = {d.drug.lower() for d in allowed_doses}
         for vol_s, conc_s, drug_s, mg_s in give_lines:
             stated_mg = float(mg_s)
