@@ -119,6 +119,7 @@ def log_query(query: str, result: dict, conversation_history: list = None):
             "source_mode": result.get("source_mode", "UNKNOWN"),
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
+            "override_fired": result.get("override_fired"),
             "history_turns": len(conversation_history) if conversation_history else 0,
             "patient_ctx": {
                 k: v for k, v in (result.get("patient_context") or {}).items()
@@ -196,6 +197,31 @@ class DoseCandidate:
 class DeterministicCheck:
     passed: bool
     issues: list = field(default_factory=list)
+
+
+@dataclass
+class GateOutcome:
+    """
+    Result of apply_safety_gate().
+
+    Replaces the old (response, blocked, issues) tuple so that the verdict
+    written to the audit log is produced by the gate itself rather than
+    re-derived at the call site. The call site used to compute
+
+        "validator_result": "UNSAFE" if blocked else llm_result["result"]
+
+    which stamped UNSAFE on the log whenever the validator said UNSAFE — even
+    when an override had released the response and the medic saw it (S-2).
+
+    INVARIANT: verdict == "UNSAFE" if and only if blocked is True.
+    A served response can never be logged UNSAFE. Enforced by
+    test_safety_gate.py::test_gate_log_invariant.
+    """
+    response: str
+    blocked: bool
+    issues: list
+    verdict: str                              # SAFE | NEEDS_HUMAN_REVIEW | UNSAFE
+    override_fired: Optional[str] = None      # registry name, for the audit log (T-13)
 
 
 @dataclass
@@ -1362,13 +1388,145 @@ def is_cico_response_adequate(response_text: str) -> bool:
         "cricothyrotomy", "surgical airway", "front of neck", "cric"
     ])
 
+HUMAN_REVIEW_BANNER = (
+    "\n\n⚠️ CLINICAL SAFETY NOTE: This response requires human review. "
+    "Use local protocol and medical control where available."
+)
+
+
+def _partition_issues(issues: list, keywords: list) -> tuple:
+    """Split issues into (those mentioning any keyword, the rest)."""
+    matched, other = [], []
+    for issue in issues:
+        text = issue.lower()
+        (matched if any(k in text for k in keywords) else other).append(issue)
+    return matched, other
+
+
+@dataclass(frozen=True)
+class SafetyOverride:
+    """
+    One structured false-positive override.
+
+    `name` is stable and is written to the session log (T-13) so an audit can
+    tell which branch fired. `keywords` selects the issues this override speaks
+    to; `requires_sole_issue` is the guard that stops an override dismissing a
+    block when unrelated issues are also present. `condition` is the evidence
+    that the flagged concern is actually addressed by the response.
+
+    Overrides DOWNGRADE, they do not release (SC-3). A fired override yields a
+    served response with the human-review banner, the ORIGINAL issue list
+    preserved for the log, and verdict NEEDS_HUMAN_REVIEW.
+    """
+    name: str
+    keywords: tuple
+    condition: object                  # (response_lower, ctx, full_history) -> bool
+    requires_sole_issue: bool = True
+
+    def fires(self, issues, response_lower, patient_ctx, full_query_history) -> bool:
+        matched, other = _partition_issues(list(issues), list(self.keywords))
+        if not matched:
+            return False
+        if self.requires_sole_issue and other:
+            return False
+        return bool(self.condition(response_lower, patient_ctx, full_query_history))
+
+
+_STEROID_DRUGS = ["dexamethasone", "methylprednisolone", "solu-medrol",
+                  "decadron", "prednisone", "prednisolone", "hydrocortisone"]
+
+
+def _has_confirmed_weight(_r, ctx, _h):
+    return bool(getattr(ctx, "confirmed_weight_kg", None) if ctx else None)
+
+
+# Evaluation order is significant and matches v4.0 exactly.
+SAFETY_OVERRIDES = (
+    # NOTE: requires_sole_issue=False preserves v4.0 behaviour — this branch
+    # dismisses the block even when unrelated issues co-occur. That is the
+    # SC-5 gap on TODO.md, deliberately NOT changed here. Under SC-3 its
+    # consequence is bounded: the co-occurring issue is now preserved in the
+    # log and banner-flagged rather than discarded.
+    SafetyOverride(
+        name="pediatric_weight_confirmed",
+        keywords=("without confirmed pediatric", "confirmed pediatric", "confirmed weight"),
+        condition=_has_confirmed_weight,
+        requires_sole_issue=False,
+    ),
+    SafetyOverride(
+        name="cico_airway",
+        keywords=("cico", "cricothyrotomy", "surgical airway", "cric", "airway"),
+        condition=lambda r, ctx, h: is_cico_response_adequate(r),
+    ),
+    SafetyOverride(
+        name="paralytic_with_induction",
+        keywords=("paralytic",),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["ketamine", "etomidate", "induction", "pre-oxygenate"]),
+    ),
+    # TBI-steroid (beta 2026-07-18): the validator may demand a steroid warning
+    # when the response never recommends one. Absence of a warning is not a
+    # violation; the deterministic check is the authority on actual steroid
+    # recommendations.
+    SafetyOverride(
+        name="tbi_steroid_absent",
+        keywords=("steroid", "corticosteroid"),
+        condition=lambda r, ctx, h: not any(d in r for d in _STEROID_DRUGS),
+    ),
+    SafetyOverride(
+        name="sepsis_hemorrhage_no_dcr",
+        keywords=("sepsis", "hemorrhage"),
+        condition=lambda r, ctx, h: not any(x in r for x in
+            ["txa", "tranexamic", "ltowb", "whole blood", "dcr"]),
+    ),
+    SafetyOverride(
+        name="fluids_resuscitation",
+        keywords=("iv fluid", "fluid", "crystalloid", "resuscitat"),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["fluid", "crystalloid", "antibiotic", "ns ", "lr "]),
+    ),
+    SafetyOverride(
+        name="tension_pneumo_decompression",
+        keywords=("tension pneumo", "decompression", "needle", "thoracostomy"),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["decompression", "needle", "thoracostomy", "chest"]),
+    ),
+    SafetyOverride(
+        name="dangerous_reassurance_has_action",
+        keywords=("reassurance",),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["airway", "intubat", "evacuate", "evac", "monitor", "iv fluid",
+             "cpr", "decompression", "fluid", "antibiotic"]),
+    ),
+    SafetyOverride(
+        name="txa_clear_hemorrhage",
+        keywords=("txa", "tranexamic"),
+        condition=lambda r, ctx, h: has_clear_hemorrhage(h) and not looks_like_sepsis(h),
+    ),
+)
+
+
+def find_fired_override(issues: list, response_text: str, patient_ctx,
+                        full_query_history: str):
+    """First override in registry order whose conditions are met, else None."""
+    r_lower = (response_text or "").lower()
+    for override in SAFETY_OVERRIDES:
+        if override.fires(issues, r_lower, patient_ctx, full_query_history):
+            return override
+    return None
+
+
 def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
                       llm_result: dict,
                       patient_ctx=None,
-                      full_query_history: str = "") -> tuple:
+                      full_query_history: str = "") -> GateOutcome:
+    """
+    Fail-closed safety gate. Returns a GateOutcome whose `verdict` is what the
+    session log records — see the invariant on GateOutcome.
+    """
     # Safe gate responses always pass through
     if is_safe_gate_response(response_text):
-        return response_text, False, []
+        return GateOutcome(response_text, False, [], "SAFE")
 
     # Deterministic failures block first (warn-only when debug flag set)
     if not det_check.passed:
@@ -1377,119 +1535,50 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
             response_text += "\n\n[DEBUG DET ISSUE: " + str(det_check.issues) + "]"
         else:
             print(f"🚨 DETERMINISTIC BLOCK: {det_check.issues}")
-            return build_safety_hold(det_check.issues, ""), True, det_check.issues
+            return GateOutcome(build_safety_hold(det_check.issues, ""), True,
+                               det_check.issues, "UNSAFE")
 
-    # LLM UNSAFE — check false positives before blocking
+    # LLM UNSAFE — check structured false positives before blocking
     if llm_result["result"] == "UNSAFE":
-        issues = llm_result.get("issues", [])
-        r_lower = response_text.lower()
+        issues = llm_result.get("issues") or []
+        if not issues:
+            # normalize_validator_result() already guarantees a non-empty issue
+            # list upstream, but the gate must not depend on a normalizer it does
+            # not call: a blocked record with no issues is as uninformative in the
+            # audit log as the served UNSAFE records S-2 describes. Mirrors the
+            # normalizer's wording.
+            rationale = llm_result.get("rationale", "")
+            issues = [f"Validator marked UNSAFE: {rationale}" if rationale
+                      else "Validator marked unsafe but provided no specific issue."]
 
-        # Override pediatric weight false positive when patient_ctx confirms weight
-        issue_text = " ".join(issues).lower()
-        confirmed_weight = getattr(patient_ctx, "confirmed_weight_kg", None) if patient_ctx else None
-        if (
-            "without confirmed pediatric" in issue_text
-            or "confirmed pediatric" in issue_text
-            or "confirmed weight" in issue_text
-        ) and confirmed_weight:
-            print(f"✅ Override: pediatric weight confirmed at {confirmed_weight}kg")
-            return response_text, False, []
-
-        # Override CICO/airway false positive
-        airway_issues = [i for i in issues if any(x in i.lower() for x in
-            ["cico", "cricothyrotomy", "surgical airway", "cric", "airway"])]
-        non_airway = [i for i in issues if not any(x in i.lower() for x in
-            ["cico", "cricothyrotomy", "surgical airway", "cric", "airway"])]
-        if airway_issues and not non_airway and is_cico_response_adequate(response_text):
-            print(f"✅ Airway/CICO false positive overridden")
-            return response_text, False, []
-
-        # Override paralytic-without-induction false positive
-        paralytic_issues = [i for i in issues if "paralytic" in i.lower()]
-        non_paralytic = [i for i in issues if "paralytic" not in i.lower()]
-        has_induction = any(x in r_lower for x in ["ketamine", "etomidate", "induction", "pre-oxygenate"])
-        if paralytic_issues and not non_paralytic and has_induction:
-            print(f"✅ Paralytic false positive overridden — induction found")
-            return response_text, False, []
-
-        # Override TBI-steroid false positive (beta 2026-07-18): the validator
-        # may not demand a steroid warning when the response never recommends one.
-        # The deterministic check (issues, above) is the authority for actual
-        # steroid recommendations — absence of a warning is not a violation.
-        steroid_issues = [i for i in issues if any(x in i.lower() for x in
-            ["steroid", "corticosteroid"])]
-        non_steroid = [i for i in issues if not any(x in i.lower() for x in
-            ["steroid", "corticosteroid"])]
-        steroid_drugs = ["dexamethasone", "methylprednisolone", "solu-medrol",
-                         "decadron", "prednisone", "prednisolone", "hydrocortisone"]
-        recommends_steroid = any(d in r_lower for d in steroid_drugs)
-        if steroid_issues and not non_steroid and not recommends_steroid:
-            print("✅ TBI-steroid false positive overridden — no steroid recommended in response")
-            return response_text, False, []
-
-        # Override SEPSIS AS HEMORRHAGE false positive if no DCR in response
-        sepsis_issues = [i for i in issues if any(x in i.upper() for x in ["SEPSIS", "HEMORRHAGE"])]
-        non_sepsis = [i for i in issues if not any(x in i.upper() for x in ["SEPSIS", "HEMORRHAGE"])]
-        has_dcr = any(x in r_lower for x in ["txa", "tranexamic", "ltowb", "whole blood", "dcr"])
-        if sepsis_issues and not non_sepsis and not has_dcr:
-            print(f"✅ SEPSIS/HEMORRHAGE false positive overridden")
-            return response_text, False, []
-
-        # Override fluids-in-sepsis false positive
-        fluids_issues = [i for i in issues if any(x in i.lower() for x in
-            ["iv fluid", "fluid", "crystalloid", "resuscitat"])]
-        non_fluids = [i for i in issues if not any(x in i.lower() for x in
-            ["iv fluid", "fluid", "crystalloid", "resuscitat"])]
-        if fluids_issues and not non_fluids and any(x in r_lower for x in
-            ["fluid", "crystalloid", "antibiotic", "ns ", "lr "]):
-            print(f"✅ Fluids false positive overridden")
-            return response_text, False, []
-
-        # Override tension pneumo/MASCAL decompression false positive
-        decomp_issues = [i for i in issues if any(x in i.lower() for x in
-            ["tension pneumo", "decompression", "needle", "thoracostomy"])]
-        non_decomp = [i for i in issues if not any(x in i.lower() for x in
-            ["tension pneumo", "decompression", "needle", "thoracostomy"])]
-        if decomp_issues and not non_decomp and any(x in r_lower for x in
-            ["decompression", "needle", "thoracostomy", "chest"]):
-            print(f"✅ Tension pneumo false positive overridden")
-            return response_text, False, []
-
-        # Override DANGEROUS REASSURANCE if response has action items
-        reassurance_issues = [i for i in issues if "reassurance" in i.lower()]
-        non_reassurance = [i for i in issues if "reassurance" not in i.lower()]
-        has_action = any(x in r_lower for x in ["airway", "intubat", "evacuate", "evac",
-            "monitor", "iv fluid", "cpr", "decompression", "fluid", "antibiotic"])
-        if reassurance_issues and not non_reassurance and has_action:
-            print(f"✅ Dangerous reassurance false positive overridden")
-            return response_text, False, []
-
-        # Override TXA false positive when the full context is clear traumatic hemorrhage without sepsis.
-        txa_issues = [i for i in issues if any(x in i.lower() for x in ["txa", "tranexamic"])]
-        non_txa = [i for i in issues if not any(x in i.lower() for x in ["txa", "tranexamic"])]
-        if txa_issues and not non_txa:
-            if has_clear_hemorrhage(full_query_history) and not looks_like_sepsis(full_query_history):
-                print("✅ TXA false positive overridden — clear traumatic hemorrhage context")
-                return response_text, False, []
+        fired = find_fired_override(issues, response_text, patient_ctx, full_query_history)
+        if fired is not None:
+            # SC-3: an override DOWNGRADES. v4.0 returned (response, False, [])
+            # here — unblocked, issue list discarded, and the call site then
+            # logged UNSAFE for a response the medic had already been shown.
+            # The medic now sees the review banner and the issues survive.
+            print(f"⚠️ OVERRIDE [{fired.name}] — downgraded to NEEDS_HUMAN_REVIEW: {issues}")
+            return GateOutcome(response_text + HUMAN_REVIEW_BANNER, False, issues,
+                               "NEEDS_HUMAN_REVIEW", override_fired=fired.name)
 
         if DEBUG_WARN_ONLY:
+            # Served, so it cannot be logged UNSAFE (see the GateOutcome invariant).
             print(f"DEBUG WARN ONLY — LLM issue: {issues}")
-            response_text += "\n\n[DEBUG LLM ISSUE: " + str(issues) + "]"
-            return response_text, False, issues
+            return GateOutcome(response_text + "\n\n[DEBUG LLM ISSUE: " + str(issues) + "]",
+                               False, issues, "NEEDS_HUMAN_REVIEW")
+
         print(f"🚨 LLM BLOCK: {issues}")
-        return build_safety_hold(issues, llm_result.get("rationale", "")), True, issues
+        return GateOutcome(build_safety_hold(issues, llm_result.get("rationale", "")),
+                           True, issues, "UNSAFE")
 
     # NEEDS_HUMAN_REVIEW appends warning
     if llm_result["result"] == "NEEDS_HUMAN_REVIEW":
         print(f"⚠️ NEEDS_HUMAN_REVIEW: {llm_result.get('rationale','')}")
-        warning = (
-            "\n\n⚠️ CLINICAL SAFETY NOTE: This response requires human review. "
-            "Use local protocol and medical control where available."
-        )
-        return response_text + warning, False, llm_result.get("issues", [])
+        return GateOutcome(response_text + HUMAN_REVIEW_BANNER, False,
+                           llm_result.get("issues", []), "NEEDS_HUMAN_REVIEW")
 
     print(f"✅ SAFE")
-    return response_text, False, []
+    return GateOutcome(response_text, False, [], "SAFE")
 
 
 
@@ -2332,7 +2421,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         llm_result = validate_response(full_transcript, response_text, patient_ctx, allowed_dose_block)
 
         # Step 8: Safety gate with full history context
-        final_response, blocked, combined_issues = apply_safety_gate(
+        outcome = apply_safety_gate(
             response_text,
             det_check,
             llm_result,
@@ -2340,12 +2429,16 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             full_query_history
         )
 
+        # validator_result comes from the gate, not from the validator verdict.
+        # v4.0 computed `"UNSAFE" if blocked else llm_result["result"]` here,
+        # which logged UNSAFE for responses that were served (S-2).
         return {
-            "response": final_response,
+            "response": outcome.response,
             "sources": assessment.sources[:3],
             "source_mode": assessment.source_mode,
-            "validator_result": "UNSAFE" if blocked else llm_result["result"],
-            "validator_issues": combined_issues,
+            "validator_result": outcome.verdict,
+            "validator_issues": outcome.issues,
+            "override_fired": outcome.override_fired,
             "patient_context": patient_ctx.to_dict()
         }
 
