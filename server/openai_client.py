@@ -91,6 +91,27 @@ if DEBUG_WARN_ONLY:
     print("⚠️  EDGECDSS_DEBUG_WARN_ONLY is ON — safety holds will warn, not block. NOT FOR PRODUCTION.")
 
 
+def _env_number(name: str, default, cast=float):
+    """
+    Read a numeric tuning knob from the environment, falling back on garbage.
+
+    These knobs exist to be tuned, which means they will be typo'd — "30m",
+    "thirty", a trailing space. A bare int()/float() on the result raises, and
+    PATIENT_BOUNDARY_TIMEOUT_MIN is read at MODULE SCOPE: an unparseable value
+    there means openai_client fails to import, uvicorn never starts, /health
+    never answers, and the deploy watchdog reboots the box in a loop. A tuning
+    typo must degrade to the default, loudly, not take the device down.
+    """
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        return cast(str(raw).strip())
+    except (TypeError, ValueError):
+        print(f"⚠️  {name}={raw!r} is not a number — using default {default}.")
+        return default
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION AUDIT LOGGER
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1670,7 +1691,7 @@ _OPENER_NON_PATIENT_NOUNS = (
 # Inactivity gap after which the next turn is treated as a new patient.
 # v2.5's changelog claimed 30 minutes; confirmed by owner 2026-08-20 against
 # the logged session clusters (08-11 splits at 07:49->07:52, 09:12, 11:54).
-PATIENT_BOUNDARY_TIMEOUT_MIN = float(os.getenv("CDSS_PATIENT_TIMEOUT_MIN", "30"))
+PATIENT_BOUNDARY_TIMEOUT_MIN = _env_number("CDSS_PATIENT_TIMEOUT_MIN", 30.0, float)
 
 # Contradiction tolerances. Below these a restatement is a restatement, not a
 # new patient — "34kg" then "34 kg" must not reset.
@@ -1826,7 +1847,7 @@ def build_full_query_history(query: str, conversation_history: Optional[list] = 
     prior_queries = ""
     if conversation_history:
         parts = []
-        event_turns = int(os.getenv("CDSS_EVENT_TURNS", "12"))
+        event_turns = _env_number("CDSS_EVENT_TURNS", 12, int)
         for turn in conversation_history[-event_turns:]:
             if turn.get("query"):
                 parts.append(turn.get("query", ""))
@@ -2579,7 +2600,7 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
             except Exception as e:
                 print(f"Router error: {e}")
 
-        raw_results = chromadb_client.query(search_query, n_results=int(os.getenv("CDSS_RAG_TOP_K", "10")))
+        raw_results = chromadb_client.query(search_query, n_results=_env_number("CDSS_RAG_TOP_K", 10, int))
         assessment = classify_retrieval(raw_results)
         print(f"📚 {assessment.source_mode} (top: {assessment.top_score})")
 

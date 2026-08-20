@@ -63,8 +63,18 @@ message: revert the fix, watch the named test fail, restore.
   log hygiene, **not** a security control, and nothing in the pipeline branches
   on it (pinned by test).
 
+### Deployment safety
+- **A typo'd tuning value can no longer prevent startup.** `_env_number()`
+  replaces the raw `int()`/`float()` around `os.getenv` at all three numeric
+  knobs (`CDSS_PATIENT_TIMEOUT_MIN`, `CDSS_EVENT_TURNS`, `CDSS_RAG_TOP_K`): an
+  unparseable value now falls back to the default and says so, instead of
+  raising. The timeout knob is read at module scope, so a typo there meant
+  `openai_client` failed to import, uvicorn never started, `/health` never
+  answered, and the deploy watchdog rebooted the device in a loop — remotely,
+  with no way back in. The knobs stay tunable; only the failure mode changed.
+
 ### Testing
-- Offline regression suite: 96 tests, ~0.5 s, no network, no API key, no
+- Offline regression suite: 105 tests, ~2 s, no network, no API key, no
   ChromaDB. `cd server && ./run_unit_tests.sh`. `openai_client` is now importable
   without the OpenAI SDK or a key, which is what made the suite possible.
 
