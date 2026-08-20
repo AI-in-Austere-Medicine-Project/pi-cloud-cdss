@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeCDSS 4.1 — Release Notes | AI in Austere Medicine Project</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #e94560; --blue: #0a84ff; --dark: #080e14; --dark2: #0d1620;
+  --dark3: #111e2b; --panel: #0f1e2d; --border: rgba(255,255,255,0.07);
+  --text: #c8d8e8; --muted: #4a6070; --mono: 'Space Mono', monospace;
+  --head: 'Barlow Condensed', sans-serif; --body: 'Barlow', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--dark); color: var(--text); font-family: var(--body); line-height: 1.6; }
+.wrap { max-width: 880px; margin: 0 auto; padding: 40px 24px 80px; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.back { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.back:hover { color: var(--blue); }
+.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--red); margin: 40px 0 12px; }
+h1 { font-family: var(--head); font-weight: 900; font-size: clamp(42px, 7vw, 72px); line-height: 0.95; color: #fff; letter-spacing: 0.01em; }
+.sub { font-size: 18px; color: var(--muted); margin: 18px 0 0; max-width: 640px; }
+.meta { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 20px; }
+h2 { font-family: var(--head); font-weight: 700; font-size: 30px; color: #fff; margin: 52px 0 14px; letter-spacing: 0.02em; }
+h3 { font-family: var(--head); font-weight: 600; font-size: 21px; color: var(--blue); margin: 28px 0 8px; }
+p { margin-bottom: 14px; font-size: 16px; }
+ul { margin: 0 0 16px 22px; }
+li { margin-bottom: 8px; font-size: 16px; }
+li strong { color: #fff; font-weight: 500; }
+.statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin: 28px 0; }
+.stat { background: var(--dark2); padding: 22px 18px; }
+.stat b { font-family: var(--head); font-weight: 900; font-size: 40px; color: #fff; display: block; line-height: 1; }
+.stat b span { color: var(--red); }
+.stat small { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.pipeline { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--red); padding: 22px 24px; margin: 24px 0; }
+.pipeline .flow { font-family: var(--head); font-weight: 700; font-size: 26px; color: #fff; letter-spacing: 0.03em; }
+.pipeline p { color: var(--muted); font-size: 15px; margin: 10px 0 0; }
+.callout { background: var(--dark3); border: 1px solid var(--border); padding: 18px 22px; margin: 22px 0; font-size: 15px; color: var(--muted); }
+.callout strong { color: var(--text); }
+.links { margin-top: 48px; display: flex; gap: 14px; flex-wrap: wrap; }
+.btn { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 22px; border: 1px solid var(--blue); color: var(--blue); }
+.btn:hover { background: var(--blue); color: var(--dark); text-decoration: none; }
+.disclaimer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← AI in Austere Medicine Project</a>
+
+  <div class="kicker">Release Notes · August 2026</div>
+  <h1>EdgeCDSS<br>Version 4.1</h1>
+  <p class="sub">A hardening release. No new clinical features — ten fixes to the safety plumbing, every one of them found by reading the field logs rather than the test results.</p>
+  <div class="meta">Project 01 · Active · MIT License</div>
+
+  <div class="statgrid">
+    <div class="stat"><b>135</b><small>Field Queries Audited</small></div>
+    <div class="stat"><b>14</b><small>Session Days Reviewed</small></div>
+    <div class="stat"><b>10</b><small>Fixes, Each Pinned By a Test</small></div>
+    <div class="stat"><b>105</b><small>Offline Regression Tests</small></div>
+  </div>
+
+  <h2>Overview</h2>
+  <p>Version 4.0 shipped a two-pass safety architecture: deterministic checks before generation, a semantic validator after it. Version 4.1 is what happened when we stopped trusting that description and audited what the system had actually done in the field — 135 logged queries across 14 session days, plus 26 structured feedback entries from providers.</p>
+  <p>The architecture held at detection. It leaked at enforcement. The validator saw the problems; the plumbing underneath it threw the warnings away. Every change below closes one of those gaps, and every one carries a regression test built from the exact log line that exposed it.</p>
+
+  <div class="pipeline">
+    <div class="flow">Detection → Enforcement → Log</div>
+    <p>A safety system is only as strong as the weakest of these three. Version 4.0 was strong at detection and assumed the other two. In 4.1 the verdict the validator reached, the verdict the provider is served, and the verdict written to the audit log are one value, produced in one place — identical by construction rather than by convention.</p>
+  </div>
+
+  <h2>What's new in 4.1</h2>
+
+  <h3>Patient context resets at the patient boundary</h3>
+  <ul>
+    <li><strong>The finding.</strong> Patient context accumulated across every turn of a conversation with no notion of the patient changing. A 6-year-old's 34 kg was carried into an adult casualty presenting after an IED blast, and a dose was calculated against it. The validator flagged the result; a false-positive override released it anyway.</li>
+    <li><strong>The fix.</strong> The system now detects a patient boundary — an explicit phrase, a presentational opener, a contradicting age or weight, or 30 minutes of inactivity — and clears weight, age, and access before dosing anything.</li>
+    <li><strong>Every reset is announced</strong> in the response. Both failure directions are now visible to the provider: a missed boundary is the original defect, and a false boundary destroys a confirmed weight mid-resuscitation. The medic can see the second one happen.</li>
+    <li>The reset is applied per turn as the conversation is replayed, not once at the end — the server is stateless and rebuilds context from the full history on every request, so a reset applied any later is silently undone on the next one.</li>
+    <li>The web portal gains a <strong>NEW PATIENT</strong> button that clears the history the server replays, not merely the visible transcript.</li>
+    <li><strong>Measured across all 135 logged queries: 9 boundaries fire, all 9 genuine, zero false positives.</strong></li>
+  </ul>
+
+  <h3>The safety gate can no longer disagree with itself</h3>
+  <ul>
+    <li><strong>The finding.</strong> The logging path derived its verdict independently of what was actually served. Nine hand-written false-positive overrides each released a response and discarded the validator's issue list, while the log recorded the record as <em>UNSAFE</em> with no issues attached. The provider got a clinical answer; the audit trail said it was blocked; the reason was gone. Two of eleven logged unsafe events had this shape, and nothing recorded which override fired, so the audit could not attribute them.</li>
+    <li><strong>Overrides now downgrade instead of releasing.</strong> A fired override serves the response with a human-review banner, preserves the validator's objections in the log, and records itself by name.</li>
+    <li><strong>The served verdict and the logged verdict are now the same value</strong>, returned from one place instead of re-derived at the call site. The invariant — a served response can never be logged unsafe — is pinned over a 216-case matrix.</li>
+    <li><strong>No structured issue means fail closed.</strong> When the validator returns an unsafe verdict with nothing structured to reason about, there is nothing for an override to be a false positive <em>of</em>, and the gate blocks rather than pattern-matching against the validator's free-text prose.</li>
+  </ul>
+
+  <h3>The dose contract is enforced when it is empty</h3>
+  <ul>
+    <li><strong>The finding.</strong> Deterministic dose verification — the check that catches a generated dose the code never authorised — was skipped entirely when Python had computed no dose candidates. That is precisely the state that means <em>no dose was authorised at all</em>: no confirmed weight, nothing to check against, and a language model at its most likely to invent a number. The check read that as "nothing to check."</li>
+    <li><strong>An empty contract now hard-blocks every canonical dosing line</strong>, for adults as well as pediatric patients — the net that existed below this check only covered pediatrics. The block names the drug, the dose, and the empty contract, and no override can downgrade it.</li>
+    <li><strong>Hard-coded doses are out of the protocol block.</strong> A maintenance dose written into the guidance text reached the model without ever passing the contract. The drug and the sequencing stay; the number is gone, and a test now fails if any protocol string reintroduces one.</li>
+  </ul>
+
+  <h3>Retrieval and routing</h3>
+  <ul>
+    <li><strong>Ventilator-settings questions no longer return an intubation drug bundle.</strong> A bare substring match on "ventilator" dispatched them into the rapid-sequence-intubation pre-gate before vent settings were ever considered — a request for settings came back as ketamine, rocuronium, and post-intubation sedation. Genuine post-intubation phrasings still route to RSI; the settings intent is diverted out.</li>
+    <li><strong>The clinical router matches whole words.</strong> Substring matching against an alias table with 44 short keys meant any query containing <em>patient</em> silently appended "physician assistant" to the retrieval search, and <em>dka</em> pulled in "ketamine". Across the audited corpus this removed <strong>143 spurious matches on 80 of 135 queries</strong> — with no aliases deleted, since at word boundary the short keys fire only when actually typed.</li>
+  </ul>
+
+  <h3>Observability</h3>
+  <ul>
+    <li>Session logs gain pipeline latency, the name of any override that fired, whether a patient boundary reset, and a synthetic-traffic tag — stamped with a schema version so older entries are never misread as new ones.</li>
+    <li><strong>Test traffic is now distinguishable from field traffic.</strong> The clinical suite fires at the live endpoint by design, and 48 of the 135 audited entries — over a third of the corpus — turned out to be two test runs that had been indistinguishable from real provider use.</li>
+    <li>That tag is self-declared by the caller and deliberately load-bearing on nothing: it is log hygiene, not a security control, and a test asserts the pipeline behaves identically with and without it.</li>
+  </ul>
+
+  <h3>Deployment safety</h3>
+  <ul>
+    <li><strong>A mistyped tuning value can no longer prevent startup.</strong> One numeric setting was read at import time, so a typo in it — a stray unit, a trailing space — would stop the service from starting, leave the health endpoint unanswered, and put a fanless device behind an outbound-only tunnel into a reboot loop with no way back in. Bad values at all three numeric settings now fall back to the default and say so out loud, because a silently ignored setting is its own failure.</li>
+  </ul>
+
+  <h2>How this was found</h2>
+  <p>Not from the test suite. The test suite passed. Every finding above came from reading 135 real query logs line by line, cross-referenced against provider feedback, and each one was reproduced against the shipped code before a fix was written. Where the audit's own conclusions turned out to be wrong under that scrutiny, the correction is recorded in the repository and pinned by a test so it cannot be quietly re-assumed.</p>
+  <p>The working rule for the release: <strong>one fix, one commit, one regression test</strong> — plus a mutation check on every one, where the fix is reverted, the named test is confirmed to fail, and the fix restored. The offline suite that resulted runs 105 tests in about two and a half seconds with no network, no API key, and no vector database.</p>
+
+  <h2>Known boundaries</h2>
+  <div class="callout">
+    <strong>This release trades helpfulness for fail-closed behaviour, and one case is worth naming.</strong> A provider asking about status epilepticus with no weight on file now receives a safety hold where a weight-free protocol answer would have served them better. That is the intended direction of the trade, but it is a real regression in usefulness and is being watched in post-release feedback. Separately, the single most frequent provider complaint — that the system declines questions outside its trauma guideline corpus — is <em>not</em> addressed by 4.1 and remains open.
+  </div>
+  <div class="callout">
+    <strong>EdgeCDSS is decision support, not a decision-maker.</strong> It is a research prototype evaluated with simulated and synthetic scenarios only — not validated for clinical use and not for patient care decisions. Language generation currently requires connectivity to a cloud model; the generation layer is deliberately swappable, and a cross-model comparison (OpenAI / Claude / Gemini) is planned. A fully offline on-device model remains the research goal (Project 02).
+  </div>
+
+  <h2>The lesson</h2>
+  <p>Audit your logs. Not your test results — your logs. The gap between what a system is documented to do and what it has actually done is where the incidents live, and it is only visible in the record of real use.</p>
+
+  <div class="links">
+    <a class="btn" href="https://cdss.arcanekg.com" target="_blank" rel="noopener">Launch Web Portal</a>
+    <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" rel="noopener">View on GitHub</a>
+    <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Full Changelog (GitHub)</a>
+    <a class="btn" href="https://aiamp.substack.com/p/v41-the-release-where-the-safety" target="_blank" rel="noopener">Read the Write-Up</a>
+    <a class="btn" href="release-notes-4.0.html">Version 4.0 Notes</a>
+    <a class="btn" href="index.html#signup">Join the Beta</a>
+  </div>
+
+  <div class="disclaimer">
+    Research prototype — not validated for clinical use — not for patient care decisions — simulated and synthetic scenarios only — do not enter patient names, dates of birth, or identifying information into any system on this site. All code is open source under the MIT License. Technologies and services used include NVIDIA Jetson, OpenAI, Cloudflare, Starlink, ElevenLabs, GitHub, Cursor, Claude, Google Gemini, Visual Studio Code, FastAPI, and ChromaDB; provider names identify components used by the project and do not imply endorsement, sponsorship, or affiliation. AI in Austere Medicine Project 2026.
+  </div>
+</div>
+</body>
+</html>
