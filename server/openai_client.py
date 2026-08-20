@@ -1697,6 +1697,23 @@ def is_rsi_or_post_intubation_context(text: str) -> bool:
     ])
 
 
+def should_use_rsi_pregate(text: str) -> bool:
+    """
+    Whether a query should be routed to the deterministic RSI bundle.
+
+    S-4 (v4.1): is_rsi_or_post_intubation_context() matches the bare substring
+    "ventilator", so "Ventilator settings for 75kg male in DKA. Ph 7.1" with a
+    confirmed weight was answered with an RSI paralytic bundle rather than vent
+    settings. The substring stays in the RSI term list — "on the vent" and
+    post-intubation phrasings are genuine RSI context — and a query that is
+    actually asking for vent settings is diverted out of the RSI path here.
+
+    This is the single dispatch decision; both call sites use it so the
+    regression tests assert the real condition rather than a copy of it.
+    """
+    return is_rsi_or_post_intubation_context(text) and not is_vent_settings_query(text)
+
+
 def build_rsi_response(ctx: PatientContext, text: str) -> Optional[str]:
     """
     Deterministic RSI bundle. RSI should not ask "IV or IM" unless no access is stated.
@@ -2215,8 +2232,9 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
                     "patient_context": patient_ctx.to_dict()
                 }
 
-        # Step 2k: RSI / post-intubation deterministic response — before standard pre-gate
-        if is_rsi_or_post_intubation_context(query):
+        # Step 2k: RSI / post-intubation deterministic response — before standard pre-gate.
+        # should_use_rsi_pregate() diverts vent-settings queries out of this path (S-4).
+        if should_use_rsi_pregate(query):
             rsi_response = build_rsi_response(patient_ctx, query)
             if rsi_response:
                 print("💉 RSI PRE-GATE")
@@ -2273,7 +2291,7 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
         if allowed_actions:
             system_prompt += "\n\nALLOWED_ACTIONS:\n" + "\n".join(f"- {a}" for a in allowed_actions)
 
-        if is_rsi_or_post_intubation_context(query):
+        if should_use_rsi_pregate(query):
             system_prompt += """
 
 MANDATORY RSI LABEL:

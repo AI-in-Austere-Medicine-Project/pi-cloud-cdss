@@ -19,7 +19,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pytest  # noqa: E402
 
 from clinical_router import ClinicalRouter  # noqa: E402
-from test_fixtures import ALIAS_STANDALONE_CASES, F2_ROWS  # noqa: E402
+from openai_client import (  # noqa: E402
+    is_rsi_or_post_intubation_context, is_vent_settings_query, should_use_rsi_pregate,
+)
+from test_fixtures import (  # noqa: E402
+    ALIAS_STANDALONE_CASES, F2_ROWS, S4_VENT_QUERY, S4_VENT_REFUSED,
+)
 
 _ROUTER = ClinicalRouter()
 
@@ -28,6 +33,50 @@ def _resolved_keys(query):
     """Alias keys the router resolved for this query."""
     _, resolved = _ROUTER.resolve_aliases(query)
     return [entry.split(" → ")[0] for entry in resolved]
+
+
+# ── Q-2: vent settings must not route to the RSI bundle (S-4) ───────────────
+
+def test_vent_settings_query_does_not_route_to_rsi():
+    """The S-4 case: asked for vent settings, answered with an RSI paralytic bundle."""
+    assert is_rsi_or_post_intubation_context(S4_VENT_QUERY) is True   # substring collision intact
+    assert is_vent_settings_query(S4_VENT_QUERY) is True
+    assert should_use_rsi_pregate(S4_VENT_QUERY) is False
+
+
+def test_both_logged_forms_of_the_s4_question_avoid_rsi():
+    """Same clinical question, two logged phrasings, two days apart.
+
+    Only the routing half is asserted here. The 07-18 form was answered with
+    "AUSTERE-CDS handles medical queries only." — that refusal is Q-1, which is
+    out of scope for v4.1, so this test cannot assert what it does return.
+    """
+    for query in (S4_VENT_QUERY, S4_VENT_REFUSED):
+        assert should_use_rsi_pregate(query) is False, query
+
+
+def test_rsi_query_still_routes_to_rsi():
+    """Guard against over-correcting: real RSI requests must keep the pre-gate."""
+    for query in ["RSI an 80kg male trauma patient ketamine and rocuronium",
+                  "need to RSI a badly burned 70kg male",
+                  "I need to intubate a 6 year old"]:
+        assert should_use_rsi_pregate(query) is True, query
+
+
+def test_post_intubation_vent_phrasing_still_rsi():
+    """Why the fix is a guard, not deletion of "ventilator" from the RSI terms.
+
+    Deleting the term would break these; the guard keeps them.
+    """
+    for query in ["patient on the vent post intubation needs sedation 80kg",
+                  "post-intubation sedation for an 80kg male",
+                  "patient intubated need a ketamine drip for sedation 80kg male"]:
+        assert should_use_rsi_pregate(query) is True, query
+
+
+def test_vent_settings_terms_are_not_rsi_terms():
+    """A pure vent-settings query with no RSI vocabulary stays out of both paths."""
+    assert should_use_rsi_pregate("what tidal volume and PEEP for a 70kg male") is False
 
 
 # ── Q-3: word-boundary alias matching ───────────────────────────────────────
