@@ -77,14 +77,32 @@ class ClinicalRouter:
                 if protocol_id not in self.term_to_protocols[t]:
                     self.term_to_protocols[t].append(protocol_id)
 
+    @staticmethod
+    def _alias_pattern(alias: str):
+        """Word-boundary matcher for one alias key.
+
+        Lookarounds rather than \\b because several keys are multi-word
+        ("push dose epi", "rocky onium", "vitamin k") and behave predictably
+        at both ends regardless of their first and last characters.
+        """
+        return re.compile(r'(?<!\w)' + re.escape(alias) + r'(?!\w)')
+
     def resolve_aliases(self, query: str) -> tuple[str, list]:
-        """Replace field slang with standard clinical terms."""
+        """Replace field slang with standard clinical terms.
+
+        Matched on word boundaries (F-2, v4.1). Plain substring matching made
+        44 of the 88 alias keys fire inside longer words: "patient" resolved
+        "pa" -> physician assistant, "dka"/"34kg" resolved "k" -> ketamine,
+        "medication" resolved "cat" -> combat application tourniquet. Measured
+        over the 135 logged queries, that injected 143 spurious terms (187 ->
+        44 hits) into the ChromaDB search string.
+        """
         q = query.lower()
         resolved = []
         enhanced = query
 
         for alias, standard in self.query_aliases.items():
-            if alias in q:
+            if self._alias_pattern(alias).search(q):
                 resolved.append(f"{alias} → {standard}")
                 # Don't replace in query text — just note the resolution
                 # Use standard term for search enhancement

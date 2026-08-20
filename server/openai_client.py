@@ -45,13 +45,43 @@ v3.4 additions (EdgeCDSS_openai_py_issue_recommendations_2.docx):
 import os
 import re
 import json
+import time
 from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, List
-from openai import OpenAI
-from dotenv import load_dotenv
+try:
+    from openai import OpenAI
+except ImportError:  # offline test environment — see run_unit_tests.sh
+    OpenAI = None
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # offline test environment
+    def load_dotenv(*_args, **_kwargs):
+        return False
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+_client = None
+
+
+def get_client():
+    """
+    Lazily construct the OpenAI client.
+
+    Importing this module must NOT require the openai SDK or an API key. The
+    deterministic layer, safety gate, clinical router and session logger are
+    all testable offline; only the two LLM calls need a live client. Built on
+    first use and cached.
+    """
+    global _client
+    if _client is None:
+        if OpenAI is None:
+            raise RuntimeError(
+                "openai package is not installed — LLM calls are unavailable. "
+                "Install requirements-server.txt for server use."
+            )
+        _client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    return _client
 
 # Debug flag per deep review §4: never edit fail-closed logic to debug.
 # Set EDGECDSS_DEBUG_WARN_ONLY=1 in the environment to observe generator
@@ -59,6 +89,27 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 DEBUG_WARN_ONLY = os.getenv("EDGECDSS_DEBUG_WARN_ONLY", "0") == "1"
 if DEBUG_WARN_ONLY:
     print("⚠️  EDGECDSS_DEBUG_WARN_ONLY is ON — safety holds will warn, not block. NOT FOR PRODUCTION.")
+
+
+def _env_number(name: str, default, cast=float):
+    """
+    Read a numeric tuning knob from the environment, falling back on garbage.
+
+    These knobs exist to be tuned, which means they will be typo'd — "30m",
+    "thirty", a trailing space. A bare int()/float() on the result raises, and
+    PATIENT_BOUNDARY_TIMEOUT_MIN is read at MODULE SCOPE: an unparseable value
+    there means openai_client fails to import, uvicorn never starts, /health
+    never answers, and the deploy watchdog reboots the box in a loop. A tuning
+    typo must degrade to the default, loudly, not take the device down.
+    """
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        return cast(str(raw).strip())
+    except (TypeError, ValueError):
+        print(f"⚠️  {name}={raw!r} is not a number — using default {default}.")
+        return default
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +126,16 @@ def _get_log_file() -> pathlib.Path:
     date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     return _LOG_DIR / f"cdss_session_{date_str}.jsonl"
 
-def log_query(query: str, result: dict, conversation_history: list = None):
+# Bumped when the entry shape changes. v4.1 (schema 2) adds pipeline_ms,
+# synthetic and override_fired. Entries written before v4.1 carry no
+# log_schema key at all; analysis tooling must read a missing key as UNKNOWN,
+# never as a default. Defaulting a missing `synthetic` to false would
+# re-classify the 48 known test-suite entries as real user traffic.
+LOG_SCHEMA_VERSION = 2
+
+
+def log_query(query: str, result: dict, conversation_history: list = None,
+              pipeline_ms: Optional[int] = None, synthetic: bool = False):
     """
     Write one structured log entry per query.
     JSONL format — one JSON object per line.
@@ -84,12 +144,17 @@ def log_query(query: str, result: dict, conversation_history: list = None):
     try:
         entry = {
             "ts": datetime.datetime.utcnow().isoformat() + "Z",
+            "log_schema": LOG_SCHEMA_VERSION,
             "debug_warn_only": DEBUG_WARN_ONLY,
+            "synthetic": bool(synthetic),
             "query": query,
             "response_preview": result.get("response", "")[:200],
             "source_mode": result.get("source_mode", "UNKNOWN"),
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
+            "override_fired": result.get("override_fired"),
+            "boundary_reset": result.get("boundary_reset"),
+            "pipeline_ms": pipeline_ms,
             "history_turns": len(conversation_history) if conversation_history else 0,
             "patient_ctx": {
                 k: v for k, v in (result.get("patient_context") or {}).items()
@@ -136,6 +201,11 @@ class PatientContext:
     access_state: AccessState = "UNKNOWN"
     route_preference: RoutePreference = "UNKNOWN"
     pending_question: Optional[str] = None
+    # SC-1: set on the context handed to the current turn when THIS turn crossed
+    # a patient boundary. Drives the visible reset notice. Never persisted — a
+    # fresh PatientContext() starts with it clear, which is what makes it mean
+    # "this turn" rather than "some turn".
+    boundary_reset_reason: Optional[str] = None
 
     @property
     def dosing_weight_kg(self) -> Optional[float]:
@@ -167,6 +237,31 @@ class DoseCandidate:
 class DeterministicCheck:
     passed: bool
     issues: list = field(default_factory=list)
+
+
+@dataclass
+class GateOutcome:
+    """
+    Result of apply_safety_gate().
+
+    Replaces the old (response, blocked, issues) tuple so that the verdict
+    written to the audit log is produced by the gate itself rather than
+    re-derived at the call site. The call site used to compute
+
+        "validator_result": "UNSAFE" if blocked else llm_result["result"]
+
+    which stamped UNSAFE on the log whenever the validator said UNSAFE — even
+    when an override had released the response and the medic saw it (S-2).
+
+    INVARIANT: verdict == "UNSAFE" if and only if blocked is True.
+    A served response can never be logged UNSAFE. Enforced by
+    test_safety_gate.py::test_gate_log_invariant.
+    """
+    response: str
+    blocked: bool
+    issues: list
+    verdict: str                              # SAFE | NEEDS_HUMAN_REVIEW | UNSAFE
+    override_fired: Optional[str] = None      # registry name, for the audit log (T-13)
 
 
 @dataclass
@@ -228,11 +323,14 @@ def extract_patient_context(query: str,
     # Age phrasings ('year old', 'yo', 'y/o') are NOT pediatric terms — they are
     # parsed into age_years above, and a known age is authoritative: "55 year
     # old" must never be pediatric-gated.
+    # is_pediatric is NOT monotonic (SC-2, v4.1). A known age decides the flag in
+    # BOTH directions: stating "45 year old" after a pediatric turn must clear it.
+    # With no known age the flag stays sticky within the patient — a turn reading
+    # only "IV" must never un-pediatric a child.
     pediatric_terms = ['infant', 'child', 'toddler', 'kid', 'kids', 'boy', 'girl',
                        'pediatric', 'paediatric', 'newborn', 'neonate', 'baby']
     if ctx.age_years is not None:
-        if ctx.age_years < 18:
-            ctx.is_pediatric = True
+        ctx.is_pediatric = ctx.age_years < 18
     elif (_has_any_word(full_text, pediatric_terms) or
             (ctx.confirmed_weight_kg is not None and ctx.confirmed_weight_kg < 40)):
         ctx.is_pediatric = True
@@ -765,8 +863,9 @@ def build_allowed_actions(query: str, ctx: PatientContext) -> List[str]:
         else:
             actions.append(
                 "SEIZURE_ADULT_DEFAULT: For active adult seizure, lorazepam is first-line if available "
-                "and within protocol. Follow with levetiracetam (Keppra) 1500mg IV for maintenance. "
-                "Use local protocol for dose and route if weight is not confirmed."
+                "and within protocol. Follow with levetiracetam (Keppra) IV for maintenance. "
+                "Dose and route per local protocol. State no numeric dose unless it appears "
+                "verbatim in ALLOWED_DOSES."
             )
 
     return actions
@@ -1050,6 +1149,16 @@ def build_system_prompt(ctx: PatientContext, assessment: RetrievalAssessment,
 # DETERMINISTIC POST-CHECKS
 # ─────────────────────────────────────────────────────────────────────────────
 
+# The canonical GIVE line the generator is instructed to emit:
+#   "Draw X mL of Ymg/mL <drug> <route> (Zmg)."
+# Module-level so the contract check and its tests share one definition —
+# broadening it silently broadens what SC-6 blocks.
+CANONICAL_GIVE_RE = (
+    r'draw\s+(\d+(?:\.\d+)?)\s*ml\s+of\s+(\d+(?:\.\d+)?)\s*mg/ml\s+'
+    r'([a-z][a-z\- ]{2,30}?)\s*(?:i[vmo][^(]*)?\((\d+(?:\.\d+)?)\s*mg\)'
+)
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
                               allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
@@ -1067,11 +1176,17 @@ def run_deterministic_checks(query: str, response_text: str,
     # Parse canonical GIVE lines ("Draw X mL of Ymg/mL drug ... (Zmg)") and
     # verify each stated dose against the deterministic contract. Scoped to
     # the canonical format so warnings/DON'T-lines with numbers never trip it.
-    if allowed_doses:
-        give_lines = re.findall(
-            r'draw\s+(\d+(?:\.\d+)?)\s*ml\s+of\s+(\d+(?:\.\d+)?)\s*mg/ml\s+'
-            r'([a-z][a-z\- ]{2,30}?)\s*(?:i[vmo][^(]*)?\((\d+(?:\.\d+)?)\s*mg\)',
-            r)
+    give_lines = re.findall(CANONICAL_GIVE_RE, r)
+
+    if not allowed_doses:
+        # SC-6: no contract was built — no weight, so no dose was authorised.
+        # Any canonical GIVE line here is a number the generator supplied on its
+        # own. This is the adult gap: the pediatric net below never covered it.
+        for _vol_s, _conc_s, drug_s, mg_s in give_lines:
+            issues.append(
+                f"GIVE line doses '{drug_s.strip()}' ({float(mg_s):g}mg) with an empty "
+                f"ALLOWED_DOSES contract — no deterministic dose was authorised.")
+    else:
         contract_drugs = {d.drug.lower() for d in allowed_doses}
         for vol_s, conc_s, drug_s, mg_s in give_lines:
             stated_mg = float(mg_s)
@@ -1262,7 +1377,7 @@ def validate_response(full_transcript: str, response_text: str,
             f"PROPOSED RESPONSE:\n{response_text}"
         )
 
-        result = client.chat.completions.create(
+        result = get_client().chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": VALIDATOR_PROMPT},
@@ -1330,13 +1445,145 @@ def is_cico_response_adequate(response_text: str) -> bool:
         "cricothyrotomy", "surgical airway", "front of neck", "cric"
     ])
 
+HUMAN_REVIEW_BANNER = (
+    "\n\n⚠️ CLINICAL SAFETY NOTE: This response requires human review. "
+    "Use local protocol and medical control where available."
+)
+
+
+def _partition_issues(issues: list, keywords: list) -> tuple:
+    """Split issues into (those mentioning any keyword, the rest)."""
+    matched, other = [], []
+    for issue in issues:
+        text = issue.lower()
+        (matched if any(k in text for k in keywords) else other).append(issue)
+    return matched, other
+
+
+@dataclass(frozen=True)
+class SafetyOverride:
+    """
+    One structured false-positive override.
+
+    `name` is stable and is written to the session log (T-13) so an audit can
+    tell which branch fired. `keywords` selects the issues this override speaks
+    to; `requires_sole_issue` is the guard that stops an override dismissing a
+    block when unrelated issues are also present. `condition` is the evidence
+    that the flagged concern is actually addressed by the response.
+
+    Overrides DOWNGRADE, they do not release (SC-3). A fired override yields a
+    served response with the human-review banner, the ORIGINAL issue list
+    preserved for the log, and verdict NEEDS_HUMAN_REVIEW.
+    """
+    name: str
+    keywords: tuple
+    condition: object                  # (response_lower, ctx, full_history) -> bool
+    requires_sole_issue: bool = True
+
+    def fires(self, issues, response_lower, patient_ctx, full_query_history) -> bool:
+        matched, other = _partition_issues(list(issues), list(self.keywords))
+        if not matched:
+            return False
+        if self.requires_sole_issue and other:
+            return False
+        return bool(self.condition(response_lower, patient_ctx, full_query_history))
+
+
+_STEROID_DRUGS = ["dexamethasone", "methylprednisolone", "solu-medrol",
+                  "decadron", "prednisone", "prednisolone", "hydrocortisone"]
+
+
+def _has_confirmed_weight(_r, ctx, _h):
+    return bool(getattr(ctx, "confirmed_weight_kg", None) if ctx else None)
+
+
+# Evaluation order is significant and matches v4.0 exactly.
+SAFETY_OVERRIDES = (
+    # NOTE: requires_sole_issue=False preserves v4.0 behaviour — this branch
+    # dismisses the block even when unrelated issues co-occur. That is the
+    # SC-5 gap on TODO.md, deliberately NOT changed here. Under SC-3 its
+    # consequence is bounded: the co-occurring issue is now preserved in the
+    # log and banner-flagged rather than discarded.
+    SafetyOverride(
+        name="pediatric_weight_confirmed",
+        keywords=("without confirmed pediatric", "confirmed pediatric", "confirmed weight"),
+        condition=_has_confirmed_weight,
+        requires_sole_issue=False,
+    ),
+    SafetyOverride(
+        name="cico_airway",
+        keywords=("cico", "cricothyrotomy", "surgical airway", "cric", "airway"),
+        condition=lambda r, ctx, h: is_cico_response_adequate(r),
+    ),
+    SafetyOverride(
+        name="paralytic_with_induction",
+        keywords=("paralytic",),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["ketamine", "etomidate", "induction", "pre-oxygenate"]),
+    ),
+    # TBI-steroid (beta 2026-07-18): the validator may demand a steroid warning
+    # when the response never recommends one. Absence of a warning is not a
+    # violation; the deterministic check is the authority on actual steroid
+    # recommendations.
+    SafetyOverride(
+        name="tbi_steroid_absent",
+        keywords=("steroid", "corticosteroid"),
+        condition=lambda r, ctx, h: not any(d in r for d in _STEROID_DRUGS),
+    ),
+    SafetyOverride(
+        name="sepsis_hemorrhage_no_dcr",
+        keywords=("sepsis", "hemorrhage"),
+        condition=lambda r, ctx, h: not any(x in r for x in
+            ["txa", "tranexamic", "ltowb", "whole blood", "dcr"]),
+    ),
+    SafetyOverride(
+        name="fluids_resuscitation",
+        keywords=("iv fluid", "fluid", "crystalloid", "resuscitat"),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["fluid", "crystalloid", "antibiotic", "ns ", "lr "]),
+    ),
+    SafetyOverride(
+        name="tension_pneumo_decompression",
+        keywords=("tension pneumo", "decompression", "needle", "thoracostomy"),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["decompression", "needle", "thoracostomy", "chest"]),
+    ),
+    SafetyOverride(
+        name="dangerous_reassurance_has_action",
+        keywords=("reassurance",),
+        condition=lambda r, ctx, h: any(x in r for x in
+            ["airway", "intubat", "evacuate", "evac", "monitor", "iv fluid",
+             "cpr", "decompression", "fluid", "antibiotic"]),
+    ),
+    SafetyOverride(
+        name="txa_clear_hemorrhage",
+        keywords=("txa", "tranexamic"),
+        condition=lambda r, ctx, h: has_clear_hemorrhage(h) and not looks_like_sepsis(h),
+    ),
+)
+
+
+def find_fired_override(issues: list, response_text: str, patient_ctx,
+                        full_query_history: str):
+    """First override in registry order whose conditions are met, else None."""
+    r_lower = (response_text or "").lower()
+    for override in SAFETY_OVERRIDES:
+        if override.fires(issues, r_lower, patient_ctx, full_query_history):
+            return override
+    return None
+
+
 def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
                       llm_result: dict,
                       patient_ctx=None,
-                      full_query_history: str = "") -> tuple:
+                      full_query_history: str = "") -> GateOutcome:
+    """
+    Fail-closed safety gate. Returns a GateOutcome whose `verdict` is what the
+    session log records — see the invariant on GateOutcome.
+    """
     # Safe gate responses always pass through
     if is_safe_gate_response(response_text):
-        return response_text, False, []
+        return GateOutcome(response_text, False, [], "SAFE")
 
     # Deterministic failures block first (warn-only when debug flag set)
     if not det_check.passed:
@@ -1345,119 +1592,59 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
             response_text += "\n\n[DEBUG DET ISSUE: " + str(det_check.issues) + "]"
         else:
             print(f"🚨 DETERMINISTIC BLOCK: {det_check.issues}")
-            return build_safety_hold(det_check.issues, ""), True, det_check.issues
+            return GateOutcome(build_safety_hold(det_check.issues, ""), True,
+                               det_check.issues, "UNSAFE")
 
-    # LLM UNSAFE — check false positives before blocking
+    # LLM UNSAFE — check structured false positives before blocking
     if llm_result["result"] == "UNSAFE":
-        issues = llm_result.get("issues", [])
-        r_lower = response_text.lower()
+        issues = llm_result.get("issues") or []
+        had_no_issues = not issues
+        if had_no_issues:
+            # normalize_validator_result() already guarantees a non-empty issue
+            # list upstream, but the gate must not depend on a normalizer it does
+            # not call: a blocked record with no issues is as uninformative in the
+            # audit log as the served UNSAFE records S-2 describes. Mirrors the
+            # normalizer's wording.
+            rationale = llm_result.get("rationale", "")
+            issues = [f"Validator marked UNSAFE: {rationale}" if rationale
+                      else "Validator marked unsafe but provided no specific issue."]
 
-        # Override pediatric weight false positive when patient_ctx confirms weight
-        issue_text = " ".join(issues).lower()
-        confirmed_weight = getattr(patient_ctx, "confirmed_weight_kg", None) if patient_ctx else None
-        if (
-            "without confirmed pediatric" in issue_text
-            or "confirmed pediatric" in issue_text
-            or "confirmed weight" in issue_text
-        ) and confirmed_weight:
-            print(f"✅ Override: pediatric weight confirmed at {confirmed_weight}kg")
-            return response_text, False, []
-
-        # Override CICO/airway false positive
-        airway_issues = [i for i in issues if any(x in i.lower() for x in
-            ["cico", "cricothyrotomy", "surgical airway", "cric", "airway"])]
-        non_airway = [i for i in issues if not any(x in i.lower() for x in
-            ["cico", "cricothyrotomy", "surgical airway", "cric", "airway"])]
-        if airway_issues and not non_airway and is_cico_response_adequate(response_text):
-            print(f"✅ Airway/CICO false positive overridden")
-            return response_text, False, []
-
-        # Override paralytic-without-induction false positive
-        paralytic_issues = [i for i in issues if "paralytic" in i.lower()]
-        non_paralytic = [i for i in issues if "paralytic" not in i.lower()]
-        has_induction = any(x in r_lower for x in ["ketamine", "etomidate", "induction", "pre-oxygenate"])
-        if paralytic_issues and not non_paralytic and has_induction:
-            print(f"✅ Paralytic false positive overridden — induction found")
-            return response_text, False, []
-
-        # Override TBI-steroid false positive (beta 2026-07-18): the validator
-        # may not demand a steroid warning when the response never recommends one.
-        # The deterministic check (issues, above) is the authority for actual
-        # steroid recommendations — absence of a warning is not a violation.
-        steroid_issues = [i for i in issues if any(x in i.lower() for x in
-            ["steroid", "corticosteroid"])]
-        non_steroid = [i for i in issues if not any(x in i.lower() for x in
-            ["steroid", "corticosteroid"])]
-        steroid_drugs = ["dexamethasone", "methylprednisolone", "solu-medrol",
-                         "decadron", "prednisone", "prednisolone", "hydrocortisone"]
-        recommends_steroid = any(d in r_lower for d in steroid_drugs)
-        if steroid_issues and not non_steroid and not recommends_steroid:
-            print("✅ TBI-steroid false positive overridden — no steroid recommended in response")
-            return response_text, False, []
-
-        # Override SEPSIS AS HEMORRHAGE false positive if no DCR in response
-        sepsis_issues = [i for i in issues if any(x in i.upper() for x in ["SEPSIS", "HEMORRHAGE"])]
-        non_sepsis = [i for i in issues if not any(x in i.upper() for x in ["SEPSIS", "HEMORRHAGE"])]
-        has_dcr = any(x in r_lower for x in ["txa", "tranexamic", "ltowb", "whole blood", "dcr"])
-        if sepsis_issues and not non_sepsis and not has_dcr:
-            print(f"✅ SEPSIS/HEMORRHAGE false positive overridden")
-            return response_text, False, []
-
-        # Override fluids-in-sepsis false positive
-        fluids_issues = [i for i in issues if any(x in i.lower() for x in
-            ["iv fluid", "fluid", "crystalloid", "resuscitat"])]
-        non_fluids = [i for i in issues if not any(x in i.lower() for x in
-            ["iv fluid", "fluid", "crystalloid", "resuscitat"])]
-        if fluids_issues and not non_fluids and any(x in r_lower for x in
-            ["fluid", "crystalloid", "antibiotic", "ns ", "lr "]):
-            print(f"✅ Fluids false positive overridden")
-            return response_text, False, []
-
-        # Override tension pneumo/MASCAL decompression false positive
-        decomp_issues = [i for i in issues if any(x in i.lower() for x in
-            ["tension pneumo", "decompression", "needle", "thoracostomy"])]
-        non_decomp = [i for i in issues if not any(x in i.lower() for x in
-            ["tension pneumo", "decompression", "needle", "thoracostomy"])]
-        if decomp_issues and not non_decomp and any(x in r_lower for x in
-            ["decompression", "needle", "thoracostomy", "chest"]):
-            print(f"✅ Tension pneumo false positive overridden")
-            return response_text, False, []
-
-        # Override DANGEROUS REASSURANCE if response has action items
-        reassurance_issues = [i for i in issues if "reassurance" in i.lower()]
-        non_reassurance = [i for i in issues if "reassurance" not in i.lower()]
-        has_action = any(x in r_lower for x in ["airway", "intubat", "evacuate", "evac",
-            "monitor", "iv fluid", "cpr", "decompression", "fluid", "antibiotic"])
-        if reassurance_issues and not non_reassurance and has_action:
-            print(f"✅ Dangerous reassurance false positive overridden")
-            return response_text, False, []
-
-        # Override TXA false positive when the full context is clear traumatic hemorrhage without sepsis.
-        txa_issues = [i for i in issues if any(x in i.lower() for x in ["txa", "tranexamic"])]
-        non_txa = [i for i in issues if not any(x in i.lower() for x in ["txa", "tranexamic"])]
-        if txa_issues and not non_txa:
-            if has_clear_hemorrhage(full_query_history) and not looks_like_sepsis(full_query_history):
-                print("✅ TXA false positive overridden — clear traumatic hemorrhage context")
-                return response_text, False, []
+        # The synthesized issue exists to make the LOG readable. It must never
+        # be matched by an override: its text is the validator's free-form
+        # rationale, so a rationale mentioning "fluid" or "airway" could satisfy
+        # an override's keywords and DOWNGRADE a block into a served response.
+        # A defensive fallback that serves what would otherwise be blocked
+        # defends the wrong way. When the validator gave us nothing structured
+        # to reason about, fail closed. Found in review of SC-3 (6c7f535).
+        fired = (None if had_no_issues else
+                 find_fired_override(issues, response_text, patient_ctx, full_query_history))
+        if fired is not None:
+            # SC-3: an override DOWNGRADES. v4.0 returned (response, False, [])
+            # here — unblocked, issue list discarded, and the call site then
+            # logged UNSAFE for a response the medic had already been shown.
+            # The medic now sees the review banner and the issues survive.
+            print(f"⚠️ OVERRIDE [{fired.name}] — downgraded to NEEDS_HUMAN_REVIEW: {issues}")
+            return GateOutcome(response_text + HUMAN_REVIEW_BANNER, False, issues,
+                               "NEEDS_HUMAN_REVIEW", override_fired=fired.name)
 
         if DEBUG_WARN_ONLY:
+            # Served, so it cannot be logged UNSAFE (see the GateOutcome invariant).
             print(f"DEBUG WARN ONLY — LLM issue: {issues}")
-            response_text += "\n\n[DEBUG LLM ISSUE: " + str(issues) + "]"
-            return response_text, False, issues
+            return GateOutcome(response_text + "\n\n[DEBUG LLM ISSUE: " + str(issues) + "]",
+                               False, issues, "NEEDS_HUMAN_REVIEW")
+
         print(f"🚨 LLM BLOCK: {issues}")
-        return build_safety_hold(issues, llm_result.get("rationale", "")), True, issues
+        return GateOutcome(build_safety_hold(issues, llm_result.get("rationale", "")),
+                           True, issues, "UNSAFE")
 
     # NEEDS_HUMAN_REVIEW appends warning
     if llm_result["result"] == "NEEDS_HUMAN_REVIEW":
         print(f"⚠️ NEEDS_HUMAN_REVIEW: {llm_result.get('rationale','')}")
-        warning = (
-            "\n\n⚠️ CLINICAL SAFETY NOTE: This response requires human review. "
-            "Use local protocol and medical control where available."
-        )
-        return response_text + warning, False, llm_result.get("issues", [])
+        return GateOutcome(response_text + HUMAN_REVIEW_BANNER, False,
+                           llm_result.get("issues", []), "NEEDS_HUMAN_REVIEW")
 
     print(f"✅ SAFE")
-    return response_text, False, []
+    return GateOutcome(response_text, False, [], "SAFE")
 
 
 
@@ -1465,26 +1652,193 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
 # DETERMINISTIC HIGH-RISK CASE BUILDERS — used before RAG/LLM
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PATIENT BOUNDARY DETECTION (SC-1)
+# ─────────────────────────────────────────────────────────────────────────────
+# The audit's most serious finding (S-1) was a 6-year-old's 34 kg carried into
+# an adult IED casualty, with a dose served against it. PatientContext replayed
+# over the FULL conversation with no notion of the patient changing.
+#
+# The failure mode is asymmetric and BOTH directions are bad:
+#   missed boundary -> a stale weight doses the wrong patient (S-1)
+#   false boundary  -> a confirmed weight is destroyed mid-resuscitation
+# Owner decision 2026-08-20 (PLAN_v4.1.md §5.1, option c): use the measured
+# phrase list AND surface every reset in the response, so a wrong reset is
+# immediately visible to the medic rather than silently swapping one failure
+# for the other.
+
+# Explicit "this is a different patient" statements.
+NEW_PATIENT_PHRASES = (
+    "new patient", "new session", "next patient", "another patient",
+    "different patient", "new casualty", "next casualty", "new cas",
+)
+
+# Presentational openers: "have a marine that was hit by an IED".
+# Anchored to the START of the query — mid-sentence "have a" is prose
+# ("patient has a fever", "if you have a tourniquet") and must not fire.
+_PRESENTATIONAL_OPENER_RE = re.compile(
+    r"^\W*(?:i\s+|i'?ve\s+|we\s+|we'?ve\s+)?(?:have|has|got|get)\s+an?\b"
+)
+
+# Words that follow the opener when it is NOT introducing a patient.
+# "have a look at this", "have a question about TXA".
+_OPENER_NON_PATIENT_NOUNS = (
+    "look", "question", "quick", "second", "sec", "minute", "moment",
+    "problem", "issue", "follow", "followup", "protocol", "guideline",
+    "reference", "copy", "chance", "feeling", "hard time", "bad feeling",
+)
+
+# Inactivity gap after which the next turn is treated as a new patient.
+# v2.5's changelog claimed 30 minutes; confirmed by owner 2026-08-20 against
+# the logged session clusters (08-11 splits at 07:49->07:52, 09:12, 11:54).
+PATIENT_BOUNDARY_TIMEOUT_MIN = _env_number("CDSS_PATIENT_TIMEOUT_MIN", 30.0, float)
+
+# Contradiction tolerances. Below these a restatement is a restatement, not a
+# new patient — "34kg" then "34 kg" must not reset.
+_AGE_CONTRADICTION_YEARS = 1.0
+_WEIGHT_CONTRADICTION_KG = 1.0
+_WEIGHT_CONTRADICTION_FRAC = 0.05
+
+
+def _parse_ts(value):
+    """Parse an ISO-8601 timestamp from the client. None on anything unusable."""
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    # Clients may send naive timestamps; treat them as UTC so a naive/aware mix
+    # cannot raise mid-request and take the whole query down.
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed
+
+
+def _stated_weight_kg(q: str) -> Optional[float]:
+    """The confirmed weight this query states, using extract_patient_context's
+    own patterns so the two can never disagree about what a query says."""
+    kg = re.search(r'(\d+(?:\.\d+)?)\s*kg\b', q)
+    if kg:
+        return float(kg.group(1))
+    lb = re.search(r'(\d+(?:\.\d+)?)\s*(?:lbs?|pounds?)\b', q)
+    if lb:
+        return round(float(lb.group(1)) * 0.453592, 1)
+    return None
+
+
+def _stated_age_years(q: str) -> Optional[float]:
+    m = re.search(r'(\d+(?:\.\d+)?)\s*(?:yo|y/o|year[\s-]*old|yr\s*old)\b', q)
+    if m:
+        return float(m.group(1))
+    m = re.search(r'(\d+)[\s-]*year[\s-]*old', q)
+    if m:
+        return float(m.group(1))
+    return None
+
+
+def detect_patient_boundary(query: str, ctx: Optional[PatientContext] = None,
+                            prev_ts=None, now_ts=None) -> Optional[str]:
+    """
+    Return a short trigger reason when `query` starts a NEW patient, else None.
+
+    Evaluated BEFORE the query is folded into ctx, so the contradiction triggers
+    compare what this turn says against what previous turns established.
+    """
+    q = (query or "").lower().strip()
+    if not q:
+        return None
+
+    # 1. Explicit statement.
+    for phrase in NEW_PATIENT_PHRASES:
+        if phrase in q:
+            return f"explicit:{phrase}"
+
+    # 2. Presentational opener introducing a patient.
+    opener = _PRESENTATIONAL_OPENER_RE.match(q)
+    if opener:
+        remainder = q[opener.end():].strip()
+        if remainder and not remainder.startswith(_OPENER_NON_PATIENT_NOUNS):
+            return "presentational_opener"
+
+    # Triggers 3-5 need prior state to contradict.
+    if ctx is None:
+        return None
+
+    # 3. Age contradiction.
+    stated_age = _stated_age_years(q)
+    if (stated_age is not None and ctx.age_years is not None
+            and abs(stated_age - ctx.age_years) > _AGE_CONTRADICTION_YEARS):
+        return "age_contradiction"
+
+    # 4. Weight contradiction.
+    stated_wt = _stated_weight_kg(q)
+    if stated_wt is not None and ctx.confirmed_weight_kg is not None:
+        prior = ctx.confirmed_weight_kg
+        tol = max(_WEIGHT_CONTRADICTION_KG, prior * _WEIGHT_CONTRADICTION_FRAC)
+        if abs(stated_wt - prior) > tol:
+            return "weight_contradiction"
+
+    # 5. Inactivity. Missing or unparseable timestamps mean "unknown", never
+    #    "no gap" — pre-v4.1 clients send no ts at all and must not be treated
+    #    as one unbroken session.
+    start, end = _parse_ts(prev_ts), _parse_ts(now_ts)
+    if start and end:
+        gap_min = (end - start).total_seconds() / 60.0
+        if gap_min > PATIENT_BOUNDARY_TIMEOUT_MIN:
+            return "inactivity_timeout"
+
+    return None
+
+
+BOUNDARY_RESET_NOTICE = (
+    "🔄 **Starting a new patient — previous weight, age and access cleared.** "
+    "If this is still the same patient, restate the weight before asking for a dose.\n\n"
+)
+
+
 def rebuild_patient_context_from_history(
     query: str,
     conversation_history: Optional[list] = None,
-    session_ctx: Optional[PatientContext] = None
+    session_ctx: Optional[PatientContext] = None,
+    now_ts=None
 ) -> PatientContext:
     """
     Replays prior user turns into PatientContext before applying the current query.
     This fixes stateless API calls where the current turn is only "IV" or "IM".
     """
     ctx = session_ctx or PatientContext()
+    prev_ts = None
 
     if conversation_history:
         # Durable patient facts (weight/age/route/access) replay over the FULL
-        # conversation — a weight given 30 turns ago is still the weight.
+        # conversation — a weight given 30 turns ago is still the weight, WITHIN
+        # one patient.
+        #
+        # SC-1: the boundary check runs per-turn INSIDE this loop, not once
+        # after it. The server is stateless and re-derives context from the full
+        # history on every request, so a reset applied only to the current turn
+        # is undone on the next request when the earlier turns replay again.
+        # Pinned by test_boundary_reset_survives_full_replay.
         for turn in conversation_history:
             prior_q = turn.get("query", "")
-            if prior_q:
-                ctx = extract_patient_context(prior_q, prior_ctx=ctx)
+            if not prior_q:
+                continue
+            turn_ts = turn.get("ts")
+            if detect_patient_boundary(prior_q, ctx, prev_ts=prev_ts, now_ts=turn_ts):
+                ctx = PatientContext()
+            ctx = extract_patient_context(prior_q, prior_ctx=ctx)
+            prev_ts = turn_ts or prev_ts
+
+    reason = detect_patient_boundary(query, ctx, prev_ts=prev_ts, now_ts=now_ts)
+    if reason:
+        ctx = PatientContext()
 
     ctx = extract_patient_context(query, prior_ctx=ctx)
+    # Only the CURRENT turn's boundary drives the notice. extract_patient_context
+    # is called on a context whose field is already clear, so this cannot leak
+    # from a boundary that happened earlier in the replay.
+    ctx.boundary_reset_reason = reason
     return ctx
 
 
@@ -1493,7 +1847,7 @@ def build_full_query_history(query: str, conversation_history: Optional[list] = 
     prior_queries = ""
     if conversation_history:
         parts = []
-        event_turns = int(os.getenv("CDSS_EVENT_TURNS", "12"))
+        event_turns = _env_number("CDSS_EVENT_TURNS", 12, int)
         for turn in conversation_history[-event_turns:]:
             if turn.get("query"):
                 parts.append(turn.get("query", ""))
@@ -1663,6 +2017,23 @@ def is_rsi_or_post_intubation_context(text: str) -> bool:
         "post intubation", "after tube", "tube confirmed",
         "ventilator", "on the vent", "on a vent", "ketamine drip"
     ])
+
+
+def should_use_rsi_pregate(text: str) -> bool:
+    """
+    Whether a query should be routed to the deterministic RSI bundle.
+
+    S-4 (v4.1): is_rsi_or_post_intubation_context() matches the bare substring
+    "ventilator", so "Ventilator settings for 75kg male in DKA. Ph 7.1" with a
+    confirmed weight was answered with an RSI paralytic bundle rather than vent
+    settings. The substring stays in the RSI term list — "on the vent" and
+    post-intubation phrasings are genuine RSI context — and a query that is
+    actually asking for vent settings is diverted out of the RSI path here.
+
+    This is the single dispatch decision; both call sites use it so the
+    regression tests assert the real condition rather than a copy of it.
+    """
+    return is_rsi_or_post_intubation_context(text) and not is_vent_settings_query(text)
 
 
 def build_rsi_response(ctx: PatientContext, text: str) -> Optional[str]:
@@ -1991,8 +2362,11 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
         patient_ctx = rebuild_patient_context_from_history(
             query,
             conversation_history=conversation_history,
-            session_ctx=session_ctx
+            session_ctx=session_ctx,
+            now_ts=datetime.datetime.now(datetime.timezone.utc).isoformat()
         )
+        if patient_ctx.boundary_reset_reason:
+            print(f"🔄 PATIENT BOUNDARY [{patient_ctx.boundary_reset_reason}] — context cleared")
 
         print(f"👤 confirmed_wt={patient_ctx.confirmed_weight_kg} "
               f"est_wt={patient_ctx.estimated_weight_kg} "
@@ -2183,8 +2557,9 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
                     "patient_context": patient_ctx.to_dict()
                 }
 
-        # Step 2k: RSI / post-intubation deterministic response — before standard pre-gate
-        if is_rsi_or_post_intubation_context(query):
+        # Step 2k: RSI / post-intubation deterministic response — before standard pre-gate.
+        # should_use_rsi_pregate() diverts vent-settings queries out of this path (S-4).
+        if should_use_rsi_pregate(query):
             rsi_response = build_rsi_response(patient_ctx, query)
             if rsi_response:
                 print("💉 RSI PRE-GATE")
@@ -2225,7 +2600,7 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
             except Exception as e:
                 print(f"Router error: {e}")
 
-        raw_results = chromadb_client.query(search_query, n_results=int(os.getenv("CDSS_RAG_TOP_K", "10")))
+        raw_results = chromadb_client.query(search_query, n_results=_env_number("CDSS_RAG_TOP_K", 10, int))
         assessment = classify_retrieval(raw_results)
         print(f"📚 {assessment.source_mode} (top: {assessment.top_score})")
 
@@ -2241,7 +2616,7 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
         if allowed_actions:
             system_prompt += "\n\nALLOWED_ACTIONS:\n" + "\n".join(f"- {a}" for a in allowed_actions)
 
-        if is_rsi_or_post_intubation_context(query):
+        if should_use_rsi_pregate(query):
             system_prompt += """
 
 MANDATORY RSI LABEL:
@@ -2266,7 +2641,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         messages.append({"role": "user", "content": f"Clinical query: {query}"})
         transcript_lines.append(f"CURRENT USER: {query}")
 
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
             temperature=0.2,
@@ -2282,7 +2657,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         llm_result = validate_response(full_transcript, response_text, patient_ctx, allowed_dose_block)
 
         # Step 8: Safety gate with full history context
-        final_response, blocked, combined_issues = apply_safety_gate(
+        outcome = apply_safety_gate(
             response_text,
             det_check,
             llm_result,
@@ -2290,12 +2665,26 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             full_query_history
         )
 
+        # validator_result comes from the gate, not from the validator verdict.
+        # v4.0 computed `"UNSAFE" if blocked else llm_result["result"]` here,
+        # which logged UNSAFE for responses that were served (S-2).
+        # SC-1 / PLAN §5.1 option (c): every reset is surfaced to the medic, so a
+        # WRONG reset is as visible as a missed one. Prepended AFTER the safety
+        # gate on purpose — the notice must not become text the validator reasons
+        # about or an override matches on. It rides on blocked responses too: if
+        # the context was cleared, the medic needs to know that regardless.
+        final_response = outcome.response
+        if patient_ctx.boundary_reset_reason:
+            final_response = BOUNDARY_RESET_NOTICE + final_response
+
         return {
             "response": final_response,
             "sources": assessment.sources[:3],
             "source_mode": assessment.source_mode,
-            "validator_result": "UNSAFE" if blocked else llm_result["result"],
-            "validator_issues": combined_issues,
+            "validator_result": outcome.verdict,
+            "validator_issues": outcome.issues,
+            "override_fired": outcome.override_fired,
+            "boundary_reset": patient_ctx.boundary_reset_reason,
             "patient_context": patient_ctx.to_dict()
         }
 
@@ -2316,12 +2705,26 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
 
 def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
-                   session_ctx: Optional[PatientContext] = None) -> dict:
+                   session_ctx: Optional[PatientContext] = None,
+                   synthetic: bool = False) -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
+
+    `synthetic` marks test-suite traffic (T-2). It is self-declared by the
+    caller via the X-Test-Run header and is therefore trivially spoofable: it
+    is a log-hygiene flag, NOT a security control, and nothing in the pipeline
+    may branch on it. Pinned by test_synthetic_does_not_alter_pipeline.
+
+    `pipeline_ms` (T-1) times this function, not the HTTP round trip: it
+    excludes FastAPI request parsing and response serialisation, so it reads
+    lower than the processing_time_ms badge the client shows. The names are
+    kept distinct so the two are never compared as if interchangeable.
     """
+    t0 = time.perf_counter()
     result = _query_with_rag_internal(
         query, chromadb_client, voice_mode, conversation_history, session_ctx
     )
-    log_query(query, result, conversation_history)
+    pipeline_ms = int((time.perf_counter() - t0) * 1000)
+    log_query(query, result, conversation_history,
+              pipeline_ms=pipeline_ms, synthetic=synthetic)
     return result

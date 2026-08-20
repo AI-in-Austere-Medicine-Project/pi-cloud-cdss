@@ -1,5 +1,98 @@
 # EdgeCDSS Changelog
 
+## [4.1.0] - 2026-08-20
+
+Hardening release driven by `AUDIT_v4.1.md` — a review of 135 logged queries and
+26 feedback entries from the v4.0 field period. Convention: one fix, one commit,
+one regression test. Every fix below has a mutation check recorded in its commit
+message: revert the fix, watch the named test fail, restore.
+
+### Safety
+- **Patient-boundary reset.** Patient context accumulated across every turn of a
+  conversation with no notion of the patient changing, so a 6-year-old's 34 kg
+  was carried into an adult casualty and a dose was served against it. The
+  server now detects a boundary — explicit phrases, a presentational opener, a
+  contradicting age or weight, or 30 minutes of inactivity
+  (`CDSS_PATIENT_TIMEOUT_MIN`) — and clears the context, **announcing every
+  reset in the response** so a wrong reset is as visible to the medic as a
+  missed one. The web client gains a NEW PATIENT button that clears the history
+  the server replays. (audit S-1)
+- Safety-gate overrides now **downgrade instead of releasing**. The nine
+  hand-rolled false-positive branches became a named `SAFETY_OVERRIDES` registry;
+  a fired override serves the response with the human-review banner and
+  **preserves the validator's issue list** instead of discarding it. Invariant,
+  pinned over a 216-case matrix: a served response can never be logged `UNSAFE`.
+  (audit S-2)
+- **Dose contract enforced when the contract is empty.** Canonical GIVE lines
+  were only checked when Python had computed dose candidates — that is, the check
+  was skipped in exactly the state where the generator is most likely to invent a
+  dose. An empty contract now hard-blocks any canonical GIVE line, for adults as
+  well as pediatrics. (audit S-3)
+- `is_pediatric` is **re-derived every turn** rather than latched True and never
+  cleared, so a stated adult age clears a pediatric flag set earlier in the
+  conversation. (audit S-1)
+- The safety gate **fails closed when the validator returns no structured
+  issue.** It synthesizes an issue from the validator's free-text rationale so
+  the audit log is not left blank, but that synthesized text is no longer passed
+  to the false-positive override matcher — a rationale mentioning "fluid" or
+  "airway" could otherwise satisfy an override's keywords and downgrade a block
+  into a served response. Found while reviewing the override-registry change.
+- The hard-coded `levetiracetam (Keppra) 1500mg` was removed from
+  `ALLOWED_ACTIONS`. That block carries weight-free protocol guidance only; every
+  number with a dose unit belongs in `ALLOWED_DOSES`, which requires a confirmed
+  weight.
+
+### Quality
+- Ventilator-settings queries no longer route into the RSI paralytic bundle. A
+  bare `"ventilator"` substring match dispatched them before vent settings were
+  ever considered. (audit S-4)
+- The clinical router's alias table matches on **word boundaries**. Plain
+  substring matching against single- and double-letter keys meant any query
+  containing *patient* had "physician assistant" appended to its RAG search, and
+  *dka* pulled in "ketamine". 143 spurious matches removed across the logged
+  corpus. (audit F-2)
+
+### Observability
+- Session JSONL gains `override_fired`, `boundary_reset`, `pipeline_ms` and
+  `synthetic`, stamped `log_schema: 2`. Pre-v4.1 entries carry none of these and no schema key;
+  analysis tooling must read a missing key as **unknown**, never as a default —
+  defaulting an absent `synthetic` to false would re-classify 48 known
+  test-suite entries as real user traffic.
+- `run_tests.sh` tags its requests `X-Test-Run: 1`. The suite fires at the live
+  public endpoint by design, so the flag is self-declared and spoofable: it is
+  log hygiene, **not** a security control, and nothing in the pipeline branches
+  on it (pinned by test).
+
+### Deployment safety
+- **A typo'd tuning value can no longer prevent startup.** `_env_number()`
+  replaces the raw `int()`/`float()` around `os.getenv` at all three numeric
+  knobs (`CDSS_PATIENT_TIMEOUT_MIN`, `CDSS_EVENT_TURNS`, `CDSS_RAG_TOP_K`): an
+  unparseable value now falls back to the default and says so, instead of
+  raising. The timeout knob is read at module scope, so a typo there meant
+  `openai_client` failed to import, uvicorn never started, `/health` never
+  answered, and the deploy watchdog rebooted the device in a loop — remotely,
+  with no way back in. The knobs stay tunable; only the failure mode changed.
+
+### Testing
+- Offline regression suite: 105 tests, ~2 s, no network, no API key, no
+  ChromaDB. `cd server && ./run_unit_tests.sh`. `openai_client` is now importable
+  without the OpenAI SDK or a key, which is what made the suite possible.
+
+### Corrections to earlier changelog entries
+- **[2.5.0] "Memory reset — voice command \"new patient\", button, 30min
+  inactivity timeout" and "New Patient button added to web interface header" are
+  inaccurate as they stand.** No patient-boundary reset exists in the shipped
+  server: no inactivity timeout, and no server-side handling of a "new patient"
+  utterance. The S-1 sequence was replayed against shipped `HEAD`
+  (`PLAN_v4.1.md` §1.1): `new session` at `cdss_session_2026-07-18.jsonl:13`
+  parses as an ordinary query and clears nothing — the 17 kg carries straight
+  through to the next patient. Whatever shipped in 2.5 did not survive into
+  the v4 client/server split. **SC-1 in this release is what finally makes the
+  claim true** — a real button, a real 30-minute timeout, and server-side
+  boundary detection, none of which existed before. The 2.5.0 entry is left as written — it is a
+  historical record — and corrected here rather than edited.
+
+
 ## [4.0.0] - 2026-07-18
 
 ### Architecture (Deterministic-First)

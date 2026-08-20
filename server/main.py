@@ -9,7 +9,7 @@ from embeddings import ChromaDBClient
 from openai_client import query_with_rag
 
 load_dotenv()
-app = FastAPI(title="CDSS Cloud API", version="4.0.0")
+app = FastAPI(title="CDSS Cloud API", version="4.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
 try:
@@ -56,11 +56,11 @@ _WEB_CLIENT = _Path(__file__).parent / "static" / "index.html"
 async def root():
     if _WEB_CLIENT.exists():
         return FileResponse(_WEB_CLIENT)
-    return {"message": "CDSS Cloud API", "status": "running", "version": "4.0.0", "voice_support": True}
+    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0", "voice_support": True}
 
 @app.get("/status")
 async def status():
-    return {"message": "CDSS Cloud API", "status": "running", "version": "4.0.0", "voice_support": True}
+    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0", "voice_support": True}
 
 @app.get("/health")
 async def health_check():
@@ -74,8 +74,11 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid access token")
     start = datetime.now()
+    # T-2: self-declared test-suite traffic. Log hygiene only — run_tests.sh
+    # fires at the live endpoint by design, and nothing may branch on this.
+    synthetic = http_request.headers.get("X-Test-Run", "") == "1"
     try:
-        result = query_with_rag(request.query, chromadb_client, voice_mode=(request.voice_mode == "brief"), conversation_history=request.conversation_history)
+        result = query_with_rag(request.query, chromadb_client, voice_mode=(request.voice_mode == "brief"), conversation_history=request.conversation_history, synthetic=synthetic)
         ms = int((datetime.now() - start).total_seconds() * 1000)
         return QueryResponse(
             response=result["response"],
