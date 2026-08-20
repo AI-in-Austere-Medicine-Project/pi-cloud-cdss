@@ -2,11 +2,14 @@
 EdgeCDSS — deterministic-layer unit tests.
 Runs offline (no API calls, no server). Regression-pins parser fixes.
 
-    cd server && ../.venv/bin/python3 -m pytest test_deterministic.py -q
-    (or: ../.venv/bin/python3 test_deterministic.py)
+    cd server && ./run_unit_tests.sh
+    (or: python3 -m pytest test_deterministic.py -q, or: python3 test_deterministic.py)
+
+Requires no third-party packages beyond pytest, and no OPENAI_API_KEY.
 """
 
 import os
+import subprocess
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
@@ -15,6 +18,28 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from openai_client import (  # noqa: E402
     extract_patient_context, wants_medication_dose, _has_word,
 )
+
+
+# ── P-0: the module must import with no SDK and no API key ──────────────────
+
+def test_import_is_offline_safe():
+    """openai_client must import without the openai package or an API key set.
+
+    The whole offline suite depends on this: the client is built lazily in
+    get_client(), not at module scope.
+    """
+    env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
+    here = os.path.dirname(os.path.abspath(__file__))
+    proc = subprocess.run(
+        [sys.executable, "-c", "import sys; sys.path.insert(0, %r); import openai_client" % here],
+        env=env, capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+
+
+def test_llm_client_is_not_built_at_import():
+    import openai_client
+    assert openai_client._client is None, "client must not be constructed until first LLM call"
 
 
 # ── Fix 2026-07-18: word-boundary matching for short tokens ──────────────────

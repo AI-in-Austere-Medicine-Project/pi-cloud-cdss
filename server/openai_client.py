@@ -47,11 +47,40 @@ import re
 import json
 from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, List
-from openai import OpenAI
-from dotenv import load_dotenv
+try:
+    from openai import OpenAI
+except ImportError:  # offline test environment — see run_unit_tests.sh
+    OpenAI = None
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # offline test environment
+    def load_dotenv(*_args, **_kwargs):
+        return False
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+_client = None
+
+
+def get_client():
+    """
+    Lazily construct the OpenAI client.
+
+    Importing this module must NOT require the openai SDK or an API key. The
+    deterministic layer, safety gate, clinical router and session logger are
+    all testable offline; only the two LLM calls need a live client. Built on
+    first use and cached.
+    """
+    global _client
+    if _client is None:
+        if OpenAI is None:
+            raise RuntimeError(
+                "openai package is not installed — LLM calls are unavailable. "
+                "Install requirements-server.txt for server use."
+            )
+        _client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    return _client
 
 # Debug flag per deep review §4: never edit fail-closed logic to debug.
 # Set EDGECDSS_DEBUG_WARN_ONLY=1 in the environment to observe generator
@@ -1262,7 +1291,7 @@ def validate_response(full_transcript: str, response_text: str,
             f"PROPOSED RESPONSE:\n{response_text}"
         )
 
-        result = client.chat.completions.create(
+        result = get_client().chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": VALIDATOR_PROMPT},
@@ -2266,7 +2295,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         messages.append({"role": "user", "content": f"Clinical query: {query}"})
         transcript_lines.append(f"CURRENT USER: {query}")
 
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
             temperature=0.2,
