@@ -31,6 +31,12 @@ message: revert the fix, watch the named test fail, restore.
 - `is_pediatric` is **re-derived every turn** rather than latched True and never
   cleared, so a stated adult age clears a pediatric flag set earlier in the
   conversation. (audit S-1)
+- The safety gate **fails closed when the validator returns no structured
+  issue.** It synthesizes an issue from the validator's free-text rationale so
+  the audit log is not left blank, but that synthesized text is no longer passed
+  to the false-positive override matcher — a rationale mentioning "fluid" or
+  "airway" could otherwise satisfy an override's keywords and downgrade a block
+  into a served response. Found while reviewing the override-registry change.
 - The hard-coded `levetiracetam (Keppra) 1500mg` was removed from
   `ALLOWED_ACTIONS`. That block carries weight-free protocol guidance only; every
   number with a dose unit belongs in `ALLOWED_DOSES`, which requires a confirmed
@@ -58,7 +64,7 @@ message: revert the fix, watch the named test fail, restore.
   on it (pinned by test).
 
 ### Testing
-- Offline regression suite: 91 tests, ~0.5 s, no network, no API key, no
+- Offline regression suite: 96 tests, ~0.5 s, no network, no API key, no
   ChromaDB. `cd server && ./run_unit_tests.sh`. `openai_client` is now importable
   without the OpenAI SDK or a key, which is what made the suite possible.
 

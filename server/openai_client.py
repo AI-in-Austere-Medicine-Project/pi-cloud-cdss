@@ -1577,7 +1577,8 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
     # LLM UNSAFE — check structured false positives before blocking
     if llm_result["result"] == "UNSAFE":
         issues = llm_result.get("issues") or []
-        if not issues:
+        had_no_issues = not issues
+        if had_no_issues:
             # normalize_validator_result() already guarantees a non-empty issue
             # list upstream, but the gate must not depend on a normalizer it does
             # not call: a blocked record with no issues is as uninformative in the
@@ -1587,7 +1588,15 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
             issues = [f"Validator marked UNSAFE: {rationale}" if rationale
                       else "Validator marked unsafe but provided no specific issue."]
 
-        fired = find_fired_override(issues, response_text, patient_ctx, full_query_history)
+        # The synthesized issue exists to make the LOG readable. It must never
+        # be matched by an override: its text is the validator's free-form
+        # rationale, so a rationale mentioning "fluid" or "airway" could satisfy
+        # an override's keywords and DOWNGRADE a block into a served response.
+        # A defensive fallback that serves what would otherwise be blocked
+        # defends the wrong way. When the validator gave us nothing structured
+        # to reason about, fail closed. Found in review of SC-3 (6c7f535).
+        fired = (None if had_no_issues else
+                 find_fired_override(issues, response_text, patient_ctx, full_query_history))
         if fired is not None:
             # SC-3: an override DOWNGRADES. v4.0 returned (response, False, [])
             # here — unblocked, issue list discarded, and the call site then

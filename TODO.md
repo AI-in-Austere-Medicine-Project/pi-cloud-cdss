@@ -14,21 +14,14 @@ Completed v3-era roadmap items are preserved in git history and CHANGELOG.md.
 an oversight. Ordered by what v4.1 leaves most exposed.
 
 ### Found during v4.1 implementation
-- [ ] **Safety-gate empty-issues fallback can serve what v4.0 would block.**
-      `apply_safety_gate` synthesizes an issue from the validator's rationale
-      when handed an `UNSAFE` with no issues, and that synthetic issue is then
-      fed to the override matcher. If the rationale and the response both
-      contain an override's keywords, the gate downgrades and **serves** a
-      response v4.0 would have blocked (v4.0's overrides all required a
-      non-empty matched-issue list, so with `issues=[]` none could fire).
-      Verified by running both versions side by side.
-      **Residual: low.** Unreachable through the current single call site —
-      every return path in `validate_response()` is either `SAFE`, normalized
-      by `normalize_validator_result()`, or `NEEDS_HUMAN_REVIEW` with a
-      non-empty issue. So this is defence-in-depth defending the wrong way
-      rather than a live hole. Owner decision 2026-08-20: leave it, file it.
-      **Fix when picked up:** synthesize the issue for the log but skip override
-      matching and block. Two lines.
+- [x] **Safety-gate empty-issues fallback could serve what v4.0 would block.**
+      Fixed 2026-08-20. `apply_safety_gate` synthesized an issue from the
+      validator's rationale when handed an `UNSAFE` with no issues, then fed
+      that synthetic text to the override matcher — so a rationale containing an
+      override's keywords could downgrade a block into a served response. Now
+      the synthesized issue reaches the log but never the matcher: no structured
+      issue means fail closed. Genuine issue lists still reach the overrides, so
+      SC-3 is intact.
 - [ ] **Related, and NOT the same thing:** `is_safe_gate_response()` early-returns
       `SAFE` with `issues=[]`, discarding any validator objection to a
       whitelisted gate question. Strictly better than v4.0, which logged

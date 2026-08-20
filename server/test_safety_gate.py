@@ -382,3 +382,74 @@ def test_empty_contract_block_reaches_the_gate_as_a_hard_block():
     assert outcome.blocked is True
     assert outcome.verdict == "UNSAFE"
     assert outcome.issues == det.issues
+
+
+# ── The synthesized issue must not feed the override matcher ───────────────
+# Found reviewing SC-3 (6c7f535). The gate synthesizes an issue from the
+# validator's rationale when handed an UNSAFE with no issues, so the audit log
+# is not left blank. That synthetic text was then passed to the override
+# matcher — and it is the validator's free-form prose, so a rationale that
+# happens to contain an override's keywords could satisfy one and DOWNGRADE the
+# block into a served response. v4.0 blocked these: with issues=[], every
+# override's matched-issue list was empty and none could fire.
+#
+# Unreachable through the current call site (validate_response always returns
+# SAFE, a normalized result, or NEEDS_HUMAN_REVIEW with a non-empty issue), so
+# this is defence-in-depth. It must defend in the right direction.
+
+def unsafe_no_issues(rationale):
+    return {"result": "UNSAFE", "issues": [], "rationale": rationale}
+
+
+def test_empty_issue_unsafe_blocks_even_when_the_rationale_matches_an_override():
+    """The exact case: fluids rationale, fluids response, fluids override."""
+    response = "**DO THIS**\n1. Start IV fluid resuscitation with crystalloid.\n"
+    outcome = apply_safety_gate(
+        response, PASS,
+        unsafe_no_issues("Recommends aggressive fluid resuscitation without a defined endpoint."),
+        PatientContext(), "")
+    assert outcome.blocked is True
+    assert outcome.verdict == "UNSAFE"
+    assert outcome.override_fired is None, "no override may fire on synthesized text"
+
+
+def test_empty_issue_unsafe_blocks_across_every_override_keyword():
+    """Not just fluids. Every registry branch, driven from the registry itself,
+    so a tenth override cannot reopen this."""
+    for override in SAFETY_OVERRIDES:
+        for keyword in override.keywords:
+            rationale = f"Concern regarding {keyword} handling in this response."
+            response = (_CLINICAL + "Perform cricothyrotomy, decompression, "
+                        "ketamine induction, fluid, monitor, antibiotic.\n")
+            outcome = apply_safety_gate(response, PASS, unsafe_no_issues(rationale),
+                                        PatientContext(confirmed_weight_kg=20.0,
+                                                       is_pediatric=True),
+                                        "blast injury hemorrhage")
+            assert outcome.blocked is True, (
+                f"{override.name}/{keyword!r}: synthesized issue released a block")
+            assert outcome.override_fired is None
+
+
+def test_the_synthesized_issue_still_reaches_the_log():
+    """Failing closed must not go back to blocking with an empty issue list —
+    that is the other half of S-2."""
+    outcome = apply_safety_gate(_CLINICAL, PASS,
+                                unsafe_no_issues("Dose exceeds the safe ceiling."),
+                                PatientContext(), "")
+    assert outcome.blocked is True
+    assert outcome.issues == ["Validator marked UNSAFE: Dose exceeds the safe ceiling."]
+
+
+def test_empty_issue_and_empty_rationale_still_blocks_with_a_readable_issue():
+    outcome = apply_safety_gate(_CLINICAL, PASS, unsafe_no_issues(""), PatientContext(), "")
+    assert outcome.blocked is True
+    assert outcome.issues == ["Validator marked unsafe but provided no specific issue."]
+
+
+def test_real_structured_issues_still_reach_the_overrides():
+    """The fix must be scoped to the synthesized case only. A genuine issue list
+    must still be able to fire an override — otherwise SC-3 is undone."""
+    outcome = gate(_CLINICAL, ["Medication dose given without confirmed weight for pediatric patient."],
+                   PatientContext(confirmed_weight_kg=20.0, is_pediatric=True))
+    assert outcome.blocked is False
+    assert outcome.override_fired == "pediatric_weight_confirmed"
