@@ -257,11 +257,14 @@ def extract_patient_context(query: str,
     # Age phrasings ('year old', 'yo', 'y/o') are NOT pediatric terms — they are
     # parsed into age_years above, and a known age is authoritative: "55 year
     # old" must never be pediatric-gated.
+    # is_pediatric is NOT monotonic (SC-2, v4.1). A known age decides the flag in
+    # BOTH directions: stating "45 year old" after a pediatric turn must clear it.
+    # With no known age the flag stays sticky within the patient — a turn reading
+    # only "IV" must never un-pediatric a child.
     pediatric_terms = ['infant', 'child', 'toddler', 'kid', 'kids', 'boy', 'girl',
                        'pediatric', 'paediatric', 'newborn', 'neonate', 'baby']
     if ctx.age_years is not None:
-        if ctx.age_years < 18:
-            ctx.is_pediatric = True
+        ctx.is_pediatric = ctx.age_years < 18
     elif (_has_any_word(full_text, pediatric_terms) or
             (ctx.confirmed_weight_kg is not None and ctx.confirmed_weight_kg < 40)):
         ctx.is_pediatric = True

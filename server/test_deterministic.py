@@ -86,6 +86,45 @@ def test_low_weight_without_age_is_pediatric():
     assert extract_patient_context("patient 20kg needs analgesia").is_pediatric is True
 
 
+# ── SC-2 (v4.1): is_pediatric must be re-derived per turn, not latched ───────
+
+def test_adult_age_clears_pediatric_flag():
+    """A stated adult age after a pediatric context must clear the flag.
+
+    Reproduced on v4.0 HEAD: the flag was write-once True, so a 45-year-old
+    inheriting a child's context stayed pediatric-gated forever.
+    """
+    ctx = extract_patient_context("6 year old 20kg burn")
+    assert ctx.is_pediatric is True
+    ctx = extract_patient_context("45 year old male 80kg", prior_ctx=ctx)
+    assert ctx.age_years == 45.0
+    assert ctx.is_pediatric is False
+
+
+def test_pediatric_flag_sticky_without_age():
+    """No age in the turn -> flag unchanged. "IV" must not un-pediatric a child."""
+    ctx = extract_patient_context("6 year old 20kg burn")
+    for follow_up in ["IV", "now what", "give ketamine"]:
+        ctx = extract_patient_context(follow_up, prior_ctx=ctx)
+        assert ctx.is_pediatric is True, follow_up
+
+
+def test_pediatric_age_still_sets_flag():
+    """The reverse direction: a child's age after an adult context sets the flag."""
+    ctx = extract_patient_context("45 year old male 80kg")
+    assert ctx.is_pediatric is False
+    ctx = extract_patient_context("6 year old", prior_ctx=ctx)
+    assert ctx.is_pediatric is True
+
+
+def test_low_weight_heuristic_unchanged_when_no_age():
+    """Pin the elif branch — SC-2 must not disturb weight-only detection."""
+    assert extract_patient_context("patient 20kg needs analgesia").is_pediatric is True
+    assert extract_patient_context("patient 80kg needs analgesia").is_pediatric is False
+    ctx = extract_patient_context("toddler with a burn")
+    assert ctx.is_pediatric is True and ctx.age_years is None
+
+
 if __name__ == "__main__":
     fails = 0
     for name, fn in sorted(globals().items()):
