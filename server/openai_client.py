@@ -132,6 +132,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
+            "boundary_reset": result.get("boundary_reset"),
             "pipeline_ms": pipeline_ms,
             "history_turns": len(conversation_history) if conversation_history else 0,
             "patient_ctx": {
@@ -179,6 +180,11 @@ class PatientContext:
     access_state: AccessState = "UNKNOWN"
     route_preference: RoutePreference = "UNKNOWN"
     pending_question: Optional[str] = None
+    # SC-1: set on the context handed to the current turn when THIS turn crossed
+    # a patient boundary. Drives the visible reset notice. Never persisted — a
+    # fresh PatientContext() starts with it clear, which is what makes it mean
+    # "this turn" rather than "some turn".
+    boundary_reset_reason: Optional[str] = None
 
     @property
     def dosing_weight_kg(self) -> Optional[float]:
@@ -1616,26 +1622,193 @@ def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
 # DETERMINISTIC HIGH-RISK CASE BUILDERS — used before RAG/LLM
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PATIENT BOUNDARY DETECTION (SC-1)
+# ─────────────────────────────────────────────────────────────────────────────
+# The audit's most serious finding (S-1) was a 6-year-old's 34 kg carried into
+# an adult IED casualty, with a dose served against it. PatientContext replayed
+# over the FULL conversation with no notion of the patient changing.
+#
+# The failure mode is asymmetric and BOTH directions are bad:
+#   missed boundary -> a stale weight doses the wrong patient (S-1)
+#   false boundary  -> a confirmed weight is destroyed mid-resuscitation
+# Owner decision 2026-08-20 (PLAN_v4.1.md §5.1, option c): use the measured
+# phrase list AND surface every reset in the response, so a wrong reset is
+# immediately visible to the medic rather than silently swapping one failure
+# for the other.
+
+# Explicit "this is a different patient" statements.
+NEW_PATIENT_PHRASES = (
+    "new patient", "new session", "next patient", "another patient",
+    "different patient", "new casualty", "next casualty", "new cas",
+)
+
+# Presentational openers: "have a marine that was hit by an IED".
+# Anchored to the START of the query — mid-sentence "have a" is prose
+# ("patient has a fever", "if you have a tourniquet") and must not fire.
+_PRESENTATIONAL_OPENER_RE = re.compile(
+    r"^\W*(?:i\s+|i'?ve\s+|we\s+|we'?ve\s+)?(?:have|has|got|get)\s+an?\b"
+)
+
+# Words that follow the opener when it is NOT introducing a patient.
+# "have a look at this", "have a question about TXA".
+_OPENER_NON_PATIENT_NOUNS = (
+    "look", "question", "quick", "second", "sec", "minute", "moment",
+    "problem", "issue", "follow", "followup", "protocol", "guideline",
+    "reference", "copy", "chance", "feeling", "hard time", "bad feeling",
+)
+
+# Inactivity gap after which the next turn is treated as a new patient.
+# v2.5's changelog claimed 30 minutes; confirmed by owner 2026-08-20 against
+# the logged session clusters (08-11 splits at 07:49->07:52, 09:12, 11:54).
+PATIENT_BOUNDARY_TIMEOUT_MIN = float(os.getenv("CDSS_PATIENT_TIMEOUT_MIN", "30"))
+
+# Contradiction tolerances. Below these a restatement is a restatement, not a
+# new patient — "34kg" then "34 kg" must not reset.
+_AGE_CONTRADICTION_YEARS = 1.0
+_WEIGHT_CONTRADICTION_KG = 1.0
+_WEIGHT_CONTRADICTION_FRAC = 0.05
+
+
+def _parse_ts(value):
+    """Parse an ISO-8601 timestamp from the client. None on anything unusable."""
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    # Clients may send naive timestamps; treat them as UTC so a naive/aware mix
+    # cannot raise mid-request and take the whole query down.
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed
+
+
+def _stated_weight_kg(q: str) -> Optional[float]:
+    """The confirmed weight this query states, using extract_patient_context's
+    own patterns so the two can never disagree about what a query says."""
+    kg = re.search(r'(\d+(?:\.\d+)?)\s*kg\b', q)
+    if kg:
+        return float(kg.group(1))
+    lb = re.search(r'(\d+(?:\.\d+)?)\s*(?:lbs?|pounds?)\b', q)
+    if lb:
+        return round(float(lb.group(1)) * 0.453592, 1)
+    return None
+
+
+def _stated_age_years(q: str) -> Optional[float]:
+    m = re.search(r'(\d+(?:\.\d+)?)\s*(?:yo|y/o|year[\s-]*old|yr\s*old)\b', q)
+    if m:
+        return float(m.group(1))
+    m = re.search(r'(\d+)[\s-]*year[\s-]*old', q)
+    if m:
+        return float(m.group(1))
+    return None
+
+
+def detect_patient_boundary(query: str, ctx: Optional[PatientContext] = None,
+                            prev_ts=None, now_ts=None) -> Optional[str]:
+    """
+    Return a short trigger reason when `query` starts a NEW patient, else None.
+
+    Evaluated BEFORE the query is folded into ctx, so the contradiction triggers
+    compare what this turn says against what previous turns established.
+    """
+    q = (query or "").lower().strip()
+    if not q:
+        return None
+
+    # 1. Explicit statement.
+    for phrase in NEW_PATIENT_PHRASES:
+        if phrase in q:
+            return f"explicit:{phrase}"
+
+    # 2. Presentational opener introducing a patient.
+    opener = _PRESENTATIONAL_OPENER_RE.match(q)
+    if opener:
+        remainder = q[opener.end():].strip()
+        if remainder and not remainder.startswith(_OPENER_NON_PATIENT_NOUNS):
+            return "presentational_opener"
+
+    # Triggers 3-5 need prior state to contradict.
+    if ctx is None:
+        return None
+
+    # 3. Age contradiction.
+    stated_age = _stated_age_years(q)
+    if (stated_age is not None and ctx.age_years is not None
+            and abs(stated_age - ctx.age_years) > _AGE_CONTRADICTION_YEARS):
+        return "age_contradiction"
+
+    # 4. Weight contradiction.
+    stated_wt = _stated_weight_kg(q)
+    if stated_wt is not None and ctx.confirmed_weight_kg is not None:
+        prior = ctx.confirmed_weight_kg
+        tol = max(_WEIGHT_CONTRADICTION_KG, prior * _WEIGHT_CONTRADICTION_FRAC)
+        if abs(stated_wt - prior) > tol:
+            return "weight_contradiction"
+
+    # 5. Inactivity. Missing or unparseable timestamps mean "unknown", never
+    #    "no gap" — pre-v4.1 clients send no ts at all and must not be treated
+    #    as one unbroken session.
+    start, end = _parse_ts(prev_ts), _parse_ts(now_ts)
+    if start and end:
+        gap_min = (end - start).total_seconds() / 60.0
+        if gap_min > PATIENT_BOUNDARY_TIMEOUT_MIN:
+            return "inactivity_timeout"
+
+    return None
+
+
+BOUNDARY_RESET_NOTICE = (
+    "🔄 **Starting a new patient — previous weight, age and access cleared.** "
+    "If this is still the same patient, restate the weight before asking for a dose.\n\n"
+)
+
+
 def rebuild_patient_context_from_history(
     query: str,
     conversation_history: Optional[list] = None,
-    session_ctx: Optional[PatientContext] = None
+    session_ctx: Optional[PatientContext] = None,
+    now_ts=None
 ) -> PatientContext:
     """
     Replays prior user turns into PatientContext before applying the current query.
     This fixes stateless API calls where the current turn is only "IV" or "IM".
     """
     ctx = session_ctx or PatientContext()
+    prev_ts = None
 
     if conversation_history:
         # Durable patient facts (weight/age/route/access) replay over the FULL
-        # conversation — a weight given 30 turns ago is still the weight.
+        # conversation — a weight given 30 turns ago is still the weight, WITHIN
+        # one patient.
+        #
+        # SC-1: the boundary check runs per-turn INSIDE this loop, not once
+        # after it. The server is stateless and re-derives context from the full
+        # history on every request, so a reset applied only to the current turn
+        # is undone on the next request when the earlier turns replay again.
+        # Pinned by test_boundary_reset_survives_full_replay.
         for turn in conversation_history:
             prior_q = turn.get("query", "")
-            if prior_q:
-                ctx = extract_patient_context(prior_q, prior_ctx=ctx)
+            if not prior_q:
+                continue
+            turn_ts = turn.get("ts")
+            if detect_patient_boundary(prior_q, ctx, prev_ts=prev_ts, now_ts=turn_ts):
+                ctx = PatientContext()
+            ctx = extract_patient_context(prior_q, prior_ctx=ctx)
+            prev_ts = turn_ts or prev_ts
+
+    reason = detect_patient_boundary(query, ctx, prev_ts=prev_ts, now_ts=now_ts)
+    if reason:
+        ctx = PatientContext()
 
     ctx = extract_patient_context(query, prior_ctx=ctx)
+    # Only the CURRENT turn's boundary drives the notice. extract_patient_context
+    # is called on a context whose field is already clear, so this cannot leak
+    # from a boundary that happened earlier in the replay.
+    ctx.boundary_reset_reason = reason
     return ctx
 
 
@@ -2159,8 +2332,11 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
         patient_ctx = rebuild_patient_context_from_history(
             query,
             conversation_history=conversation_history,
-            session_ctx=session_ctx
+            session_ctx=session_ctx,
+            now_ts=datetime.datetime.now(datetime.timezone.utc).isoformat()
         )
+        if patient_ctx.boundary_reset_reason:
+            print(f"🔄 PATIENT BOUNDARY [{patient_ctx.boundary_reset_reason}] — context cleared")
 
         print(f"👤 confirmed_wt={patient_ctx.confirmed_weight_kg} "
               f"est_wt={patient_ctx.estimated_weight_kg} "
@@ -2462,13 +2638,23 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # validator_result comes from the gate, not from the validator verdict.
         # v4.0 computed `"UNSAFE" if blocked else llm_result["result"]` here,
         # which logged UNSAFE for responses that were served (S-2).
+        # SC-1 / PLAN §5.1 option (c): every reset is surfaced to the medic, so a
+        # WRONG reset is as visible as a missed one. Prepended AFTER the safety
+        # gate on purpose — the notice must not become text the validator reasons
+        # about or an override matches on. It rides on blocked responses too: if
+        # the context was cleared, the medic needs to know that regardless.
+        final_response = outcome.response
+        if patient_ctx.boundary_reset_reason:
+            final_response = BOUNDARY_RESET_NOTICE + final_response
+
         return {
-            "response": outcome.response,
+            "response": final_response,
             "sources": assessment.sources[:3],
             "source_mode": assessment.source_mode,
             "validator_result": outcome.verdict,
             "validator_issues": outcome.issues,
             "override_fired": outcome.override_fired,
+            "boundary_reset": patient_ctx.boundary_reset_reason,
             "patient_context": patient_ctx.to_dict()
         }
 

@@ -92,6 +92,18 @@ header h1 span { color: var(--blue); }
 }
 #opts label { cursor: pointer; }
 #opts input[type="radio"] { accent-color: var(--blue); }
+#newpatient {
+  background: transparent; border: 1px solid var(--border); color: var(--dim);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  border-radius: 4px; padding: 3px 10px; cursor: pointer;
+}
+#newpatient:hover { border-color: var(--blue); color: var(--blue); }
+.patient-sep {
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  color: var(--dim); margin: 18px 0; padding: 6px 0;
+  border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border);
+}
 #token { background: var(--bg); border: 1px solid var(--border); color: var(--dim);
   font-family: var(--mono); font-size: 11px; border-radius: 4px; padding: 3px 6px; width: 170px; }
 .disclaimer {
@@ -161,6 +173,7 @@ header h1 span { color: var(--blue); }
     <span>MODE:</span>
     <label><input type="radio" name="mode" value="brief" checked> brief</label>
     <label><input type="radio" name="mode" value="detailed"> detailed</label>
+    <button id="newpatient" type="button" title="Clear this patient's weight, age and access">NEW PATIENT</button>
     <span style="margin-left:auto">TOKEN: <input id="token" value="edgecdss-demo-2026"></span>
   </div>
   <div class="disclaimer"><strong>NO PHI / NO REAL PATIENTS.</strong> This is a research and evaluation platform — it is not HIPAA-compliant and must not be used for actual patient care. Use simulated scenarios only. All queries, responses, and feedback are logged and copied for research and system improvement. Responses are generated decision support derived from JTS CPGs and deterministic dose logic — verify against local protocol.</div>
@@ -170,11 +183,25 @@ header h1 span { color: var(--blue); }
 const chat = document.getElementById('chat');
 const q = document.getElementById('q');
 const send = document.getElementById('send');
-const history = [];   // {query, response} pairs, matching the server contract
+const history = [];   // {query, response, ts} — ts added in v4.1 so the server can detect an inactivity boundary (SC-1)
 const deviceId = 'web-' + Math.random().toString(36).slice(2, 8);
 
 function esc(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// SC-1: explicit patient boundary. Clears the history the server replays, so
+// the next query starts from an empty PatientContext. The transcript is kept
+// and separated rather than wiped — the medic can still read back what was
+// said, but none of it reaches the server as patient facts.
+function newPatient() {
+  if (!history.length) return;
+  history.length = 0;
+  const sep = document.createElement('div');
+  sep.className = 'patient-sep';
+  sep.textContent = '— NEW PATIENT — previous weight, age and access cleared —';
+  chat.appendChild(sep);
+  chat.scrollTop = chat.scrollHeight;
 }
 function renderMd(s) {
   return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
@@ -326,7 +353,7 @@ async function ask() {
       speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this);
     };
     wireFeedback(pending, text, d.response);
-    history.push({ query: text, response: d.response });
+    history.push({ query: text, response: d.response, ts: new Date().toISOString() });
   } catch (e) {
     pending.querySelector('.bubble').innerHTML =
       '<span class="badge err">REQUEST FAILED</span> ' + esc(e.message) +
@@ -337,6 +364,7 @@ async function ask() {
   chat.scrollTop = chat.scrollHeight;
 }
 send.onclick = ask;
+document.getElementById('newpatient').onclick = newPatient;
 q.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
 });
