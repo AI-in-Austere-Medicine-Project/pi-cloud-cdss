@@ -9,7 +9,7 @@ from embeddings import ChromaDBClient
 from openai_client import query_with_rag
 
 load_dotenv()
-app = FastAPI(title="CDSS Cloud API", version="4.0.0")
+app = FastAPI(title="CDSS Cloud API", version="4.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
 try:
@@ -56,11 +56,11 @@ _WEB_CLIENT = _Path(__file__).parent / "static" / "index.html"
 async def root():
     if _WEB_CLIENT.exists():
         return FileResponse(_WEB_CLIENT)
-    return {"message": "CDSS Cloud API", "status": "running", "version": "4.0.0", "voice_support": True}
+    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0", "voice_support": True}
 
 @app.get("/status")
 async def status():
-    return {"message": "CDSS Cloud API", "status": "running", "version": "4.0.0", "voice_support": True}
+    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0", "voice_support": True}
 
 @app.get("/health")
 async def health_check():

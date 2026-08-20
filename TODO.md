@@ -13,20 +13,44 @@ Completed v3-era roadmap items are preserved in git history and CHANGELOG.md.
 (`PLAN_v4.1.md` §0). They are listed so the residue stays a decision rather than
 an oversight. Ordered by what v4.1 leaves most exposed.
 
-### Still open in v4.1 itself
-- [ ] **SC-1 — patient-boundary reset** (server detection + client control).
-      The audit's most serious finding, S-1: a 6-year-old's 34 kg was carried
-      into an adult IED casualty and a dose was served. Held 2026-08-20 for
-      owner review of the SC-3 diff and the SC-1 approach. Design input is
-      settled — `PLAN_v4.1.md` §5.1 option (c): the measured phrase list, with
-      the reset surfaced in the response ("Starting a new patient — previous
-      weight cleared") so **both** error directions are visible to the medic.
-      §5.2 (inactivity-timeout threshold, and whether `ts` may join the client
-      history payload) still needs an answer when this resumes.
-      **Residual risk until it lands:** S-1 is reproducible on `HEAD`. SC-2 and
-      SC-3 mean a stale weight can no longer cross a boundary *invisibly* — the
-      issue survives into the log and the medic gets a banner — but it can
-      still cross.
+### Found during v4.1 implementation
+- [ ] **Safety-gate empty-issues fallback can serve what v4.0 would block.**
+      `apply_safety_gate` synthesizes an issue from the validator's rationale
+      when handed an `UNSAFE` with no issues, and that synthetic issue is then
+      fed to the override matcher. If the rationale and the response both
+      contain an override's keywords, the gate downgrades and **serves** a
+      response v4.0 would have blocked (v4.0's overrides all required a
+      non-empty matched-issue list, so with `issues=[]` none could fire).
+      Verified by running both versions side by side.
+      **Residual: low.** Unreachable through the current single call site —
+      every return path in `validate_response()` is either `SAFE`, normalized
+      by `normalize_validator_result()`, or `NEEDS_HUMAN_REVIEW` with a
+      non-empty issue. So this is defence-in-depth defending the wrong way
+      rather than a live hole. Owner decision 2026-08-20: leave it, file it.
+      **Fix when picked up:** synthesize the issue for the log but skip override
+      matching and block. Two lines.
+- [ ] **Related, and NOT the same thing:** `is_safe_gate_response()` early-returns
+      `SAFE` with `issues=[]`, discarding any validator objection to a
+      whitelisted gate question. Strictly better than v4.0, which logged
+      `UNSAFE` with `[]` there — an S-2 shape — and the path only carries gate
+      questions like "IV or IM? Do you have access?" with no clinical content.
+      **Verification note worth keeping:** S-2's second record
+      (`cdss_session_2026-07-18.jsonl:11`) does **not** go through this path.
+      `is_safe_gate_response("Need exact weight in kg before dosing.")` is
+      `False` — that record went through the override path. So this observation
+      does not touch either real S-2 record.
+- [ ] **The 200-character response preview is itself an observability gap.**
+      `log_query()` stores `result["response"][:200]`. Every measured blast
+      radius in `AUDIT_v4.1.md` and `PLAN_v4.1.md` that depends on response
+      content is therefore a **lower bound** — SC-6's "exactly one record
+      affected" was measured this way and cannot see a GIVE line past character
+      200. The audit could not have found a dose it could not read.
+      **Options:** log the full response text, log a hash plus the preview, or
+      raise the cap. Full text has a storage and sensitivity cost worth
+      weighing (the system is NO-PHI by policy, but responses quote the query).
+      Note SC-1's reset notice now prepends ~120 characters to the response on
+      reset turns, which eats into the preview further on exactly the turns
+      most worth reading.
 
 ### Deferred by owner decision, with residual risk
 - [ ] **F-4 / Q-8 — knowledge-base scope.** The corpus is 89 JTS trauma CPGs;
@@ -65,12 +89,13 @@ an oversight. Ordered by what v4.1 leaves most exposed.
       with the issue logged. Validator rule #8 remains effectively unenforceable
       as a *block*.
 - [ ] **SC-5 — pediatric-weight override must verify weight ownership.**
-      Largely dissolved by SC-1 + SC-2: with the context reset at the boundary
-      there is no stale weight to satisfy the override. The override's logic
-      stays wrong; the input that made it dangerous goes away.
-      **Reassess after SC-1 ships** — do not close it before then. Pinned
-      meanwhile by `test_pediatric_override_sc5_gap_is_pinned`, which is
-      designed to fail the day SC-5 lands.
+      **Largely superseded by SC-1** (`18490f6`), which landed 2026-08-20: with
+      the context cleared at the patient boundary there is no longer a stale
+      weight for the override to be satisfied by. Not closed — the override's
+      logic is still wrong, it just no longer has a dangerous input to act on,
+      and it still fires when unrelated issues co-occur. Pinned by
+      `test_pediatric_override_sc5_gap_is_pinned`, designed to fail the day
+      SC-5 proper lands.
 - [ ] **SC-8 — transcript dose echo.** The generator can still copy a dose out
       of a prior assistant turn. **Residual:** SC-1 removes the cross-patient
       case; within one patient, echo remains possible.

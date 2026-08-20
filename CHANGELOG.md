@@ -1,17 +1,22 @@
 # EdgeCDSS Changelog
 
-## [4.1.0] - UNRELEASED (branch `v4.1-audit`)
+## [4.1.0] - 2026-08-20
 
 Hardening release driven by `AUDIT_v4.1.md` — a review of 135 logged queries and
 26 feedback entries from the v4.0 field period. Convention: one fix, one commit,
 one regression test. Every fix below has a mutation check recorded in its commit
 message: revert the fix, watch the named test fail, restore.
 
-**Incomplete.** SC-1 (patient-boundary reset), the fix for the audit's most
-serious finding, is not in this branch yet — it is held for owner review. Do not
-cut a release from this state.
-
 ### Safety
+- **Patient-boundary reset.** Patient context accumulated across every turn of a
+  conversation with no notion of the patient changing, so a 6-year-old's 34 kg
+  was carried into an adult casualty and a dose was served against it. The
+  server now detects a boundary — explicit phrases, a presentational opener, a
+  contradicting age or weight, or 30 minutes of inactivity
+  (`CDSS_PATIENT_TIMEOUT_MIN`) — and clears the context, **announcing every
+  reset in the response** so a wrong reset is as visible to the medic as a
+  missed one. The web client gains a NEW PATIENT button that clears the history
+  the server replays. (audit S-1)
 - Safety-gate overrides now **downgrade instead of releasing**. The nine
   hand-rolled false-positive branches became a named `SAFETY_OVERRIDES` registry;
   a fired override serves the response with the human-review banner and
@@ -24,7 +29,8 @@ cut a release from this state.
   dose. An empty contract now hard-blocks any canonical GIVE line, for adults as
   well as pediatrics. (audit S-3)
 - `is_pediatric` is **re-derived every turn** rather than latched True and never
-  cleared. (audit S-1, partial)
+  cleared, so a stated adult age clears a pediatric flag set earlier in the
+  conversation. (audit S-1)
 - The hard-coded `levetiracetam (Keppra) 1500mg` was removed from
   `ALLOWED_ACTIONS`. That block carries weight-free protocol guidance only; every
   number with a dose unit belongs in `ALLOWED_DOSES`, which requires a confirmed
@@ -41,8 +47,8 @@ cut a release from this state.
   corpus. (audit F-2)
 
 ### Observability
-- Session JSONL gains `override_fired`, `pipeline_ms` and `synthetic`, stamped
-  `log_schema: 2`. Pre-v4.1 entries carry none of these and no schema key;
+- Session JSONL gains `override_fired`, `boundary_reset`, `pipeline_ms` and
+  `synthetic`, stamped `log_schema: 2`. Pre-v4.1 entries carry none of these and no schema key;
   analysis tooling must read a missing key as **unknown**, never as a default —
   defaulting an absent `synthetic` to false would re-classify 48 known
   test-suite entries as real user traffic.
@@ -52,7 +58,7 @@ cut a release from this state.
   on it (pinned by test).
 
 ### Testing
-- Offline regression suite: 65 tests, ~0.5 s, no network, no API key, no
+- Offline regression suite: 91 tests, ~0.5 s, no network, no API key, no
   ChromaDB. `cd server && ./run_unit_tests.sh`. `openai_client` is now importable
   without the OpenAI SDK or a key, which is what made the suite possible.
 
@@ -65,8 +71,9 @@ cut a release from this state.
   (`PLAN_v4.1.md` §1.1): `new session` at `cdss_session_2026-07-18.jsonl:13`
   parses as an ordinary query and clears nothing — the 17 kg carries straight
   through to the next patient. Whatever shipped in 2.5 did not survive into
-  the v4 client/server split. SC-1 is the item that will make the claim true; it
-  is **not** in this release. The 2.5.0 entry is left as written — it is a
+  the v4 client/server split. **SC-1 in this release is what finally makes the
+  claim true** — a real button, a real 30-minute timeout, and server-side
+  boundary detection, none of which existed before. The 2.5.0 entry is left as written — it is a
   historical record — and corrected here rather than edited.
 
 
