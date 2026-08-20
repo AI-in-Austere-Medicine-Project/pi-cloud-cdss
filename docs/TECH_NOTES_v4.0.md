@@ -2,6 +2,11 @@
 
 AI in Austere Medicine Project — July 2026
 
+> **Superseded by [TECH_NOTES_v4.1.md](TECH_NOTES_v4.1.md).** This document is kept as the record of
+> what 4.0 claimed. Two of its architecture statements did not match the shipped code and were
+> corrected in 4.1: patient context was rebuilt across the whole conversation with no patient
+> boundary (audit S-1), and dose verification was skipped when the contract was empty (audit S-3).
+
 - Live portal: https://cdss.arcanekg.com
 - Release notes page: https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.0.html
 - Repository: https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss

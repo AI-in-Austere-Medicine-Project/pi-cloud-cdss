@@ -55,10 +55,10 @@ Then the infrastructure failed. In mid-July the cloud provider ran out of capaci
 
 **Self-hosted:** the full stack — re-ingested knowledge base (89 CPGs, now 8,559 cleaner chunks with calibrated retrieval), clinical router, web portal, structured clinical feedback, audit logging — runs on a $249 Jetson Orin Nano reached through an outbound-only tunnel, on any network. No cloud vendor can turn it off.
 
-The continuity is as telling as the change: ZERO MATH, dual-domain attribution, the structured response format, and the open publication of failures all date to version 1. What changed is *where safety lives* — from prompt sentences (v1–2), to a second AI (v3), to inspectable, testable code (4.0). The automated suite now passes 24/24 against the live public endpoint, and the field-feedback loop that caught the WPW gap in May is now built into every response — severity triage, issue categories, protocol-cited corrections — because the single most durable finding of this project's first four versions is that expert human scrutiny finds what nothing else does.
+The continuity is as telling as the change: ZERO MATH, dual-domain attribution, the structured response format, and the open publication of failures all date to version 1. What changed is *where safety lives* — from prompt sentences (v1–2), to a second AI (v3), to inspectable, testable code (4.0). The automated suite passed 24/24 against the live public endpoint at 4.0, and the field-feedback loop that caught the WPW gap in May is now built into every response — severity triage, issue categories, protocol-cited corrections — because the single most durable finding of this project's first four versions is that expert human scrutiny finds what nothing else does.
 
 ---
 
-*Documents in this archive: the Proof of Concept report (May 2026), the v2.1 Field Evaluation Report (the WPW finding), and the v3.0 Goals & Technology document. Current documentation: [`docs/TECH_NOTES_v4.0.md`](../TECH_NOTES_v4.0.md).*
+*Documents in this archive: the Proof of Concept report (May 2026), the v2.1 Field Evaluation Report (the WPW finding), and the v3.0 Goals & Technology document. Current documentation: [`docs/TECH_NOTES_v4.1.md`](../TECH_NOTES_v4.1.md).*
 
 *Research prototype — not validated for clinical use. AI in Austere Medicine Project.*
