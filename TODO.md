@@ -138,6 +138,14 @@ an oversight. Ordered by what v4.1 leaves most exposed.
       pressure is marked in the strip and its age reaches the prompt, but
       nothing refuses to reason about it. Whether an old vital should stop
       arming a caution — and at what age — is a clinical call.
+- [ ] **The Celsius band excludes hypothermia. Needs an owner decision.**
+      `temp` ships with a plausible range of 35-43C and 93-110F. The Fahrenheit
+      band reaches 33.9C, the Celsius band stops at 35, so `temp 33` is rejected
+      as unreadable while `temp 93 F` — the same patient — is stored. It also
+      means `hypothermia_txa` can only arm from a Fahrenheit reading. Lowering
+      `temp.min` in `server/vitals_rules.json` fixes it with no code change; the
+      question is what the floor should be for a trauma population where
+      hypothermia is a real presentation, not a typo.
 - [ ] **No structured vitals entry.** Capture is free-text only, which is what
       was asked for. A dedicated input would remove the parser from the path for
       medics who prefer fields.
@@ -150,7 +158,27 @@ an oversight. Ordered by what v4.1 leaves most exposed.
 - [ ] Route capture: bare mid-sentence "im" must not silently select IM route
 - [ ] Overdose detector: recognize "succs" alongside "sux"; add lorazepam ceiling
 - [x] Pediatric-weight validator override must not discard unrelated issues — `6c7f535` (SC-3). The override now downgrades and preserves the issue list. Note this is *not* SC-5: the branch still fires when unrelated issues co-occur, it just no longer destroys them. See SC-5 above.
-- [ ] Hypotension detector: require SBP threshold, not lone DBP / bare "map"
+- [x] Hypotension detector (`has_hypotension_or_shock`): word-anchored. `"ams"`
+      matched *milligrams*/*grams*/*diagrams*/*exams*, `"altered"` matched
+      *unaltered*, `"map "` matched *roadmap*. **Carried forward:**
+      - [ ] It still routes on the WORD "map", not the value, so "MAP 90" reads
+            as shock. The vitals table now derives a real MAP per turn; this
+            detector takes only a string and would need the context passed in.
+            Do it with the eval harness, where the routing change can be scored.
+- [ ] Substring failure class, specimens 5 and 6 — found by audit, NOT fixed
+      here because each changes clinical routing and deserves its own review:
+      - [ ] `is_cico_query`: `"cric"` matches **cricoid**. "apply cricoid
+            pressure during intubation" classifies as can't-intubate-can't-
+            oxygenate. Fails safe (an extra surgical-airway check, never a
+            missed one), so it is noise rather than danger — but it is noise on
+            the loudest check in the system.
+      - [ ] `is_ketamine_analgesia_context`: `"ket "` matches **blanket **.
+            "put a warming blanket on him, he has a leg fracture" reads as a
+            ketamine analgesia context. Hypothermia prose and pain prose
+            co-occur constantly in trauma, so this is not a rare shape.
+      - [ ] `build_allowed_doses` `is_analg`: `"arm"` matches *warm*, *harm*,
+            *alarm*. Latent — downstream gates masked it in every probe — but
+            the flag itself is wrong.
 - [ ] Ketamine dose-candidate condition (is_analg or not is_seizure) tautology
 
 ### API hardening
@@ -161,6 +189,43 @@ an oversight. Ordered by what v4.1 leaves most exposed.
 - [ ] Restrict CORS origins
 - [ ] Run LLM calls off the event loop with explicit timeouts
 - [ ] Refuse /query (503) when the knowledge base is empty
+
+### Docs owed for 4.2.0
+- [ ] `docs/TECH_NOTES_v4.2.md` and `web/release-notes-4.2.html`. README links
+      still point at the 4.1 documents and say so; CHANGELOG carries the full
+      4.2.0 section in the meantime.
+
+### Retrieval (scoped for the eval-harness phase — do not tune thresholds ad hoc)
+Measured 2026-08-21 against the live 8,559-chunk corpus, re-embedded with the
+same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/RETRIEVAL_DIAGNOSIS_2026-08-21.md`.
+- [ ] **Narrative dilution is the real failure.** Clean burn queries retrieve
+      burn CPG chunks at 0.40–0.51 (well inside JTS_GROUNDED). The live queries
+      were conversational and multi-topic — *"his Tesla rear ended a semi and
+      he's got broken bones and estimated 70% burns"* — and mean-pooled MiniLM
+      averages the burn clause away: −0.023 on the medic's own words. The fix is
+      query construction (clause splitting, multi-query retrieval, or reranking),
+      not a threshold. Needs the harness to score.
+- [ ] **The router is the mitigation, not the cause.** Its enhanced query lifted
+      those live cases by +0.12 to +0.18 and was the only reason burn chunks
+      surfaced at all. It costs ~0.04 on short clean queries. Worth measuring
+      properly before anyone "simplifies" it away.
+- [ ] **A HIGH-confidence router match should be able to reach its document.**
+      The router named "Burn Wound Management in Prolonged Field Care" with HIGH
+      confidence, the corpus held 233 burn chunks, and the answer still came
+      from general reference. Source-filtered or source-boosted retrieval on a
+      confident route is the obvious lever; it is a real behaviour change and
+      belongs behind the harness.
+- [ ] **PDF ligature corruption.** 53% of burn-CPG chunks contain `ﬁ`/`ﬂ`
+      ligatures against 9% corpus-wide — "ﬂuid" appears in 50 burn chunks,
+      ASCII "fluid" in only 26. The tokenizer splits `ﬂuid` into two rare
+      tokens; cosine("fluid", "ﬂuid") is 0.37 in this model. Secondary to
+      dilution, but it is a corpus defect and re-ingesting with NFKC
+      normalisation is cheap. Requires a DB rebuild, so it is a deploy, not a
+      patch.
+- [ ] **`classify_retrieval` clamps at zero.** `score = 2·cos − 1`, so anything
+      below cosine 0.5 is negative and prints as 0.0-ish. The log now shows the
+      cosine alongside; consider whether `confidence` on the wire should stop
+      being clamped too.
 
 ## v4.x — Research
 - [x] Cross-model comparison harness: model is config (`server/providers.json`),

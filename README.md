@@ -5,7 +5,7 @@ Open source. Edge deployed. Safety findings published.
 
 > ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
-**Current release: 4.1.0** · [Release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [Technical notes](docs/TECH_NOTES_v4.1.md) · [Changelog](CHANGELOG.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Current release: 4.2.0** — see the [Changelog](CHANGELOG.md); the 4.2 release notes and technical notes are not written yet · [4.1 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [4.1 technical notes](docs/TECH_NOTES_v4.1.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
 ---
 
@@ -88,7 +88,7 @@ pi-cloud-cdss/
 │   ├── build_protocol_index.py  Builds the router index from the knowledge base
 │   ├── static/index.html        Web portal (served at the API root)
 │   ├── run_tests.sh             24-case live-endpoint clinical suite
-│   ├── run_unit_tests.sh        Offline regression suite (105 tests, ~2s)
+│   ├── run_unit_tests.sh        Offline regression suite (421 tests, ~3s)
 │   └── test_*.py                Offline suites: deterministic parsers/gates,
 │                                safety gate, patient boundary, routing and
 │                                aliases, log contract, env config
@@ -172,25 +172,43 @@ access, and vitals — and **shows it**. The client renders a context strip with
 each vital and the age of its reading:
 
 ```
-context  WT 80 kg   AGE 34 yr   HR 128 now   BP 82/40 3m   SpO2 91 3m
+context  WT 80 kg   AGE 34 yr   HR 128 now   BP 82/40 (MAP 54) 3m   SpO2 91 3m
 ```
 
 Vitals are read from ordinary phrasing (`HR 128`, `BP 82/40`, `sats 91`,
-`GCS 3-4-5`, `temp 101.2 F`). Each reading is timestamped to the turn it was
-stated in; a reading whose age cannot be established is shown as `age ?` and
-marked, because that is the one worth checking. **NEW PATIENT clears every
-vital**, and the response says so.
+`GCS 3-4-5`, `temp 101.2 F`, `fever of 104`). Each reading is timestamped to the
+turn it was stated in; a reading whose age cannot be established is shown as
+`age ?` and marked, because that is the one worth checking. **NEW PATIENT clears
+every vital**, and the response says so.
 
-A value that cannot be real — `BP 400/300` — is rejected with a visible note and
-not stored. Silently ignoring it would leave the medic believing the system holds
-a blood pressure it does not hold.
+**A temperature keeps the unit it was stated in.** Which unit that is comes from
+the value: the plausible bands do not overlap, so `39` is Celsius and `104` is
+Fahrenheit, and a stated `C` or `F` is checked against its own band rather than
+reinterpreted. The medic sees back what they typed — `Temp 104 F` — while the
+caution table compares the canonical Celsius value the rules are written in.
+`febrile` with no number is not a measurement and captures nothing; the sepsis
+router reads the word itself.
+
+**MAP is derived from the pressure**, `(SBP + 2*DBP)/3` rounded, and shown
+beside it — green at or above 65, red below. It is the one value here the system
+computes rather than hears, so it is flagged `derived` wherever it appears, it is
+recomputed whenever either pressure moves, and it carries the age of the *older*
+of its two inputs: a derived number must never look fresher than the data behind
+it. A MAP the medic states — `MAP 70`, off an arterial line — is a measurement
+and supersedes the derived one until a newer pressure arrives.
+
+A value that cannot be real — `BP 400/300`, or a temperature in neither
+plausible band — is rejected with a visible note and not stored. Silently
+ignoring it would leave the medic believing the system holds a vital it does
+not hold. A rejected pressure yields no MAP either.
 
 **Vitals never compute a dose.** They inform the prompt, the validator, and a
 narrow conflict table (`server/vitals_rules.json`, editable clinical content).
 When a recommendation conflicts with a recorded vital — a respiratory depressant
-at RR 6, a hypotension-risk drug at SBP 82 — the answer is served with a visible
-caution and flagged for human review. A caution never blocks a response and
-never releases one.
+at RR 6, a hypotension-risk drug at SBP 82 or MAP 50 — the answer is served with
+a visible caution and flagged for human review. A caution never blocks a response
+and never releases one. Low SBP and low MAP are one caution with two ways to arm
+it, so a narrow pressure like 90/30 is warned about once rather than twice.
 
 ## Choosing a model
 
@@ -235,7 +253,7 @@ measured.
 
 ## Validation status
 
-- Offline regression suite: **105 tests, ~2s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every v4.1 fix is pinned by a test built from the log line that exposed it
+- Offline regression suite: **421 tests, ~3s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it
 - Automated clinical suite: **24 cases** against the live public endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
 - Convention for safety-relevant fixes: **one fix, one commit, one regression test**, plus a mutation check — revert the fix, confirm the named test fails, restore — recorded in the commit message
 - Active field beta with structured clinical feedback: severity triage, issue categories, protocol-cited corrections — reported failures are reproduced from audit logs and fixed with regression tests

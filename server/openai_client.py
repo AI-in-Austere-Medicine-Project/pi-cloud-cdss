@@ -129,7 +129,18 @@ def _get_log_file() -> pathlib.Path:
 # against — the question "what did the system believe the blood pressure was
 # when it said that" has to be answerable from the log alone, which is the S-1
 # lesson applied to the audit surface rather than the UI.
-LOG_SCHEMA_VERSION = 4
+# Schema 5 reshapes one of them: the vital named `temp_c` is now `temp`, its
+# `value` is in whichever unit the medic stated (`unit` says which), and a
+# temperature carries `value_c` and `value_f` alongside. Reading a schema 4
+# `temp_c` as Celsius is correct; reading a schema 5 `temp` that way is not,
+# which is why this is a version and not a silent change of contents.
+# Schema 6 adds `map` — the first vital in this block the SYSTEM produced rather
+# than heard — and, because of it, a `derived` flag on EVERY reading. Every
+# schema 5 reading was stated; reading a schema 6 one that way is a coin flip on
+# `map`. The flag is written even where it is false because "the medic said this"
+# is a fact worth recording, and a flag that only appeared when true would leave
+# a stated MAP looking exactly like a log written before the field existed.
+LOG_SCHEMA_VERSION = 6
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -231,6 +242,9 @@ class PatientContext:
     # Vitals: name -> vitals.VitalReading. Cleared by a patient boundary along
     # with everything else, because a PatientContext() is a fresh patient and a
     # previous patient's blood pressure is the S-1 failure with a faster clock.
+    # `map` lives here too and is cleared with the rest, even though it is
+    # derived: it is derived FROM this patient's pressure, so it is this
+    # patient's number.
     vitals: dict = field(default_factory=dict)
     # Both describe the CURRENT turn only, like boundary_reset_reason: reset at
     # the top of every extract_patient_context call so that after the replay
@@ -392,7 +406,8 @@ def extract_patient_context(query: str,
     if ctx.age_years is not None:
         ctx.is_pediatric = ctx.age_years < 18
     elif (_has_any_word(full_text, pediatric_terms) or
-            (ctx.confirmed_weight_kg is not None and ctx.confirmed_weight_kg < 40)):
+            (ctx.confirmed_weight_kg is not None
+             and ctx.confirmed_weight_kg < PEDIATRIC_WEIGHT_CEILING_KG)):
         ctx.is_pediatric = True
 
     # ── Estimated weight from age (context only — never used for dosing) ─
@@ -456,6 +471,15 @@ SAFE_GATE_RESPONSES = {
     "Need rhythm before antiarrhythmic.",
     "Need height and sex before vent settings.",
 }
+
+
+# The weight below which a patient with no stated age is treated as paediatric.
+# Named because two places depend on it agreeing: the classifier above, and
+# build_patient_block, which has to explain to a reader WHY a 77.1kg patient with
+# no stated age is not being paediatric-gated. A silent 40 in one of them and a
+# different number in the other is a context block that contradicts the flag it
+# is describing.
+PEDIATRIC_WEIGHT_CEILING_KG = 40.0
 
 
 def _has_word(text: str, term: str) -> bool:
@@ -746,13 +770,28 @@ def has_positive_term(q: str, term: str) -> bool:
     negations = ["no ", "denies ", "without ", "afebrile", "not ", "negative for ", "no evidence of ", "rule out "]
     return not any(n in before for n in negations)
 
+# Long enough that a substring match cannot land inside an unrelated word.
+_SHOCK_PHRASES = ["hypotension", "hypotensive", "poor perfusion", "septic shock"]
+
+# Short tokens that ARE substrings of ordinary clinical prose, so they are
+# word-anchored. The fourth specimen of this repo's substring failure class,
+# after the F-2 alias table, FIXED_PREP_TERMS and the vitals labels — and the
+# worst of the four, because every hit routes a casualty:
+#   "ams"     matched milligrams, grams, diagrams, exams. Any dose stated in
+#             grams routed as shock, and with an infection present that is
+#             looks_like_sepsis() firing on the word "milligrams".
+#   "altered" matched unaltered — an explicit negation read as its opposite.
+#   "map "    matched roadmap.
+# Inflections are kept explicitly rather than by dropping the right-hand
+# boundary: \bshock would also swallow "shockwave", and this list decides
+# whether a casualty is treated as being in shock.
+_SHOCK_WORDS = ["shock", "shocks", "shocked", "altered", "ams", "map"]
+
+
 def has_hypotension_or_shock(q: str) -> bool:
     """Detect hypotension/shock text, including BP values like 92/46."""
     q = (q or "").lower()
-    if any(x in q for x in [
-        "hypotension", "hypotensive", "shock", "septic shock",
-        "poor perfusion", "altered", "ams", "map "
-    ]):
+    if any(x in q for x in _SHOCK_PHRASES) or _has_any_word(q, _SHOCK_WORDS):
         return True
 
     for m in re.finditer(r"\bbp\s*(\d{2,3})\s*/\s*(\d{2,3})\b", q):
@@ -957,6 +996,27 @@ def build_allowed_actions(query: str, ctx: PatientContext) -> List[str]:
 # RETRIEVAL CLASSIFIER
 # ─────────────────────────────────────────────────────────────────────────────
 
+def retrieval_cosine(top_score: float) -> float:
+    """The cosine `top_score` came from. Reporting only, nothing routes on it.
+
+    The collection is built with `space: l2` over embeddings the encoder has
+    already normalised, so the distance Chroma returns is SQUARED L2 = 2 - 2cos,
+    and classify_retrieval's `1 - distance` is therefore `2cos - 1`. Two things
+    follow that were not visible from the printed number alone:
+
+      - JTS_GROUNDED at 0.35 means cosine >= 0.675, which is a high bar for
+        MiniLM against a mid-sentence PDF chunk.
+      - The score goes NEGATIVE below cosine 0.5, and `max(0.0, ...)` clamps it.
+        A genuinely hopeless retrieval and a merely weak one both printed as a
+        small positive number, which is what made the 2026-08-21 burn queries
+        take a corpus rebuild to diagnose.
+
+    Inverse of the same transform, so the log carries the number a person can
+    reason about next to the number the thresholds use.
+    """
+    return (top_score + 1.0) / 2.0
+
+
 def classify_retrieval(results: dict) -> RetrievalAssessment:
     context_parts = []
     sources = []
@@ -1152,13 +1212,47 @@ Guideline-based support only. Not a substitute for clinical judgment.
 """
 
 
-def build_patient_block(ctx: PatientContext, now_ts=None) -> str:
-    lines = []
+def age_band_line(ctx: PatientContext) -> str:
+    """What the system actually knows about the age band, stated either way.
+
+    `is_pediatric` is False for a known adult AND for a patient nobody has given
+    an age for. The block used to say "PEDIATRIC PATIENT" when the flag was true
+    and NOTHING when it was false, so those two very different states looked
+    identical downstream — and on 2026-08-21 the validator said so out loud
+    about a 77.1kg casualty: "the patient's weight is confirmed as 77.1 kg,
+    which is not pediatric. However, the context does not specify if the patient
+    is pediatric or adult, leading to a need for human review."
+
+    It was right. It had the weight — it quoted the number — and it genuinely
+    had no statement of age band, because the block asserted that status in one
+    direction only. A rule that keys on paediatric status cannot be evaluated
+    against a silence, and a silence is what it got.
+
+    So this says which of the three it is, and says "unknown" out loud when it
+    is unknown rather than saying nothing. Unknown is not adult: with no age and
+    no weight the system does not know, and claiming otherwise here would be the
+    same failure pointing the other way.
+    """
     if ctx.is_pediatric:
-        lines.append("PEDIATRIC PATIENT")
+        return "PEDIATRIC PATIENT"
+    if ctx.age_years is not None:
+        return f"ADULT PATIENT — age {ctx.age_years:g}yr stated. NOT pediatric."
+    if ctx.confirmed_weight_kg is not None:
+        return (f"NOT pediatric — no age was stated, and the confirmed weight of "
+                f"{ctx.confirmed_weight_kg:g}kg is at or above the "
+                f"{PEDIATRIC_WEIGHT_CEILING_KG:g}kg paediatric threshold.")
+    return "Age not stated and no weight confirmed — pediatric status UNKNOWN."
+
+
+def build_patient_block(ctx: PatientContext, now_ts=None) -> str:
+    # Always first, and never absent. See age_band_line.
+    lines = [age_band_line(ctx)]
 
     if ctx.confirmed_weight_kg is not None:
         lines.append(f"Confirmed weight: {ctx.confirmed_weight_kg}kg ({ctx.weight_source})")
+        # Said explicitly because the failure this fixes was a flow asking the
+        # medic for a number three lines above the answer.
+        lines.append("Weight is CONFIRMED. Do not ask for a weight the context already states.")
         if ctx.is_pediatric:
             # ETT/VT for airway planning
             vt = int(ctx.confirmed_weight_kg * 6)
@@ -1393,8 +1487,19 @@ Return UNSAFE ONLY for direct patient-harm errors:
 7. CRITICAL MISSED DIAGNOSIS: tension pneumo without decompression, cardiac arrest without CPR, severe anaphylaxis without epinephrine.
 8. DANGEROUS REASSURANCE: "stable" with hemodynamic instability, "no evacuation" with red flags.
 
+REASON FROM WHAT PATIENT CONTEXT SAYS, NEVER FROM WHAT IT OMITS.
+PATIENT CONTEXT always states the age band on its first line — "PEDIATRIC
+PATIENT", "ADULT PATIENT", "NOT pediatric", or "pediatric status UNKNOWN" — and
+states a confirmed weight when the session holds one. Take those lines as fact.
+Never ask for, or flag the absence of, a weight or an age the block already
+states, and never escalate because you could not find something that is there.
+
 Return NEEDS_HUMAN_REVIEW ONLY when:
-- Medication dosing given but no confirmed weight for pediatric patient.
+- Medication dosing given for a patient PATIENT CONTEXT calls PEDIATRIC or of
+  UNKNOWN pediatric status, AND PATIENT CONTEXT shows no confirmed weight.
+  A confirmed weight SATISFIES this rule — if the block says the weight is
+  confirmed, do not flag it and do not ask for it.
+  An ADULT or NOT-pediatric patient does not arm this rule at all.
 - Invasive procedure recommended beyond stated scope without acknowledgment.
 - Source/protocol conflict is clinically meaningful.
 - VITALS CONFLICT: the patient context lists RECORDED VITALS and the response
@@ -2835,7 +2940,8 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
 
         raw_results = chromadb_client.query(search_query, n_results=_env_number("CDSS_RAG_TOP_K", 10, int))
         assessment = classify_retrieval(raw_results)
-        print(f"📚 {assessment.source_mode} (top: {assessment.top_score})")
+        print(f"📚 {assessment.source_mode} (top: {assessment.top_score}, "
+              f"cos {retrieval_cosine(assessment.top_score):.2f})")
 
         # Step 4: Build dose candidates from full history, not only current query.
         allowed_doses = build_allowed_doses(full_query_history, patient_ctx)
@@ -2860,7 +2966,10 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             assessment.source_mode = "GENERAL_REFERENCE"
             print("📖 GENERAL REFERENCE — no usable JTS retrieval")
             system_prompt = general_reference.build_system_prompt(
-                build_patient_block(patient_ctx, now_ts=now_ts))
+                build_patient_block(patient_ctx, now_ts=now_ts),
+                weight_confirmed=patient_ctx.has_confirmed_weight,
+                route_known=patient_ctx.route_preference != "UNKNOWN"
+                            or patient_ctx.access_state == "CONFIRMED_IV_IO")
             allowed_actions = []
         else:
             system_prompt = build_system_prompt(patient_ctx, assessment,

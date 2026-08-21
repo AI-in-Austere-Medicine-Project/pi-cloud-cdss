@@ -216,10 +216,12 @@ resulting concentration, the standard mix. That is a fact about the syringe.
 
 You MAY NOT give a dose for a patient. Not weight-based, not "the usual adult
 dose", not a range to pick from. If the query asks what to give someone, answer
-only:
+only with the REFERRAL SENTENCE given below.
 
-"Dosing goes through the protocol path — ask again with the patient's weight in
-kg and route."
+Ask only for what the session does not already hold. If PATIENT CONTEXT states a
+confirmed weight, that weight is known — do not ask for it, and do not condition
+the referral on getting it. Asking a medic for a number printed further down the
+same prompt tells them the system has lost their patient.
 
 Never write a line of the form "Draw X mL of Y mg/mL <drug> (Z mg)". That format
 is reserved for deterministically calculated doses and will be blocked here.
@@ -250,7 +252,38 @@ End with: "General reference, not JTS. Confirm against local protocol."
 """
 
 
-def build_system_prompt(patient_block: str = "") -> str:
+REFERRAL_BASE = "Dosing goes through the protocol path"
+
+
+def dosing_referral(weight_confirmed: bool = False,
+                    route_known: bool = False) -> str:
+    """The one sentence this mode may answer a dosing question with.
+
+    It names ONLY what the session does not already hold. The fixed wording used
+    to be "ask again with the patient's weight in kg and route" whatever the
+    context said, so on 2026-08-21 a medic who had already given 77.1 kg was
+    asked for the weight again — by a prompt that was carrying "Confirmed
+    weight: 77.1kg" thirty lines below the sentence telling the model to ask.
+
+    Refusing to dose here is the point and does not change. Re-asking for a
+    fact the system is holding is the bug: it reads as the system having lost
+    the patient, and it is the thing that makes a medic stop trusting the
+    context strip.
+    """
+    missing = []
+    if not weight_confirmed:
+        missing.append("the patient's weight in kg")
+    if not route_known:
+        missing.append("route")
+    if not missing:
+        return (f"{REFERRAL_BASE} — this session already has the weight and route, "
+                f"so ask there and it will be calculated.")
+    return f"{REFERRAL_BASE} — ask again with {' and '.join(missing)}."
+
+
+def build_system_prompt(patient_block: str = "",
+                        weight_confirmed: bool = False,
+                        route_known: bool = False) -> str:
     """Reference prompt, plus patient context when the session has any.
 
     Patient context is included so the model can decline coherently — knowing a
@@ -258,8 +291,17 @@ def build_system_prompt(patient_block: str = "") -> str:
     path" the obvious answer rather than a surprising one. It is NOT there to be
     dosed against, and ALLOWED_DOSES is deliberately absent from this prompt:
     there is no contract on this path, by construction.
+
+    `weight_confirmed` and `route_known` shape the referral sentence so it does
+    not ask for what the block already states. They are passed as flags rather
+    than parsed back out of `patient_block`, because a prompt that reads its own
+    text to decide what it knows is one rewording away from being wrong.
     """
     prompt = GENERAL_REFERENCE_PROMPT
+    prompt += ("\n\n────────────────────────────────\nREFERRAL SENTENCE\n"
+               "────────────────────────────────\n\n"
+               "Answer a dosing question with exactly this sentence:\n\n"
+               f"\"{dosing_referral(weight_confirmed, route_known)}\"")
     if patient_block:
         prompt += ("\n\n────────────────────────────────\nPATIENT CONTEXT\n"
                    "────────────────────────────────\n\n" + patient_block +

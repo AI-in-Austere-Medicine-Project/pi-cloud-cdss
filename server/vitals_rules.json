@@ -18,13 +18,46 @@
     "          visible line and downgrades a SAFE verdict to NEEDS_HUMAN_REVIEW.",
     "          It never blocks a response and never releases one.",
     "",
+    "          group     optional. Rules sharing a group are ONE caution with",
+    "          more than one way to arm it, and at most one of them speaks —",
+    "          the first armed rule in table order. Hypotension uses it: SBP",
+    "          below 90 and MAP below 65 are the same warning about the same",
+    "          patient, and a pressure like 82/40 arms both. Two sentences",
+    "          differing only in which number they quote is how a caution stops",
+    "          being read.",
+    "",
     "          Deliberately narrow. A caution that fires on most responses stops",
     "          being read, which is worse than not having it.",
     "",
     "          NOTE: ketamine is deliberately absent from the hypotension and",
     "          respiratory lists. It is haemodynamically favourable relative to",
     "          the alternatives and preserves respiratory drive; flagging it would",
-    "          push a medic away from the safer agent."
+    "          push a medic away from the safer agent.",
+    "",
+    "map       DERIVED, not captured: (SBP + 2*DBP)/3, rounded, recomputed",
+    "          whenever either pressure moves and carrying the age of the older",
+    "          of the two. The band below therefore only ever validates a MAP a",
+    "          medic STATED — they may be reading an arterial line — and a",
+    "          stated MAP supersedes the derived one until a newer pressure",
+    "          arrives. It spans everything derivable from the sbp and dbp bands",
+    "          above, so a derived value cannot fail a range its inputs passed.",
+    "",
+    "temp      the one vital a medic states in two units, so it carries two",
+    "          bands: min/max in `unit` (C, the unit the cautions below are",
+    "          written in) and alt_min/alt_max in `alt_unit` (F). A stated unit",
+    "          is checked against its own band; an unlabelled number is read as",
+    "          whichever band it falls in, and the bands do not overlap. A value",
+    "          in neither is rejected visibly rather than stored in a unit it",
+    "          was never given in.",
+    "",
+    "          The reading keeps the unit it was stated in \u2014 a medic who typed",
+    "          104 F is shown 104 F \u2014 and carries both conversions. Only the",
+    "          canonical Celsius value is compared against the table below.",
+    "",
+    "          NOTE: min 35 excludes hypothermia stated in Celsius. 'temp 33' is",
+    "          rejected, and hypothermia_txa can then only arm from a Fahrenheit",
+    "          reading (93-94.9F is 33.9-34.9C). Lowering temp.min here restores",
+    "          it with no code change."
   ],
 
   "ranges": {
@@ -34,18 +67,31 @@
     "spo2":   { "label": "SpO2",  "unit": "%",    "min": 50,  "max": 100 },
     "rr":     { "label": "RR",    "unit": "/min", "min": 2,   "max": 80  },
     "gcs":    { "label": "GCS",   "unit": "",     "min": 3,   "max": 15  },
-    "temp_c": { "label": "Temp",  "unit": "C",    "min": 20,  "max": 45  }
+    "map":    { "label": "MAP",   "unit": "mmHg", "min": 20,  "max": 240 },
+    "temp":   { "label": "Temp",  "unit": "C",    "min": 35,  "max": 43,
+                "alt_unit": "F", "alt_min": 93, "alt_max": 110 }
   },
 
   "cautions": [
     {
       "id": "hypotension_vasoactive_risk",
+      "group": "hypotension",
       "when": { "sbp": { "lt": 90 } },
       "drugs": ["propofol", "midazolam", "lorazepam", "diazepam",
                 "fentanyl", "morphine", "hydromorphone",
                 "metoprolol", "labetalol", "esmolol",
                 "diltiazem", "verapamil", "nitroglycerin", "nitro"],
       "caution": "{drug} carries a hypotension risk and the recorded SBP is {sbp} mmHg. Confirm the haemodynamic plan before giving it."
+    },
+    {
+      "id": "hypotension_vasoactive_risk_map",
+      "group": "hypotension",
+      "when": { "map": { "lt": 65 } },
+      "drugs": ["propofol", "midazolam", "lorazepam", "diazepam",
+                "fentanyl", "morphine", "hydromorphone",
+                "metoprolol", "labetalol", "esmolol",
+                "diltiazem", "verapamil", "nitroglycerin", "nitro"],
+      "caution": "{drug} carries a hypotension risk and the recorded MAP is {map} mmHg. Confirm the haemodynamic plan before giving it."
     },
     {
       "id": "respiratory_depressant_low_rr",
@@ -70,9 +116,9 @@
     },
     {
       "id": "hypothermia_txa",
-      "when": { "temp_c": { "lt": 35 } },
+      "when": { "temp":   { "lt": 35 } },
       "drugs": ["txa", "tranexamic"],
-      "caution": "The recorded temperature is {temp_c}C. TXA is for traumatic haemorrhagic shock, not hypothermia — confirm active haemorrhage."
+      "caution": "The recorded temperature is {temp}. TXA is for traumatic haemorrhagic shock, not hypothermia — confirm active haemorrhage."
     },
     {
       "id": "depressed_gcs_oral_route",

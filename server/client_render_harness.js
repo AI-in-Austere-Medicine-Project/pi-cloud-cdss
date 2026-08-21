@@ -97,9 +97,11 @@ async function ask(env, text) {
 }
 
 // ── The response the server actually served ─────────────────────────────────
-// Verbatim shape from server/logs/sessions/cdss_session_2026-08-21.jsonl, the
-// "hypotensive, BP 90/30, fever 104, IV established, 75 kg" turn. Note the
-// numbers: confirmed_weight_kg and every vital value are JSON numbers.
+// Shape from server/logs/sessions/cdss_session_2026-08-21.jsonl, the
+// "hypotensive, BP 90/30, fever 104, IV established, 75 kg" turn, brought up to
+// log schema 6: the same pressure now also carries the MAP the server derives
+// from it. Note the numbers: confirmed_weight_kg and every vital value are JSON
+// numbers.
 const SEPSIS_PAYLOAD = {
   response: '**SEPSIS**\n- Treat as suspected sepsis/septic shock.\n\n**TREAT**\n1. Oxygen, monitor, IV/IO access.',
   sources: [{ title: 'Sepsis Management CPG', page: 4, confidence: 0.62 }],
@@ -124,8 +126,9 @@ const SEPSIS_PAYLOAD = {
     route_preference: 'IV',
     pending_question: null,
     vitals: {
-      sbp: { value: 90.0, unit: 'mmHg', ts: null, raw: 'blood pressure is 90/30' },
-      dbp: { value: 30.0, unit: 'mmHg', ts: null, raw: 'blood pressure is 90/30' },
+      sbp: { value: 90.0, unit: 'mmHg', ts: null, raw: 'blood pressure is 90/30', derived: false },
+      dbp: { value: 30.0, unit: 'mmHg', ts: null, raw: 'blood pressure is 90/30', derived: false },
+      map: { value: 50.0, unit: 'mmHg', ts: null, raw: 'derived from 90/30', derived: true },
     },
     vitals_superseded: [],
     vitals_rejected: [],
@@ -171,7 +174,8 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
       hr: {},                                     // no value, no unit, no ts
       sbp: { value: null, unit: 'mmHg' },         // value went away
       systolic_bp: { value: 90, unit: 'mmHg' },   // renamed field the client does not know
-      temp_c: { value: 40.0, unit: 'C', ts: null },
+      temp: { value: 104, unit: 'F', ts: null, value_c: 40, value_f: 104 },
+      map: { value: null, unit: 'mmHg' },         // derived off a pressure that went away
     };
     const env = load(queryOnly(p));
     return ask(env, 'same patient');
@@ -184,6 +188,54 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
     delete p.sources;
     delete p.model;
     const env = load(queryOnly(p));
+    return ask(env, 'same patient');
+  });
+
+  // 4b. MAP at and below the colour threshold, and with no pressure to sit
+  //     beside. 65 is green — the boundary belongs to the safe side, the same
+  //     way the server's caution arms strictly below it.
+  function withVitals(vitals) {
+    const p = clone(SEPSIS_PAYLOAD);
+    p.patient_context.vitals = vitals;
+    return p;
+  }
+  const bp = (sbp, dbp, ts) => ({
+    sbp: { value: sbp, unit: 'mmHg', ts: ts || null, raw: '', derived: false },
+    dbp: { value: dbp, unit: 'mmHg', ts: ts || null, raw: '', derived: false },
+  });
+  await probe(out, 'map_at_threshold', () => {
+    // 100/48 -> (100 + 96) / 3 -> 65
+    const env = load(queryOnly(withVitals(Object.assign(bp(100, 48), {
+      map: { value: 65.0, unit: 'mmHg', ts: null, raw: 'derived from 100/48', derived: true },
+    }))));
+    return ask(env, 'same patient');
+  });
+  await probe(out, 'map_below_threshold', () => {
+    // 100/46 -> (100 + 92) / 3 -> 64
+    const env = load(queryOnly(withVitals(Object.assign(bp(100, 46), {
+      map: { value: 64.0, unit: 'mmHg', ts: null, raw: 'derived from 100/46', derived: true },
+    }))));
+    return ask(env, 'same patient');
+  });
+  await probe(out, 'live_2026_08_21', () => {
+    // "Ok now his pressure is getting soft 90/50", logged 14:51:31Z. The exact
+    // reading, with the exact timestamp the session recorded it at.
+    const env = load(queryOnly(withVitals(Object.assign(bp(90, 50), {
+      map: { value: 63.0, unit: 'mmHg', ts: '2026-08-21T14:51:31.895Z',
+             raw: 'derived from 90/50', derived: true },
+    }))));
+    return ask(env, 'Ok now his pressure is getting soft 90/50');
+  });
+  await probe(out, 'map_without_a_pressure', () => {
+    // A stated MAP off an arterial line. Nothing to ride inside.
+    const env = load(queryOnly(withVitals({
+      map: { value: 70.0, unit: 'mmHg', ts: null, raw: 'map 70', derived: false },
+    })));
+    return ask(env, 'same patient');
+  });
+  await probe(out, 'map_absent', () => {
+    // A schema 5 server, or a rollback: a pressure and no MAP at all.
+    const env = load(queryOnly(withVitals(bp(90, 30))));
     return ask(env, 'same patient');
   });
 

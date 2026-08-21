@@ -2,6 +2,160 @@
 
 ## [Unreleased]
 
+## [4.2.0] — 2026-08-21
+
+Everything below shipped between 4.1.0 and 4.2.0. `/status` reported `4.1.0`
+throughout, because the version was two string literals in `main.py` and a bump
+meant remembering both. It is now one fact in `server/version.py`, with a test
+that fails if a second copy appears.
+
+### Patient context now reaches the validator as a statement, not a silence
+- **The block states the age band on every response**, in all three states:
+  `PEDIATRIC PATIENT`, `ADULT PATIENT`, `NOT pediatric` (weight above the
+  paediatric threshold, no age stated), or `pediatric status UNKNOWN`. It used
+  to assert the status only when true and say *nothing* when false, so "known
+  adult" and "nobody has said" were the same silence — and on 2026-08-21 a
+  validator reviewing a 77.1 kg casualty said so: *"the weight is confirmed as
+  77.1 kg, which is not pediatric. However, the context does not specify if the
+  patient is pediatric or adult."* It had the weight. It did not have the band.
+- **Unknown is not adult.** With no age and no weight the block says UNKNOWN
+  rather than claiming an adult, which would be the same failure reversed.
+- **A confirmed weight satisfies the paediatric-weight rule**, said out loud in
+  the validator prompt, along with a standing instruction to reason from what
+  the context states and never from what it omits.
+- **General reference stops asking for a weight it is holding.** Its refusal
+  sentence was fixed text — "ask again with the patient's weight in kg and
+  route" — printed above a `Confirmed weight: 77.1kg` line in the same prompt.
+  It now names only what the session lacks. Refusing to *dose* on that path is
+  unchanged and still absolute.
+- **`PEDIATRIC_WEIGHT_CEILING_KG`** replaces a bare `40` so the classifier and
+  the block that explains it cannot drift apart.
+
+### Fixed — "milligrams" routed a casualty as being in shock
+- `has_hypotension_or_shock()` matched **substrings**: `"ams"` inside
+  *milligrams*, *grams*, *diagrams*, *exams*; `"altered"` inside *unaltered* —
+  an explicit negation read as its opposite; `"map "` inside *roadmap*. Any dose
+  stated in grams routed as shock, and with an infection present that was
+  `looks_like_sepsis()` firing on the word "milligrams".
+- Short tokens are now word-anchored via the existing `_has_word` helper;
+  long unambiguous phrases stay substrings. Inflections are listed explicitly
+  rather than by dropping the right boundary, because `\bshock` would also
+  swallow *shockwave* and this list decides whether a casualty is treated as
+  being in shock.
+- Fourth specimen of this failure class, after the F-2 alias table,
+  `FIXED_PREP_TERMS` and the vitals labels. Two more found and reported but not
+  fixed here — see TODO.md.
+
+### Retrieval — diagnosed, not tuned
+- Burn queries fell through to general reference. Measured against the live
+  8,559-chunk corpus: the burn CPGs are present and retrieve correctly for clean
+  queries (0.40–0.51, well inside `JTS_GROUNDED`). The collapse is **narrative
+  dilution** — the real queries were multi-topic conversational sentences, and
+  mean-pooled MiniLM averages the burn clause away. The clinical router is the
+  mitigation, not the cause: it lifted those queries by +0.12 to +0.18.
+- `📚` now logs the cosine alongside the clamped score. `score = 2·cos − 1`, so
+  `JTS_GROUNDED` is really cosine ≥ 0.675, and `max(0.0, …)` made every genuinely
+  terrible retrieval print as a small positive number. Instrumentation only — no
+  threshold moved.
+- Full diagnosis and the scoped follow-ups are in TODO.md.
+
+### From the merged PRs
+- **#23 — Temperature capture and derived MAP.** `fever of 104` is a
+  temperature; a reading keeps the unit it was stated in; MAP is derived from
+  the recorded pressure, flagged `derived`, shown beside the BP and armed on the
+  hypotension caution below 65. Log schema 5 then 6.
+- **#21 — The context strip could take the answer down with it.** A JSON number
+  reached `esc()`, the `TypeError` unwound into `ask()`'s catch, and a rendered
+  SEPSIS card was replaced with REQUEST FAILED. Decorations now degrade to
+  absent.
+- **#20 — Vital signs in patient context.** Capture, timestamped supersession,
+  visible rejection of impossible values, the context strip, and the conflict
+  caution table.
+- **#19 — General medical reference and multi-provider models.** A second
+  knowledge source for what JTS does not cover, labelled as such; models became
+  configuration in `providers.json`.
+- **#18 — Voice failures name themselves** instead of returning a bare 500.
+
+### Derived MAP: the perfusion number, computed and labelled as computed
+- **MAP is derived whenever a pressure is recorded** — `(SBP + 2*DBP)/3`,
+  rounded to whole millimetres — and shown next to it on the context strip:
+  `BP 90/30 (MAP 50)`. Green at or above 65, red below.
+- **It is the first value in the vitals block the system produces rather than
+  hears**, so it says so everywhere it appears: `derived` on the reading, in the
+  response the strip renders, in the prompt block the models read, and in the
+  log. The flag is written on *every* reading, including the false ones —
+  "the medic said this" is a fact about a value, not the absence of one, and a
+  flag that only showed up when true would leave a stated MAP looking identical
+  to a log written before the field existed.
+- **Recomputed, never carried forward.** Any change to either pressure
+  recomputes it; a MAP that outlived one of its inputs is a stale vital wearing
+  a fresh one's face. It carries the age of the **older** of its two inputs, and
+  an input with no timestamp makes the MAP's age unknown rather than equal to
+  the other one — a derived value must never look fresher than the data behind
+  it.
+- **A stated MAP supersedes the derived one.** `MAP 70` off an arterial line is
+  a measurement, and arithmetic does not overrule a measurement. It stands until
+  a newer pressure arrives, ordered by turn like the rest of supersession. The
+  label is word-anchored like every other one, and a number has to follow it:
+  `map` is an ordinary English word, and `roadmap`, `mapping` and "show me the
+  map" capture nothing.
+- **MAP < 65 arms the existing hypotension caution** — same table, same rules,
+  same appended line, same SAFE → NEEDS_HUMAN_REVIEW downgrade, still never a
+  block and never a release. It catches the pressure a systolic threshold does
+  not: `BP 90/30` has an SBP that is *not* below 90 and a MAP of 50. Caution
+  rules now take an optional `group`, and the two hypotension rules share one:
+  `82/40` arms both and is warned about once, because a warning repeated in two
+  sentences that differ only in which number they quote is how a caution stops
+  being read.
+- **Cleared by NEW PATIENT with everything else.** It is derived from *this*
+  patient's pressure, so it is this patient's number.
+- **Log schema 6.** Adds `map`, and the `derived` flag on every reading. A
+  schema 5 reading was always stated; reading a schema 6 one that way is a coin
+  flip on `map`.
+
+### Fixed — a label's digits could leave half a blood pressure behind
+- The bare `82/40` pressure form stored the **diastolic** whether or not the
+  systolic survived the overlap check, so `HR 90/50` — where the 90 already
+  belongs to the heart rate — left a diastolic of 50 with no systolic behind it,
+  on the strip, in the prompt and in the caution table. Half a pressure is not a
+  pressure. Found while deriving MAP, which has to be able to trust that a
+  recorded `dbp` came from a real pair.
+
+### Temperature capture: fever phrasing, and the unit the medic actually used
+- **`fever of 104` is a temperature.** `fever` joins `temperature`, `temp` and
+  `t` as a label, word-anchored like the rest — a number has to follow it.
+  `febrile`, and `fever` with nothing after it, still capture nothing: this
+  table stores measurements, and the word alone is the sepsis router's business
+  (`has_fever`). The query that prompted this held a fever of 104 and logged no
+  temperature at all.
+- **The unit comes from the value, and the reading keeps it.** The plausible
+  bands do not overlap — 35-43C, 93-110F — so an unlabelled `39` is Celsius and
+  an unlabelled `104` is Fahrenheit. A stated `C` or `F` is checked against its
+  own band and never reinterpreted: `temp 104 C` is a mistyped reading, not a
+  Fahrenheit one, and reading it as F would invent a plausible vital out of an
+  implausible one. The strip and the prompt show `Temp 104 F` to the medic who
+  typed 104 F; both conversions are stored, and the caution table compares the
+  canonical Celsius value the thresholds are written in.
+- **A temperature in neither band is rejected visibly**, like `BP 400/300`
+  already was, and says which two ranges it missed. Previously the range was
+  20-45C and an unlabelled number was split at 45, so `temp 44` was stored as
+  44C and `temp 50` as 10C.
+- **`temp_c` is now `temp`** — in the caution rules, the response, the log and
+  the client — because the value is no longer always Celsius and a name that
+  says otherwise is the kind of assumption that costs a render. An older
+  `vitals_rules.json` with a `temp_c` key is renamed on load rather than
+  ignored: a caution that silently stops arming is the one failure mode that
+  table must not have.
+- **Log schema 5.** A schema 4 `temp_c` value is Celsius; a schema 5 `temp`
+  value is in `unit`, with `value_c` and `value_f` alongside. Analysis tooling
+  has to be able to tell them apart without inspecting the number.
+- **Known consequence, deliberately shipped:** a `temp.min` of 35 puts Celsius
+  hypothermia outside the plausible band, so `temp 33` is rejected and
+  `hypothermia_txa` can only arm from a Fahrenheit reading (93-94.9F is
+  33.9-34.9C). Pinned by a test that says so out loud, noted in
+  `vitals_rules.json`, and raised in TODO.md as an owner decision — lowering
+  `temp.min` restores it with no code change.
+
 ### Fixed — the context strip could take the answer down with it
 - **A clinical answer that had already rendered was being replaced with
   REQUEST FAILED.** `patient_context.confirmed_weight_kg` is a JSON number
