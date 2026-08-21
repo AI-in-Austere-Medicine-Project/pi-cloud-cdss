@@ -406,7 +406,8 @@ def extract_patient_context(query: str,
     if ctx.age_years is not None:
         ctx.is_pediatric = ctx.age_years < 18
     elif (_has_any_word(full_text, pediatric_terms) or
-            (ctx.confirmed_weight_kg is not None and ctx.confirmed_weight_kg < 40)):
+            (ctx.confirmed_weight_kg is not None
+             and ctx.confirmed_weight_kg < PEDIATRIC_WEIGHT_CEILING_KG)):
         ctx.is_pediatric = True
 
     # ── Estimated weight from age (context only — never used for dosing) ─
@@ -470,6 +471,15 @@ SAFE_GATE_RESPONSES = {
     "Need rhythm before antiarrhythmic.",
     "Need height and sex before vent settings.",
 }
+
+
+# The weight below which a patient with no stated age is treated as paediatric.
+# Named because two places depend on it agreeing: the classifier above, and
+# build_patient_block, which has to explain to a reader WHY a 77.1kg patient with
+# no stated age is not being paediatric-gated. A silent 40 in one of them and a
+# different number in the other is a context block that contradicts the flag it
+# is describing.
+PEDIATRIC_WEIGHT_CEILING_KG = 40.0
 
 
 def _has_word(text: str, term: str) -> bool:
@@ -1166,13 +1176,47 @@ Guideline-based support only. Not a substitute for clinical judgment.
 """
 
 
-def build_patient_block(ctx: PatientContext, now_ts=None) -> str:
-    lines = []
+def age_band_line(ctx: PatientContext) -> str:
+    """What the system actually knows about the age band, stated either way.
+
+    `is_pediatric` is False for a known adult AND for a patient nobody has given
+    an age for. The block used to say "PEDIATRIC PATIENT" when the flag was true
+    and NOTHING when it was false, so those two very different states looked
+    identical downstream — and on 2026-08-21 the validator said so out loud
+    about a 77.1kg casualty: "the patient's weight is confirmed as 77.1 kg,
+    which is not pediatric. However, the context does not specify if the patient
+    is pediatric or adult, leading to a need for human review."
+
+    It was right. It had the weight — it quoted the number — and it genuinely
+    had no statement of age band, because the block asserted that status in one
+    direction only. A rule that keys on paediatric status cannot be evaluated
+    against a silence, and a silence is what it got.
+
+    So this says which of the three it is, and says "unknown" out loud when it
+    is unknown rather than saying nothing. Unknown is not adult: with no age and
+    no weight the system does not know, and claiming otherwise here would be the
+    same failure pointing the other way.
+    """
     if ctx.is_pediatric:
-        lines.append("PEDIATRIC PATIENT")
+        return "PEDIATRIC PATIENT"
+    if ctx.age_years is not None:
+        return f"ADULT PATIENT — age {ctx.age_years:g}yr stated. NOT pediatric."
+    if ctx.confirmed_weight_kg is not None:
+        return (f"NOT pediatric — no age was stated, and the confirmed weight of "
+                f"{ctx.confirmed_weight_kg:g}kg is at or above the "
+                f"{PEDIATRIC_WEIGHT_CEILING_KG:g}kg paediatric threshold.")
+    return "Age not stated and no weight confirmed — pediatric status UNKNOWN."
+
+
+def build_patient_block(ctx: PatientContext, now_ts=None) -> str:
+    # Always first, and never absent. See age_band_line.
+    lines = [age_band_line(ctx)]
 
     if ctx.confirmed_weight_kg is not None:
         lines.append(f"Confirmed weight: {ctx.confirmed_weight_kg}kg ({ctx.weight_source})")
+        # Said explicitly because the failure this fixes was a flow asking the
+        # medic for a number three lines above the answer.
+        lines.append("Weight is CONFIRMED. Do not ask for a weight the context already states.")
         if ctx.is_pediatric:
             # ETT/VT for airway planning
             vt = int(ctx.confirmed_weight_kg * 6)
@@ -1407,8 +1451,19 @@ Return UNSAFE ONLY for direct patient-harm errors:
 7. CRITICAL MISSED DIAGNOSIS: tension pneumo without decompression, cardiac arrest without CPR, severe anaphylaxis without epinephrine.
 8. DANGEROUS REASSURANCE: "stable" with hemodynamic instability, "no evacuation" with red flags.
 
+REASON FROM WHAT PATIENT CONTEXT SAYS, NEVER FROM WHAT IT OMITS.
+PATIENT CONTEXT always states the age band on its first line — "PEDIATRIC
+PATIENT", "ADULT PATIENT", "NOT pediatric", or "pediatric status UNKNOWN" — and
+states a confirmed weight when the session holds one. Take those lines as fact.
+Never ask for, or flag the absence of, a weight or an age the block already
+states, and never escalate because you could not find something that is there.
+
 Return NEEDS_HUMAN_REVIEW ONLY when:
-- Medication dosing given but no confirmed weight for pediatric patient.
+- Medication dosing given for a patient PATIENT CONTEXT calls PEDIATRIC or of
+  UNKNOWN pediatric status, AND PATIENT CONTEXT shows no confirmed weight.
+  A confirmed weight SATISFIES this rule — if the block says the weight is
+  confirmed, do not flag it and do not ask for it.
+  An ADULT or NOT-pediatric patient does not arm this rule at all.
 - Invasive procedure recommended beyond stated scope without acknowledgment.
 - Source/protocol conflict is clinically meaningful.
 - VITALS CONFLICT: the patient context lists RECORDED VITALS and the response
@@ -2874,7 +2929,10 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             assessment.source_mode = "GENERAL_REFERENCE"
             print("📖 GENERAL REFERENCE — no usable JTS retrieval")
             system_prompt = general_reference.build_system_prompt(
-                build_patient_block(patient_ctx, now_ts=now_ts))
+                build_patient_block(patient_ctx, now_ts=now_ts),
+                weight_confirmed=patient_ctx.has_confirmed_weight,
+                route_known=patient_ctx.route_preference != "UNKNOWN"
+                            or patient_ctx.access_state == "CONFIRMED_IV_IO")
             allowed_actions = []
         else:
             system_prompt = build_system_prompt(patient_ctx, assessment,
