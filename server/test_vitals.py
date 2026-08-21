@@ -969,6 +969,55 @@ def test_a_low_map_downgrades_a_safe_verdict(stub_llm):
     assert result["vitals_cautions"]
 
 
+# ── the live case, 2026-08-21 ───────────────────────────────────────────────
+
+_LIVE_BP_TS = "2026-08-21T14:51:31.895Z"
+
+
+def test_the_2026_08_21_soft_pressure_derives_a_red_map_and_arms_the_caution():
+    """"Ok now his pressure is getting soft 90/50", logged 14:51:31Z.
+
+    The pressure the medic actually typed, in the session that prompted this
+    work. It is the case the systolic threshold cannot see: SBP 90 is not below
+    90, so before MAP existed nothing armed and nothing on the strip was red —
+    for a patient whose mean arterial pressure was 63 and who was 31 minutes
+    later asked about vasopressors.
+    """
+    readings, rejections = v.parse_vitals("Ok now his pressure is getting soft 90/50",
+                                          ts=_LIVE_BP_TS)
+    assert rejections == []
+    merged_state, _ = v.merge({}, readings)
+
+    assert merged_state["sbp"].value == 90 and merged_state["dbp"].value == 50
+    assert merged_state["map"].value == 63          # (90 + 100) / 3 = 63.33
+    assert merged_state["map"].derived is True
+    assert merged_state["map"].ts == _LIVE_BP_TS, "the MAP is as old as the pressure"
+
+    # Red on the strip: the client's threshold is strictly below 65.
+    assert merged_state["map"].value < 65
+
+    # The systolic rule stays silent; the MAP rule is what fires.
+    assert v._rule_armed({"when": {"sbp": {"lt": 90}}}, merged_state) is None
+    cautions = v.conflicts("Give fentanyl 50 mcg IV for pain.", merged_state)
+    assert len(cautions) == 1
+    assert "MAP is 63" in cautions[0]
+
+
+def test_the_live_pressure_does_not_caution_the_drug_that_treats_it():
+    """The same session asked "Help with the calculation to start norepi".
+
+    Norepinephrine is deliberately absent from the hypotension drug list, for
+    the reason ketamine is: it is the answer to a low MAP, not a risk at one,
+    and cautioning it would push a medic away from the agent they need. Pinned
+    so a future edit to vitals_rules.json cannot add it quietly.
+    """
+    readings, _ = v.parse_vitals("90/50", ts=_LIVE_BP_TS)
+    merged_state, _ = v.merge({}, readings)
+    assert merged_state["map"].value == 63
+    assert v.conflicts("Start norepinephrine 0.05 mcg/kg/min IV.", merged_state) == []
+    assert v.conflicts("Start a norepi drip.", merged_state) == []
+
+
 def test_a_deterministic_card_gets_a_vitals_caution(stub_llm):
     """The cards bypass the gate by design. They still name cautioned drugs.
 

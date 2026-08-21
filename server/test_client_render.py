@@ -170,6 +170,18 @@ def test_a_server_that_sends_no_map_still_renders_the_pressure(rendered):
     assert "MAP" not in old["ctx"]
 
 
+def test_the_2026_08_21_soft_pressure_renders_a_red_map(rendered):
+    """"Ok now his pressure is getting soft 90/50", logged 14:51:31Z.
+
+    The reading the medic actually typed. 90/50 is the pressure a systolic
+    threshold cannot see — SBP 90 is not below 90 — and the strip has to be the
+    thing that says so: MAP 63, red, beside the pressure it came from.
+    """
+    live = _ok(rendered["live_2026_08_21"])
+    assert "REQUEST FAILED" not in live["bubble"]
+    assert 'BP <b>90/50 mmHg</b> (<span class="map low">MAP 63</span>)' in live["ctx"]
+
+
 def test_an_unreadable_map_is_omitted_not_printed(rendered):
     """Same rule as every other reading: no readable value, no element."""
     deg = _ok(rendered["degraded"])

@@ -199,9 +199,9 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
     p.patient_context.vitals = vitals;
     return p;
   }
-  const bp = (sbp, dbp) => ({
-    sbp: { value: sbp, unit: 'mmHg', ts: null, raw: '', derived: false },
-    dbp: { value: dbp, unit: 'mmHg', ts: null, raw: '', derived: false },
+  const bp = (sbp, dbp, ts) => ({
+    sbp: { value: sbp, unit: 'mmHg', ts: ts || null, raw: '', derived: false },
+    dbp: { value: dbp, unit: 'mmHg', ts: ts || null, raw: '', derived: false },
   });
   await probe(out, 'map_at_threshold', () => {
     // 100/48 -> (100 + 96) / 3 -> 65
@@ -216,6 +216,15 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
       map: { value: 64.0, unit: 'mmHg', ts: null, raw: 'derived from 100/46', derived: true },
     }))));
     return ask(env, 'same patient');
+  });
+  await probe(out, 'live_2026_08_21', () => {
+    // "Ok now his pressure is getting soft 90/50", logged 14:51:31Z. The exact
+    // reading, with the exact timestamp the session recorded it at.
+    const env = load(queryOnly(withVitals(Object.assign(bp(90, 50), {
+      map: { value: 63.0, unit: 'mmHg', ts: '2026-08-21T14:51:31.895Z',
+             raw: 'derived from 90/50', derived: true },
+    }))));
+    return ask(env, 'Ok now his pressure is getting soft 90/50');
   });
   await probe(out, 'map_without_a_pressure', () => {
     // A stated MAP off an arterial line. Nothing to ride inside.
