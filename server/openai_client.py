@@ -48,6 +48,8 @@ import json
 import time
 from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, List
+import providers
+
 try:
     from openai import OpenAI
 except ImportError:  # offline test environment — see run_unit_tests.sh
@@ -61,27 +63,15 @@ except ImportError:  # offline test environment
 
 load_dotenv()
 
-_client = None
+def model_label(model_id: str) -> str:
+    """'openai/gpt-4o-mini' — what the log and the client footer record.
 
-
-def get_client():
+    Provider-qualified because a bare model string stops being unique the moment
+    a local endpoint serves an OpenAI-named model, and the audit question is
+    always "which service answered this", not "which weights".
     """
-    Lazily construct the OpenAI client.
-
-    Importing this module must NOT require the openai SDK or an API key. The
-    deterministic layer, safety gate, clinical router and session logger are
-    all testable offline; only the two LLM calls need a live client. Built on
-    first use and cached.
-    """
-    global _client
-    if _client is None:
-        if OpenAI is None:
-            raise RuntimeError(
-                "openai package is not installed — LLM calls are unavailable. "
-                "Install requirements-server.txt for server use."
-            )
-        _client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-    return _client
+    spec = providers.MODELS.get(model_id)
+    return f"{spec.provider}/{spec.id}" if spec else model_id
 
 # Debug flag per deep review §4: never edit fail-closed logic to debug.
 # Set EDGECDSS_DEBUG_WARN_ONLY=1 in the environment to observe generator
@@ -127,11 +117,28 @@ def _get_log_file() -> pathlib.Path:
     return _LOG_DIR / f"cdss_session_{date_str}.jsonl"
 
 # Bumped when the entry shape changes. v4.1 (schema 2) adds pipeline_ms,
-# synthetic and override_fired. Entries written before v4.1 carry no
-# log_schema key at all; analysis tooling must read a missing key as UNKNOWN,
-# never as a default. Defaulting a missing `synthetic` to false would
-# re-classify the 48 known test-suite entries as real user traffic.
-LOG_SCHEMA_VERSION = 2
+# synthetic and override_fired. Schema 3 adds `source` and `model`. Entries
+# written before v4.1 carry no log_schema key at all; analysis tooling must read
+# a missing key as UNKNOWN, never as a default. Defaulting a missing `synthetic`
+# to false would re-classify the 48 known test-suite entries as real user
+# traffic; defaulting a missing `source` to "jts" would claim JTS provenance for
+# every entry written before general reference existed.
+LOG_SCHEMA_VERSION = 3
+
+# source_modes whose answer did NOT come from retrieved JTS protocol text.
+# FIXED_PREP is here deliberately: a standardized preparation recipe is
+# reference knowledge, not a JTS protocol, and saying so is the point of the
+# field. `source` answers one binary question — did general medical knowledge
+# produce this? — which is why errors and refusals sit on the "jts" side: they
+# are not general-knowledge answers either.
+GENERAL_SOURCE_MODES = frozenset({
+    "FIXED_PREP", "GENERAL_MEDICAL", "GENERAL_REFERENCE",
+})
+
+
+def knowledge_source(source_mode: str) -> str:
+    """"jts" | "general" — which knowledge source produced the answer."""
+    return "general" if source_mode in GENERAL_SOURCE_MODES else "jts"
 
 
 def log_query(query: str, result: dict, conversation_history: list = None,
@@ -150,6 +157,13 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "query": query,
             "response_preview": result.get("response", "")[:200],
             "source_mode": result.get("source_mode", "UNKNOWN"),
+            "source": result.get("source") or knowledge_source(
+                result.get("source_mode", "UNKNOWN")),
+            # The model that produced the text, provider-qualified. null when
+            # Python produced it and no model was called at all — a deterministic
+            # card is not attributable to a model, and recording one would make
+            # cross-model comparison count answers no model wrote.
+            "model": result.get("model"),
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
@@ -1362,6 +1376,12 @@ def validate_response(full_transcript: str, response_text: str,
     """
     LLM semantic validator. Receives full conversation transcript.
     Fail-closed: errors return NEEDS_HUMAN_REVIEW, not SAFE.
+
+    Runs on providers.validator_model(), NOT on the model the client selected.
+    Holding the validator constant is what makes a generator comparison mean
+    anything; it also keeps the safety layer on a model whose behaviour is
+    already characterised by the logged corpus. A provider outage here degrades
+    to NEEDS_HUMAN_REVIEW like every other validator failure.
     """
     # Skip validator entirely for safe gate responses
     if response_text.strip() in SAFE_GATE_RESPONSES:
@@ -1377,17 +1397,13 @@ def validate_response(full_transcript: str, response_text: str,
             f"PROPOSED RESPONSE:\n{response_text}"
         )
 
-        result = get_client().chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": VALIDATOR_PROMPT},
-                {"role": "user", "content": validation_input}
-            ],
+        raw = providers.chat(
+            VALIDATOR_PROMPT,
+            [{"role": "user", "content": validation_input}],
+            model=providers.validator_model(),
             temperature=0,
-            max_tokens=300
-        )
-
-        raw = result.choices[0].message.content.strip()
+            max_tokens=300,
+        ).strip()
         if raw.startswith("```"):
             parts = raw.split("```")
             raw = parts[1] if len(parts) > 1 else raw
@@ -2345,7 +2361,8 @@ def build_general_case_response(query: str) -> Optional[str]:
 
 def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
-                   session_ctx: Optional[PatientContext] = None) -> dict:
+                   session_ctx: Optional[PatientContext] = None,
+                   model: Optional[str] = None) -> dict:
     """
     EdgeCDSS v3.4.1 Pipeline:
     1. Replay structured patient context from conversation history.
@@ -2355,6 +2372,7 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     5. Deterministic dose candidates from full_query_history.
     6. Post-checks + validator + safety gate.
     """
+    model = providers.resolve_model(model)
     try:
         # Step 1: canonical history and patient context
         prior_queries, full_query_history = build_full_query_history(query, conversation_history)
@@ -2625,7 +2643,7 @@ Include the exact heading:
 Do not ask IV or IM for RSI unless no IV/IO access is stated.
 """
 
-        messages = [{"role": "system", "content": system_prompt}]
+        messages = []
         transcript_lines = []
         if conversation_history:
             for turn in conversation_history[-8:]:
@@ -2641,13 +2659,10 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         messages.append({"role": "user", "content": f"Clinical query: {query}"})
         transcript_lines.append(f"CURRENT USER: {query}")
 
-        response = get_client().chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            temperature=0.2,
-            max_tokens=700
+        response_text = providers.chat(
+            system_prompt, messages,
+            model=model, temperature=0.2, max_tokens=700,
         )
-        response_text = response.choices[0].message.content
 
         # Step 6: Deterministic post-checks use full history.
         det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
@@ -2681,6 +2696,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "response": final_response,
             "sources": assessment.sources[:3],
             "source_mode": assessment.source_mode,
+            "model": model_label(model),
             "validator_result": outcome.verdict,
             "validator_issues": outcome.issues,
             "override_fired": outcome.override_fired,
@@ -2706,7 +2722,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
 def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
                    session_ctx: Optional[PatientContext] = None,
-                   synthetic: bool = False) -> dict:
+                   synthetic: bool = False,
+                   model: Optional[str] = None) -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
 
@@ -2722,8 +2739,12 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     """
     t0 = time.perf_counter()
     result = _query_with_rag_internal(
-        query, chromadb_client, voice_mode, conversation_history, session_ctx
+        query, chromadb_client, voice_mode, conversation_history, session_ctx,
+        model=model
     )
+    # Stamped once, here, so the client footer and the log entry can never
+    # disagree about which knowledge source answered.
+    result["source"] = knowledge_source(result.get("source_mode", "UNKNOWN"))
     pipeline_ms = int((time.perf_counter() - t0) * 1000)
     log_query(query, result, conversation_history,
               pipeline_ms=pipeline_ms, synthetic=synthetic)

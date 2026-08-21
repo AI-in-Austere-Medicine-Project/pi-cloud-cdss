@@ -41,8 +41,16 @@ def test_import_is_offline_safe():
 
 
 def test_llm_client_is_not_built_at_import():
-    import openai_client
-    assert openai_client._client is None, "client must not be constructed until first LLM call"
+    """P-0: importing the clinical core must not need an SDK, a key or a network.
+
+    The client cache moved into providers.py with the model registry; the
+    invariant did not move. Everything below the two LLM calls — the
+    deterministic layer, the safety gate, the router, the logger — is testable
+    offline, and the offline suite runs on an interpreter with neither SDK.
+    """
+    import openai_client  # noqa: F401
+    import providers
+    assert providers._clients == {}, "no provider client may be built at import"
 
 
 # ── Fix 2026-07-18: word-boundary matching for short tokens ──────────────────
