@@ -158,7 +158,11 @@ an oversight. Ordered by what v4.1 leaves most exposed.
 - [ ] Route capture: bare mid-sentence "im" must not silently select IM route
 - [ ] Overdose detector: recognize "succs" alongside "sux"; add lorazepam ceiling
 - [x] Pediatric-weight validator override must not discard unrelated issues — `6c7f535` (SC-3). The override now downgrades and preserves the issue list. Note this is *not* SC-5: the branch still fires when unrelated issues co-occur, it just no longer destroys them. See SC-5 above.
-- [ ] Hypotension detector: require SBP threshold, not lone DBP / bare "map"
+- [ ] Hypotension detector (`has_hypotension_or_shock`): require SBP threshold,
+      not lone DBP / bare "map". Still a substring test, so "roadmap " routes as
+      shock. The vitals table now derives a real MAP per turn and arms its own
+      hypotension caution on it — that number is the input this detector should
+      be reading instead of the word.
 - [ ] Ketamine dose-candidate condition (is_analg or not is_seizure) tautology
 
 ### API hardening

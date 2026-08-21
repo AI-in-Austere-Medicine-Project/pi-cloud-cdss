@@ -114,6 +114,31 @@ def test_the_strip_never_splits_a_blood_pressure():
     assert "num(r.value) + '/' + num(v.dbp.value)" in HTML
 
 
+def test_the_strip_shows_the_map_with_the_pressure():
+    """MAP belongs to the pressure it was derived from, and rides in its chip.
+
+    test_client_render.py asserts the rendered result; this pins the source so
+    the two fail together rather than one quietly stopping to mean anything.
+    """
+    assert "mapBadge" in HTML
+    assert "'map'" in HTML, "the client no longer reads the vital by name"
+
+
+def test_the_client_and_the_caution_table_agree_on_the_map_threshold():
+    """65 in two places: the colour on the strip and the rule that arms the
+    hypotension caution. If they drift, the strip shows green next to a caution
+    that says the patient is hypotensive — the strip contradicting the answer
+    beside it is worse than either alone."""
+    import json
+
+    assert "const MAP_LOW = 65;" in HTML
+    rules = json.loads((pathlib.Path(__file__).parent / "vitals_rules.json").read_text())
+    armed = [r for r in rules["cautions"] if "map" in (r.get("when") or {})]
+    assert armed, "no rule arms on MAP; the strip's threshold now pins nothing"
+    assert all(r["when"]["map"] == {"lt": 65} for r in armed), \
+        "the caution table and the client disagree about MAP 65"
+
+
 def test_the_escape_helper_coerces():
     """The v4.3 client bug, pinned.
 

@@ -2,6 +2,51 @@
 
 ## [Unreleased]
 
+### Derived MAP: the perfusion number, computed and labelled as computed
+- **MAP is derived whenever a pressure is recorded** — `(SBP + 2*DBP)/3`,
+  rounded to whole millimetres — and shown next to it on the context strip:
+  `BP 90/30 (MAP 50)`. Green at or above 65, red below.
+- **It is the first value in the vitals block the system produces rather than
+  hears**, so it says so everywhere it appears: `derived` on the reading, in the
+  response the strip renders, in the prompt block the models read, and in the
+  log. The flag is written on *every* reading, including the false ones —
+  "the medic said this" is a fact about a value, not the absence of one, and a
+  flag that only showed up when true would leave a stated MAP looking identical
+  to a log written before the field existed.
+- **Recomputed, never carried forward.** Any change to either pressure
+  recomputes it; a MAP that outlived one of its inputs is a stale vital wearing
+  a fresh one's face. It carries the age of the **older** of its two inputs, and
+  an input with no timestamp makes the MAP's age unknown rather than equal to
+  the other one — a derived value must never look fresher than the data behind
+  it.
+- **A stated MAP supersedes the derived one.** `MAP 70` off an arterial line is
+  a measurement, and arithmetic does not overrule a measurement. It stands until
+  a newer pressure arrives, ordered by turn like the rest of supersession. The
+  label is word-anchored like every other one, and a number has to follow it:
+  `map` is an ordinary English word, and `roadmap`, `mapping` and "show me the
+  map" capture nothing.
+- **MAP < 65 arms the existing hypotension caution** — same table, same rules,
+  same appended line, same SAFE → NEEDS_HUMAN_REVIEW downgrade, still never a
+  block and never a release. It catches the pressure a systolic threshold does
+  not: `BP 90/30` has an SBP that is *not* below 90 and a MAP of 50. Caution
+  rules now take an optional `group`, and the two hypotension rules share one:
+  `82/40` arms both and is warned about once, because a warning repeated in two
+  sentences that differ only in which number they quote is how a caution stops
+  being read.
+- **Cleared by NEW PATIENT with everything else.** It is derived from *this*
+  patient's pressure, so it is this patient's number.
+- **Log schema 6.** Adds `map`, and the `derived` flag on every reading. A
+  schema 5 reading was always stated; reading a schema 6 one that way is a coin
+  flip on `map`.
+
+### Fixed — a label's digits could leave half a blood pressure behind
+- The bare `82/40` pressure form stored the **diastolic** whether or not the
+  systolic survived the overlap check, so `HR 90/50` — where the 90 already
+  belongs to the heart rate — left a diastolic of 50 with no systolic behind it,
+  on the strip, in the prompt and in the caution table. Half a pressure is not a
+  pressure. Found while deriving MAP, which has to be able to trust that a
+  recorded `dbp` came from a real pair.
+
 ### Temperature capture: fever phrasing, and the unit the medic actually used
 - **`fever of 104` is a temperature.** `fever` joins `temperature`, `temp` and
   `t` as a label, word-anchored like the rest — a number has to follow it.

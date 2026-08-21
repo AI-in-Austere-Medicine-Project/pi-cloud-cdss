@@ -24,6 +24,19 @@ So three rules shape everything here:
      the caution table. Dose logic stays in the ALLOWED_DOSES contract, which is
      the only thing in this system permitted to produce a number to give.
 
+MAP is the one value here the system computes rather than hears
+──────────────────────────────────────────────────────────────
+Every other reading is something a medic said. A mean arterial pressure is
+usually not — it is arithmetic on a pressure they did say — and a computed
+number that looks like a measured one is its own small S-1. So a derived MAP is
+flagged `derived` everywhere it appears, it is recomputed rather than carried
+forward whenever either pressure moves, and it inherits the age of the OLDER of
+its two inputs: a derived value must never look fresher than the data behind it.
+
+A MAP the medic states directly is a measurement like any other — they may have
+an arterial line — and it supersedes the derived one until a newer pressure
+arrives.
+
 Cautions are not blocks
 ───────────────────────
 A conflict between a recommendation and a recorded vital appends a visible line
@@ -56,6 +69,11 @@ _BUILTIN_RULES = {
         "spo2":   {"label": "SpO2", "unit": "%",    "min": 50, "max": 100},
         "rr":     {"label": "RR",   "unit": "/min", "min": 2,  "max": 80},
         "gcs":    {"label": "GCS",  "unit": "",     "min": 3,  "max": 15},
+        # MAP is derived from sbp/dbp, so this band only ever validates a MAP
+        # the medic STATED. It spans everything derivable from the two pressure
+        # bands above — (40+2*10)/3 up to (300+2*200)/3 — so a derived value
+        # cannot fall outside a range its own inputs passed.
+        "map":    {"label": "MAP",  "unit": "mmHg", "min": 20, "max": 240},
         # Temperature is stated in two units, so it carries two bands. min/max
         # are the canonical unit the cautions are written in; alt_* is the other
         # one. They do not overlap, which is what lets an unlabelled number be
@@ -109,7 +127,7 @@ CAUTIONS = [c for c in _RULES["cautions"] if isinstance(c, dict)]
 
 # Display order for the client strip and the prompt block. Explicit rather than
 # dict order so a reordered config file does not reorder what the medic reads.
-VITAL_ORDER = ("hr", "sbp", "dbp", "spo2", "rr", "gcs", "temp")
+VITAL_ORDER = ("hr", "sbp", "dbp", "map", "spo2", "rr", "gcs", "temp")
 
 
 @dataclass(frozen=True)
@@ -126,6 +144,12 @@ class VitalReading:
     carries both conversions, and `canonical` is the one the caution table
     compares against — the rules are written in one unit and must stay that way.
     Every other vital has a single unit, so its canonical value is its value.
+
+    `derived` says whether the system computed this reading or the medic stated
+    it. It is written on EVERY reading, including the false ones, because
+    "stated" is a fact about a value and not the absence of one — a flag that
+    only appeared on derived readings would make a stated MAP indistinguishable
+    from a log written before this field existed.
     """
     value: float
     unit: str
@@ -133,6 +157,7 @@ class VitalReading:
     raw: str = ""
     value_c: Optional[float] = None
     value_f: Optional[float] = None
+    derived: bool = False
 
     @property
     def canonical(self) -> float:
@@ -140,7 +165,8 @@ class VitalReading:
         return self.value_c if self.value_c is not None else self.value
 
     def to_dict(self) -> dict:
-        d = {"value": self.value, "unit": self.unit, "ts": self.ts, "raw": self.raw}
+        d = {"value": self.value, "unit": self.unit, "ts": self.ts,
+             "raw": self.raw, "derived": self.derived}
         # Only temperature has a second unit. Emitting value_c: null on a heart
         # rate would invite a reader to wonder what a heart rate in Celsius is.
         if self.value_c is not None:
@@ -193,6 +219,10 @@ _BP_LABEL = _B + r"(?:blood\s*pressure|bp)"
 _SPO2_LABEL = _B + r"(?:pulse\s*ox(?:imetry)?|o2\s*sats?|sp[o0]2|sa[o0]2|sats|sat)"
 _RR_LABEL = _B + r"(?:respiratory\s*rate|resp\s*rate|resps|resp|rr)"
 _GCS_LABEL = _B + r"(?:gcs)"
+# "map" is an ordinary English word, so this label is the one that most needs
+# its anchors. (?<!\w) keeps it out of "roadmap", and a number has to follow:
+# "map" on its own is a map, and this table stores measurements.
+_MAP_LABEL = _B + r"(?:mean\s*arterial\s*(?:pressure|bp)?|map)"
 # "fever" is a temperature label only when a number follows it. "febrile", and
 # "fever" with nothing after it, describe a patient without measuring one, and
 # this table stores measurements — the sepsis router reads the word itself
@@ -300,6 +330,10 @@ def parse_vitals(text: str, ts: Optional[str] = None):
         ("spo2", _SPO2_LABEL + _SEP + _NUM + r"\s*%?"),
         ("rr",   _RR_LABEL + _SEP + _NUM),
         ("gcs",  _GCS_LABEL + _SEP + _NUM),
+        # A STATED mean arterial pressure. Derivation happens in merge(), over
+        # the accumulated state — this turn's text is not where a MAP whose
+        # systolic arrived three turns ago can be computed.
+        ("map",  _MAP_LABEL + _SEP + _NUM),
     ):
         for m in re.finditer(pattern + r"\b", q):
             take(name, float(m.group(1)), m.span(), m.group(0))
@@ -315,6 +349,13 @@ def parse_vitals(text: str, ts: Optional[str] = None):
     # from being read as a pressure.
     for m in re.finditer(r"(?<![\w./])(\d{2,3})\s*/\s*(\d{2,3})(?![\w./])", q):
         sbp, dbp = float(m.group(1)), float(m.group(2))
+        # The overlap test up front, not inside take(): the diastolic used to be
+        # stored whether or not the systolic survived it, so "HR 90/50" — where
+        # the 90 already belongs to the heart rate — left a diastolic of 50 with
+        # no systolic behind it. Half a pressure is not a pressure, and it is
+        # not something to derive a MAP from either.
+        if _spans_overlap(m.span(), consumed):
+            continue
         if _in_range("sbp", sbp) and _in_range("dbp", dbp) and sbp > dbp:
             take("sbp", sbp, m.span(), m.group(0))
             readings.setdefault("dbp", VitalReading(
@@ -406,6 +447,79 @@ def _take_temp(value: float, stated_unit: str, m, consumed, readings, rejections
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# DERIVATION — mean arterial pressure
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# The only value in this module the system produces rather than hears. Kept
+# here, next to merge(), because it is a property of the ACCUMULATED state: a
+# systolic stated three turns ago and a diastolic stated in this one still make
+# a MAP, and parse_vitals only ever sees one turn.
+
+MAP_FORMULA = "(SBP + 2*DBP)/3"
+
+
+def _older_ts(a: VitalReading, b: VitalReading) -> Optional[str]:
+    """The timestamp of whichever input is older, or None if either is unknown.
+
+    A derived value is only as fresh as the stalest thing it was derived from.
+    An input with no timestamp makes the result's age unknown rather than equal
+    to the other one: "age unknown" is potentially any age, and taking the known
+    timestamp instead would present a derived number as fresher than its data.
+    """
+    ta, tb = _parse_ts(a.ts), _parse_ts(b.ts)
+    if ta is None or tb is None:
+        return None
+    return a.ts if ta <= tb else b.ts
+
+
+def derive_map(readings: dict) -> Optional[VitalReading]:
+    """MAP from a recorded pressure, or None when there is not one.
+
+    Rounded to a whole number: the inputs are whole millimetres of mercury read
+    off a cuff, and a MAP of 53.333 claims a precision the measurement does not
+    have. Thirds of an integer never land on a half, so the rounding mode never
+    arises.
+
+    No range check. Both inputs already passed their own plausibility bands and
+    `map` spans everything derivable from them, so a derived MAP cannot be out
+    of range without the config being incoherent. A pressure that FAILED those
+    bands was never stored, so it yields no MAP here either — the impossible
+    input path is unchanged, and this function is simply never reached with one.
+    """
+    sbp, dbp = (readings or {}).get("sbp"), (readings or {}).get("dbp")
+    if sbp is None or dbp is None:
+        return None
+    value = float(round((sbp.value + 2 * dbp.value) / 3))
+    return VitalReading(value=value, unit=_unit("map"),
+                        ts=_older_ts(sbp, dbp),
+                        raw=f"derived from {sbp.value:g}/{dbp.value:g}",
+                        derived=True)
+
+
+def _apply_map(merged: dict, incoming: dict) -> None:
+    """Bring MAP back into agreement with the pressures, in place.
+
+    Recomputed after every fold rather than carried forward: a MAP that outlived
+    one of its inputs is a stale vital wearing a fresh one's face.
+
+    A STATED MAP wins over a derived one — the medic may be reading an arterial
+    line, and arithmetic does not get to overrule a measurement. It stops
+    winning as soon as a pressure is newer than it. "Newer" is turn order, not a
+    timestamp comparison, for the same reason merge() orders by replay: a turn
+    carrying no `ts` still supersedes the turn before it.
+    """
+    if "map" in incoming:
+        return                       # stated this turn — already folded in, and it wins
+    prior = merged.get("map")
+    if prior is not None and not prior.derived and not (
+            "sbp" in incoming or "dbp" in incoming):
+        return                       # a stated MAP stands until a pressure outdates it
+    derived = derive_map(merged)
+    if derived is not None:
+        merged["map"] = derived
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # SUPERSESSION
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -431,6 +545,11 @@ def merge(existing: dict, incoming: dict):
                 "to": {"value": reading.value, "ts": reading.ts},
             })
         merged[name] = reading
+    # After the fold, so it derives from the state the turn actually left behind.
+    # A recompute is not a supersession: nothing was displaced, the same formula
+    # was applied to newer inputs, and those inputs are already in `superseded`.
+    # Only a MAP the medic restated appears there, via the loop above.
+    _apply_map(merged, incoming or {})
     return merged, superseded
 
 
@@ -515,6 +634,10 @@ def prompt_block(readings: dict, now_ts=None) -> str:
         r = readings[name]
         if r.value_c is not None and r.unit != _unit(name):
             line += f" ({r.value_c:g}{_unit(name)})"
+        # Said out loud, because a computed number that reads as a measured one
+        # is exactly the confusion this flag exists to prevent.
+        if r.derived:
+            line += f", derived {MAP_FORMULA}" if name == "map" else ", derived"
         lines.append(line + _age_suffix(r, now_ts))
     lines.append("Vitals inform cautions and context only. They never authorise a dose.")
     return "\n".join(lines)
@@ -589,7 +712,17 @@ def conflicts(response_text: str, readings: dict) -> list:
         return []
     response_lower = response_text.lower()
     out = []
+    # Rules sharing a `group` are one caution with more than one way to arm.
+    # Hypotension is the case: SBP < 90 and MAP < 65 are the same warning about
+    # the same patient, and 82/40 arms both. Saying it twice in two sentences
+    # that differ only in which number they quote is how a caution stops being
+    # read — which the narrowness of this table exists to prevent. First armed
+    # rule in table order speaks for the group.
+    spoken_for = set()
     for rule in CAUTIONS:
+        group = rule.get("group")
+        if group is not None and group in spoken_for:
+            continue
         armed = _rule_armed(rule, readings)
         if armed is None:
             continue
@@ -600,5 +733,7 @@ def conflicts(response_text: str, readings: dict) -> list:
             # canonical; the sentence they read should be the number they typed.
             values = {name: _caution_value(r) for name, r in armed.items()}
             out.append(rule.get("caution", "").format(drug=drug, **values))
+            if group is not None:
+                spoken_for.add(group)
             break            # one caution per rule, named for the first agent found
     return out

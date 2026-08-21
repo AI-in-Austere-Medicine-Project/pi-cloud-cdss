@@ -172,7 +172,7 @@ access, and vitals — and **shows it**. The client renders a context strip with
 each vital and the age of its reading:
 
 ```
-context  WT 80 kg   AGE 34 yr   HR 128 now   BP 82/40 3m   SpO2 91 3m
+context  WT 80 kg   AGE 34 yr   HR 128 now   BP 82/40 (MAP 54) 3m   SpO2 91 3m
 ```
 
 Vitals are read from ordinary phrasing (`HR 128`, `BP 82/40`, `sats 91`,
@@ -189,17 +189,26 @@ caution table compares the canonical Celsius value the rules are written in.
 `febrile` with no number is not a measurement and captures nothing; the sepsis
 router reads the word itself.
 
+**MAP is derived from the pressure**, `(SBP + 2*DBP)/3` rounded, and shown
+beside it — green at or above 65, red below. It is the one value here the system
+computes rather than hears, so it is flagged `derived` wherever it appears, it is
+recomputed whenever either pressure moves, and it carries the age of the *older*
+of its two inputs: a derived number must never look fresher than the data behind
+it. A MAP the medic states — `MAP 70`, off an arterial line — is a measurement
+and supersedes the derived one until a newer pressure arrives.
+
 A value that cannot be real — `BP 400/300`, or a temperature in neither
 plausible band — is rejected with a visible note and not stored. Silently
 ignoring it would leave the medic believing the system holds a vital it does
-not hold.
+not hold. A rejected pressure yields no MAP either.
 
 **Vitals never compute a dose.** They inform the prompt, the validator, and a
 narrow conflict table (`server/vitals_rules.json`, editable clinical content).
 When a recommendation conflicts with a recorded vital — a respiratory depressant
-at RR 6, a hypotension-risk drug at SBP 82 — the answer is served with a visible
-caution and flagged for human review. A caution never blocks a response and
-never releases one.
+at RR 6, a hypotension-risk drug at SBP 82 or MAP 50 — the answer is served with
+a visible caution and flagged for human review. A caution never blocks a response
+and never releases one. Low SBP and low MAP are one caution with two ways to arm
+it, so a narrow pressure like 90/30 is warned about once rather than twice.
 
 ## Choosing a model
 

@@ -134,7 +134,13 @@ def _get_log_file() -> pathlib.Path:
 # temperature carries `value_c` and `value_f` alongside. Reading a schema 4
 # `temp_c` as Celsius is correct; reading a schema 5 `temp` that way is not,
 # which is why this is a version and not a silent change of contents.
-LOG_SCHEMA_VERSION = 5
+# Schema 6 adds `map` — the first vital in this block the SYSTEM produced rather
+# than heard — and, because of it, a `derived` flag on EVERY reading. Every
+# schema 5 reading was stated; reading a schema 6 one that way is a coin flip on
+# `map`. The flag is written even where it is false because "the medic said this"
+# is a fact worth recording, and a flag that only appeared when true would leave
+# a stated MAP looking exactly like a log written before the field existed.
+LOG_SCHEMA_VERSION = 6
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -236,6 +242,9 @@ class PatientContext:
     # Vitals: name -> vitals.VitalReading. Cleared by a patient boundary along
     # with everything else, because a PatientContext() is a fresh patient and a
     # previous patient's blood pressure is the S-1 failure with a faster clock.
+    # `map` lives here too and is cleared with the rest, even though it is
+    # derived: it is derived FROM this patient's pressure, so it is this
+    # patient's number.
     vitals: dict = field(default_factory=dict)
     # Both describe the CURRENT turn only, like boundary_reset_reason: reset at
     # the top of every extract_patient_context call so that after the replay

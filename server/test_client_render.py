@@ -28,6 +28,7 @@ the JS, and a python environment without node still has a suite to run.
 
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 
@@ -113,6 +114,66 @@ def test_the_strip_shows_a_pressure_as_one_measurement(rendered):
     """Systolic and diastolic are one reading; 90/30, never 90 and never 30."""
     real = _ok(rendered["real"])
     assert "BP <b>90/30 mmHg</b>" in real["ctx"]
+
+
+# ── MAP ──────────────────────────────────────────────────────────────────────
+
+def test_the_strip_shows_the_map_beside_the_pressure_it_came_from(rendered):
+    """"BP 90/30 (MAP 50)". The MAP describes that pressure and nothing else.
+
+    Rendered through num() like every other reading — MAP arrives as a JSON
+    number, and a JSON number reaching esc() is the exact bug this file exists
+    for.
+    """
+    real = _ok(rendered["real"])
+    assert "BP <b>90/30 mmHg</b> (<span class=\"map low\">MAP 50</span>)" in real["ctx"]
+    assert "NaN" not in real["ctx"]
+    assert "undefined" not in real["ctx"]
+
+
+def test_the_map_colour_threshold_puts_65_on_the_safe_side(rendered):
+    """65 is green, 64 is red — strictly below, the same way the server's
+    hypotension caution arms. The strip and the caution table must not disagree
+    about the same patient."""
+    green = _ok(rendered["map_at_threshold"])
+    assert '<span class="map">MAP 65</span>' in green["ctx"], "65 is not low"
+    assert "map low" not in green["ctx"]
+
+    red = _ok(rendered["map_below_threshold"])
+    assert '<span class="map low">MAP 64</span>' in red["ctx"]
+
+
+def test_the_map_is_readable_without_the_colour(rendered):
+    """The class carries the colour and nothing else.
+
+    A stylesheet that never loaded, or a viewer that cannot tell red from green,
+    still reads "MAP 50" as text. The colour is an accelerator on a number the
+    medic can already see, never the only thing saying it.
+    """
+    for name in ("real", "map_at_threshold", "map_below_threshold"):
+        ctx = _ok(rendered[name])["ctx"]
+        stripped = re.sub(r"<[^>]+>", "", ctx)
+        assert "MAP " in stripped, f"{name}: the value is only in the markup"
+
+
+def test_a_stated_map_with_no_pressure_gets_its_own_chip(rendered):
+    """An arterial line, or a pressure the parser could not read. It still shows."""
+    solo = _ok(rendered["map_without_a_pressure"])
+    assert '<span class="map">MAP 70</span>' in solo["ctx"]
+    assert "BP <b>" not in solo["ctx"]
+
+
+def test_a_server_that_sends_no_map_still_renders_the_pressure(rendered):
+    """Schema 5, or a rollback. An absent MAP costs the badge, not the chip."""
+    old = _ok(rendered["map_absent"])
+    assert "BP <b>90/30 mmHg</b>" in old["ctx"]
+    assert "MAP" not in old["ctx"]
+
+
+def test_an_unreadable_map_is_omitted_not_printed(rendered):
+    """Same rule as every other reading: no readable value, no element."""
+    deg = _ok(rendered["degraded"])
+    assert "MAP" not in deg["ctx"]
 
 
 # ── degradation ──────────────────────────────────────────────────────────────

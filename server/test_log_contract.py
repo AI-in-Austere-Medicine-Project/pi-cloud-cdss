@@ -244,7 +244,7 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 5
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 6
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):
@@ -270,6 +270,30 @@ def test_schema_5_logs_a_temperature_in_the_unit_it_was_stated_in():
     assert logged["temp"]["value_f"] == 104.0
 
 
+def test_schema_6_flags_every_reading_as_derived_or_stated():
+    """The reason for this bump: one vital in the block is now computed.
+
+    A schema 5 reading was always something the medic said. Reading a schema 6
+    `map` that way is a coin flip, so the flag is on every reading rather than
+    only the derived one — otherwise a stated MAP and a pre-schema-6 log look
+    identical.
+    """
+    readings, _ = oc.vitals_mod.parse_vitals("BP 90/30 HR 128",
+                                             ts="2026-08-21T10:00:00+00:00")
+    merged, _ = oc.vitals_mod.merge({}, readings)
+    logged = oc.vitals_mod.to_dict(merged)
+    assert logged["map"]["value"] == 50.0
+    assert logged["map"]["derived"] is True
+    for name in ("hr", "sbp", "dbp"):
+        assert logged[name]["derived"] is False, f"{name} was stated, not computed"
+
+
+def test_schema_6_records_a_stated_map_as_stated():
+    stated, _ = oc.vitals_mod.parse_vitals("MAP 70", ts="2026-08-21T10:00:00+00:00")
+    merged, _ = oc.vitals_mod.merge({}, stated)
+    assert oc.vitals_mod.to_dict(merged)["map"]["derived"] is False
+
+
 def test_finalise_can_never_produce_an_unsafe_verdict():
     """_finalise mutates validator_result after the gate. It may only soften it.
 
@@ -283,9 +307,13 @@ def test_finalise_can_never_produce_an_unsafe_verdict():
     # 93F is 33.9C: hypothermic, and inside the plausible Fahrenheit band. A
     # Celsius "temp 33" is now rejected rather than stored, so it would arm
     # nothing and this fixture would stop testing what it says it tests.
-    ctx.vitals, _ = oc.vitals_mod.parse_vitals("RR 6 BP 82/40 HR 42 GCS 5 temp 93 F",
-                                               ts="2026-08-21T10:00:00+00:00")
+    found, _ = oc.vitals_mod.parse_vitals("RR 6 BP 82/40 HR 42 GCS 5 temp 93 F",
+                                          ts="2026-08-21T10:00:00+00:00")
+    # Folded, not just parsed: merge() is where MAP is derived, and the rule it
+    # arms has to sit inside this invariant like every other caution.
+    ctx.vitals, _ = oc.vitals_mod.merge({}, found)
     assert ctx.vitals["temp"].canonical < 35
+    assert ctx.vitals["map"].value == 54
     responses = ["Give lorazepam 4mg IV.", "Give fentanyl 50mcg IV.",
                  "Encourage oral fluids.", "Give TXA 1g IV.",
                  "Need weight in kg before dosing.", "Reassess the patient."]
@@ -304,6 +332,37 @@ def test_finalise_can_never_produce_an_unsafe_verdict():
                 if verdict == "UNSAFE":
                     assert out["validator_result"] == "UNSAFE", "a block must stay blocked"
                     assert "VITALS CAUTION" not in out["response"]
+
+
+def test_a_map_caution_can_only_soften_a_verdict():
+    """MAP < 65 arms the existing hypotension pathway, so it inherits the
+    existing invariant: it appends a line and downgrades SAFE. It cannot block a
+    response, and it cannot release one that was blocked.
+
+    Pinned on a pressure whose SYSTOLIC is not low — 90/30 — so the MAP rule is
+    the only thing arming and the assertion cannot pass on the systolic rule's
+    behalf. Run through _finalise, the gate-bypassing path, because that is the
+    one where a new rule could quietly reach a fixed reviewed string; the gated
+    path is covered end to end in test_vitals.py.
+    """
+    ctx = oc.PatientContext()
+    found, _ = oc.vitals_mod.parse_vitals("BP 90/30", ts="2026-08-21T10:00:00+00:00")
+    ctx.vitals, _ = oc.vitals_mod.merge({}, found)
+    assert ctx.vitals["map"].value == 50
+
+    served = oc._finalise({"response": "Give fentanyl 50mcg IV.",
+                           "source_mode": "FIXED_PREP",
+                           "validator_result": "SAFE",
+                           "validator_issues": []}, ctx)
+    assert "MAP is 50" in served["response"], "the caution must be visible"
+    assert served["validator_result"] == "NEEDS_HUMAN_REVIEW"
+
+    blocked = oc._finalise({"response": "Give fentanyl 50mcg IV.",
+                            "source_mode": "FIXED_PREP",
+                            "validator_result": "UNSAFE",
+                            "validator_issues": []}, ctx)
+    assert blocked["validator_result"] == "UNSAFE", "a caution cannot release a block"
+    assert "VITALS CAUTION" not in blocked["response"]
 
 
 def test_finalise_leaves_gate_questions_alone():

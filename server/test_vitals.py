@@ -208,6 +208,217 @@ def test_bare_blood_pressure_is_read():
     assert values(parse("pt is 82/40 and tachy")[0]) == {"sbp": 82, "dbp": 40}
 
 
+@pytest.mark.parametrize("text,expected", [
+    ("HR 90/50", {"hr": 90}),
+    ("map 70/40", {"map": 70}),
+    ("gcs 14/15", {"gcs": 14}),
+])
+def test_digits_another_label_claimed_do_not_leave_half_a_pressure(text, expected):
+    """The bare-BP form used to store the diastolic whether or not the systolic
+    survived the overlap check, so "HR 90/50" left a diastolic of 50 with no
+    systolic behind it. Half a pressure is not a pressure — and it is not
+    something to derive a MAP from either."""
+    readings, _ = parse(text)
+    assert values(readings) == expected
+    assert "dbp" not in readings
+
+
+# ── MAP: derived, not measured ──────────────────────────────────────────────
+#
+# The only value in this module the system produces rather than hears. Which
+# means it has to be visibly computed, has to stay in agreement with the
+# pressure behind it, and must never look fresher than that pressure does.
+
+
+def merged(text, prior=None, ts=T0):
+    """Parse and fold, which is where derivation happens — parse_vitals sees one
+    turn, and a MAP is a property of the accumulated state."""
+    found, _ = parse(text, ts=ts)
+    out, _ = v.merge(prior or {}, found)
+    return out
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("BP 90/30", 50),        # (90 + 60) / 3
+    ("BP 82/40", 54),        # (82 + 80) / 3
+    ("BP 120/80", 93),       # (120 + 160) / 3 = 93.33, rounded
+    ("BP 100/48", 65),       # (100 + 96) / 3 = 65.33 — the threshold, from above
+    ("BP 100/46", 64),       # (100 + 92) / 3 = 64 — and from below
+])
+def test_map_is_derived_from_the_pressure(text, expected):
+    m = merged(text)
+    assert m["map"].value == expected
+    assert m["map"].unit == "mmHg"
+    assert m["map"].derived is True
+
+
+def test_a_derived_map_says_where_it_came_from():
+    """A computed number that reads as a measured one is its own small S-1."""
+    m = merged("BP 90/30")
+    assert m["map"].raw == "derived from 90/30"
+    assert "derived" in v.prompt_block(m, now_ts=T5)
+    assert m["sbp"].derived is False, "a stated reading is flagged stated"
+
+
+def test_no_map_without_both_pressures():
+    """Derivation needs two numbers. One of them is not a mean of anything."""
+    assert "map" not in merged("HR 128")
+    assert v.derive_map({"sbp": parse("BP 90/30")[0]["sbp"]}) is None
+    assert v.derive_map({}) is None
+
+
+def test_an_impossible_pressure_yields_no_map():
+    """The rejection path is unchanged, and derivation inherits it for free.
+
+    A pressure that failed its plausibility band was never stored, so there is
+    nothing to derive from — the system does not hold a MAP it told the medic it
+    could not read.
+    """
+    found, rejections = parse("BP 400/300")
+    m, _ = v.merge({}, found)
+    assert m == {}
+    assert "map" not in m
+    assert len(rejections) == 1
+
+
+def test_a_rejected_pressure_does_not_disturb_an_existing_map():
+    """The prior MAP is still the prior pressure's MAP, and still says so."""
+    first = merged("BP 90/30", ts=T0)
+    second = merged("now BP 400/300", first, ts=T5)
+    assert second["map"].value == 50
+    assert second["sbp"].value == 90
+
+
+def test_map_recomputes_when_the_pressure_changes():
+    first = merged("BP 120/80", ts=T0)
+    assert first["map"].value == 93
+    second = merged("now BP 82/40", first, ts=T5)
+    assert second["map"].value == 54
+    assert second["map"].ts == T5, "the new pressure's age, not the old one's"
+
+
+def test_map_recomputes_from_a_lone_systolic_or_diastolic_update():
+    """Either input moving is enough. A MAP still keyed to a superseded half of
+    the pressure is a stale vital wearing a fresh one's face."""
+    base = merged("BP 120/80", ts=T0)
+    only_sbp = dict(base)
+    only_sbp["sbp"] = v.VitalReading(90.0, "mmHg", T5, "90")
+    out, _ = v.merge(only_sbp, {"sbp": only_sbp["sbp"]})
+    assert out["map"].value == 83                       # (90 + 160) / 3
+
+    only_dbp = dict(base)
+    only_dbp["dbp"] = v.VitalReading(40.0, "mmHg", T5, "40")
+    out, _ = v.merge(only_dbp, {"dbp": only_dbp["dbp"]})
+    assert out["map"].value == 67                       # (120 + 80) / 3
+
+
+def test_map_carries_the_age_of_its_older_input():
+    """A derived value is only as fresh as the stalest thing behind it."""
+    old_sbp = v.VitalReading(90.0, "mmHg", T0, "90")
+    new_dbp = v.VitalReading(30.0, "mmHg", T5, "30")
+    assert v.derive_map({"sbp": old_sbp, "dbp": new_dbp}).ts == T0
+    assert v.derive_map({"sbp": new_dbp, "dbp": old_sbp}).ts == T0
+
+
+def test_an_input_with_no_timestamp_makes_the_map_age_unknown():
+    """Never fabricate freshness, and never launder it either.
+
+    An unknown age is potentially any age. Taking the other input's timestamp
+    would present the derived number as fresher than the data it came from.
+    """
+    m = merged("BP 90/30", ts=None)
+    assert m["map"].ts is None
+    assert v.age_minutes(m["map"], T9) is None
+
+
+# ── MAP: stated beats derived ───────────────────────────────────────────────
+
+def test_a_stated_map_is_captured_like_any_other_vital():
+    """The medic may be reading an arterial line."""
+    for text in ("MAP 70", "map of 70", "mean arterial pressure 70",
+                 "mean arterial 70"):
+        m = merged(text)
+        assert m["map"].value == 70, text
+        assert m["map"].derived is False, text
+
+
+def test_the_word_map_alone_is_not_a_vital():
+    """"map" is an ordinary English word, which is why the label is anchored and
+    why a number has to follow it."""
+    assert parse("check the roadmap 70 later")[0] == {}
+    assert parse("show me the map")[0] == {}
+    assert parse("mapping the route")[0] == {}
+
+
+def test_an_impossible_stated_map_is_rejected_visibly():
+    readings, rejections = parse("MAP 400")
+    assert "map" not in readings
+    assert len(rejections) == 1 and rejections[0].name == "map"
+
+
+def test_a_stated_map_supersedes_the_derived_one():
+    first = merged("BP 90/30", ts=T0)
+    assert first["map"].derived is True
+    second = merged("art line reads MAP 70", first, ts=T5)
+    assert second["map"].value == 70
+    assert second["map"].derived is False, "arithmetic does not overrule a measurement"
+
+
+def test_a_stated_map_stands_until_a_pressure_outdates_it():
+    stated = merged("MAP 70", merged("BP 90/30", ts=T0), ts=T5)
+    carried, _ = v.merge(stated, parse("HR 128", ts=T9)[0])
+    assert carried["map"].value == 70, "an unrelated turn does not recompute it away"
+    assert carried["map"].derived is False
+
+
+def test_a_newer_pressure_takes_the_map_back():
+    """"Newer" is turn order, not a timestamp comparison — the same rule merge()
+    already follows, so a turn carrying no `ts` still supersedes the one before."""
+    stated = merged("MAP 70", merged("BP 90/30", ts=T0), ts=T5)
+    after = merged("now BP 70/50", stated, ts=T9)
+    assert after["map"].value == 57                     # (70 + 100) / 3
+    assert after["map"].derived is True
+
+
+def test_a_stated_map_is_recorded_as_superseding_the_derived_one():
+    """A restatement is a change of belief the medic made, and the log has to
+    answer "what did the system think the MAP was before this turn"."""
+    first = merged("BP 90/30", ts=T0)
+    _, superseded = v.merge(first, parse("MAP 70", ts=T5)[0])
+    names = {s["name"]: s for s in superseded}
+    assert names["map"]["from"]["value"] == 50
+    assert names["map"]["to"]["value"] == 70
+
+
+def test_a_recompute_is_not_a_supersession():
+    """Nothing was displaced — the same formula met newer inputs, and those
+    inputs are already in `superseded`. Reporting the MAP too would treble the
+    list on every pressure update and say nothing the pressures do not."""
+    first = merged("BP 120/80", ts=T0)
+    _, superseded = v.merge(first, parse("BP 82/40", ts=T5)[0])
+    assert [s["name"] for s in superseded] == ["sbp", "dbp"]
+
+
+def test_map_reaches_the_strip_and_the_prompt():
+    m = merged("BP 90/30")
+    assert v.format_pair(m, "map") == "MAP 50 mmHg"
+    assert "MAP 50 mmHg" in v.summary_line(m)
+    assert v.to_dict(m)["map"] == {
+        "value": 50.0, "unit": "mmHg", "ts": T0,
+        "raw": "derived from 90/30", "derived": True,
+    }
+
+
+def test_map_is_cleared_by_a_patient_boundary():
+    """Derived from this patient's pressure, so it is this patient's number."""
+    ctx = oc.rebuild_patient_context_from_history(
+        "new patient, HR 100",
+        conversation_history=[{"query": "BP 90/30", "ts": T0}], now_ts=T9)
+    assert ctx.boundary_reset_reason
+    assert "map" not in ctx.vitals
+    assert "sbp" not in ctx.vitals
+
+
 # ── parsing: what must NOT be read as a vital ───────────────────────────────
 
 @pytest.mark.parametrize("text", [
@@ -409,6 +620,11 @@ def armed(text, ts=T0):
     return parse(text, ts=ts)[0]
 
 
+def armed_map(text, ts=T0):
+    """Same, folded through merge() — which is where MAP is derived."""
+    return merged(text, ts=ts)
+
+
 def test_hypotension_cautions_a_hypotension_risk_drug():
     cautions = v.conflicts("Give fentanyl 50 mcg IV for pain.", armed("BP 82/40"))
     assert len(cautions) == 1
@@ -429,6 +645,55 @@ def test_respiratory_depressant_cautioned_at_low_spo2():
 def test_av_nodal_blocker_cautioned_at_low_hr():
     cautions = v.conflicts("Give diltiazem.", armed("HR 42"))
     assert cautions and "diltiazem" in cautions[0]
+
+
+def test_a_low_map_arms_the_hypotension_caution():
+    """MAP < 65 is the same warning as SBP < 90, armed by the perfusion number.
+
+    Not a new mechanism: the same table, the same _rule_armed, the same appended
+    line and the same SAFE -> NEEDS_HUMAN_REVIEW downgrade.
+    """
+    cautions = v.conflicts("Give fentanyl 50 mcg IV for pain.", armed_map("BP 90/30"))
+    assert len(cautions) == 1
+    assert "fentanyl" in cautions[0]
+    assert "MAP is 50" in cautions[0]
+
+
+def test_a_low_map_catches_the_pressure_a_systolic_threshold_misses():
+    """90/30 is the query that prompted this. SBP 90 is not below 90, so the
+    systolic rule stays silent — and the patient has a MAP of 50."""
+    readings = armed_map("BP 90/30")
+    assert readings["sbp"].value == 90
+    assert v._rule_armed({"when": {"sbp": {"lt": 90}}}, readings) is None
+    assert v.conflicts("Give midazolam 2mg IV.", readings)
+
+
+def test_a_narrow_map_and_a_low_systolic_say_it_once():
+    """82/40 arms both rules. They are one caution with two ways to arm, and a
+    warning repeated in two sentences that differ only in which number they
+    quote is how a caution stops being read."""
+    cautions = v.conflicts("Give fentanyl 50 mcg IV.", armed_map("BP 82/40"))
+    assert len(cautions) == 1
+    assert "SBP is 82" in cautions[0], "first armed rule in table order speaks"
+
+
+def test_a_stated_map_arms_the_caution_too():
+    """The rule reads the vital, not where it came from."""
+    stated, _ = v.merge({}, parse("MAP 50", ts=T0)[0])
+    assert v.conflicts("Give propofol.", stated)
+
+
+def test_no_caution_when_the_map_is_adequate():
+    assert v.conflicts("Give fentanyl 50 mcg IV.", armed_map("BP 100/48")) == []
+
+
+def test_the_two_hypotension_rules_cover_the_same_agents():
+    """They are one caution. A drug added to one list and not the other would
+    make the warning depend on which threshold happened to arm."""
+    lists = [frozenset(r.get("drugs", [])) for r in v.CAUTIONS
+             if r.get("group") == "hypotension"]
+    assert len(lists) == 2, "expected a systolic rule and a MAP rule"
+    assert len(set(lists)) == 1, "the two hypotension rules list different drugs"
 
 
 def test_no_caution_when_the_vital_is_normal():
@@ -640,7 +905,7 @@ def test_the_log_records_vitals_state_and_cautions(stub_llm, tmp_path, monkeypat
     oc.query_with_rag("80kg male BP 82/40, analgesia options?", FakeChroma(),
                       conversation_history=[])
     entry = json.loads(sorted(tmp_path.glob("*.jsonl"))[0].read_text().strip())
-    assert entry["log_schema"] == 5
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION
     assert entry["vitals"]["sbp"]["value"] == 82
     assert entry["vitals_cautions"], "a fired caution must be in the log"
     assert entry["vitals_rejected"] == []
@@ -656,6 +921,52 @@ def test_the_log_records_what_was_superseded(stub_llm, tmp_path, monkeypatch):
     changed = {s["name"]: s for s in entry["vitals_superseded"]}
     assert changed["sbp"]["from"]["value"] == 120
     assert changed["sbp"]["to"]["value"] == 70
+
+
+def test_the_response_carries_the_derived_map_for_the_strip(stub_llm):
+    """The strip renders it, so the response has to carry it — as a number, with
+    the same shape as every other reading."""
+    ctx = run("80kg male BP 90/30, treatment?")["patient_context"]
+    assert ctx["vitals"]["map"]["value"] == 50.0
+    assert ctx["vitals"]["map"]["derived"] is True
+    assert set(ctx["vitals"]["map"]) >= {"value", "unit", "ts", "derived"}
+    assert ctx["vitals"]["map"]["ts"], "the strip needs a timestamp to show age"
+
+
+def test_the_log_records_the_map_and_says_it_was_derived(stub_llm, tmp_path, monkeypatch):
+    """Per query, in the vitals block, flagged. "What did the system believe the
+    MAP was when it said that" has to be answerable from the log alone — and so
+    does "did anyone actually measure it"."""
+    import json
+    import pathlib as _pathlib
+    monkeypatch.setattr(oc, "_LOG_DIR", _pathlib.Path(tmp_path))
+    oc.query_with_rag("80kg male BP 90/30, analgesia options?", FakeChroma(),
+                      conversation_history=[])
+    entry = json.loads(sorted(tmp_path.glob("*.jsonl"))[0].read_text().strip())
+    assert entry["vitals"]["map"]["value"] == 50.0
+    assert entry["vitals"]["map"]["derived"] is True
+    assert entry["vitals"]["sbp"]["derived"] is False
+
+
+def test_a_stated_map_is_logged_as_stated(stub_llm, tmp_path, monkeypatch):
+    import json
+    import pathlib as _pathlib
+    monkeypatch.setattr(oc, "_LOG_DIR", _pathlib.Path(tmp_path))
+    oc.query_with_rag("art line reads MAP 70", FakeChroma(),
+                      conversation_history=[{"query": "BP 90/30", "ts": T0}])
+    entry = json.loads(sorted(tmp_path.glob("*.jsonl"))[0].read_text().strip())
+    assert entry["vitals"]["map"]["value"] == 70.0
+    assert entry["vitals"]["map"]["derived"] is False
+
+
+def test_a_low_map_downgrades_a_safe_verdict(stub_llm):
+    """The caution pathway, end to end and unchanged: it appends a visible line
+    and softens SAFE. It does not block, and it cannot release."""
+    stub_llm["reply"] = "**GIVE**\n- Fentanyl 50 mcg IV for pain.\n"
+    result = run("80kg male BP 90/30, analgesia options?")
+    assert "MAP is 50" in result["response"]
+    assert result["validator_result"] == "NEEDS_HUMAN_REVIEW"
+    assert result["vitals_cautions"]
 
 
 def test_a_deterministic_card_gets_a_vitals_caution(stub_llm):

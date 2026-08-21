@@ -137,6 +137,13 @@ header h1 span { color: var(--blue); }
    no longer describe the patient, is the one worth looking at. */
 #ctx .cv.stale { border-color: var(--amber); color: var(--amber); }
 #ctx .cv.stale b { color: var(--amber); }
+/* MAP. Green at or above 65, red below — the threshold the hypotension caution
+   arms on, so the strip and the caution table say the same thing. The colour is
+   the only thing these rules carry: the chip already reads "MAP 50" as text, so
+   a stylesheet that never loaded degrades to a legible number rather than to a
+   missing one. Declared after .stale, which it ties with on specificity. */
+#ctx .cv .map { color: var(--green); }
+#ctx .cv .map.low { color: var(--red); }
 #ctx .lbl { letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; }
 .patient-sep {
   display: flex; align-items: center; justify-content: center;
@@ -300,9 +307,17 @@ function splitBanner(text) {
 // in Celsius. It is now kept in the unit the medic stated it in and `unit` says
 // which — the chip reads "104 F" for someone who typed 104 F, and the response
 // carries value_c/value_f for anything that needs to convert.
-const VITAL_ORDER = ['hr', 'sbp', 'spo2', 'rr', 'gcs', 'temp'];
-const VITAL_LABEL = { hr: 'HR', sbp: 'BP', spo2: 'SpO2', rr: 'RR', gcs: 'GCS', temp: 'Temp' };
+// `map` is the one reading the server computes rather than hears — (SBP+2*DBP)/3
+// off the recorded pressure — and it rides inside the BP chip, "BP 90/30 (MAP
+// 50)", because it describes that pressure and nothing else. A MAP the medic
+// stated with no pressure to sit beside gets its own chip.
+const VITAL_ORDER = ['hr', 'sbp', 'map', 'spo2', 'rr', 'gcs', 'temp'];
+const VITAL_LABEL = { hr: 'HR', sbp: 'BP', map: 'MAP', spo2: 'SpO2', rr: 'RR', gcs: 'GCS', temp: 'Temp' };
 const STALE_MIN = 15;
+// The perfusion threshold. Green at or above, red below — the same 65 the
+// server's hypotension caution arms on, so the colour and the caution cannot
+// disagree about the same patient.
+const MAP_LOW = 65;
 let patientCtx = null;
 
 function ageText(ts) {
@@ -312,12 +327,26 @@ function ageText(ts) {
   return Math.max(0, Math.round((Date.now() - t) / 60000));
 }
 
-function chip(label, value, ageMin, unknownAge) {
+function chipHtml(body, ageMin, unknownAge) {
   const stale = unknownAge || (ageMin !== null && ageMin >= STALE_MIN);
   const age = unknownAge ? 'age ?' : (ageMin < 1 ? 'now' : ageMin + 'm');
-  return '<span class="cv' + (stale ? ' stale' : '') + '">' + esc(label) + ' <b>' +
-         esc(value) + '</b>' + (age ? ' <span class="age">' + esc(age) + '</span>' : '') +
-         '</span>';
+  return '<span class="cv' + (stale ? ' stale' : '') + '">' + body +
+         (age ? ' <span class="age">' + esc(age) + '</span>' : '') + '</span>';
+}
+function chip(label, value, ageMin, unknownAge, extra) {
+  return chipHtml(esc(label) + ' <b>' + esc(value) + '</b>' + (extra || ''),
+                  ageMin, unknownAge);
+}
+
+// The MAP badge. num() first, then esc(): the value arrives as a JSON number,
+// and the whole reason this strip is guarded is that one of those reached
+// .replace(). An unreadable MAP yields '' and the badge is simply absent —
+// the chip it rides in still shows the pressure.
+function mapBadge(r) {
+  const value = r ? num(r.value) : '';
+  if (!value) return '';
+  return '<span class="map' + (Number(value) < MAP_LOW ? ' low' : '') + '">MAP ' +
+         esc(value) + '</span>';
 }
 
 function renderCtx() {
@@ -333,17 +362,31 @@ function renderCtx() {
     parts.push('<span class="cv">ACCESS <b>' + esc(c.access_state.replace(/_/g, ' ')) + '</b></span>');
 
   const v = c.vitals || {};
+  // A pressure the strip can actually render. MAP belongs to it, so this is
+  // what decides whether the MAP rides along or stands on its own.
+  const hasBp = !!(v.sbp && num(v.sbp.value) && v.dbp && num(v.dbp.value));
   VITAL_ORDER.forEach(name => {
     const r = v[name];
     // A reading with no readable value is not a reading. Dropping the chip is
     // the honest degradation; "HR undefined" is a vital sign that is not there.
     if (!r || !num(r.value)) return;
+    if (name === 'map') {
+      if (hasBp) return;                     // already shown inside the BP chip
+      // A stated MAP with no pressure to sit beside — an arterial line, or a
+      // pressure the parser could not read. Same badge, its own chip.
+      parts.push(chipHtml(mapBadge(r), ageText(r.ts), ageText(r.ts) === null));
+      return;
+    }
     // BP is one measurement; systolic and diastolic are never shown apart.
     let value = num(r.value);
     if (name === 'sbp' && v.dbp && num(v.dbp.value)) value = num(r.value) + '/' + num(v.dbp.value);
     if (r.unit && r.unit !== '%') value += ' ' + r.unit; else if (r.unit) value += r.unit;
     const a = ageText(r.ts);
-    parts.push(chip(VITAL_LABEL[name] || name, value, a, a === null));
+    // The MAP's own age is the age of the older pressure it came from, which is
+    // the age this chip is already showing. One age, one measurement.
+    const badge = (name === 'sbp' && hasBp) ? mapBadge(v.map) : '';
+    parts.push(chip(VITAL_LABEL[name] || name, value, a,
+                    a === null, badge ? ' (' + badge + ')' : ''));
   });
 
   el.innerHTML = parts.length
