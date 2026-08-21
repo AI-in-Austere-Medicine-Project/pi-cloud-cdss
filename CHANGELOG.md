@@ -2,6 +2,80 @@
 
 ## [Unreleased]
 
+## [4.2.0] — 2026-08-21
+
+Everything below shipped between 4.1.0 and 4.2.0. `/status` reported `4.1.0`
+throughout, because the version was two string literals in `main.py` and a bump
+meant remembering both. It is now one fact in `server/version.py`, with a test
+that fails if a second copy appears.
+
+### Patient context now reaches the validator as a statement, not a silence
+- **The block states the age band on every response**, in all three states:
+  `PEDIATRIC PATIENT`, `ADULT PATIENT`, `NOT pediatric` (weight above the
+  paediatric threshold, no age stated), or `pediatric status UNKNOWN`. It used
+  to assert the status only when true and say *nothing* when false, so "known
+  adult" and "nobody has said" were the same silence — and on 2026-08-21 a
+  validator reviewing a 77.1 kg casualty said so: *"the weight is confirmed as
+  77.1 kg, which is not pediatric. However, the context does not specify if the
+  patient is pediatric or adult."* It had the weight. It did not have the band.
+- **Unknown is not adult.** With no age and no weight the block says UNKNOWN
+  rather than claiming an adult, which would be the same failure reversed.
+- **A confirmed weight satisfies the paediatric-weight rule**, said out loud in
+  the validator prompt, along with a standing instruction to reason from what
+  the context states and never from what it omits.
+- **General reference stops asking for a weight it is holding.** Its refusal
+  sentence was fixed text — "ask again with the patient's weight in kg and
+  route" — printed above a `Confirmed weight: 77.1kg` line in the same prompt.
+  It now names only what the session lacks. Refusing to *dose* on that path is
+  unchanged and still absolute.
+- **`PEDIATRIC_WEIGHT_CEILING_KG`** replaces a bare `40` so the classifier and
+  the block that explains it cannot drift apart.
+
+### Fixed — "milligrams" routed a casualty as being in shock
+- `has_hypotension_or_shock()` matched **substrings**: `"ams"` inside
+  *milligrams*, *grams*, *diagrams*, *exams*; `"altered"` inside *unaltered* —
+  an explicit negation read as its opposite; `"map "` inside *roadmap*. Any dose
+  stated in grams routed as shock, and with an infection present that was
+  `looks_like_sepsis()` firing on the word "milligrams".
+- Short tokens are now word-anchored via the existing `_has_word` helper;
+  long unambiguous phrases stay substrings. Inflections are listed explicitly
+  rather than by dropping the right boundary, because `\bshock` would also
+  swallow *shockwave* and this list decides whether a casualty is treated as
+  being in shock.
+- Fourth specimen of this failure class, after the F-2 alias table,
+  `FIXED_PREP_TERMS` and the vitals labels. Two more found and reported but not
+  fixed here — see TODO.md.
+
+### Retrieval — diagnosed, not tuned
+- Burn queries fell through to general reference. Measured against the live
+  8,559-chunk corpus: the burn CPGs are present and retrieve correctly for clean
+  queries (0.40–0.51, well inside `JTS_GROUNDED`). The collapse is **narrative
+  dilution** — the real queries were multi-topic conversational sentences, and
+  mean-pooled MiniLM averages the burn clause away. The clinical router is the
+  mitigation, not the cause: it lifted those queries by +0.12 to +0.18.
+- `📚` now logs the cosine alongside the clamped score. `score = 2·cos − 1`, so
+  `JTS_GROUNDED` is really cosine ≥ 0.675, and `max(0.0, …)` made every genuinely
+  terrible retrieval print as a small positive number. Instrumentation only — no
+  threshold moved.
+- Full diagnosis and the scoped follow-ups are in TODO.md.
+
+### From the merged PRs
+- **#23 — Temperature capture and derived MAP.** `fever of 104` is a
+  temperature; a reading keeps the unit it was stated in; MAP is derived from
+  the recorded pressure, flagged `derived`, shown beside the BP and armed on the
+  hypotension caution below 65. Log schema 5 then 6.
+- **#21 — The context strip could take the answer down with it.** A JSON number
+  reached `esc()`, the `TypeError` unwound into `ask()`'s catch, and a rendered
+  SEPSIS card was replaced with REQUEST FAILED. Decorations now degrade to
+  absent.
+- **#20 — Vital signs in patient context.** Capture, timestamped supersession,
+  visible rejection of impossible values, the context strip, and the conflict
+  caution table.
+- **#19 — General medical reference and multi-provider models.** A second
+  knowledge source for what JTS does not cover, labelled as such; models became
+  configuration in `providers.json`.
+- **#18 — Voice failures name themselves** instead of returning a bare 500.
+
 ### Derived MAP: the perfusion number, computed and labelled as computed
 - **MAP is derived whenever a pressure is recorded** — `(SBP + 2*DBP)/3`,
   rounded to whole millimetres — and shown next to it on the context strip:

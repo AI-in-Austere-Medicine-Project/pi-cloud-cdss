@@ -6,13 +6,14 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
+from version import __version__
 from openai_client import query_with_rag
 import general_reference
 import providers
 import tts
 
 load_dotenv()
-app = FastAPI(title="CDSS Cloud API", version="4.1.0")
+app = FastAPI(title="CDSS Cloud API", version=__version__)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
 try:
@@ -75,7 +76,7 @@ async def _status_payload():
     import asyncio
     provider_detail = await asyncio.to_thread(providers.provider_status)
     models = await asyncio.to_thread(providers.available_models)
-    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0",
+    return {"message": "CDSS Cloud API", "status": "running", "version": __version__,
             "voice_support": tts.voice_available(),
             "voice_detail": tts.config_problem() or "",
             "provider_detail": provider_detail,

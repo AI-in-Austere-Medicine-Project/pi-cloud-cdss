@@ -5,7 +5,7 @@ Open source. Edge deployed. Safety findings published.
 
 > ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
-**Current release: 4.1.0** · [Release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [Technical notes](docs/TECH_NOTES_v4.1.md) · [Changelog](CHANGELOG.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Current release: 4.2.0** — see the [Changelog](CHANGELOG.md); the 4.2 release notes and technical notes are not written yet · [4.1 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [4.1 technical notes](docs/TECH_NOTES_v4.1.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
 ---
 
@@ -88,7 +88,7 @@ pi-cloud-cdss/
 │   ├── build_protocol_index.py  Builds the router index from the knowledge base
 │   ├── static/index.html        Web portal (served at the API root)
 │   ├── run_tests.sh             24-case live-endpoint clinical suite
-│   ├── run_unit_tests.sh        Offline regression suite (105 tests, ~2s)
+│   ├── run_unit_tests.sh        Offline regression suite (421 tests, ~3s)
 │   └── test_*.py                Offline suites: deterministic parsers/gates,
 │                                safety gate, patient boundary, routing and
 │                                aliases, log contract, env config
@@ -253,7 +253,7 @@ measured.
 
 ## Validation status
 
-- Offline regression suite: **105 tests, ~2s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every v4.1 fix is pinned by a test built from the log line that exposed it
+- Offline regression suite: **421 tests, ~3s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it
 - Automated clinical suite: **24 cases** against the live public endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
 - Convention for safety-relevant fixes: **one fix, one commit, one regression test**, plus a mutation check — revert the fix, confirm the named test fails, restore — recorded in the commit message
 - Active field beta with structured clinical feedback: severity triage, issue categories, protocol-cited corrections — reported failures are reproduced from audit logs and fixed with regression tests
