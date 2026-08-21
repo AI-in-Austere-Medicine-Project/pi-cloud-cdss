@@ -103,3 +103,34 @@ S6_POPULATED_CONTRACT_RESPONSE = (
     "- Draw 7.5 mL of 10mg/mL rocuronium IV (75mg). Indication: RSI paralysis.\n"
     "- Draw 0.5 mL of 2mg/mL lorazepam IV (1mg). Indication: sedation.\n"
 )
+
+# ── General medical reference fixtures (F-4) ────────────────────────────────
+# Representative of the three answer shapes the reference tier produces. They
+# are run through the SAME gate as every JTS answer, which is the claim the
+# invariant matrix in test_safety_gate.py exists to pin.
+
+# The reference-lookup shape. Numbers with units, no drug, no GIVE line.
+GENERAL_LAB_REFERENCE = (
+    "Normal serum potassium is 3.5-5.0 mEq/L.\n"
+    "Below 2.5 or above 6.5 is a critical value.\n"
+    "Peaked T waves appear above roughly 6.5.\n\n"
+    "General reference, not JTS. Confirm against local protocol."
+)
+
+# The recipe shape — allowed. States what a fixed dilution yields. Deliberately
+# NOT in canonical GIVE form: this is a fact about the syringe, not a dose for a
+# patient, and CANONICAL_GIVE_RE must not match it.
+GENERAL_PREP_RECIPE = (
+    "**NOREPINEPHRINE INFUSION PREP**\n"
+    "- Mix 4 mg norepinephrine in 250 mL NS.\n"
+    "- Final concentration: 16 mcg/mL.\n\n"
+    "General reference, not JTS. Confirm against local protocol."
+)
+
+# The prescription shape — forbidden. What a general-mode answer must never
+# produce, and what SC-6 blocks when it does, because general mode never builds
+# an ALLOWED_DOSES contract to check it against.
+GENERAL_MODE_GIVE_LINE = (
+    "**GIVE**\n"
+    "- Draw 0.24 mL of 100mg/mL ketamine IV (24mg). Indication: analgesia.\n"
+)

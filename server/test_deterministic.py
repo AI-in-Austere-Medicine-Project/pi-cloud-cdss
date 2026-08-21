@@ -225,3 +225,44 @@ def test_pediatric_seizure_branch_unchanged():
     ctx = PatientContext(age_years=6.0, is_pediatric=True)
     actions = build_allowed_actions("6 year old seizing", ctx)
     assert any(a.startswith("SEIZURE_PEDIATRIC") for a in actions)
+
+
+# ── Fix 2026-08-21: word-boundary matching for fixed-prep terms ──────────────
+
+def test_norepinephrine_drip_does_not_return_the_epinephrine_recipe():
+    """"epinephrine drip" is a substring of "norepinephrine drip".
+
+    Plain substring matching returned the EPINEPHRINE infusion card for a
+    NOREPINEPHRINE request — a different drug at a different concentration,
+    served as though it were the answer, with nothing marking the substitution.
+    Same failure class as F-2 in the alias table, one table over.
+    """
+    import openai_client as oc
+    assert oc.build_fixed_prep_response("how do i mix a norepinephrine drip") is None
+    assert oc.build_fixed_prep_response("norepinephrine drip please") is None
+    assert oc.is_fixed_prep_request("how do i mix a norepinephrine drip") is False
+
+
+def test_epinephrine_prep_requests_still_resolve():
+    """The negative above must not have been bought by breaking the positive."""
+    import openai_client as oc
+    for query in ("how do i make an epi drip", "need push dose epi",
+                  "make epinephrine drip", "dirty epi please",
+                  "push-dose epi prep"):
+        assert oc.build_fixed_prep_response(query) is not None, query
+        assert oc.is_fixed_prep_request(query) is True, query
+
+
+def test_fixed_prep_terms_cover_every_phrasing_the_builder_answers():
+    """The list and the builder must not disagree about what a prep request is.
+
+    FIXED_PREP_TERMS suppresses the dose gate; build_fixed_prep_response produces
+    the card. A phrasing in the builder but not the list is routed as a dose
+    question and then answered with a recipe.
+    """
+    import openai_client as oc
+    for query in ("make epinephrine drip", "epinephrine drip", "epi drip",
+                  "push dose epinephrine", "dirty epi"):
+        assert oc.build_fixed_prep_response(query) is not None, query
+        assert oc.is_fixed_prep_request(query) is True, query
+        assert oc.wants_medication_dose(query) is False, query

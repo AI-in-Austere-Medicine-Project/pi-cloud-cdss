@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
 from openai_client import query_with_rag
+import general_reference
 import providers
 import tts
 
@@ -155,8 +156,12 @@ async def speak_endpoint(http_request: Request):
         body = await http_request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Body must be JSON")
+    # The spoken disclosure is applied server-side, not by the client. A client
+    # that forgot it would produce a spoken answer with no indication it did not
+    # come from JTS — the one thing general reference is not allowed to do.
+    text = general_reference.for_speech(body.get("text", ""), body.get("source", ""))
     try:
-        audio = await tts.synthesize(tts.normalize_for_speech(body.get("text", "")))
+        audio = await tts.synthesize(tts.normalize_for_speech(text))
     except tts.VoiceUnavailable as e:
         # Say why, in the log and to the caller. The generic 500 this replaces
         # is what let a pasted key ID sit unnoticed behind a dead button.

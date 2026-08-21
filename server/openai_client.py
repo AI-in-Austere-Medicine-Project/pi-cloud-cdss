@@ -48,6 +48,7 @@ import json
 import time
 from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, List
+import general_reference
 import providers
 
 try:
@@ -803,21 +804,44 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 # FIXED PREPS — preparation recipes not tied to patient weight
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Single source of truth for "this is a preparation request". Must cover every
+# phrasing build_fixed_prep_response() answers, or the two disagree: this list
+# is what suppresses the dose gate (wants_medication_dose) while the builder is
+# what produces the card, and a term in one but not the other means a request
+# routed as a dose question that then returns a recipe. Under plain substring
+# matching the disagreement was invisible; word boundaries surfaced it.
 FIXED_PREP_TERMS = [
     "push dose epi", "push-dose epi", "push dose epinephrine",
-    "dirty epi", "epi drip", "make epi", "prepare epi",
+    "dirty epi", "epi drip", "epinephrine drip", "make epi", "prepare epi",
     "mix norepi", "norepinephrine mix", "d50 amp", "dextrose prep"
 ]
 
 
-def is_fixed_prep_request(query: str) -> bool:
+def _prep_term_present(query: str, terms) -> bool:
+    """Word-boundary match for a fixed-prep term.
+
+    Plain substring matching is wrong here for the same reason it was wrong in
+    the alias table (F-2, v4.1): "epinephrine drip" is a substring of
+    "norepinephrine drip", so a request to mix a NOREPINEPHRINE infusion
+    returned the EPINEPHRINE recipe — a different drug at a different
+    concentration, served as though it were the answer. Found 2026-08-21 while
+    routing preparation questions to the reference tier.
+
+    Lookarounds rather than \\b because the terms are multi-word and several
+    end in characters \\b treats inconsistently.
+    """
     q = query.lower()
-    return any(t in q for t in FIXED_PREP_TERMS)
+    return any(re.search(r'(?<!\w)' + re.escape(t) + r'(?!\w)', q) for t in terms)
+
+
+def is_fixed_prep_request(query: str) -> bool:
+    return _prep_term_present(query, FIXED_PREP_TERMS)
 
 
 def build_fixed_prep_response(query: str) -> Optional[str]:
     q = query.lower()
-    if any(x in q for x in ["push dose epi", "push-dose epi", "push dose epinephrine", "dirty epi"]):
+    if _prep_term_present(q, ["push dose epi", "push-dose epi",
+                              "push dose epinephrine", "dirty epi"]):
         return (
             "**PUSH-DOSE EPINEPHRINE PREP**\n"
             "- Make 10 mcg/mL epinephrine.\n"
@@ -832,7 +856,7 @@ def build_fixed_prep_response(query: str) -> Optional[str]:
             "- 1 mL of 1:10,000 epi plus 9 mL NS = 10 mcg/mL push-dose epi.\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
         )
-    if "epi drip" in q or "epinephrine drip" in q:
+    if _prep_term_present(q, ["epi drip", "epinephrine drip"]):
         return (
             "**EPINEPHRINE INFUSION PREP (Dirty Epi Drip)**\n"
             "- Mix 1 mg epinephrine (1:10,000, 10 mL) in 250 mL NS = 4 mcg/mL.\n"
@@ -2629,8 +2653,26 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
 
         allowed_actions = build_allowed_actions(full_query_history, patient_ctx)
 
+        # Step 4b: general medical reference fallback (F-4).
+        # Retrieval found nothing usable and this is not a dosing question, so
+        # answer from general knowledge rather than refusing. A second knowledge
+        # source, not a second pipeline: every check below this point is the same
+        # code on both paths.
+        use_general = general_reference.use_general_reference(
+            assessment.source_mode, full_query_history, allowed_doses,
+            wants_medication_dose(full_query_history),
+            patient_known=any([patient_ctx.confirmed_weight_kg,
+                               patient_ctx.age_years, patient_ctx.is_pediatric]))
+
         # Step 5: Build system prompt and generate response
-        system_prompt = build_system_prompt(patient_ctx, assessment, allowed_dose_block)
+        if use_general:
+            assessment.source_mode = "GENERAL_REFERENCE"
+            print("📖 GENERAL REFERENCE — no usable JTS retrieval")
+            system_prompt = general_reference.build_system_prompt(
+                build_patient_block(patient_ctx))
+            allowed_actions = []
+        else:
+            system_prompt = build_system_prompt(patient_ctx, assessment, allowed_dose_block)
         if allowed_actions:
             system_prompt += "\n\nALLOWED_ACTIONS:\n" + "\n".join(f"- {a}" for a in allowed_actions)
 
@@ -2689,6 +2731,14 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # about or an override matches on. It rides on blocked responses too: if
         # the context was cleared, the medic needs to know that regardless.
         final_response = outcome.response
+        # Applied after the gate for the same reason the reset notice is: a label
+        # must never become text the validator reasons about or an override
+        # matches its keywords against. Served answers only — a safety hold is
+        # text Python wrote, not a general-reference answer, and labelling it as
+        # one would be a false claim about where it came from. The block is still
+        # logged source=general, which is where the attempt came from.
+        if use_general and not outcome.blocked:
+            final_response = general_reference.add_banner(final_response)
         if patient_ctx.boundary_reset_reason:
             final_response = BOUNDARY_RESET_NOTICE + final_response
 
