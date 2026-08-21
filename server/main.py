@@ -35,7 +35,12 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     response: str
-    sources: list
+    # Everything the client renders from except `response` itself has a default,
+    # and is read with .get below. A pipeline path that sets no sources is a
+    # response with no citations; it is not a 500, and it is not a client that
+    # cannot find a field it renders. `response` stays required — a response
+    # with no text is not a response to degrade to.
+    sources: list = []
     query_type: str
     processing_time_ms: int
     voice_mode: str
@@ -123,7 +128,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
         ms = int((datetime.now() - start).total_seconds() * 1000)
         return QueryResponse(
             response=result["response"],
-            sources=result["sources"],
+            sources=result.get("sources") or [],
             query_type="chromadb",
             processing_time_ms=ms,
             voice_mode=request.voice_mode,
