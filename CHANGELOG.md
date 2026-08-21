@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+### Fixed — the context strip could take the answer down with it
+- **A clinical answer that had already rendered was being replaced with
+  REQUEST FAILED.** `patient_context.confirmed_weight_kg` is a JSON number
+  (`75.0`); the new context strip handed it to the client's HTML escaper, which
+  called `.replace` on it. The TypeError did not stop at the chip it came from —
+  it unwound out of `renderCtx()`, out of `ask()`'s try, and into the catch that
+  writes the failure banner, over a SEPSIS card that was already on screen. The
+  server had answered correctly; the medic saw an error. Reproduced from the
+  session log for *"hypotensive, BP 90/30, fever 104, recent infection, IV
+  established, 75 kg"*, which logged `validator_result: SAFE` with both
+  pressures captured.
+- **The strip converts numbers itself** rather than relying on the escaper to
+  cope, and drops any reading it cannot read a value from. A vital that renders
+  as `undefined` is a vital sign that is not there.
+- **The escape helper coerces** (`String(s ?? '')`), so an absent field renders
+  as nothing instead of throwing.
+- **The answer outranks the furniture around it.** The strip, the listen button
+  and the feedback controls are wired up after the answer is in the DOM and are
+  now guarded individually: a failure in any of them is logged and skipped. One
+  missing field costs its own element and nothing more. A request that genuinely
+  failed still says REQUEST FAILED — the hardening does not swallow real errors.
+- **`sources` gained a default** on the response model and is read with `.get`.
+  A pipeline path that set no sources would have been a 500 — the same failure
+  one layer earlier.
+- **The client render path is now tested by running it.** `test_client_render.py`
+  drives the real `<script>` from `static/index.html` in a stubbed DOM against
+  canned `/query` payloads, including the one the server actually served for the
+  query above. The grep-based contract tests all passed while this bug was live;
+  eight of the new assertions fail against the shipped client.
+- **`test_vitals.py`'s fixture timestamps are anchored to the clock**, not to a
+  calendar date. `T0 = 2026-08-21T10:00Z` fed a conversation history against a
+  current turn stamped from `utcnow`, so once real time passed it by more than
+  the patient-boundary timeout the fixture started firing an
+  `inactivity_timeout` and the test failed on the clock rather than on a change.
+
 ### Vital signs in patient context
 - **Vitals are parsed from free text and held in session context** — HR, BP,
   SpO2, RR, GCS and temperature, in the phrasings a medic actually types

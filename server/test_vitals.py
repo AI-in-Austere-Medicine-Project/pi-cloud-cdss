@@ -7,6 +7,7 @@ end-to-end tests stub the provider layer.
     cd server && ./run_unit_tests.sh
 """
 
+import datetime
 import os
 import sys
 
@@ -19,9 +20,23 @@ import openai_client as oc  # noqa: E402
 import vitals as v  # noqa: E402
 from openai_client import PatientContext  # noqa: E402
 
-T0 = "2026-08-21T10:00:00+00:00"
-T5 = "2026-08-21T10:05:00+00:00"
-T9 = "2026-08-21T10:09:00+00:00"
+# Anchored to the clock, not to a calendar date. Most uses only need the gaps
+# between them, but two end-to-end tests put T0 in conversation_history against
+# a CURRENT turn stamped from utcnow — and the gap from the history to now is
+# what decides whether a patient boundary fires. A fixed date turns into an
+# inactivity_timeout the moment real time walks past it plus
+# PATIENT_BOUNDARY_TIMEOUT_MIN, and the suite starts failing on a clock instead
+# of on a change. It did, on 2026-08-21 at 10:30Z.
+_T_ANCHOR = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=10)
+
+
+def _at(minutes):
+    return (_T_ANCHOR + datetime.timedelta(minutes=minutes)).isoformat()
+
+
+T0 = _at(0)
+T5 = _at(5)
+T9 = _at(9)
 
 
 def parse(text, ts=T0):

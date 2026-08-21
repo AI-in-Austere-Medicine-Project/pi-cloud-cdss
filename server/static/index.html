@@ -230,8 +230,24 @@ const send = document.getElementById('send');
 const history = [];   // {query, response, ts} — ts added in v4.1 so the server can detect an inactivity boundary (SC-1)
 const deviceId = 'web-' + Math.random().toString(36).slice(2, 8);
 
+// Coerces rather than assuming a string. Values reach this from a JSON body,
+// where numbers are numbers: confirmed_weight_kg arrives as 75.0, and
+// (75).replace is undefined. A TypeError here does not stop at the element it
+// came from — it unwinds into ask()'s catch and replaces a clinical answer that
+// had already rendered with REQUEST FAILED. One absent field is allowed to cost
+// its own element and nothing more, so null and undefined render as empty.
 function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// A JSON number as display text. 75.0 reads "75", 101.2 reads "101.2"; anything
+// not finite yields '' so the caller omits the element instead of printing
+// "undefined" or "NaN" next to a clinical value.
+function num(v) {
+  // Number(null) is 0 and Number('') is 0. An absent value must not become a
+  // zero a medic could read as a measurement.
+  const n = (v === null || v === undefined || v === '') ? NaN : Number(v);
+  return Number.isFinite(n) ? String(n) : '';
 }
 
 // SC-1: explicit patient boundary. Clears the history the server replays, so
@@ -305,18 +321,22 @@ function renderCtx() {
   const c = patientCtx;
   if (!c) { el.innerHTML = ''; return; }
   const parts = [];
-  if (c.confirmed_weight_kg) parts.push('<span class="cv">WT <b>' + esc(c.confirmed_weight_kg) + ' kg</b></span>');
-  if (c.age_years) parts.push('<span class="cv">AGE <b>' + esc(c.age_years) + ' yr</b></span>');
-  if (c.access_state && c.access_state !== 'UNKNOWN')
+  // weight and age are numbers on the wire, not strings. num() is where that is
+  // stated; esc() coercing is the backstop, not the contract.
+  if (c.confirmed_weight_kg && num(c.confirmed_weight_kg)) parts.push('<span class="cv">WT <b>' + esc(num(c.confirmed_weight_kg)) + ' kg</b></span>');
+  if (c.age_years && num(c.age_years)) parts.push('<span class="cv">AGE <b>' + esc(num(c.age_years)) + ' yr</b></span>');
+  if (typeof c.access_state === 'string' && c.access_state && c.access_state !== 'UNKNOWN')
     parts.push('<span class="cv">ACCESS <b>' + esc(c.access_state.replace(/_/g, ' ')) + '</b></span>');
 
   const v = c.vitals || {};
   VITAL_ORDER.forEach(name => {
     const r = v[name];
-    if (!r) return;
+    // A reading with no readable value is not a reading. Dropping the chip is
+    // the honest degradation; "HR undefined" is a vital sign that is not there.
+    if (!r || !num(r.value)) return;
     // BP is one measurement; systolic and diastolic are never shown apart.
-    let value = String(r.value);
-    if (name === 'sbp' && v.dbp) value = r.value + '/' + v.dbp.value;
+    let value = num(r.value);
+    if (name === 'sbp' && v.dbp && num(v.dbp.value)) value = num(r.value) + '/' + num(v.dbp.value);
     if (r.unit && r.unit !== '%') value += ' ' + r.unit; else if (r.unit) value += r.unit;
     const a = ageText(r.ts);
     parts.push(chip(VITAL_LABEL[name] || name, value, a, a === null));
@@ -489,6 +509,13 @@ function openFlagPanel(container, queryText, responseText) {
   };
 }
 
+// The answer is the product; the strip, the listen button and the feedback
+// controls are not. Once the answer is committed to the DOM, a failure in any
+// of them is logged and skipped rather than allowed to fail the request.
+function decoration(what, fn) {
+  try { fn(); } catch (e) { console.error('render: ' + what + ' omitted \u2014', e); }
+}
+
 async function ask() {
   const text = q.value.trim();
   if (!text) return;
@@ -527,12 +554,22 @@ async function ask() {
       ' · source: ' + esc(d.source === 'general' ? 'general' : 'JTS');
     pending.querySelector('.bubble').innerHTML =
       html + meta + '<div class="answeredby">' + answeredBy + '</div>';
-    patientCtx = d.patient_context || null;
-    renderCtx();
-    pending.querySelector('.listen').onclick = function () {
-      speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source);
-    };
-    wireFeedback(pending, text, d.response);
+    // Everything past this point is furniture around an answer that is already
+    // on screen. A throw in any of it used to unwind into the catch below and
+    // overwrite that answer with REQUEST FAILED — the medic lost a rendered
+    // SEPSIS card to a patient-context strip. Furniture degrades to absent.
+    decoration('context strip', function () {
+      patientCtx = d.patient_context || null;
+      renderCtx();
+    });
+    decoration('listen button', function () {
+      pending.querySelector('.listen').onclick = function () {
+        speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source);
+      };
+    });
+    decoration('feedback controls', function () {
+      wireFeedback(pending, text, d.response);
+    });
     history.push({ query: text, response: d.response, ts: new Date().toISOString() });
   } catch (e) {
     pending.querySelector('.bubble').innerHTML =

@@ -105,5 +105,162 @@ def test_the_strip_marks_readings_whose_age_is_unknown():
 
 
 def test_the_strip_never_splits_a_blood_pressure():
-    """Systolic and diastolic are one measurement and are shown as one."""
-    assert "r.value + '/' + v.dbp.value" in HTML
+    """Systolic and diastolic are one measurement and are shown as one.
+
+    test_client_render.py asserts the rendered result ("BP <b>90/30 mmHg</b>");
+    this pins the source expression so the two fail together rather than one
+    quietly stopping to mean anything.
+    """
+    assert "num(r.value) + '/' + num(v.dbp.value)" in HTML
+
+
+def test_the_escape_helper_coerces():
+    """The v4.3 client bug, pinned.
+
+    esc() is fed straight out of a JSON body, where numbers are numbers:
+    confirmed_weight_kg arrives as 75.0 and (75).replace is undefined. The
+    TypeError did not stop at the chip it came from — it unwound into ask()'s
+    catch and replaced a rendered SEPSIS card with REQUEST FAILED.
+    """
+    assert "String(s ?? '')" in HTML
+
+
+def test_the_answer_survives_a_failure_in_the_furniture_around_it():
+    """The strip, the listen button and the feedback controls are not the answer.
+
+    They are wired up after the answer is in the DOM, and a throw in any of
+    them used to land in the catch that writes REQUEST FAILED over it.
+    """
+    assert "function decoration(" in HTML
+    body = HTML.split("async function ask()")[1]
+    for what in ("context strip", "listen button", "feedback controls"):
+        assert "decoration('" + what + "'" in body, what + " is not guarded"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RESPONSE SCHEMA
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# The other half of the same contract. Above: the client reads what the server
+# writes. Here: the server writes what the client reads — every field, on every
+# response, whichever pipeline path produced it. A field the client cannot find
+# is not a blank space in the UI; before the render path was hardened it was a
+# whole clinical answer replaced with REQUEST FAILED.
+
+import ast  # noqa: E402
+
+MAIN = pathlib.Path(__file__).parent / "main.py"
+
+# Read from source rather than imported: importing main constructs a ChromaDB
+# client at module scope, which is not a unit test's business.
+_MODULE = ast.parse(MAIN.read_text())
+
+
+def _query_response_fields() -> dict:
+    """{field name: has a default} for QueryResponse."""
+    for node in _MODULE.body:
+        if isinstance(node, ast.ClassDef) and node.name == "QueryResponse":
+            return {stmt.target.id: stmt.value is not None
+                    for stmt in node.body if isinstance(stmt, ast.AnnAssign)}
+    raise AssertionError("QueryResponse is not declared in main.py")
+
+
+# What the client actually reads off a /query response. Adding a render that
+# reads a new field means adding it here.
+CLIENT_READS = ("response", "sources", "processing_time_ms", "validator_result",
+                "model", "source", "patient_context")
+
+
+def test_query_response_declares_every_field_the_client_reads():
+    fields = _query_response_fields()
+    missing = [f for f in CLIENT_READS if f not in fields]
+    assert not missing, f"the client renders fields the response does not declare: {missing}"
+
+
+# Computed by the handler on every path rather than read out of the pipeline
+# result, so these cannot go missing and are required on purpose. A response
+# with no text is not a response to degrade to.
+ALWAYS_COMPUTED = ("response", "processing_time_ms")
+
+
+def _query_response_kwargs() -> set:
+    """The keywords the handler passes when it builds a QueryResponse."""
+    for node in ast.walk(_MODULE):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == "QueryResponse"):
+            return {kw.arg for kw in node.keywords}
+    raise AssertionError("main.py never constructs a QueryResponse")
+
+
+def test_the_fields_the_client_reads_are_never_absent():
+    """Defaults, so the key is serialised even on a path that sets nothing.
+
+    Anything pulled out of the pipeline's result dict has to survive a path
+    that did not set it. Before the render path was hardened, a field the
+    client could not find cost the whole answer.
+    """
+    fields = _query_response_fields()
+    for name in CLIENT_READS:
+        if name in ALWAYS_COMPUTED:
+            continue
+        assert fields[name], f"{name} has no default and can be absent from a response"
+
+
+def test_the_required_fields_are_the_ones_the_handler_always_supplies():
+    """The carve-out above holds only while the handler really does supply them."""
+    supplied = _query_response_kwargs()
+    for name in ALWAYS_COMPUTED:
+        assert name in supplied, f"{name} is required but not always passed"
+
+
+def test_patient_context_carries_every_key_the_strip_reads():
+    """Against the real pipeline, for the query that broke the client."""
+    import openai_client as oc
+
+    ctx = oc.rebuild_patient_context_from_history(
+        "I have a patient who is hypotensive his blood pressure is 90/30. He has "
+        "a fever of 104 and he has a recent infection I need to know general "
+        "treatment. I have an IV established and he is 75 kg.",
+        conversation_history=[], now_ts="2026-08-21T10:21:54Z")
+    d = ctx.to_dict()
+    for key in ("confirmed_weight_kg", "age_years", "access_state", "vitals"):
+        assert key in d, f"the strip reads {key} and the response does not carry it"
+    assert d["confirmed_weight_kg"] == 75.0
+    assert d["access_state"] == "CONFIRMED_IV_IO"
+    assert set(d["vitals"]) >= {"sbp", "dbp"}
+
+
+def test_the_numeric_context_fields_are_numbers_on_the_wire():
+    """Stated, because the client got this wrong.
+
+    These are floats in JSON, not strings. Anything rendering them has to
+    convert; this is the assertion that says so out loud.
+    """
+    import openai_client as oc
+
+    ctx = oc.rebuild_patient_context_from_history(
+        "7 year old, 40 kg, HR 120", conversation_history=[],
+        now_ts="2026-08-21T10:21:54Z")
+    d = ctx.to_dict()
+    assert isinstance(d["confirmed_weight_kg"], float)
+    assert isinstance(d["age_years"], float)
+    assert isinstance(d["vitals"]["hr"]["value"], float)
+
+
+def test_every_vital_reading_is_shaped_the_way_the_strip_expects():
+    """value / unit / ts on every reading — ts may be None, but the key is there.
+
+    A reading with no `ts` renders "age ?" and is styled stale. A reading with
+    no `ts` KEY would have been an undefined into the escape helper.
+    """
+    import openai_client as oc
+
+    ctx = oc.rebuild_patient_context_from_history(
+        "BP 90/30, HR 130, SpO2 91%, RR 28, GCS 14, temp 39.4 C",
+        conversation_history=[], now_ts="2026-08-21T10:21:54Z")
+    vitals = ctx.to_dict()["vitals"]
+    assert vitals, "nothing parsed; the fixture no longer exercises the contract"
+    for name, reading in vitals.items():
+        assert set(reading) >= {"value", "unit", "ts"}, f"{name}: {reading}"
+        assert isinstance(reading["value"], (int, float)), name
+        assert isinstance(reading["unit"], str), name
