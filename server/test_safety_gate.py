@@ -36,12 +36,16 @@ def unsafe(issues, rationale=""):
     return {"result": "UNSAFE", "issues": list(issues), "rationale": rationale}
 
 
-def gate(response, issues, ctx=None, history="", det=PASS, verdict="UNSAFE"):
+def gate(response, issues, ctx=None, history="", det=PASS, verdict="UNSAFE",
+         cautions=None):
     return apply_safety_gate(
         response, det,
         {"result": verdict, "issues": list(issues), "rationale": ""},
-        ctx, history,
+        ctx, history, vitals_cautions=cautions,
     )
+
+
+VITALS_CAUTION = ["fentanyl carries a hypotension risk and the recorded SBP is 82 mmHg."]
 
 
 # ── The override matrix ─────────────────────────────────────────────────────
@@ -212,6 +216,7 @@ def test_gate_log_invariant():
     issue_sets = [[], ["Failed airway described without a definitive surgical airway."],
                   ["Medication dose given without confirmed weight for pediatric patient."]]
     contexts = [None, PatientContext(), PatientContext(confirmed_weight_kg=20.0, is_pediatric=True)]
+    caution_sets = [None, VITALS_CAUTION]
 
     checked = 0
     for det in (PASS, FAIL):
@@ -219,15 +224,92 @@ def test_gate_log_invariant():
             for verdict in verdicts:
                 for issues in issue_sets:
                     for ctx in contexts:
-                        outcome = gate(response, issues, ctx, "", det=det, verdict=verdict)
-                        assert (outcome.verdict == "UNSAFE") == outcome.blocked, (
-                            f"invariant broken: verdict={outcome.verdict} blocked={outcome.blocked} "
-                            f"det_passed={det.passed} llm={verdict} issues={issues}"
-                        )
-                        if outcome.blocked:
-                            assert outcome.issues, "a block must carry its issues"
-                        checked += 1
-    assert checked == 2 * 6 * 3 * 3 * 3
+                        for cautions in caution_sets:
+                            outcome = gate(response, issues, ctx, "", det=det,
+                                           verdict=verdict, cautions=cautions)
+                            assert (outcome.verdict == "UNSAFE") == outcome.blocked, (
+                                f"invariant broken: verdict={outcome.verdict} blocked={outcome.blocked} "
+                                f"det_passed={det.passed} llm={verdict} issues={issues} "
+                                f"cautions={cautions}"
+                            )
+                            if outcome.blocked:
+                                assert outcome.issues, "a block must carry its issues"
+                            checked += 1
+    assert checked == 2 * 6 * 3 * 3 * 3 * 2
+
+
+# ── vitals cautions ─────────────────────────────────────────────────────────
+
+def test_a_caution_never_blocks_and_never_releases():
+    """The whole contract, in one place.
+
+    A caution is commentary appended to a decision that was already made. It
+    cannot turn a served response into a block, and — the direction that would
+    actually be dangerous — it cannot turn a block into a served response.
+    """
+    for det in (PASS, FAIL):
+        for verdict in ("SAFE", "NEEDS_HUMAN_REVIEW", "UNSAFE"):
+            for issues in ([], ["Some validator issue."]):
+                bare = gate(_CLINICAL, issues, PatientContext(), "",
+                            det=det, verdict=verdict)
+                with_caution = gate(_CLINICAL, issues, PatientContext(), "",
+                                    det=det, verdict=verdict, cautions=VITALS_CAUTION)
+                assert with_caution.blocked == bare.blocked, (
+                    f"a caution changed blocked: det={det.passed} verdict={verdict}")
+                assert with_caution.issues == bare.issues, (
+                    "a caution must not alter the validator issue list")
+
+
+def test_a_caution_downgrades_safe_to_needs_human_review():
+    """Served-but-flagged is exactly what NEEDS_HUMAN_REVIEW means."""
+    outcome = gate(_CLINICAL, [], PatientContext(), "", verdict="SAFE",
+                   cautions=VITALS_CAUTION)
+    assert outcome.blocked is False
+    assert outcome.verdict == "NEEDS_HUMAN_REVIEW"
+    assert outcome.cautions == VITALS_CAUTION
+    assert "VITALS CAUTION" in outcome.response
+    assert VITALS_CAUTION[0] in outcome.response
+
+
+def test_a_caution_is_absent_from_a_blocked_response():
+    """A block is a safety hold Python wrote.
+
+    Appending "confirm the haemodynamic plan before giving it" would describe a
+    recommendation the medic was never shown.
+    """
+    outcome = gate(_CLINICAL, [], PatientContext(), "", det=FAIL,
+                   cautions=VITALS_CAUTION)
+    assert outcome.blocked is True
+    assert "VITALS CAUTION" not in outcome.response
+    assert outcome.cautions == []
+
+
+def test_a_caution_does_not_touch_a_gate_question():
+    """SAFE_GATE_RESPONSES is matched exactly, and a question is not a plan."""
+    outcome = gate("Need weight in kg before dosing.", [], PatientContext(), "",
+                   verdict="SAFE", cautions=VITALS_CAUTION)
+    assert outcome.response == "Need weight in kg before dosing."
+    assert outcome.verdict == "SAFE"
+    assert outcome.cautions == []
+
+
+def test_a_caution_cannot_change_which_override_fires():
+    """Applied after the registry has seen the original text.
+
+    dangerous_reassurance_has_action fires on the substring "monitor" anywhere
+    in a response. A caution is commentary about the answer, not part of it, and
+    must not be able to satisfy a condition like that — the same ordering rule
+    BOUNDARY_RESET_NOTICE and the general-reference banner follow.
+    """
+    loaded = ["Monitor continuously and confirm the airway plan before giving it."]
+    for name, case in OVERRIDE_CASES.items():
+        bare = gate(case["response"], case["issues"], case.get("ctx"),
+                    case.get("history", ""))
+        with_caution = gate(case["response"], case["issues"], case.get("ctx"),
+                            case.get("history", ""), cautions=loaded)
+        assert with_caution.override_fired == bare.override_fired, (
+            f"a caution changed the override for {name}")
+        assert with_caution.blocked == bare.blocked
 
 
 def test_the_banner_cannot_change_a_gate_outcome():

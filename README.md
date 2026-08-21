@@ -165,6 +165,33 @@ validator and safety gate as every JTS answer.
 general knowledge — dosing questions stay on the ALLOWED_DOSES contract path,
 which either produces a deterministic line or holds.
 
+### Patient context and vitals
+
+The system holds what it has been told about the current patient — weight, age,
+access, and vitals — and **shows it**. The client renders a context strip with
+each vital and the age of its reading:
+
+```
+context  WT 80 kg   AGE 34 yr   HR 128 now   BP 82/40 3m   SpO2 91 3m
+```
+
+Vitals are read from ordinary phrasing (`HR 128`, `BP 82/40`, `sats 91`,
+`GCS 3-4-5`, `temp 101.2 F`). Each reading is timestamped to the turn it was
+stated in; a reading whose age cannot be established is shown as `age ?` and
+marked, because that is the one worth checking. **NEW PATIENT clears every
+vital**, and the response says so.
+
+A value that cannot be real — `BP 400/300` — is rejected with a visible note and
+not stored. Silently ignoring it would leave the medic believing the system holds
+a blood pressure it does not hold.
+
+**Vitals never compute a dose.** They inform the prompt, the validator, and a
+narrow conflict table (`server/vitals_rules.json`, editable clinical content).
+When a recommendation conflicts with a recorded vital — a respiratory depressant
+at RR 6, a hypotension-risk drug at SBP 82 — the answer is served with a visible
+caution and flagged for human review. A caution never blocks a response and
+never releases one.
+
 ## Choosing a model
 
 Models are configuration, not code. `server/providers.json` holds the registry;

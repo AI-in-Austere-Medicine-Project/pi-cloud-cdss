@@ -77,3 +77,33 @@ def test_no_key_material_in_the_client():
     lowered = HTML.lower()
     for marker in ("sk-ant-", "sk-proj-", "anthropic_api_key", "openai_api_key"):
         assert marker not in lowered, f"{marker} appears in the web client"
+
+
+def test_client_renders_the_patient_context_strip():
+    """S-1 as UI: the medic must be able to see what the system believes.
+
+    The v4.1 fix cleared stale context at a boundary. The strip is the other
+    half — showing it the rest of the time, so a wrong value gets corrected
+    before it is dosed against rather than after.
+    """
+    assert 'id="ctx"' in HTML
+    assert "renderCtx" in HTML
+    assert "patient_context" in HTML
+
+
+def test_the_strip_clears_when_the_patient_does():
+    """Leaving a cleared patient's vitals on screen is S-1 with extra steps."""
+    marker = HTML.split("function newPatient()")[1].split("}")[0]
+    assert "patientCtx = null" in marker
+    assert "renderCtx()" in marker
+
+
+def test_the_strip_marks_readings_whose_age_is_unknown():
+    """A reading whose age cannot be established is the one worth looking at."""
+    assert "age ?" in HTML
+    assert "stale" in HTML
+
+
+def test_the_strip_never_splits_a_blood_pressure():
+    """Systolic and diastolic are one measurement and are shown as one."""
+    assert "r.value + '/' + v.dbp.value" in HTML
