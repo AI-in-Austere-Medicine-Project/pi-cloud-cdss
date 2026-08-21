@@ -24,7 +24,24 @@
     "          NOTE: ketamine is deliberately absent from the hypotension and",
     "          respiratory lists. It is haemodynamically favourable relative to",
     "          the alternatives and preserves respiratory drive; flagging it would",
-    "          push a medic away from the safer agent."
+    "          push a medic away from the safer agent.",
+    "",
+    "temp      the one vital a medic states in two units, so it carries two",
+    "          bands: min/max in `unit` (C, the unit the cautions below are",
+    "          written in) and alt_min/alt_max in `alt_unit` (F). A stated unit",
+    "          is checked against its own band; an unlabelled number is read as",
+    "          whichever band it falls in, and the bands do not overlap. A value",
+    "          in neither is rejected visibly rather than stored in a unit it",
+    "          was never given in.",
+    "",
+    "          The reading keeps the unit it was stated in \u2014 a medic who typed",
+    "          104 F is shown 104 F \u2014 and carries both conversions. Only the",
+    "          canonical Celsius value is compared against the table below.",
+    "",
+    "          NOTE: min 35 excludes hypothermia stated in Celsius. 'temp 33' is",
+    "          rejected, and hypothermia_txa can then only arm from a Fahrenheit",
+    "          reading (93-94.9F is 33.9-34.9C). Lowering temp.min here restores",
+    "          it with no code change."
   ],
 
   "ranges": {
@@ -34,7 +51,8 @@
     "spo2":   { "label": "SpO2",  "unit": "%",    "min": 50,  "max": 100 },
     "rr":     { "label": "RR",    "unit": "/min", "min": 2,   "max": 80  },
     "gcs":    { "label": "GCS",   "unit": "",     "min": 3,   "max": 15  },
-    "temp_c": { "label": "Temp",  "unit": "C",    "min": 20,  "max": 45  }
+    "temp":   { "label": "Temp",  "unit": "C",    "min": 35,  "max": 43,
+                "alt_unit": "F", "alt_min": 93, "alt_max": 110 }
   },
 
   "cautions": [
@@ -70,9 +88,9 @@
     },
     {
       "id": "hypothermia_txa",
-      "when": { "temp_c": { "lt": 35 } },
+      "when": { "temp":   { "lt": 35 } },
       "drugs": ["txa", "tranexamic"],
-      "caution": "The recorded temperature is {temp_c}C. TXA is for traumatic haemorrhagic shock, not hypothermia — confirm active haemorrhage."
+      "caution": "The recorded temperature is {temp}. TXA is for traumatic haemorrhagic shock, not hypothermia — confirm active haemorrhage."
     },
     {
       "id": "depressed_gcs_oral_route",

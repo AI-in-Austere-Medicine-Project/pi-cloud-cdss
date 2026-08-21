@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+### Temperature capture: fever phrasing, and the unit the medic actually used
+- **`fever of 104` is a temperature.** `fever` joins `temperature`, `temp` and
+  `t` as a label, word-anchored like the rest — a number has to follow it.
+  `febrile`, and `fever` with nothing after it, still capture nothing: this
+  table stores measurements, and the word alone is the sepsis router's business
+  (`has_fever`). The query that prompted this held a fever of 104 and logged no
+  temperature at all.
+- **The unit comes from the value, and the reading keeps it.** The plausible
+  bands do not overlap — 35-43C, 93-110F — so an unlabelled `39` is Celsius and
+  an unlabelled `104` is Fahrenheit. A stated `C` or `F` is checked against its
+  own band and never reinterpreted: `temp 104 C` is a mistyped reading, not a
+  Fahrenheit one, and reading it as F would invent a plausible vital out of an
+  implausible one. The strip and the prompt show `Temp 104 F` to the medic who
+  typed 104 F; both conversions are stored, and the caution table compares the
+  canonical Celsius value the thresholds are written in.
+- **A temperature in neither band is rejected visibly**, like `BP 400/300`
+  already was, and says which two ranges it missed. Previously the range was
+  20-45C and an unlabelled number was split at 45, so `temp 44` was stored as
+  44C and `temp 50` as 10C.
+- **`temp_c` is now `temp`** — in the caution rules, the response, the log and
+  the client — because the value is no longer always Celsius and a name that
+  says otherwise is the kind of assumption that costs a render. An older
+  `vitals_rules.json` with a `temp_c` key is renamed on load rather than
+  ignored: a caution that silently stops arming is the one failure mode that
+  table must not have.
+- **Log schema 5.** A schema 4 `temp_c` value is Celsius; a schema 5 `temp`
+  value is in `unit`, with `value_c` and `value_f` alongside. Analysis tooling
+  has to be able to tell them apart without inspecting the number.
+- **Known consequence, deliberately shipped:** a `temp.min` of 35 puts Celsius
+  hypothermia outside the plausible band, so `temp 33` is rejected and
+  `hypothermia_txa` can only arm from a Fahrenheit reading (93-94.9F is
+  33.9-34.9C). Pinned by a test that says so out loud, noted in
+  `vitals_rules.json`, and raised in TODO.md as an owner decision — lowering
+  `temp.min` restores it with no code change.
+
 ### Fixed — the context strip could take the answer down with it
 - **A clinical answer that had already rendered was being replaced with
   REQUEST FAILED.** `patient_context.confirmed_weight_kg` is a JSON number

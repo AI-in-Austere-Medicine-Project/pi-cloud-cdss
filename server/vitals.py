@@ -56,7 +56,12 @@ _BUILTIN_RULES = {
         "spo2":   {"label": "SpO2", "unit": "%",    "min": 50, "max": 100},
         "rr":     {"label": "RR",   "unit": "/min", "min": 2,  "max": 80},
         "gcs":    {"label": "GCS",  "unit": "",     "min": 3,  "max": 15},
-        "temp_c": {"label": "Temp", "unit": "C",    "min": 20, "max": 45},
+        # Temperature is stated in two units, so it carries two bands. min/max
+        # are the canonical unit the cautions are written in; alt_* is the other
+        # one. They do not overlap, which is what lets an unlabelled number be
+        # read as whichever band it falls in.
+        "temp":   {"label": "Temp", "unit": "C",    "min": 35, "max": 43,
+                   "alt_unit": "F", "alt_min": 93, "alt_max": 110},
     },
     "cautions": [],
 }
@@ -76,7 +81,26 @@ def _load_rules() -> dict:
         print(f"⚠️  {_RULES_PATH.name} has no ranges — using built-in vitals ranges.")
         return _BUILTIN_RULES
     raw.setdefault("cautions", [])
+    _rename_legacy_temp(raw)
     return raw
+
+
+def _rename_legacy_temp(raw: dict) -> None:
+    """`temp_c` was the vital's name while a reading was always Celsius.
+
+    It no longer is: a reading keeps the unit it was stated in, so the name
+    would be a claim about the value that is not true. This file is meant to be
+    edited by a clinician and an edited copy outlives a deploy, so an old key is
+    renamed rather than silently ignored — a caution that stops arming is the
+    one failure mode this table must not have.
+    """
+    if "temp_c" in raw.get("ranges", {}):
+        raw["ranges"]["temp"] = raw["ranges"].pop("temp_c")
+    for rule in raw.get("cautions", []):
+        when = rule.get("when") if isinstance(rule, dict) else None
+        if isinstance(when, dict) and "temp_c" in when:
+            when["temp"] = when.pop("temp_c")
+            rule["caution"] = str(rule.get("caution", "")).replace("{temp_c}", "{temp}")
 
 
 _RULES = _load_rules()
@@ -85,7 +109,7 @@ CAUTIONS = [c for c in _RULES["cautions"] if isinstance(c, dict)]
 
 # Display order for the client strip and the prompt block. Explicit rather than
 # dict order so a reordered config file does not reorder what the medic reads.
-VITAL_ORDER = ("hr", "sbp", "dbp", "spo2", "rr", "gcs", "temp_c")
+VITAL_ORDER = ("hr", "sbp", "dbp", "spo2", "rr", "gcs", "temp")
 
 
 @dataclass(frozen=True)
@@ -95,14 +119,35 @@ class VitalReading:
     `ts` is the timestamp of the conversation turn the value was stated in, or
     None when that turn carried no timestamp. None means "age unknown" and is
     rendered that way; it is never treated as recent.
+
+    `value` and `unit` are what the medic actually said. Showing 40 C back to
+    someone who typed 104 F is a translation they did not ask for, and a value
+    they cannot check against the thermometer in their hand. Temperature also
+    carries both conversions, and `canonical` is the one the caution table
+    compares against — the rules are written in one unit and must stay that way.
+    Every other vital has a single unit, so its canonical value is its value.
     """
     value: float
     unit: str
     ts: Optional[str] = None
     raw: str = ""
+    value_c: Optional[float] = None
+    value_f: Optional[float] = None
+
+    @property
+    def canonical(self) -> float:
+        """The value in the unit the rules are written in."""
+        return self.value_c if self.value_c is not None else self.value
 
     def to_dict(self) -> dict:
-        return {"value": self.value, "unit": self.unit, "ts": self.ts, "raw": self.raw}
+        d = {"value": self.value, "unit": self.unit, "ts": self.ts, "raw": self.raw}
+        # Only temperature has a second unit. Emitting value_c: null on a heart
+        # rate would invite a reader to wonder what a heart rate in Celsius is.
+        if self.value_c is not None:
+            d["value_c"] = self.value_c
+        if self.value_f is not None:
+            d["value_f"] = self.value_f
+        return d
 
 
 @dataclass(frozen=True)
@@ -148,7 +193,11 @@ _BP_LABEL = _B + r"(?:blood\s*pressure|bp)"
 _SPO2_LABEL = _B + r"(?:pulse\s*ox(?:imetry)?|o2\s*sats?|sp[o0]2|sa[o0]2|sats|sat)"
 _RR_LABEL = _B + r"(?:respiratory\s*rate|resp\s*rate|resps|resp|rr)"
 _GCS_LABEL = _B + r"(?:gcs)"
-_TEMP_LABEL = _B + r"(?:temperature|temp|t)"
+# "fever" is a temperature label only when a number follows it. "febrile", and
+# "fever" with nothing after it, describe a patient without measuring one, and
+# this table stores measurements — the sepsis router reads the word itself
+# (has_fever) and is where an unmeasured fever belongs.
+_TEMP_LABEL = _B + r"(?:temperature|temp|fever|t)"
 
 
 def _spans_overlap(span, consumed) -> bool:
@@ -162,17 +211,42 @@ def _in_range(name: str, value: float) -> bool:
     return spec["min"] <= value <= spec["max"]
 
 
+def _in_alt_range(name: str, value: float) -> bool:
+    """The same test against the vital's second unit, where it has one."""
+    spec = RANGES.get(name) or {}
+    if spec.get("alt_unit") is None:
+        return False
+    return spec["alt_min"] <= value <= spec["alt_max"]
+
+
 def _unit(name: str) -> str:
     return (RANGES.get(name) or {}).get("unit", "")
+
+
+def _alt_unit(name: str) -> str:
+    return (RANGES.get(name) or {}).get("alt_unit", "")
 
 
 def label(name: str) -> str:
     return (RANGES.get(name) or {}).get("label", name.upper())
 
 
-def _reason(name: str, value: float) -> str:
+def _reason(name: str, value: float, unit: str = "") -> str:
+    """Why a reading was not stored, in the unit the medic used.
+
+    A vital with two bands says both, because "outside 35-43C" is not an
+    explanation to someone who typed a Fahrenheit number.
+    """
     spec = RANGES.get(name) or {}
-    return (f"{label(name)} {value:g} is outside the plausible range "
+    stated = f" {unit}" if unit else ""
+    if unit and unit == _alt_unit(name):
+        return (f"{label(name)} {value:g}{stated} is outside the plausible range "
+                f"{spec.get('alt_min')}-{spec.get('alt_max')}{_alt_unit(name)}")
+    if not unit and spec.get("alt_unit"):
+        return (f"{label(name)} {value:g} is not a plausible temperature in either "
+                f"unit ({spec.get('min')}-{spec.get('max')}{_unit(name)} or "
+                f"{spec.get('alt_min')}-{spec.get('alt_max')}{_alt_unit(name)})")
+    return (f"{label(name)} {value:g}{stated} is outside the plausible range "
             f"{spec.get('min')}-{spec.get('max')}{_unit(name)}")
 
 
@@ -230,17 +304,10 @@ def parse_vitals(text: str, ts: Optional[str] = None):
         for m in re.finditer(pattern + r"\b", q):
             take(name, float(m.group(1)), m.span(), m.group(0))
 
-    # ── Temperature, normalised to Celsius ──────────────────────────────────
+    # ── Temperature, in whichever unit it was stated ────────────────────────
     for m in re.finditer(_TEMP_LABEL + _SEP + r"(\d{2,3}(?:\.\d+)?)\s*(c|f|°c|°f)?\b", q):
-        value, unit = float(m.group(1)), (m.group(2) or "").strip("°")
-        if unit == "f":
-            value = (value - 32) * 5.0 / 9.0
-        elif not unit:
-            # No unit given. 45C is already incompatible with life, so anything
-            # at or above it can only be Fahrenheit. Same split has_fever uses.
-            if value >= 45:
-                value = (value - 32) * 5.0 / 9.0
-        take("temp_c", round(value, 1), m.span(), m.group(0))
+        _take_temp(float(m.group(1)), (m.group(2) or "").strip("°"),
+                   m, consumed, readings, rejections, ts)
 
     # ── Bare blood pressure: "82/40" ────────────────────────────────────────
     # Last, and only over spans nothing else claimed. Guarded by plausibility on
@@ -284,6 +351,58 @@ def _take_bp(sbp: float, dbp: float, m, consumed, readings, rejections, ts):
     else:
         reason = (f"systolic {sbp:g} is not above diastolic {dbp:g}")
     rejections.append(VitalRejection(name="bp", raw=raw, reason=reason))
+
+
+def _f_to_c(value: float) -> float:
+    return (value - 32) * 5.0 / 9.0
+
+
+def _c_to_f(value: float) -> float:
+    return value * 9.0 / 5.0 + 32
+
+
+def _take_temp(value: float, stated_unit: str, m, consumed, readings, rejections, ts):
+    """A temperature in the unit it was stated in, or a visible rejection.
+
+    Which unit is decided by range, not by a threshold: the two plausible bands
+    (35-43C, 93-110F) do not overlap, so an unlabelled number belongs to at most
+    one of them. A number in neither is not a temperature this parser can read,
+    and the medic is told so — guessing between two units on an implausible
+    value is how a system ends up holding 50C.
+
+    A stated unit is checked against its own band and never reinterpreted. "temp
+    104 C" is a mistyped reading, not a Fahrenheit one: silently reading it as F
+    would invent a plausible vital out of an implausible one, which is the
+    failure the whole rejection path exists to prevent.
+    """
+    if _spans_overlap(m.span(), consumed):
+        return
+    consumed.append(m.span())
+    raw = m.group(0).strip()
+
+    canonical_unit, alt_unit = _unit("temp"), _alt_unit("temp")
+    if stated_unit == canonical_unit.lower():
+        unit = canonical_unit if _in_range("temp", value) else None
+    elif stated_unit == alt_unit.lower():
+        unit = alt_unit if _in_alt_range("temp", value) else None
+    elif _in_range("temp", value):
+        unit = canonical_unit
+    elif _in_alt_range("temp", value):
+        unit = alt_unit
+    else:
+        unit = None
+
+    if unit is None:
+        rejections.append(VitalRejection(
+            name="temp", raw=raw,
+            reason=_reason("temp", value, stated_unit.upper())))
+        return
+
+    in_canonical = unit == canonical_unit
+    readings["temp"] = VitalReading(
+        value=value, unit=unit, ts=ts, raw=raw,
+        value_c=round(value if in_canonical else _f_to_c(value), 1),
+        value_f=round(_c_to_f(value) if in_canonical else value, 1))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -390,8 +509,13 @@ def prompt_block(readings: dict, now_ts=None) -> str:
     for name in VITAL_ORDER:
         if name == "dbp" or name not in readings:
             continue
-        lines.append(f"- {format_pair(readings, name)}"
-                     f"{_age_suffix(readings[name], now_ts)}")
+        line = f"- {format_pair(readings, name)}"
+        # A model reasoning about a fever should not have to convert, and should
+        # not have to guess which unit an unlabelled number was in.
+        r = readings[name]
+        if r.value_c is not None and r.unit != _unit(name):
+            line += f" ({r.value_c:g}{_unit(name)})"
+        lines.append(line + _age_suffix(r, now_ts))
     lines.append("Vitals inform cautions and context only. They never authorise a dose.")
     return "\n".join(lines)
 
@@ -431,10 +555,21 @@ def _rule_armed(rule: dict, readings: dict):
             return None
         for comparator, threshold in test.items():
             fn = _COMPARATORS.get(comparator)
-            if fn is None or not fn(reading.value, threshold):
+            # canonical, not value: the thresholds in the table are written in
+            # one unit, and a reading kept in the unit the medic stated it in
+            # would otherwise compare 104 against a rule meaning 40.
+            if fn is None or not fn(reading.canonical, threshold):
                 return None
         armed[name] = reading
     return armed
+
+
+def _caution_value(reading: VitalReading) -> str:
+    """A reading as it appears inside a caution line, with its unit if it has
+    a second one. Single-unit vitals name their unit in the caution template."""
+    if reading.value_c is None:
+        return f"{reading.value:g}"
+    return f"{reading.value:g} {reading.unit}"
 
 
 def _drug_present(response_lower: str, drug: str) -> bool:
@@ -461,7 +596,9 @@ def conflicts(response_text: str, readings: dict) -> list:
         for drug in rule.get("drugs", []):
             if not _drug_present(response_lower, drug):
                 continue
-            values = {name: f"{r.value:g}" for name, r in armed.items()}
+            # Quoted back in the unit the medic used. The comparison was
+            # canonical; the sentence they read should be the number they typed.
+            values = {name: _caution_value(r) for name, r in armed.items()}
             out.append(rule.get("caution", "").format(drug=drug, **values))
             break            # one caution per rule, named for the first agent found
     return out

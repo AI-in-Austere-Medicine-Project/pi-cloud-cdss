@@ -171,7 +171,7 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
       hr: {},                                     // no value, no unit, no ts
       sbp: { value: null, unit: 'mmHg' },         // value went away
       systolic_bp: { value: 90, unit: 'mmHg' },   // renamed field the client does not know
-      temp_c: { value: 40.0, unit: 'C', ts: null },
+      temp: { value: 104, unit: 'F', ts: null, value_c: 40, value_f: 104 },
     };
     const env = load(queryOnly(p));
     return ask(env, 'same patient');
