@@ -996,6 +996,27 @@ def build_allowed_actions(query: str, ctx: PatientContext) -> List[str]:
 # RETRIEVAL CLASSIFIER
 # ─────────────────────────────────────────────────────────────────────────────
 
+def retrieval_cosine(top_score: float) -> float:
+    """The cosine `top_score` came from. Reporting only, nothing routes on it.
+
+    The collection is built with `space: l2` over embeddings the encoder has
+    already normalised, so the distance Chroma returns is SQUARED L2 = 2 - 2cos,
+    and classify_retrieval's `1 - distance` is therefore `2cos - 1`. Two things
+    follow that were not visible from the printed number alone:
+
+      - JTS_GROUNDED at 0.35 means cosine >= 0.675, which is a high bar for
+        MiniLM against a mid-sentence PDF chunk.
+      - The score goes NEGATIVE below cosine 0.5, and `max(0.0, ...)` clamps it.
+        A genuinely hopeless retrieval and a merely weak one both printed as a
+        small positive number, which is what made the 2026-08-21 burn queries
+        take a corpus rebuild to diagnose.
+
+    Inverse of the same transform, so the log carries the number a person can
+    reason about next to the number the thresholds use.
+    """
+    return (top_score + 1.0) / 2.0
+
+
 def classify_retrieval(results: dict) -> RetrievalAssessment:
     context_parts = []
     sources = []
@@ -2919,7 +2940,8 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
 
         raw_results = chromadb_client.query(search_query, n_results=_env_number("CDSS_RAG_TOP_K", 10, int))
         assessment = classify_retrieval(raw_results)
-        print(f"📚 {assessment.source_mode} (top: {assessment.top_score})")
+        print(f"📚 {assessment.source_mode} (top: {assessment.top_score}, "
+              f"cos {retrieval_cosine(assessment.top_score):.2f})")
 
         # Step 4: Build dose candidates from full history, not only current query.
         allowed_doses = build_allowed_doses(full_query_history, patient_ctx)
