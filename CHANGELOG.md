@@ -2,6 +2,75 @@
 
 ## [Unreleased]
 
+### Vital signs in patient context
+- **Vitals are parsed from free text and held in session context** — HR, BP,
+  SpO2, RR, GCS and temperature, in the phrasings a medic actually types
+  (`HR 128`, `BP 82/40`, `sats 91`, `sp02 88`, `GCS 3-4-5`, `temp 101.2 F`).
+  Fahrenheit is normalised to Celsius. **Every reading carries the timestamp of
+  the turn it was stated in**, and a turn with no timestamp yields a reading
+  whose age is *unknown* — never a fabricated "just now". Pre-v4.1 clients send
+  no timestamp at all, and stamping those "now" would present a stale vital as
+  fresh, which is S-1 with a faster clock.
+- **Newer supersedes older, and the prior value is kept in the log.** The
+  question "what did the system believe the blood pressure was when it said
+  that" is answerable from the log alone.
+- **The client shows a context strip** — weight, age, access, and each vital
+  with the age of its reading. Readings older than 15 minutes, or whose age
+  cannot be established, are marked. This is the S-1 lesson as UI: the v4.1 fix
+  cleared stale context at a boundary, and this is the other half — showing the
+  medic what the system believes the rest of the time, so a wrong value is
+  corrected before it is dosed against rather than after.
+- **A patient boundary clears every vital**, and the reset notice now says so:
+  *"previous weight, age, access and vitals cleared"*.
+- **Impossible values are rejected visibly, not silently.** `BP 400/300` is not
+  stored and the medic is told it was dropped. A pressure passes or fails as one
+  measurement — storing the diastolic from `400/300` because 300 sits inside the
+  diastolic range would leave the system holding half a vital it had just said
+  it could not read.
+- **Vitals never compute a dose.** They reach the generator prompt, the
+  validator, and a narrow conflict table. Dose logic stays in the ALLOWED_DOSES
+  contract, which remains the only thing permitted to produce a number to give.
+  Pinned by a test that builds the contract with and without vitals present and
+  asserts it is identical.
+- **Conflicts produce a visible caution, never a block.** A drug with a
+  hypotension risk at a low SBP, a respiratory depressant at a low RR or SpO2,
+  an AV-nodal blocker at a low HR, TXA at a low temperature, anything by mouth
+  at a low GCS. The caution appends a line and downgrades a SAFE verdict to
+  NEEDS_HUMAN_REVIEW — served-but-flagged, which is what that verdict means.
+  It cannot block a response and, the direction that would actually be
+  dangerous, it cannot release one.
+  - Both a deterministic table (`server/vitals_rules.json`, editable clinical
+    content) and the validator, which gains a conservative vitals rule and is
+    told to flag rather than rewrite.
+  - Ketamine is deliberately absent from the haemodynamic and respiratory
+    lists — it is the favourable agent on both axes and cautioning it would push
+    a medic toward the drug the caution exists to warn about. Pinned so a future
+    config edit cannot add it quietly.
+  - Cautions are applied at the gate's single exit point, after every override
+    has been evaluated against the original text. The
+    `dangerous_reassurance_has_action` branch fires on the substring "monitor"
+    anywhere in a response, and a caution is commentary about the answer, not
+    part of it — the same ordering rule `BOUNDARY_RESET_NOTICE` and the
+    general-reference banner follow.
+- The gate invariant matrix is now **648 cases**, with and without cautions in
+  every cell.
+- `log_schema` 3 → 4, adding `vitals`, `vitals_superseded`, `vitals_rejected`
+  and `vitals_cautions`.
+
+### Fixed
+- **A boundary reset on a pre-gate turn was never announced.** SC-1 chose option
+  (c) — surface every reset, so a wrong reset is as visible as a missed one —
+  but `BOUNDARY_RESET_NOTICE` was applied only on the RAG path. A turn that
+  crossed a patient boundary and then hit a deterministic pre-gate cleared the
+  weight, age and access and said nothing about it. Notices are now applied on
+  every return path.
+- **Deterministic cards bypass the safety gate by design and so were invisible
+  to vitals cautions.** They are fixed reviewed strings, but a fixed string can
+  still recommend lorazepam to a patient whose RR was recorded as 6 —
+  `build_seizure_response` does, `build_cholera_response` recommends oral
+  fluids, and both DCR cards name TXA. Cautions now reach them through the same
+  helper the gate uses, not a second implementation.
+
 ### General medical reference fallback (F-4)
 - **When JTS retrieval returns nothing usable, the system now answers from
   general medical knowledge instead of refusing.** Lab values, toxicology,

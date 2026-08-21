@@ -1,0 +1,84 @@
+{
+  "_comment": [
+    "EdgeCDSS — vital sign ranges and conflict cautions.",
+    "",
+    "CLINICAL CONTENT. This file is config so the thresholds and the drug lists",
+    "can be reviewed and edited by a clinician without touching Python. vitals.py",
+    "reads it at import; if it is missing or unparseable the built-in defaults in",
+    "vitals.py are used and the reason is printed.",
+    "",
+    "ranges[]  plausible physiological bounds. A LABELLED vital outside these is",
+    "          rejected with a visible note rather than stored — 'BP 400/300' is",
+    "          a typo, and silently believing it is worse than not reading it.",
+    "          These are plausibility bounds, NOT normal ranges: 'hr' spans 10-300",
+    "          because a real patient can present anywhere in there.",
+    "",
+    "cautions[]  when.<vital> gives the comparison that arms the rule, and drugs[]",
+    "          the agents it applies to. A caution is NOT a block: it appends a",
+    "          visible line and downgrades a SAFE verdict to NEEDS_HUMAN_REVIEW.",
+    "          It never blocks a response and never releases one.",
+    "",
+    "          Deliberately narrow. A caution that fires on most responses stops",
+    "          being read, which is worse than not having it.",
+    "",
+    "          NOTE: ketamine is deliberately absent from the hypotension and",
+    "          respiratory lists. It is haemodynamically favourable relative to",
+    "          the alternatives and preserves respiratory drive; flagging it would",
+    "          push a medic away from the safer agent."
+  ],
+
+  "ranges": {
+    "hr":     { "label": "HR",    "unit": "bpm",  "min": 10,  "max": 300 },
+    "sbp":    { "label": "SBP",   "unit": "mmHg", "min": 40,  "max": 300 },
+    "dbp":    { "label": "DBP",   "unit": "mmHg", "min": 10,  "max": 200 },
+    "spo2":   { "label": "SpO2",  "unit": "%",    "min": 50,  "max": 100 },
+    "rr":     { "label": "RR",    "unit": "/min", "min": 2,   "max": 80  },
+    "gcs":    { "label": "GCS",   "unit": "",     "min": 3,   "max": 15  },
+    "temp_c": { "label": "Temp",  "unit": "C",    "min": 20,  "max": 45  }
+  },
+
+  "cautions": [
+    {
+      "id": "hypotension_vasoactive_risk",
+      "when": { "sbp": { "lt": 90 } },
+      "drugs": ["propofol", "midazolam", "lorazepam", "diazepam",
+                "fentanyl", "morphine", "hydromorphone",
+                "metoprolol", "labetalol", "esmolol",
+                "diltiazem", "verapamil", "nitroglycerin", "nitro"],
+      "caution": "{drug} carries a hypotension risk and the recorded SBP is {sbp} mmHg. Confirm the haemodynamic plan before giving it."
+    },
+    {
+      "id": "respiratory_depressant_low_rr",
+      "when": { "rr": { "lt": 10 } },
+      "drugs": ["fentanyl", "morphine", "hydromorphone",
+                "midazolam", "lorazepam", "diazepam", "propofol"],
+      "caution": "{drug} is a respiratory depressant and the recorded RR is {rr}/min. Confirm airway and ventilation support before giving it."
+    },
+    {
+      "id": "respiratory_depressant_low_spo2",
+      "when": { "spo2": { "lt": 90 } },
+      "drugs": ["fentanyl", "morphine", "hydromorphone",
+                "midazolam", "lorazepam", "diazepam", "propofol"],
+      "caution": "{drug} is a respiratory depressant and the recorded SpO2 is {spo2}%. Confirm oxygenation and airway support before giving it."
+    },
+    {
+      "id": "bradycardia_av_nodal_blocker",
+      "when": { "hr": { "lt": 50 } },
+      "drugs": ["metoprolol", "labetalol", "esmolol", "atenolol",
+                "diltiazem", "verapamil", "digoxin", "adenosine"],
+      "caution": "{drug} slows AV conduction and the recorded HR is {hr} bpm. Confirm the rhythm before giving it."
+    },
+    {
+      "id": "hypothermia_txa",
+      "when": { "temp_c": { "lt": 35 } },
+      "drugs": ["txa", "tranexamic"],
+      "caution": "The recorded temperature is {temp_c}C. TXA is for traumatic haemorrhagic shock, not hypothermia — confirm active haemorrhage."
+    },
+    {
+      "id": "depressed_gcs_oral_route",
+      "when": { "gcs": { "lte": 8 } },
+      "drugs": ["by mouth", "oral fluids", "po fluids", "drink"],
+      "caution": "The recorded GCS is {gcs}. Anything by mouth carries an aspiration risk at this level of consciousness."
+    }
+  ]
+}

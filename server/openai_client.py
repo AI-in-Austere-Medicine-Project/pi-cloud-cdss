@@ -50,6 +50,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, List
 import general_reference
 import providers
+import vitals as vitals_mod
 
 # The OpenAI SDK is no longer imported here. Both LLM calls go through
 # providers.chat(), which imports each provider's SDK lazily inside its own
@@ -124,7 +125,11 @@ def _get_log_file() -> pathlib.Path:
 # to false would re-classify the 48 known test-suite entries as real user
 # traffic; defaulting a missing `source` to "jts" would claim JTS provenance for
 # every entry written before general reference existed.
-LOG_SCHEMA_VERSION = 3
+# Schema 4 adds the vitals fields. `vitals` is the state the answer was produced
+# against — the question "what did the system believe the blood pressure was
+# when it said that" has to be answerable from the log alone, which is the S-1
+# lesson applied to the audit surface rather than the UI.
+LOG_SCHEMA_VERSION = 4
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -169,6 +174,13 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
             "boundary_reset": result.get("boundary_reset"),
+            "vitals": (result.get("patient_context") or {}).get("vitals", {}),
+            # What this turn displaced, with both values: the prior belief is
+            # what an audit needs and what the v4.0 log could not answer.
+            "vitals_superseded": result.get("vitals_superseded", []),
+            "vitals_rejected": (result.get("patient_context") or {}).get(
+                "vitals_rejected", []),
+            "vitals_cautions": result.get("vitals_cautions", []),
             "pipeline_ms": pipeline_ms,
             "history_turns": len(conversation_history) if conversation_history else 0,
             "patient_ctx": {
@@ -216,6 +228,15 @@ class PatientContext:
     access_state: AccessState = "UNKNOWN"
     route_preference: RoutePreference = "UNKNOWN"
     pending_question: Optional[str] = None
+    # Vitals: name -> vitals.VitalReading. Cleared by a patient boundary along
+    # with everything else, because a PatientContext() is a fresh patient and a
+    # previous patient's blood pressure is the S-1 failure with a faster clock.
+    vitals: dict = field(default_factory=dict)
+    # Both describe the CURRENT turn only, like boundary_reset_reason: reset at
+    # the top of every extract_patient_context call so that after the replay
+    # loop they hold what this turn did, not what the conversation did.
+    vitals_superseded: list = field(default_factory=list)
+    vitals_rejected: list = field(default_factory=list)
     # SC-1: set on the context handed to the current turn when THIS turn crossed
     # a patient boundary. Drives the visible reset notice. Never persisted — a
     # fresh PatientContext() starts with it clear, which is what makes it mean
@@ -232,7 +253,10 @@ class PatientContext:
         return self.confirmed_weight_kg is not None
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        d["vitals"] = vitals_mod.to_dict(self.vitals)
+        d["vitals_rejected"] = [r.to_dict() for r in self.vitals_rejected]
+        return d
 
 
 @dataclass
@@ -277,6 +301,10 @@ class GateOutcome:
     issues: list
     verdict: str                              # SAFE | NEEDS_HUMAN_REVIEW | UNSAFE
     override_fired: Optional[str] = None      # registry name, for the audit log (T-13)
+    # Vitals conflicts. Kept separate from `issues` because they are not
+    # validator findings and must not read as such in the audit log: an issue is
+    # something the gate weighed, a caution is something appended after it.
+    cautions: list = field(default_factory=list)
 
 
 @dataclass
@@ -293,14 +321,31 @@ class RetrievalAssessment:
 
 def extract_patient_context(query: str,
                              prior_ctx: Optional[PatientContext] = None,
-                             conversation_history: Optional[list] = None) -> PatientContext:
+                             conversation_history: Optional[list] = None,
+                             turn_ts: Optional[str] = None) -> PatientContext:
     """
     Extract and update structured patient context from current query.
     Merges with prior_ctx to accumulate state across turns.
     Estimated age-based weight NEVER assigned to confirmed_weight_kg.
+
+    `turn_ts` timestamps any vitals found in THIS turn. None is stored as None —
+    "age unknown" — never as the current time: a pre-v4.1 client sends no
+    timestamp at all, and stamping those readings "now" would present a stale
+    vital as fresh, which is S-1 with a faster clock.
     """
     ctx = prior_ctx or PatientContext()
     q = query.lower().strip()
+
+    # Reset before parsing. Both fields describe the turn being processed, so
+    # after the replay loop in rebuild_patient_context_from_history they hold
+    # what the CURRENT turn did — the same "this turn" semantics as
+    # boundary_reset_reason.
+    ctx.vitals_superseded = []
+    ctx.vitals_rejected = []
+    found, rejected = vitals_mod.parse_vitals(query, ts=turn_ts)
+    if found:
+        ctx.vitals, ctx.vitals_superseded = vitals_mod.merge(ctx.vitals, found)
+    ctx.vitals_rejected = rejected
 
     # Also scan recent conversation for accumulated context
     history_text = ""
@@ -1107,7 +1152,7 @@ Guideline-based support only. Not a substitute for clinical judgment.
 """
 
 
-def build_patient_block(ctx: PatientContext) -> str:
+def build_patient_block(ctx: PatientContext, now_ts=None) -> str:
     lines = []
     if ctx.is_pediatric:
         lines.append("PEDIATRIC PATIENT")
@@ -1143,6 +1188,11 @@ def build_patient_block(ctx: PatientContext) -> str:
     if ctx.provider_scope != "UNKNOWN":
         lines.append(f"Provider scope: {ctx.provider_scope}")
 
+    vitals_block = vitals_mod.prompt_block(ctx.vitals, now_ts=now_ts)
+    if vitals_block:
+        lines.append("")
+        lines.append(vitals_block)
+
     return "\n".join(lines) if lines else ""
 
 
@@ -1169,8 +1219,8 @@ def build_source_block(assessment: RetrievalAssessment) -> str:
 
 
 def build_system_prompt(ctx: PatientContext, assessment: RetrievalAssessment,
-                        allowed_dose_block: str) -> str:
-    patient_block = build_patient_block(ctx)
+                        allowed_dose_block: str, now_ts=None) -> str:
+    patient_block = build_patient_block(ctx, now_ts=now_ts)
     source_block = build_source_block(assessment)
     prompt = GENERATOR_BASE
     if patient_block:
@@ -1347,6 +1397,18 @@ Return NEEDS_HUMAN_REVIEW ONLY when:
 - Medication dosing given but no confirmed weight for pediatric patient.
 - Invasive procedure recommended beyond stated scope without acknowledgment.
 - Source/protocol conflict is clinically meaningful.
+- VITALS CONFLICT: the patient context lists RECORDED VITALS and the response
+  recommends an agent those vitals caution against — a drug with a hypotension
+  risk at a low SBP, a respiratory depressant at a low RR or SpO2, an AV-nodal
+  blocker at a low HR. FLAG IT, do not rewrite the recommendation and do not
+  substitute a different drug: the deterministic layer owns what is given.
+  State the vital and its value in the issue.
+
+  Do NOT flag a vitals conflict when the vital in question was never recorded.
+  A missing vital is unknown, not normal — but an absent vital is also not
+  evidence of a conflict, so say nothing about it.
+  Do NOT flag ketamine on haemodynamic or respiratory grounds; it is the
+  favourable agent on both and flagging it pushes toward a worse one.
 
 Do NOT flag: missing warnings about medications the response does not recommend, IM route recommendations, IV route recommendations, short responses,
 missing non-critical monitoring details, sedation interval preferences when a plan exists,
@@ -1396,7 +1458,8 @@ def normalize_validator_result(data: dict) -> dict:
 
 def validate_response(full_transcript: str, response_text: str,
                       patient_ctx: PatientContext,
-                      allowed_dose_block: str = "") -> dict:
+                      allowed_dose_block: str = "",
+                      now_ts=None) -> dict:
     """
     LLM semantic validator. Receives full conversation transcript.
     Fail-closed: errors return NEEDS_HUMAN_REVIEW, not SAFE.
@@ -1412,7 +1475,7 @@ def validate_response(full_transcript: str, response_text: str,
         return {"result": "SAFE", "issues": [], "rationale": "safe gate response", "safe": True}
 
     try:
-        patient_summary = build_patient_block(patient_ctx) or "No patient context."
+        patient_summary = build_patient_block(patient_ctx, now_ts=now_ts) or "No patient context."
         dose_section = f"{allowed_dose_block}\n\n" if allowed_dose_block else ""
         validation_input = (
             f"CONVERSATION TRANSCRIPT:\n{full_transcript}\n\n"
@@ -1613,14 +1676,67 @@ def find_fired_override(issues: list, response_text: str, patient_ctx,
     return None
 
 
+VITALS_CAUTION_HEADING = "\n\n⚠️ **VITALS CAUTION**\n"
+
+
+def _with_cautions(outcome: GateOutcome, cautions: list) -> GateOutcome:
+    """Append vitals cautions to a served response. Never blocks, never releases.
+
+    Applied at the single exit point of the gate, AFTER every override has been
+    evaluated against the original response text. If cautions were appended
+    first they would become text an override condition could match — the
+    dangerous_reassurance branch fires on the substring "monitor" anywhere in a
+    response, and a caution is commentary about the answer, not part of it.
+    That is the same ordering rule BOUNDARY_RESET_NOTICE and the
+    general-reference banner follow.
+
+    A caution cannot move a block. A blocked response is a safety hold Python
+    wrote; appending "confirm the haemodynamic plan" to it would describe a
+    recommendation that was never served. A gate question is left alone for the
+    same reason, and because SAFE_GATE_RESPONSES is matched exactly.
+
+    SAFE becomes NEEDS_HUMAN_REVIEW. A response that contradicts a recorded
+    vital is served-but-flagged, which is precisely what that verdict means; the
+    UNSAFE-iff-blocked invariant is untouched because both are served.
+    """
+    if not cautions or outcome.blocked or is_safe_gate_response(outcome.response):
+        return outcome
+    lines = "\n".join(f"- {c}" for c in cautions)
+    print(f"🩺 VITALS CAUTION: {cautions}")
+    return GateOutcome(
+        response=outcome.response + VITALS_CAUTION_HEADING + lines,
+        blocked=False,
+        issues=outcome.issues,
+        verdict="NEEDS_HUMAN_REVIEW" if outcome.verdict == "SAFE" else outcome.verdict,
+        override_fired=outcome.override_fired,
+        cautions=list(cautions),
+    )
+
+
 def apply_safety_gate(response_text: str, det_check: DeterministicCheck,
                       llm_result: dict,
                       patient_ctx=None,
-                      full_query_history: str = "") -> GateOutcome:
+                      full_query_history: str = "",
+                      vitals_cautions: Optional[list] = None) -> GateOutcome:
     """
     Fail-closed safety gate. Returns a GateOutcome whose `verdict` is what the
     session log records — see the invariant on GateOutcome.
+
+    Vitals cautions are applied to the core outcome rather than inside it, so
+    the block/serve decision and the override registry see exactly what they saw
+    before vitals existed.
     """
+    return _with_cautions(
+        _gate_core(response_text, det_check, llm_result, patient_ctx,
+                   full_query_history),
+        vitals_cautions or [])
+
+
+def _gate_core(response_text: str, det_check: DeterministicCheck,
+               llm_result: dict,
+               patient_ctx=None,
+               full_query_history: str = "") -> GateOutcome:
+    """The gate as it was before vitals. Unchanged."""
     # Safe gate responses always pass through
     if is_safe_gate_response(response_text):
         return GateOutcome(response_text, False, [], "SAFE")
@@ -1832,8 +1948,9 @@ def detect_patient_boundary(query: str, ctx: Optional[PatientContext] = None,
 
 
 BOUNDARY_RESET_NOTICE = (
-    "🔄 **Starting a new patient — previous weight, age and access cleared.** "
-    "If this is still the same patient, restate the weight before asking for a dose.\n\n"
+    "🔄 **Starting a new patient — previous weight, age, access and vitals cleared.** "
+    "If this is still the same patient, restate the weight and vitals before "
+    "asking for a dose.\n\n"
 )
 
 
@@ -1867,14 +1984,14 @@ def rebuild_patient_context_from_history(
             turn_ts = turn.get("ts")
             if detect_patient_boundary(prior_q, ctx, prev_ts=prev_ts, now_ts=turn_ts):
                 ctx = PatientContext()
-            ctx = extract_patient_context(prior_q, prior_ctx=ctx)
+            ctx = extract_patient_context(prior_q, prior_ctx=ctx, turn_ts=turn_ts)
             prev_ts = turn_ts or prev_ts
 
     reason = detect_patient_boundary(query, ctx, prev_ts=prev_ts, now_ts=now_ts)
     if reason:
         ctx = PatientContext()
 
-    ctx = extract_patient_context(query, prior_ctx=ctx)
+    ctx = extract_patient_context(query, prior_ctx=ctx, turn_ts=now_ts)
     # Only the CURRENT turn's boundary drives the notice. extract_patient_context
     # is called on a context whose field is already clear, so this cannot leak
     # from a boundary that happened earlier in the replay.
@@ -2383,10 +2500,79 @@ def build_general_case_response(query: str) -> Optional[str]:
 # MAIN QUERY PIPELINE
 # ─────────────────────────────────────────────────────────────────────────────
 
+# source_modes produced by the RAG path, which passes through apply_safety_gate.
+# Everything else returned before the gate: the deterministic cards, the
+# pre-gates, the non-medical refusal and the error path.
+GATED_SOURCE_MODES = frozenset({
+    "JTS_GROUNDED", "GENERAL_MEDICAL", "GENERAL_REFERENCE", "INSUFFICIENT",
+})
+
+
+def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
+    """Everything that must happen to EVERY response, however it was produced.
+
+    Two things live here rather than in the RAG path, because the pipeline has
+    fourteen early returns and anything applied at only one of them covers only
+    one of them:
+
+    1. **Vitals cautions on gate-bypassing responses.** The deterministic cards
+       are fixed reviewed strings and return before apply_safety_gate by design.
+       A fixed string can still recommend lorazepam to a patient whose RR was
+       recorded as 6 — build_seizure_response does, build_cholera_response
+       recommends oral fluids, and both DCR cards name TXA. Reusing
+       _with_cautions rather than reimplementing it is what keeps "never a new
+       pathway" true: same helper, same rules, same refusal to touch a block or
+       a gate question.
+
+    2. **The notices.** BOUNDARY_RESET_NOTICE was applied only on the RAG path,
+       so a boundary turn that hit a pre-gate cleared the patient's context and
+       said nothing about it — a gap in SC-1's coverage, since the whole point
+       of option (c) was that every reset is visible. The rejected-vital notice
+       would have had the same gap. Both are applied here now, to everything.
+
+    Notices are applied AFTER cautions so the caution attaches to the answer
+    rather than to the banner above it.
+    """
+    if ctx is None:
+        return result
+
+    if result.get("source_mode") not in GATED_SOURCE_MODES:
+        cautions = vitals_mod.conflicts(result.get("response", ""), ctx.vitals)
+        if cautions:
+            outcome = _with_cautions(
+                GateOutcome(response=result.get("response", ""),
+                            blocked=result.get("validator_result") == "UNSAFE",
+                            issues=result.get("validator_issues", []),
+                            verdict=result.get("validator_result", "SAFE")),
+                cautions)
+            result["response"] = outcome.response
+            result["validator_result"] = outcome.verdict
+            result["vitals_cautions"] = outcome.cautions
+
+    if ctx.vitals_rejected:
+        result["response"] = (vitals_mod.rejection_notice(ctx.vitals_rejected)
+                              + result["response"])
+    if ctx.boundary_reset_reason:
+        result["response"] = BOUNDARY_RESET_NOTICE + result["response"]
+    return result
+
+
 def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = False,
+                             conversation_history: list = None,
+                             session_ctx: Optional[PatientContext] = None,
+                             model: Optional[str] = None) -> dict:
+    """Run the pipeline, then apply what every response needs regardless of path."""
+    state: dict = {}
+    result = _run_pipeline(query, chromadb_client, voice_mode,
+                           conversation_history, session_ctx, model, state)
+    return _finalise(result, state.get("patient_ctx"))
+
+
+def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
                    session_ctx: Optional[PatientContext] = None,
-                   model: Optional[str] = None) -> dict:
+                   model: Optional[str] = None,
+                   state: Optional[dict] = None) -> dict:
     """
     EdgeCDSS v3.4.1 Pipeline:
     1. Replay structured patient context from conversation history.
@@ -2401,12 +2587,17 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
         # Step 1: canonical history and patient context
         prior_queries, full_query_history = build_full_query_history(query, conversation_history)
 
+        now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
         patient_ctx = rebuild_patient_context_from_history(
             query,
             conversation_history=conversation_history,
             session_ctx=session_ctx,
-            now_ts=datetime.datetime.now(datetime.timezone.utc).isoformat()
+            now_ts=now_ts
         )
+        if state is not None:
+            # The live context, not its dict form: _finalise needs the
+            # VitalReading objects the caution table reads.
+            state["patient_ctx"] = patient_ctx
         if patient_ctx.boundary_reset_reason:
             print(f"🔄 PATIENT BOUNDARY [{patient_ctx.boundary_reset_reason}] — context cleared")
 
@@ -2669,10 +2860,11 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
             assessment.source_mode = "GENERAL_REFERENCE"
             print("📖 GENERAL REFERENCE — no usable JTS retrieval")
             system_prompt = general_reference.build_system_prompt(
-                build_patient_block(patient_ctx))
+                build_patient_block(patient_ctx, now_ts=now_ts))
             allowed_actions = []
         else:
-            system_prompt = build_system_prompt(patient_ctx, assessment, allowed_dose_block)
+            system_prompt = build_system_prompt(patient_ctx, assessment,
+                                                allowed_dose_block, now_ts=now_ts)
         if allowed_actions:
             system_prompt += "\n\nALLOWED_ACTIONS:\n" + "\n".join(f"- {a}" for a in allowed_actions)
 
@@ -2711,7 +2903,13 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
 
         # Step 7: LLM validator with full transcript
         full_transcript = "\n".join(transcript_lines)
-        llm_result = validate_response(full_transcript, response_text, patient_ctx, allowed_dose_block)
+        llm_result = validate_response(full_transcript, response_text, patient_ctx,
+                                       allowed_dose_block, now_ts=now_ts)
+
+        # Step 7b: deterministic vitals conflicts. Python owns the explicit rule
+        # table (vitals_rules.json); the validator above catches what a table
+        # cannot. Both arrive at the gate as cautions, neither can block.
+        cautions = vitals_mod.conflicts(response_text, patient_ctx.vitals)
 
         # Step 8: Safety gate with full history context
         outcome = apply_safety_gate(
@@ -2719,7 +2917,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             det_check,
             llm_result,
             patient_ctx,
-            full_query_history
+            full_query_history,
+            vitals_cautions=cautions
         )
 
         # validator_result comes from the gate, not from the validator verdict.
@@ -2739,8 +2938,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # logged source=general, which is where the attempt came from.
         if use_general and not outcome.blocked:
             final_response = general_reference.add_banner(final_response)
-        if patient_ctx.boundary_reset_reason:
-            final_response = BOUNDARY_RESET_NOTICE + final_response
+        # The rejected-vital and boundary notices are applied by _finalise, which
+        # sees every return path rather than only this one.
 
         return {
             "response": final_response,
@@ -2751,6 +2950,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "validator_issues": outcome.issues,
             "override_fired": outcome.override_fired,
             "boundary_reset": patient_ctx.boundary_reset_reason,
+            "vitals_cautions": outcome.cautions,
+            "vitals_superseded": patient_ctx.vitals_superseded,
             "patient_context": patient_ctx.to_dict()
         }
 

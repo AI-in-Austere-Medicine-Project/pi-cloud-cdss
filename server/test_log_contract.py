@@ -102,7 +102,7 @@ def test_call_site_does_not_re_derive_the_verdict():
     # Comments are stripped first: the call site's own comment quotes the removed
     # expression to explain why it went, and that must not satisfy the grep.
     source = "\n".join(
-        line for line in inspect.getsource(oc._query_with_rag_internal).splitlines()
+        line for line in inspect.getsource(oc._run_pipeline).splitlines()
         if not line.strip().startswith("#")
     )
     assert '"UNSAFE" if blocked' not in source
@@ -244,8 +244,54 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 3
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 4
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):
         assert field in entry, f"schema 3 must carry {field}"
+    for field in ("vitals", "vitals_superseded", "vitals_rejected", "vitals_cautions"):
+        assert field in entry, f"schema 4 must carry {field}"
+
+
+def test_finalise_can_never_produce_an_unsafe_verdict():
+    """_finalise mutates validator_result after the gate. It may only soften it.
+
+    S-2 was a verdict re-derived at the call site. _finalise re-derives one
+    again — deliberately, so that a deterministic card recommending lorazepam to
+    a patient with RR 6 is flagged — so the direction it can move must be
+    pinned. SAFE may become NEEDS_HUMAN_REVIEW; nothing may become UNSAFE, and
+    a response already served must not become one that is blocked.
+    """
+    ctx = oc.PatientContext()
+    ctx.vitals, _ = oc.vitals_mod.parse_vitals("RR 6 BP 82/40 HR 42 GCS 5 temp 33",
+                                               ts="2026-08-21T10:00:00+00:00")
+    responses = ["Give lorazepam 4mg IV.", "Give fentanyl 50mcg IV.",
+                 "Encourage oral fluids.", "Give TXA 1g IV.",
+                 "Need weight in kg before dosing.", "Reassess the patient."]
+    verdicts = ["SAFE", "SKIPPED_SAFE_GATE", "NEEDS_HUMAN_REVIEW", "UNSAFE"]
+    modes = ["DETERMINISTIC_PRE_GATE", "PRE_GATE", "FIXED_PREP",
+             "NON_MEDICAL_PRE_GATE", "ERROR", "JTS_GROUNDED"]
+
+    for response in responses:
+        for verdict in verdicts:
+            for mode in modes:
+                out = oc._finalise({"response": response, "source_mode": mode,
+                                    "validator_result": verdict,
+                                    "validator_issues": []}, ctx)
+                assert out["validator_result"] != "UNSAFE" or verdict == "UNSAFE", (
+                    f"_finalise invented an UNSAFE verdict: {mode} {verdict} {response!r}")
+                if verdict == "UNSAFE":
+                    assert out["validator_result"] == "UNSAFE", "a block must stay blocked"
+                    assert "VITALS CAUTION" not in out["response"]
+
+
+def test_finalise_leaves_gate_questions_alone():
+    """SAFE_GATE_RESPONSES is matched exactly; a question is not a plan."""
+    ctx = oc.PatientContext()
+    ctx.vitals, _ = oc.vitals_mod.parse_vitals("RR 6", ts="2026-08-21T10:00:00+00:00")
+    out = oc._finalise({"response": "Need weight in kg before dosing.",
+                        "source_mode": "PRE_GATE",
+                        "validator_result": "SKIPPED_SAFE_GATE",
+                        "validator_issues": []}, ctx)
+    assert out["response"] == "Need weight in kg before dosing."
+    assert out["validator_result"] == "SKIPPED_SAFE_GATE"

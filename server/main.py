@@ -44,6 +44,11 @@ class QueryResponse(BaseModel):
     validator_issues: list = []
     model: str = ""            # provider/model that produced the text, "" if deterministic
     source: str = ""           # "jts" | "general"
+    # What the system believes about the patient, returned on EVERY response so
+    # the client can render it. S-1 was stale context nobody could see; the fix
+    # is not only clearing it at a boundary but showing it the rest of the time.
+    patient_context: dict = {}
+    vitals_cautions: list = []
 
 class FeedbackRequest(BaseModel):
     query: str
@@ -126,7 +131,9 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             validator_result=result.get("validator_result", ""),
             validator_issues=result.get("validator_issues", []),
             model=result.get("model") or "",
-            source=result.get("source", "")
+            source=result.get("source", ""),
+            patient_context=result.get("patient_context") or {},
+            vitals_cautions=result.get("vitals_cautions", [])
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

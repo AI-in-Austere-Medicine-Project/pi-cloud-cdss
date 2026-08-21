@@ -119,6 +119,29 @@ an oversight. Ordered by what v4.1 leaves most exposed.
 
 ---
 
+## Vitals — carried forward
+
+- [ ] **The caution table is narrow on purpose and is not clinically signed
+      off.** `server/vitals_rules.json` ships six rules chosen to be
+      uncontroversial (hypotension-risk drugs at low SBP, respiratory
+      depressants at low RR/SpO2, AV-nodal blockers at low HR, TXA at low temp,
+      oral route at low GCS). **Needs an owner decision** on whether that set is
+      right and what else belongs in it. A caution that fires on most responses
+      stops being read, which is why it starts small rather than complete.
+- [ ] **Measure the caution rate before widening the table.** `vitals_cautions`
+      in the schema-4 log makes this countable. If cautions attach to a large
+      fraction of answers, NEEDS_HUMAN_REVIEW stops meaning anything — the
+      verdict is now reachable two ways and the log cannot yet distinguish a
+      validator-driven review from a caution-driven one without reading the
+      field.
+- [ ] **Staleness is displayed but not enforced.** A 40-minute-old blood
+      pressure is marked in the strip and its age reaches the prompt, but
+      nothing refuses to reason about it. Whether an old vital should stop
+      arming a caution — and at what age — is a clinical call.
+- [ ] **No structured vitals entry.** Capture is free-text only, which is what
+      was asked for. A dedicated input would remove the parser from the path for
+      medics who prefer fields.
+
 ## v4.x — Hardening (in progress)
 
 ### Clinical parsing fixes (one fix, one commit, one regression test)

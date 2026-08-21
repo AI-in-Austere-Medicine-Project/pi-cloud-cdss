@@ -117,6 +117,27 @@ header h1 span { color: var(--blue); }
   font-family: var(--mono); font-size: 10px; color: var(--dim);
   margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border);
 }
+/* The context strip. S-1 was stale patient state that nobody could see; the
+   v4.1 fix cleared it at a boundary, and this is the other half — showing the
+   medic what the system believes the rest of the time, so a wrong value can be
+   corrected before it is dosed against rather than after. */
+#ctx {
+  max-width: 860px; width: 100%; margin: 0 auto; padding: 0 20px;
+  font-family: var(--mono); font-size: 11px; color: var(--dim);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+#ctx:empty { display: none; }
+#ctx .cv {
+  border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px;
+  background: var(--panel2);
+}
+#ctx .cv b { color: var(--text); font-weight: 400; }
+#ctx .cv .age { color: var(--dim); opacity: 0.75; }
+/* A reading whose age cannot be established, or that is old enough that it may
+   no longer describe the patient, is the one worth looking at. */
+#ctx .cv.stale { border-color: var(--amber); color: var(--amber); }
+#ctx .cv.stale b { color: var(--amber); }
+#ctx .lbl { letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; }
 .patient-sep {
   display: flex; align-items: center; justify-content: center;
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
@@ -184,6 +205,8 @@ header h1 span { color: var(--blue); }
   </div>
 </div>
 
+<div id="ctx" title="What the system currently believes about this patient. Cleared by NEW PATIENT."></div>
+
 <div id="composer"><div class="inner">
   <div id="inputrow">
     <textarea id="q" placeholder="e.g. 80kg male, blast injury, severe pain, IV access — analgesia options?" rows="1"></textarea>
@@ -218,6 +241,10 @@ function esc(s) {
 function newPatient() {
   if (!history.length) return;
   history.length = 0;
+  // The strip is the visible half of the boundary reset. Leaving a cleared
+  // patient's vitals on screen would be the S-1 failure with extra steps.
+  patientCtx = null;
+  renderCtx();
   const sep = document.createElement('div');
   sep.className = 'patient-sep';
   sep.textContent = '— NEW PATIENT — previous weight, age and access cleared —';
@@ -247,6 +274,59 @@ function splitBanner(text) {
   return m ? { banner: m[0].trim(), body: text.slice(m[0].length) }
            : { banner: '', body: text };
 }
+
+// ── Patient context strip ──────────────────────────────────────────────────
+// Mirrors what the server returns, re-rendered on a timer so the age of each
+// reading stays honest without another request. A vital with no timestamp shows
+// "age ?" and is styled as stale: a reading whose age cannot be established is
+// exactly the one a medic needs to look at.
+const VITAL_ORDER = ['hr', 'sbp', 'spo2', 'rr', 'gcs', 'temp_c'];
+const VITAL_LABEL = { hr: 'HR', sbp: 'BP', spo2: 'SpO2', rr: 'RR', gcs: 'GCS', temp_c: 'Temp' };
+const STALE_MIN = 15;
+let patientCtx = null;
+
+function ageText(ts) {
+  if (!ts) return null;
+  const t = Date.parse(ts);
+  if (isNaN(t)) return null;
+  return Math.max(0, Math.round((Date.now() - t) / 60000));
+}
+
+function chip(label, value, ageMin, unknownAge) {
+  const stale = unknownAge || (ageMin !== null && ageMin >= STALE_MIN);
+  const age = unknownAge ? 'age ?' : (ageMin < 1 ? 'now' : ageMin + 'm');
+  return '<span class="cv' + (stale ? ' stale' : '') + '">' + esc(label) + ' <b>' +
+         esc(value) + '</b>' + (age ? ' <span class="age">' + esc(age) + '</span>' : '') +
+         '</span>';
+}
+
+function renderCtx() {
+  const el = document.getElementById('ctx');
+  const c = patientCtx;
+  if (!c) { el.innerHTML = ''; return; }
+  const parts = [];
+  if (c.confirmed_weight_kg) parts.push('<span class="cv">WT <b>' + esc(c.confirmed_weight_kg) + ' kg</b></span>');
+  if (c.age_years) parts.push('<span class="cv">AGE <b>' + esc(c.age_years) + ' yr</b></span>');
+  if (c.access_state && c.access_state !== 'UNKNOWN')
+    parts.push('<span class="cv">ACCESS <b>' + esc(c.access_state.replace(/_/g, ' ')) + '</b></span>');
+
+  const v = c.vitals || {};
+  VITAL_ORDER.forEach(name => {
+    const r = v[name];
+    if (!r) return;
+    // BP is one measurement; systolic and diastolic are never shown apart.
+    let value = String(r.value);
+    if (name === 'sbp' && v.dbp) value = r.value + '/' + v.dbp.value;
+    if (r.unit && r.unit !== '%') value += ' ' + r.unit; else if (r.unit) value += r.unit;
+    const a = ageText(r.ts);
+    parts.push(chip(VITAL_LABEL[name] || name, value, a, a === null));
+  });
+
+  el.innerHTML = parts.length
+    ? '<span class="lbl">context</span>' + parts.join('')
+    : '';
+}
+setInterval(renderCtx, 30000);
 
 async function refreshModels() {
   const sel = document.getElementById('model');
@@ -447,6 +527,8 @@ async function ask() {
       ' · source: ' + esc(d.source === 'general' ? 'general' : 'JTS');
     pending.querySelector('.bubble').innerHTML =
       html + meta + '<div class="answeredby">' + answeredBy + '</div>';
+    patientCtx = d.patient_context || null;
+    renderCtx();
     pending.querySelector('.listen').onclick = function () {
       speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source);
     };
