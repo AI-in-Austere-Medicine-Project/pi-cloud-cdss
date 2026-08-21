@@ -310,3 +310,51 @@ def test_deterministic_responses_are_attributed_to_no_model(stub_llm):
     """A card Python wrote must not be counted as a model's answer."""
     result = run("failed intubation failed igel patient desaturating", stub_llm)
     assert result.get("model") is None
+
+
+def test_a_missing_provider_degrades_to_a_system_error_not_a_wrong_answer():
+    """With no key, the pipeline fails closed and says so.
+
+    ProviderUnavailable propagates into the pipeline's exception handler, which
+    already returns the "use local protocol" system error. What must NOT happen
+    is a served clinical answer produced some other way, or a silent SAFE.
+    """
+    import providers
+
+    def unavailable(*a, **k):
+        raise providers.ProviderUnavailable(
+            "Anthropic is not configured (ANTHROPIC_API_KEY is unset)")
+
+    original = providers.chat
+    providers.chat = unavailable
+    try:
+        result = oc._query_with_rag_internal(
+            "what is a normal serum lactate", FakeChroma(), conversation_history=[])
+    finally:
+        providers.chat = original
+
+    assert result["source_mode"] == "ERROR"
+    assert result["validator_result"] == "ERROR"
+    assert "local protocol" in result["response"]
+    assert not gr.has_banner(result["response"])
+
+
+def test_the_validator_model_is_not_the_selected_model(monkeypatch):
+    """Pinned end to end: selecting a generator must not move the validator.
+
+    Otherwise a cross-model comparison changes two variables at once and a shift
+    in blocked-response rate cannot be attributed to either.
+    """
+    seen = []
+
+    def record(system, messages, *, model, temperature=0.2, max_tokens=700):
+        seen.append(model)
+        return "Normal serum potassium is 3.5-5.0 mEq/L." if len(seen) == 1 else \
+            '{"result": "SAFE", "issues": [], "rationale": ""}'
+
+    monkeypatch.setattr(oc.providers, "chat", record)
+    other = next(m for m in oc.providers.MODELS if m != oc.providers.validator_model())
+    oc._query_with_rag_internal("what is a normal serum lactate", FakeChroma(),
+                                conversation_history=[], model=other)
+    assert seen[0] == other, "the generator must use the selected model"
+    assert seen[1] == oc.providers.validator_model(), "the validator must not move"

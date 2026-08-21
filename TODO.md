@@ -46,13 +46,20 @@ an oversight. Ordered by what v4.1 leaves most exposed.
       most worth reading.
 
 ### Deferred by owner decision, with residual risk
-- [ ] **F-4 / Q-8 — knowledge-base scope.** The corpus is 89 JTS trauma CPGs;
-      users bring DKA, angioedema, tropical infectious disease and dysrhythmia
-      questions to it. **Residual:** the *"it just denies anything"* complaint —
-      the single highest-frequency user complaint, 6 of 63 substantive queries —
-      is driven partly by corpus gaps and partly by Q-1. **v4.1 does not
-      measurably improve it.** Q-3 improves retrieval *within* the existing
-      corpus, which is a different axis.
+- [x] **F-4 / Q-8 — knowledge-base scope.** Resolved 2026-08-21 as *deliberate
+      general-knowledge fallback now, curated corpus expansion later* (owner
+      decision). A query whose retrieval comes back `INSUFFICIENT` is answered
+      from the model's general medical knowledge, banner-labelled and logged
+      `source: "general"`, instead of refused. **The corpus is unchanged** — it
+      is still 89 JTS trauma CPGs, and the DKA / angioedema / tropical
+      infectious disease / dysrhythmia gaps are still gaps; they are now
+      answered from a labelled second source rather than not at all.
+      **Carried forward:**
+      - [ ] Curated corpus expansion — the actual fix for the gaps above.
+      - [ ] Measure whether the fallback moves the *"it just denies anything"*
+            complaint rate. The `source` field in the schema-3 log makes this
+            countable for the first time; nothing has been measured yet.
+      - [ ] Q-1 is untouched and is the other half of that complaint.
 - [ ] **Q-1 — generator-emitted non-medical refusal.** The #1 user complaint,
       untouched by v4.1. **Residual:** unchanged.
 - [ ] **SC-9 — the second `patient_is_known_or_possible_pediatric` copy.**
@@ -133,7 +140,19 @@ an oversight. Ordered by what v4.1 leaves most exposed.
 - [ ] Refuse /query (503) when the knowledge base is empty
 
 ## v4.x — Research
-- [ ] Cross-model comparison: same deterministic harness, OpenAI vs Claude vs Gemini
+- [x] Cross-model comparison harness: model is config (`server/providers.json`),
+      Anthropic and OpenAI both wired, and `log_schema` 3 records which model
+      answered. Gemini would be a config entry against its OpenAI-compatible
+      endpoint. **Carried forward:**
+      - [ ] Build the comparison set and a scored runner. Most of the 24-case
+            suite returns at a deterministic pre-gate **before any model call**,
+            so swapping models changes nothing on those cases — a real
+            comparison has to be built from queries that reach the generator.
+            The schema-3 `model` field plus the 135 logged queries are the
+            inputs for selecting that subset.
+      - [ ] Decide whether cross-model runs should also vary `validator_model`.
+            It is deliberately pinned today so a generator comparison changes
+            one variable; measuring the validator itself is a separate run.
 - [ ] Extended unattended field deployment (solar/battery + satellite)
 - [ ] 30-scenario JTS evaluation set as an automated scored runner
 - [ ] Feedback review tooling for structured medic reports

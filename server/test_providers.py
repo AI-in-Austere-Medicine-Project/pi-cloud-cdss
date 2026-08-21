@@ -369,3 +369,23 @@ def test_missing_sdk_degrades_to_provider_unavailable(monkeypatch):
     with pytest.raises(ProviderUnavailable) as excinfo:
         providers._anthropic_client("anthropic")
     assert "not installed" in str(excinfo.value)
+
+
+def test_upstream_errors_are_redacted_before_reaching_status():
+    """Providers quote the key back, partially masked. /status is unauthenticated.
+
+    Their masking is not ours to rely on: the same endpoint the web client polls
+    without a token would otherwise carry a key prefix and suffix.
+    """
+    upstream = ("AuthenticationError: Error code: 401 - Incorrect API key "
+                "provided: sk-clear*****************-xyz. You can find your key")
+    redacted = providers._redact(upstream)
+    assert "sk-clear" not in redacted
+    assert "[redacted]" in redacted
+    assert "AuthenticationError" in redacted, "the useful part must survive"
+    assert "401" in redacted
+
+
+def test_redaction_covers_both_providers_key_shapes():
+    for key in ("sk-ant-api03-abcdefgh", "sk-proj-abcdefgh", "sk-abcdefgh"):
+        assert key not in providers._redact(f"bad key {key} rejected")

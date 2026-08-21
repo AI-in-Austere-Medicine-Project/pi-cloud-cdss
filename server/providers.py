@@ -35,6 +35,7 @@ the ModelSpec flags that describe them.
 
 import json
 import os
+import re
 import pathlib
 import threading
 import time
@@ -199,6 +200,18 @@ def _reset_status_cache():
         _status_cache.clear()
 
 
+# Providers quote the offending key back in their own error bodies, partially
+# masked ("sk-clear*****-xyz"). Their masking is not ours to rely on, and
+# /status is unauthenticated — the same endpoint the web client polls once a
+# minute without a token. Anything key-shaped is replaced before it can reach a
+# response body or a log line.
+_KEY_SHAPED_RE = re.compile(r'\bsk-[A-Za-z0-9_*\-]{4,}', re.IGNORECASE)
+
+
+def _redact(text: str) -> str:
+    return _KEY_SHAPED_RE.sub("[redacted]", text or "")
+
+
 def _auth_problem(provider_id: str) -> Optional[str]:
     """Ask the provider whether the key actually works. None when it does.
 
@@ -217,11 +230,12 @@ def _auth_problem(provider_id: str) -> Optional[str]:
             client.with_options(timeout=10.0, max_retries=0).models.list()
         return None
     except ProviderUnavailable as e:
-        return str(e)
+        return _redact(str(e))
     except Exception as e:
-        # Message text only. Provider SDK errors carry the request body, never
-        # the key, but the type-and-message form keeps that from ever changing.
-        return f"{type(e).__name__}: {str(e)[:200]}"
+        # Type and message only, with key-shaped substrings removed. Provider
+        # errors quote the key back partially masked; that masking is theirs,
+        # not ours, and this reaches an unauthenticated endpoint.
+        return _redact(f"{type(e).__name__}: {str(e)[:200]}")
 
 
 def provider_status(force: bool = False) -> dict:

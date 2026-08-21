@@ -2,6 +2,81 @@
 
 ## [Unreleased]
 
+### General medical reference fallback (F-4)
+- **When JTS retrieval returns nothing usable, the system now answers from
+  general medical knowledge instead of refusing.** Lab values, toxicology,
+  envenomation and plant/snake identification support, preparation recipes,
+  basic clinical reference. This resolves **F-4** as *a deliberate
+  general-knowledge fallback now, curated corpus expansion later* — the corpus
+  is still 89 JTS trauma CPGs and this does not close the gaps in it.
+- **A second knowledge source, not a second pipeline.** General answers pass
+  through the same `run_deterministic_checks`, the same validator, the same
+  `apply_safety_gate`, the same `GateOutcome`, the same UNSAFE-iff-blocked
+  invariant, the same override registry and the same log. The gate has no
+  notion of source and was not given one. The 216-case invariant matrix is now
+  324 cases, with general-mode text in every cell.
+- **Recipe yes, prescription no** (owner ruling). A standardized preparation
+  recipe is reference knowledge; a patient dose is not. Enforced three times
+  over: the routing guard keeps dosing questions off this path entirely, the
+  prompt forbids the canonical GIVE format by name, and SC-6 blocks any GIVE
+  line that appears anyway — general mode never builds a contract, so the
+  empty-contract rule applies to all of it.
+  - *Known limitation:* SC-6 is syntactic and cannot tell a recipe from a
+    prescription. A legitimate recipe phrased as a GIVE line is held. That is
+    the fail-closed answer and it stays.
+- **Labelled everywhere it is served.** An on-screen banner
+  (`GENERAL MEDICAL REFERENCE — not from JTS protocols`) that persists in
+  conversation history, a spoken disclosure applied by `/speak` rather than by
+  the client, and `source: "general"` in the session log. The banner is applied
+  **after** the safety gate, like `BOUNDARY_RESET_NOTICE` and for the same
+  reason: a label must never be text the validator reasons about or an override
+  matches keywords against.
+- `FIXED_PREP` responses are now classified `source: "general"`. A preparation
+  recipe is not in the JTS corpus and claiming otherwise in the audit log is the
+  exact thing the field exists to prevent.
+
+### Multi-provider model selection
+- **Model choice is now config, not code.** `server/providers.json` holds the
+  model strings, per-model capability flags, and the default and validator
+  models. The two hard-coded `model="gpt-4o-mini"` strings inside
+  `openai_client.py` are gone. **Default behaviour is unchanged:** the shipped
+  config is `gpt-4o-mini` for both calls, which is what was hard-coded.
+- **Anthropic (Claude) and OpenAI (GPT), keyed from `server/.env`.** Two
+  adapters: `openai_compat` covers OpenAI and any OpenAI-compatible endpoint
+  (Ollama, llama.cpp, vLLM) via `base_url`, so a future on-device model is a
+  config entry and no new code. `anthropic` uses the native SDK, because Claude
+  takes `system` as a top-level parameter and Opus 5 / Sonnet 5 reject
+  `temperature` outright.
+- **A provider that cannot work is absent from the menu and says why.**
+  `/status` and `/models` carry `provider_detail` — the same self-diagnosing
+  contract as `voice_detail`. Key presence is not authentication, so the check
+  is a real authenticated call (cached five minutes, off the event loop). Keys
+  are never logged or echoed; anything key-shaped is redacted before it can
+  reach `/status`, which is unauthenticated.
+- **The safety validator does not move when the dropdown does.** It runs on
+  `validator_model` from config. Holding it constant is what makes a generator
+  comparison attributable.
+- Client: a MODEL dropdown, and every answer carries
+  `Answered by <model> · source: <JTS|general>`. A deterministic card is
+  attributed to no model, because Python wrote it.
+- `log_schema` 2 → 3, adding `source` and `model`. As with `synthetic`, a
+  missing key must read as UNKNOWN — defaulting an absent `source` to `"jts"`
+  would claim JTS provenance for every entry written before this existed.
+
+### Fixed
+- **A request to mix a NOREPINEPHRINE drip returned the EPINEPHRINE recipe.**
+  `"epinephrine drip"` is a substring of `"norepinephrine drip"`, and
+  `build_fixed_prep_response` matched on substrings — a different drug at a
+  different concentration, served as though it were the answer, with nothing
+  marking the substitution. Fixed with word-boundary matching, the same
+  technique F-2 applied to the alias table in v4.1. Found while routing
+  preparation questions to the reference tier.
+- `FIXED_PREP_TERMS` and `build_fixed_prep_response` disagreed about which
+  phrasings are preparation requests (`"make epinephrine drip"` was in one and
+  not the other), so a request could be routed as a dose question and then
+  answered with a recipe. The list is now the single source of truth. The
+  disagreement was invisible under substring matching.
+
 ### Voice output (fixed)
 - **The 🔊 listen button has been dead since v4.1.** `ELEVENLABS_API_KEY` held
   the 64-character hex key *ID* shown beside the key in the ElevenLabs
