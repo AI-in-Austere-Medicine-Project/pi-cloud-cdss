@@ -145,6 +145,67 @@ no key and no vector database, so it runs on a clean checkout in CI or on a lapt
 - **Embeddings:** computed on-device (all-MiniLM via ChromaDB) — zero per-query API cost, works with degraded connectivity
 - **Ingestion:** sentence-aware chunking, header/footer stripping, idempotent re-runs (`server/ingest_jts.py`) — works with any PDF-based protocol library
 
+### Answer sources
+
+Every answer says where it came from, on screen and in the session log.
+
+| Source | When | Label |
+|---|---|---|
+| **JTS** | A JTS protocol was retrieved, or a deterministic protocol card fired | none — this is the default |
+| **General reference** | Retrieval found nothing usable, and the query is not a dosing question | `GENERAL MEDICAL REFERENCE — not from JTS protocols`, plus a spoken disclosure |
+
+General reference covers lab values, toxicology, envenomation and plant/snake
+identification, preparation recipes, and basic clinical reference — the tier a
+medic would otherwise look up on a phone. It is a second knowledge source, not a
+second pipeline: general answers pass through the same deterministic checks,
+validator and safety gate as every JTS answer.
+
+**Recipe yes, prescription no.** A standardized preparation ("1 mg in 250 mL NS
+= 4 mcg/mL") is reference knowledge. A patient dose is not, and never comes from
+general knowledge — dosing questions stay on the ALLOWED_DOSES contract path,
+which either produces a deterministic line or holds.
+
+## Choosing a model
+
+Models are configuration, not code. `server/providers.json` holds the registry;
+edit it and restart. Nothing in `openai_client.py` names a model.
+
+```jsonc
+{
+  "default_model":   "gpt-4o-mini",   // what the client gets unless it asks otherwise
+  "validator_model": "gpt-4o-mini",   // the safety validator — see below
+  "models": [
+    { "id": "claude-sonnet-5", "provider": "anthropic", "label": "Claude Sonnet 5",
+      "supports_temperature": false,  // Opus 5 / Sonnet 5 reject sampling params
+      "effort": "low",                // Anthropic output_config.effort
+      "reserve_tokens": 3000 }        // headroom so reasoning cannot starve the answer
+  ]
+}
+```
+
+Set keys in `server/.env` — `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`. A provider
+with no key, the wrong provider's key, or a key that fails a real auth check is
+absent from the dropdown, and `/status` and `/models` carry a `provider_detail`
+field saying which of those it was. Keys are never logged or echoed.
+
+`CDSS_DEFAULT_MODEL` and `CDSS_VALIDATOR_MODEL` override the config from the
+environment, for A/B runs without editing the file.
+
+**Adding a local model** is a config entry and no code. Point a provider at an
+OpenAI-compatible endpoint:
+
+```bash
+CDSS_LOCAL_BASE_URL=http://127.0.0.1:11434/v1     # Ollama, llama.cpp, vLLM
+```
+
+then add a `models` entry with `"provider": "local"`.
+
+**The validator does not follow the dropdown.** It stays on `validator_model` so
+that a cross-model comparison changes one variable. If the generator and the
+validator both moved, a shift in blocked-response rate could not be attributed
+to either. Change `validator_model` when the validator is the thing being
+measured.
+
 ## Validation status
 
 - Offline regression suite: **105 tests, ~2s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every v4.1 fix is pinned by a test built from the log line that exposed it

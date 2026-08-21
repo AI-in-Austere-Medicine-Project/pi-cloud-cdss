@@ -7,6 +7,8 @@ import os
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
 from openai_client import query_with_rag
+import general_reference
+import providers
 import tts
 
 load_dotenv()
@@ -29,6 +31,7 @@ class QueryRequest(BaseModel):
     timestamp: str
     voice_mode: str = "brief"
     conversation_history: list = []
+    model: str = ""            # "" = server default; unknown values fall back to it
 
 class QueryResponse(BaseModel):
     response: str
@@ -39,6 +42,8 @@ class QueryResponse(BaseModel):
     rate_limit_remaining: int
     validator_result: str = ""
     validator_issues: list = []
+    model: str = ""            # provider/model that produced the text, "" if deterministic
+    source: str = ""           # "jts" | "general"
 
 class FeedbackRequest(BaseModel):
     query: str
@@ -53,15 +58,44 @@ class FeedbackRequest(BaseModel):
 from pathlib import Path as _Path
 _WEB_CLIENT = _Path(__file__).parent / "static" / "index.html"
 
+async def _status_payload():
+    # provider_status() makes a real authenticated call per provider (cached for
+    # five minutes), so it goes off the event loop. /status is polled once a
+    # minute by every open client.
+    import asyncio
+    provider_detail = await asyncio.to_thread(providers.provider_status)
+    models = await asyncio.to_thread(providers.available_models)
+    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0",
+            "voice_support": tts.voice_available(),
+            "voice_detail": tts.config_problem() or "",
+            "provider_detail": provider_detail,
+            "models": models,
+            "default_model": providers.default_model()}
+
 @app.get("/")
 async def root():
     if _WEB_CLIENT.exists():
         return FileResponse(_WEB_CLIENT)
-    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0", "voice_support": tts.voice_available(), "voice_detail": tts.config_problem() or ""}
+    return await _status_payload()
 
 @app.get("/status")
 async def status():
-    return {"message": "CDSS Cloud API", "status": "running", "version": "4.1.0", "voice_support": tts.voice_available(), "voice_detail": tts.config_problem() or ""}
+    return await _status_payload()
+
+@app.get("/models")
+async def models():
+    """The dropdown's contents: models whose provider actually authenticates.
+
+    `provider_detail` names why an absent provider is absent — key unset, the
+    wrong provider's key pasted in, or a real auth failure. Same self-diagnosing
+    contract as voice_detail, and for the same reason: a menu entry that is
+    silently missing costs an operator hours.
+    """
+    import asyncio
+    return {"models": await asyncio.to_thread(providers.available_models),
+            "default_model": providers.default_model(),
+            "validator_model": providers.validator_model(),
+            "provider_detail": await asyncio.to_thread(providers.provider_status)}
 
 @app.get("/health")
 async def health_check():
@@ -80,7 +114,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     # fires at the live endpoint by design, and nothing may branch on this.
     synthetic = http_request.headers.get("X-Test-Run", "") == "1"
     try:
-        result = query_with_rag(request.query, chromadb_client, voice_mode=(request.voice_mode == "brief"), conversation_history=request.conversation_history, synthetic=synthetic)
+        result = query_with_rag(request.query, chromadb_client, voice_mode=(request.voice_mode == "brief"), conversation_history=request.conversation_history, synthetic=synthetic, model=request.model or None)
         ms = int((datetime.now() - start).total_seconds() * 1000)
         return QueryResponse(
             response=result["response"],
@@ -90,7 +124,9 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             voice_mode=request.voice_mode,
             rate_limit_remaining=999,
             validator_result=result.get("validator_result", ""),
-            validator_issues=result.get("validator_issues", [])
+            validator_issues=result.get("validator_issues", []),
+            model=result.get("model") or "",
+            source=result.get("source", "")
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -120,8 +156,12 @@ async def speak_endpoint(http_request: Request):
         body = await http_request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Body must be JSON")
+    # The spoken disclosure is applied server-side, not by the client. A client
+    # that forgot it would produce a spoken answer with no indication it did not
+    # come from JTS — the one thing general reference is not allowed to do.
+    text = general_reference.for_speech(body.get("text", ""), body.get("source", ""))
     try:
-        audio = await tts.synthesize(tts.normalize_for_speech(body.get("text", "")))
+        audio = await tts.synthesize(tts.normalize_for_speech(text))
     except tts.VoiceUnavailable as e:
         # Say why, in the log and to the caller. The generic 500 this replaces
         # is what let a pasted key ID sit unnoticed behind a dead button.

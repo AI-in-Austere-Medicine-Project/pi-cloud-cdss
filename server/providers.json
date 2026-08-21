@@ -1,0 +1,101 @@
+{
+  "_comment": [
+    "EdgeCDSS — LLM provider and model registry.",
+    "",
+    "This file is CONFIG. Changing a model string, adding a model, or pointing a",
+    "provider at a different host is an edit here, not a code change. providers.py",
+    "reads it at import; if it is missing or unparseable the built-in defaults in",
+    "providers.py are used instead and the reason is printed. See README.md",
+    "'Choosing a model'.",
+    "",
+    "providers[].adapter   'openai_compat' speaks the OpenAI chat-completions wire",
+    "                      format and covers OpenAI, Ollama, llama.cpp and vLLM;",
+    "                      'anthropic' uses the native Anthropic SDK.",
+    "providers[].base_url_env  env var that overrides base_url at runtime.",
+    "providers[].key_prefix    rejected before any network call when it does not",
+    "                      match — catches a pasted key ID or the wrong provider's",
+    "                      key. Omit for self-hosted providers with arbitrary keys.",
+    "",
+    "models[].supports_temperature  false for models that reject sampling params",
+    "                      (Claude Opus 5 / Sonnet 5 return 400). The caller's",
+    "                      temperature is dropped for those models.",
+    "models[].effort       Anthropic output_config.effort. null to omit.",
+    "models[].reserve_tokens  added to the caller's max_tokens. Models that think",
+    "                      by default spend max_tokens on reasoning before any",
+    "                      visible text, so a 700-token cap can return an empty",
+    "                      string. Reserve gives the answer room."
+  ],
+
+  "default_model": "gpt-4o-mini",
+  "validator_model": "gpt-4o-mini",
+
+  "providers": {
+    "openai": {
+      "label": "OpenAI",
+      "adapter": "openai_compat",
+      "key_env": "OPENAI_API_KEY",
+      "key_prefix": "sk-",
+      "base_url": null,
+      "base_url_env": "CDSS_OPENAI_BASE_URL"
+    },
+    "anthropic": {
+      "label": "Anthropic",
+      "adapter": "anthropic",
+      "key_env": "ANTHROPIC_API_KEY",
+      "key_prefix": "sk-ant-",
+      "base_url": null,
+      "base_url_env": "CDSS_ANTHROPIC_BASE_URL"
+    },
+    "local": {
+      "label": "Local",
+      "adapter": "openai_compat",
+      "key_env": "CDSS_LOCAL_API_KEY",
+      "key_prefix": null,
+      "base_url": null,
+      "base_url_env": "CDSS_LOCAL_BASE_URL"
+    }
+  },
+
+  "models": [
+    {
+      "id": "gpt-4o-mini",
+      "provider": "openai",
+      "label": "GPT-4o mini",
+      "supports_temperature": true,
+      "effort": null,
+      "reserve_tokens": 0
+    },
+    {
+      "id": "gpt-4o",
+      "provider": "openai",
+      "label": "GPT-4o",
+      "supports_temperature": true,
+      "effort": null,
+      "reserve_tokens": 0
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "provider": "anthropic",
+      "label": "Claude Haiku 4.5",
+      "supports_temperature": true,
+      "effort": null,
+      "reserve_tokens": 0
+    },
+    {
+      "id": "claude-sonnet-5",
+      "provider": "anthropic",
+      "label": "Claude Sonnet 5",
+      "supports_temperature": false,
+      "effort": "low",
+      "reserve_tokens": 3000
+    },
+    {
+      "id": "claude-opus-5",
+      "provider": "anthropic",
+      "label": "Claude Opus 5",
+      "supports_temperature": false,
+      "effort": "low",
+      "reserve_tokens": 3000
+    }
+  ]
+}

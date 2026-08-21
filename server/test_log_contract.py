@@ -241,9 +241,11 @@ def test_run_tests_sends_the_synthetic_header():
 
 
 def test_log_schema_version_is_stamped():
-    """Pre-v4.1 entries carry no log_schema key; the two formats must be
-    distinguishable without inferring it from which fields are present."""
+    """Pre-v4.1 entries carry no log_schema key; the formats must be
+    distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 2
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 3
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
+    for field in ("source", "model"):
+        assert field in entry, f"schema 3 must carry {field}"

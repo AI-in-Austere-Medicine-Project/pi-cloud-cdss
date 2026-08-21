@@ -98,6 +98,25 @@ header h1 span { color: var(--blue); }
   border-radius: 4px; padding: 3px 10px; cursor: pointer;
 }
 #newpatient:hover { border-color: var(--blue); color: var(--blue); }
+#model {
+  background: var(--bg); border: 1px solid var(--border); color: var(--dim);
+  font-family: var(--mono); font-size: 11px; border-radius: 4px; padding: 3px 6px;
+}
+#model:hover { border-color: var(--blue); color: var(--blue); }
+/* The general-reference label. Deliberately louder than a badge: a medic
+   skimming an answer during care has to be able to tell at a glance that it did
+   not come from a JTS protocol. */
+.genref {
+  display: block; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.08em; color: var(--amber);
+  border: 1px solid var(--amber); border-left-width: 3px;
+  border-radius: 4px; padding: 6px 10px; margin-bottom: 10px;
+  background: rgba(210, 153, 34, 0.08);
+}
+.answeredby {
+  font-family: var(--mono); font-size: 10px; color: var(--dim);
+  margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border);
+}
 .patient-sep {
   display: flex; align-items: center; justify-content: center;
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
@@ -175,6 +194,7 @@ header h1 span { color: var(--blue); }
     <label><input type="radio" name="mode" value="brief" checked> brief</label>
     <label><input type="radio" name="mode" value="detailed"> detailed</label>
     <button id="newpatient" type="button" title="Clear this patient's weight, age and access">NEW PATIENT</button>
+    <span>MODEL: <select id="model" title="Which model answers. The safety validator is held constant and is not changed by this."><option value="">loading…</option></select></span>
     <span style="margin-left:auto">TOKEN: <input id="token" value="edgecdss-demo-2026"></span>
   </div>
   <div class="disclaimer"><strong>NO PHI / NO REAL PATIENTS.</strong> This is a research and evaluation platform — it is not HIPAA-compliant and must not be used for actual patient care. Use simulated scenarios only. All queries, responses, and feedback are logged and copied for research and system improvement. Responses are generated decision support derived from JTS CPGs and deterministic dose logic — verify against local protocol.</div>
@@ -216,6 +236,46 @@ function addMsg(who, html, cls) {
   return d;
 }
 
+// The banner the server prepends to general-reference answers. Rendered as a
+// styled block rather than left as body text so it reads as a label, not as
+// part of the clinical answer. Kept in sync with
+// general_reference.GENERAL_REFERENCE_BANNER.
+const GENREF_RE = /^\s*(?:\u26a0\ufe0f\s*)?GENERAL MEDICAL REFERENCE\s*[\u2014-]\s*not from JTS protocols\s*/i;
+
+function splitBanner(text) {
+  const m = GENREF_RE.exec(text || '');
+  return m ? { banner: m[0].trim(), body: text.slice(m[0].length) }
+           : { banner: '', body: text };
+}
+
+async function refreshModels() {
+  const sel = document.getElementById('model');
+  try {
+    const d = await (await fetch('/models')).json();
+    const models = d.models || [];
+    if (!models.length) {
+      // provider_detail says WHY the menu is empty — an unset key, the wrong
+      // provider's key, or a real auth failure. Surfacing it beats a silently
+      // dead dropdown.
+      const why = Object.values(d.provider_detail || {})
+        .map(p => p.detail).filter(Boolean).join(' \u00b7 ');
+      sel.innerHTML = '<option value="">no model available</option>';
+      sel.title = why || 'No provider is configured on this server.';
+      return;
+    }
+    const previous = sel.value;
+    sel.innerHTML = models.map(m =>
+      '<option value="' + esc(m.id) + '">' + esc(m.label) + '</option>').join('');
+    sel.value = models.some(m => m.id === previous) ? previous
+              : (d.default_model || models[0].id);
+    sel.title = 'Answers this session. The safety validator stays on '
+              + (d.validator_model || 'its configured model') + ' regardless.';
+  } catch (e) {
+    sel.innerHTML = '<option value="">unavailable</option>';
+  }
+}
+refreshModels();
+
 async function refreshStatus() {
   const dot = document.getElementById('dot'), stat = document.getElementById('stat');
   try {
@@ -240,7 +300,7 @@ function validatorBadge(v) {
   return '<span class="badge warn">' + esc(v || 'REVIEW') + '</span>';
 }
 
-async function speak(text, btn) {
+async function speak(text, btn, source) {
   btn.textContent = '…';
   let url = null;
   try {
@@ -248,7 +308,9 @@ async function speak(text, btn) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json',
                  'X-Access-Token': document.getElementById('token').value },
-      body: JSON.stringify({ text })
+      // The server prepends the spoken disclosure for source=general. Sending
+      // the flag rather than the phrase keeps one definition of the wording.
+      body: JSON.stringify({ text, source })
     });
     if (!r.ok) {
       // The server now says WHY. Surface it instead of a blank failure.
@@ -362,12 +424,15 @@ async function ask() {
       body: JSON.stringify({
         query: text, device_id: deviceId,
         timestamp: new Date().toISOString(),
-        voice_mode: mode, conversation_history: history.slice(-50)
+        voice_mode: mode, conversation_history: history.slice(-50),
+        model: document.getElementById('model').value
       })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
-    let html = renderMd(d.response);
+    const split = splitBanner(d.response);
+    let html = (split.banner ? '<span class="genref">' + esc(split.banner) + '</span>' : '')
+             + renderMd(split.body);
     let meta = '<div class="meta">' + validatorBadge(d.validator_result) +
       '<span class="badge time">' + d.processing_time_ms + ' ms</span>';
     (d.sources || []).filter(s => s.confidence >= 0.1).forEach(s => {
@@ -375,9 +440,15 @@ async function ask() {
               ' · ' + (s.confidence * 100).toFixed(0) + '%</span>';
     });
     meta += '<button class="listen">🔊 listen</button>' + fbControls() + '</div>';
-    pending.querySelector('.bubble').innerHTML = html + meta;
+    // Which model and which knowledge source, on every answer. A deterministic
+    // card was written by Python and is attributed to no model — saying
+    // otherwise would credit a model with an answer it did not write.
+    const answeredBy = 'Answered by ' + esc(d.model || 'EdgeCDSS (deterministic)') +
+      ' · source: ' + esc(d.source === 'general' ? 'general' : 'JTS');
+    pending.querySelector('.bubble').innerHTML =
+      html + meta + '<div class="answeredby">' + answeredBy + '</div>';
     pending.querySelector('.listen').onclick = function () {
-      speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this);
+      speak(d.response.replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source);
     };
     wireFeedback(pending, text, d.response);
     history.push({ query: text, response: d.response, ts: new Date().toISOString() });

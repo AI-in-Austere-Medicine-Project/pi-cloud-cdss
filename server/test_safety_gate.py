@@ -22,9 +22,11 @@ from openai_client import (  # noqa: E402
     run_deterministic_checks,
 )
 from test_fixtures import (  # noqa: E402
-    FIXED_PREP_PUSH_DOSE_EPI, S2_GATE_QUESTION_PREVIEW, S2_IED_PREVIEW,
+    FIXED_PREP_PUSH_DOSE_EPI, GENERAL_LAB_REFERENCE, GENERAL_MODE_GIVE_LINE,
+    GENERAL_PREP_RECIPE, S2_GATE_QUESTION_PREVIEW, S2_IED_PREVIEW,
     S3_GIVE_LINE, S6_POPULATED_CONTRACT_ISSUES, S6_POPULATED_CONTRACT_RESPONSE,
 )
+import general_reference  # noqa: E402
 
 PASS = DeterministicCheck(passed=True)
 FAIL = DeterministicCheck(passed=False, issues=["Deterministic issue for test."])
@@ -192,12 +194,20 @@ def test_pediatric_override_sc5_gap_is_pinned():
 def test_gate_log_invariant():
     """verdict == "UNSAFE" if and only if blocked. S-2 is the violation of this.
 
-    Driven across the full matrix of deterministic pass/fail x validator verdict
-    x override firing/not, so it closes the class rather than the two logged
-    instances.
+    Driven across the full matrix of deterministic pass/fail x response x
+    validator verdict x override firing/not x knowledge source, so it closes the
+    class rather than the two logged instances.
+
+    The general-reference responses are in `responses` for a specific reason.
+    General mode is a second knowledge source, not a second pipeline: the same
+    gate, the same overrides, the same invariant. Putting general-mode text
+    through every cell of the matrix is what pins that claim — if the general
+    path ever grew its own gate, its own bypass, or a banner applied before the
+    gate, one of these cells would break.
     """
     responses = [_CLINICAL, _CLINICAL + "Perform cricothyrotomy now.\n",
-                 S2_IED_PREVIEW, S2_GATE_QUESTION_PREVIEW]
+                 S2_IED_PREVIEW, S2_GATE_QUESTION_PREVIEW,
+                 GENERAL_LAB_REFERENCE, GENERAL_PREP_RECIPE]
     verdicts = ["SAFE", "NEEDS_HUMAN_REVIEW", "UNSAFE"]
     issue_sets = [[], ["Failed airway described without a definitive surgical airway."],
                   ["Medication dose given without confirmed weight for pediatric patient."]]
@@ -217,7 +227,87 @@ def test_gate_log_invariant():
                         if outcome.blocked:
                             assert outcome.issues, "a block must carry its issues"
                         checked += 1
-    assert checked == 2 * 4 * 3 * 3 * 3
+    assert checked == 2 * 6 * 3 * 3 * 3
+
+
+def test_the_banner_cannot_change_a_gate_outcome():
+    """The label is applied after the gate, so it cannot be reasoned about.
+
+    BOUNDARY_RESET_NOTICE learned this first (SC-1). An override condition like
+    dangerous_reassurance_has_action fires on the substring "monitor" anywhere
+    in a response; a label is not clinical content and must never be able to
+    satisfy one.
+
+    Asserted differentially — does prepending the banner change any verdict? —
+    rather than by testing the banner alone, because several override conditions
+    are negative (`not any(steroid in r)`) and are satisfied by any text at all,
+    including the empty string. The question that matters is whether the label
+    MOVES an outcome, not whether it trivially satisfies a negation.
+    """
+    banner = general_reference.GENERAL_REFERENCE_BANNER
+    issue_sets = [[c["issues"][0]] for c in OVERRIDE_CASES.values()]
+    contexts = [None, PatientContext(),
+                PatientContext(confirmed_weight_kg=20.0, is_pediatric=True)]
+
+    for response in (_CLINICAL, GENERAL_LAB_REFERENCE, GENERAL_PREP_RECIPE):
+        for issues in issue_sets:
+            for ctx in contexts:
+                for verdict in ("SAFE", "NEEDS_HUMAN_REVIEW", "UNSAFE"):
+                    bare = gate(response, issues, ctx, "", verdict=verdict)
+                    labelled = gate(banner + response, issues, ctx, "", verdict=verdict)
+                    assert bare.blocked == labelled.blocked, (
+                        f"the banner changed blocked for {issues}")
+                    assert bare.verdict == labelled.verdict, (
+                        f"the banner changed the verdict for {issues}")
+                    assert bare.override_fired == labelled.override_fired, (
+                        f"the banner changed which override fired for {issues}")
+
+
+def test_general_mode_answers_are_gated_identically():
+    """Same text, same inputs, same outcome — the gate has no notion of source."""
+    for response in (GENERAL_LAB_REFERENCE, GENERAL_PREP_RECIPE):
+        blocked = gate(response, ["Deterministic issue for test."], det=FAIL)
+        assert blocked.blocked is True
+        assert blocked.verdict == "UNSAFE"
+        assert "Clinical safety hold" in blocked.response
+
+        served = gate(response, [], det=PASS, verdict="SAFE")
+        assert served.blocked is False
+        assert served.verdict == "SAFE"
+        assert served.response == response, "the gate must not rewrite general answers"
+
+
+def test_a_dose_line_from_general_mode_is_blocked_by_sc6():
+    """Recipe yes, prescription no — enforced by the check that already existed.
+
+    General mode never builds an ALLOWED_DOSES contract, so SC-6's empty-contract
+    rule is what stops a patient dose escaping from general knowledge. This is
+    the third of the three independent guards named in general_reference.py, and
+    the only one that does not depend on the model cooperating.
+    """
+    result = run_deterministic_checks(
+        "what is the ketamine analgesia dose", GENERAL_MODE_GIVE_LINE,
+        PatientContext(), [])
+    assert result.passed is False
+    assert any("empty ALLOWED_DOSES contract" in i for i in result.issues)
+
+    outcome = apply_safety_gate(GENERAL_MODE_GIVE_LINE, result,
+                                {"result": "SAFE", "issues": [], "rationale": ""},
+                                PatientContext(), "")
+    assert outcome.blocked is True
+    assert outcome.verdict == "UNSAFE"
+
+
+def test_a_preparation_recipe_survives_the_dose_contract_check():
+    """The other half: a concentration recipe is not a GIVE line and is served.
+
+    If this ever fails, the reference tier has stopped being able to answer the
+    question it was built for — check whether CANONICAL_GIVE_RE was widened.
+    """
+    assert re.findall(CANONICAL_GIVE_RE, GENERAL_PREP_RECIPE.lower()) == []
+    result = run_deterministic_checks("how do i mix a norepinephrine drip",
+                                      GENERAL_PREP_RECIPE, PatientContext(), [])
+    assert result.passed is True, result.issues
 
 
 def test_no_served_response_logs_unsafe():
