@@ -155,6 +155,7 @@ header h1 span { color: var(--blue); }
 <header>
   <h1>EDGE<span>CDSS</span></h1>
   <div class="statusline"><span class="dot" id="dot"></span><span id="stat">connecting…</span></div>
+  <div class="statusline" id="voicenote"></div>
 </header>
 
 <div id="chat">
@@ -221,7 +222,9 @@ async function refreshStatus() {
     const h = await (await fetch('/health')).json();
     const s = await (await fetch('/status')).json();
     dot.className = 'dot ok';
-    stat.textContent = 'v' + s.version + ' · ' + h.documents.toLocaleString() + ' protocol chunks · online';
+    stat.textContent = 'v' + s.version + ' · ' + h.documents.toLocaleString() +
+      ' protocol chunks · online' + (s.voice_support === false ? ' · voice off' : '');
+    voiceNote(s.voice_support === false ? (s.voice_detail || 'unavailable') : '');
   } catch (e) {
     dot.className = 'dot err';
     stat.innerHTML = '<b style="color:var(--red)">v4.0 SERVER OFFLINE</b> — check back soon · ' +
@@ -239,6 +242,7 @@ function validatorBadge(v) {
 
 async function speak(text, btn) {
   btn.textContent = '…';
+  let url = null;
   try {
     const r = await fetch('/speak', {
       method: 'POST',
@@ -246,11 +250,34 @@ async function speak(text, btn) {
                  'X-Access-Token': document.getElementById('token').value },
       body: JSON.stringify({ text })
     });
-    if (!r.ok) throw new Error();
+    if (!r.ok) {
+      // The server now says WHY. Surface it instead of a blank failure.
+      let why = 'HTTP ' + r.status;
+      try { const j = await r.json(); if (j && j.detail) why = j.detail; } catch (e) {}
+      throw new Error(why);
+    }
     const blob = await r.blob();
-    new Audio(URL.createObjectURL(blob)).play();
+    url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = audio.onerror = function () { URL.revokeObjectURL(url); url = null; };
+    // play() rejects on an autoplay block. Unawaited, that read as success.
+    await audio.play();
     btn.textContent = '🔊 listen';
-  } catch (e) { btn.textContent = 'audio unavailable'; }
+    btn.title = '';
+  } catch (e) {
+    if (url) URL.revokeObjectURL(url);
+    btn.textContent = 'audio unavailable';
+    btn.title = e.message || 'audio unavailable';
+    voiceNote(e.message);
+  }
+}
+
+// One line under the status bar, so a dead voice path is visible without
+// clicking listen and waiting for nothing to happen.
+function voiceNote(msg) {
+  const el = document.getElementById('voicenote');
+  if (!el) return;
+  el.textContent = msg ? '🔇 voice: ' + msg : '';
 }
 
 function fbControls() {

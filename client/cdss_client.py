@@ -224,8 +224,28 @@ def query_cdss(query: str, voice_mode: str = "brief") -> str:
         return f"Error: {str(e)}"
 
 
+def voice_config_problem():
+    """Why TTS cannot work, before any network call. None if the key looks usable.
+
+    ElevenLabs API keys start with 'sk_'. The dashboard also shows a 64-character
+    hex key *ID* beside each key, which is not a credential — pasting it gets a
+    400 api_key_id_used_as_api_key on every request. Mirrors server/tts.py.
+    """
+    key = (ELEVENLABS_API_KEY or "").strip()
+    if not key:
+        return "ELEVENLABS_API_KEY is not set"
+    if not key.startswith("sk_"):
+        return ("ELEVENLABS_API_KEY is not an API key — keys start with 'sk_'. "
+                "A 64-character hex value is the key ID, not the key.")
+    return None
+
+
 def speak(text: str):
     """Play response via ElevenLabs TTS with medical term expansion"""
+    problem = voice_config_problem()
+    if problem:
+        print(f"TTS unavailable: {problem}")
+        return
     try:
         os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
         import pygame

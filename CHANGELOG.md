@@ -1,5 +1,47 @@
 # EdgeCDSS Changelog
 
+## [Unreleased]
+
+### Voice output (fixed)
+- **The 🔊 listen button has been dead since v4.1.** `ELEVENLABS_API_KEY` held
+  the 64-character hex key *ID* shown beside the key in the ElevenLabs
+  dashboard, not the `sk_` key, so every request came back
+  `400 api_key_id_used_as_api_key`. **Operator action: paste the real `sk_` key
+  into `server/.env` and restart the service** — the code fixes below make the
+  failure visible, they cannot supply a credential.
+- Four layers each hid the cause, and all four are fixed:
+  - `/speak` inlined the ElevenLabs call and turned every upstream failure into
+    `500 ElevenLabs error`. The call now lives in `server/tts.py` and the
+    endpoint returns the reason: **503** not configured / key ID pasted /
+    upstream unreachable, **502** upstream refused (with its status and
+    message), **413** text over the cap, **400** empty text.
+  - `/status` and `/health` reported `voice_support: true` unconditionally, so a
+    dead voice path looked healthy. Both now report what the config actually
+    supports, and `/status` carries a `voice_detail` reason. Pinned by a
+    meta-test: the hard-coded `True` cannot come back.
+  - A malformed key is caught **before** the network, naming the key-ID mistake
+    specifically. A missing key raised `TypeError` inside httpx (`None` header
+    value) and surfaced as the same generic 500 as everything else.
+  - The web client discarded the server's reason, and its unawaited
+    `audio.play()` reported success when a browser autoplay block had rejected
+    it. It now shows the reason on the button and in a status line, awaits
+    playback, and revokes the object URL it used to leak per click.
+- `server/tts.py` imports with no key, no network and no httpx — the voice path
+  cannot affect the clinical path, and the contract is testable offline.
+- Network and timeout failures degrade to `503 ElevenLabs unreachable` instead
+  of an unhandled exception. Relevant on Starlink: voice needs connectivity, the
+  clinical answer already on screen does not.
+- `/speak` input length cap (`CDSS_SPEAK_MAX_CHARS`, default 2500) — closes the
+  open API-hardening item.
+- The thin client (`client/cdss_client.py`) carries the same key guard and
+  prints the same actionable reason.
+
+### Testing
+- `server/test_tts_contract.py` — 13 offline tests, no key, no network, no
+  httpx. Mutation checks: drop the `sk_` guard → 3 fail, incl. the key-ID test;
+  re-hardcode `voice_support: True` → the meta-test fails; collapse the upstream
+  reason back to a generic 500 → the inlining meta-test fails. Suite: 117 tests.
+
 ## [4.1.0] - 2026-08-20
 
 Hardening release driven by `AUDIT_v4.1.md` — a review of 135 logged queries and

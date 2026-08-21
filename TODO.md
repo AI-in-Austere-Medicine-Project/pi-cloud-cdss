@@ -125,7 +125,7 @@ an oversight. Ordered by what v4.1 leaves most exposed.
 
 ### API hardening
 - [ ] Real rate limiting (per token/IP); remove hardcoded rate_limit_remaining
-- [ ] /speak input length cap
+- [x] /speak input length cap — `CDSS_SPEAK_MAX_CHARS` (default 2500), enforced in `server/tts.py` before the upstream call
 - [ ] /feedback authentication + field length caps; JSON-format feedback log
 - [ ] Separate admin token for /feedback/summary; redact IPs
 - [ ] Restrict CORS origins
