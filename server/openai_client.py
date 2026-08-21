@@ -770,13 +770,28 @@ def has_positive_term(q: str, term: str) -> bool:
     negations = ["no ", "denies ", "without ", "afebrile", "not ", "negative for ", "no evidence of ", "rule out "]
     return not any(n in before for n in negations)
 
+# Long enough that a substring match cannot land inside an unrelated word.
+_SHOCK_PHRASES = ["hypotension", "hypotensive", "poor perfusion", "septic shock"]
+
+# Short tokens that ARE substrings of ordinary clinical prose, so they are
+# word-anchored. The fourth specimen of this repo's substring failure class,
+# after the F-2 alias table, FIXED_PREP_TERMS and the vitals labels — and the
+# worst of the four, because every hit routes a casualty:
+#   "ams"     matched milligrams, grams, diagrams, exams. Any dose stated in
+#             grams routed as shock, and with an infection present that is
+#             looks_like_sepsis() firing on the word "milligrams".
+#   "altered" matched unaltered — an explicit negation read as its opposite.
+#   "map "    matched roadmap.
+# Inflections are kept explicitly rather than by dropping the right-hand
+# boundary: \bshock would also swallow "shockwave", and this list decides
+# whether a casualty is treated as being in shock.
+_SHOCK_WORDS = ["shock", "shocks", "shocked", "altered", "ams", "map"]
+
+
 def has_hypotension_or_shock(q: str) -> bool:
     """Detect hypotension/shock text, including BP values like 92/46."""
     q = (q or "").lower()
-    if any(x in q for x in [
-        "hypotension", "hypotensive", "shock", "septic shock",
-        "poor perfusion", "altered", "ams", "map "
-    ]):
+    if any(x in q for x in _SHOCK_PHRASES) or _has_any_word(q, _SHOCK_WORDS):
         return True
 
     for m in re.finditer(r"\bbp\s*(\d{2,3})\s*/\s*(\d{2,3})\b", q):

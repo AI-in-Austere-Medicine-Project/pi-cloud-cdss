@@ -20,7 +20,8 @@ import pytest  # noqa: E402
 
 from clinical_router import ClinicalRouter  # noqa: E402
 from openai_client import (  # noqa: E402
-    is_rsi_or_post_intubation_context, is_vent_settings_query, should_use_rsi_pregate,
+    has_hypotension_or_shock, is_rsi_or_post_intubation_context,
+    is_vent_settings_query, looks_like_sepsis, should_use_rsi_pregate,
 )
 from test_fixtures import (  # noqa: E402
     ALIAS_STANDALONE_CASES, F2_ROWS, S4_VENT_QUERY, S4_VENT_REFUSED,
@@ -160,3 +161,47 @@ def test_corpus_alias_hit_count():
         f"alias hits over the audit corpus changed: {hits} != {EXPECTED_CORPUS_ALIAS_HITS}. "
         "Either the matcher or query_aliases.json changed — re-measure before updating."
     )
+
+
+# ── substring routing: the fourth specimen ──────────────────────────────────
+#
+# has_hypotension_or_shock matched "map " inside "roadmap", "ams" inside
+# "milligrams", and "altered" inside "unaltered". Same failure class as the F-2
+# alias table, FIXED_PREP_TERMS and the vitals labels: short medical tokens are
+# substrings of longer ordinary words, and this parser reads free text typed
+# one-handed. Every hit here routes a casualty.
+
+@pytest.mark.parametrize("text", [
+    "check the roadmap for evac timing",          # map
+    "give 500 milligrams of ceftriaxone",         # ams
+    "draw 2 grams of TXA",                        # ams
+    "follow the treatment algorithm diagrams",    # ams
+    "review the exams from the aid station",      # ams
+    "unaltered mental status, GCS 15",            # altered — an explicit negation
+])
+def test_ordinary_words_do_not_route_as_shock(text):
+    assert has_hypotension_or_shock(text) is False, text
+
+
+@pytest.mark.parametrize("text", [
+    "patient is hypotensive",
+    "septic shock",
+    "he is in shock",
+    "patient was shocked twice",                  # inflections still count
+    "poor perfusion",
+    "altered mental status",
+    "MAP 55",
+    "BP 82/40",
+])
+def test_real_shock_language_still_routes(text):
+    assert has_hypotension_or_shock(text) is True, text
+
+
+def test_a_dose_in_grams_no_longer_routes_a_casualty_as_septic():
+    """The compound failure. looks_like_sepsis is infection AND shock, so
+    "milligrams" supplied the shock half for any infected patient — and the
+    sepsis path is the one that flags TXA as hemorrhage misuse."""
+    infected_dose = "fever and purulent wound, give 500 milligrams ceftriaxone"
+    assert looks_like_sepsis(infected_dose) is False
+    assert looks_like_sepsis("fever, purulent wound, hypotensive") is True
+
