@@ -51,10 +51,10 @@ from typing import Literal, Optional, List
 import general_reference
 import providers
 
-try:
-    from openai import OpenAI
-except ImportError:  # offline test environment — see run_unit_tests.sh
-    OpenAI = None
+# The OpenAI SDK is no longer imported here. Both LLM calls go through
+# providers.chat(), which imports each provider's SDK lazily inside its own
+# adapter — so this module keeps its P-0 property (importable with no SDK, no
+# key and no network) without needing a guarded import of its own.
 
 try:
     from dotenv import load_dotenv
