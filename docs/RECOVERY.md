@@ -36,7 +36,8 @@ python server/ingest_jts.py
 
 # 5. Secrets — create .env in the repo root:
 #   OPENAI_API_KEY=...
-#   ELEVENLABS_API_KEY=...        (optional — voice degrades gracefully without it)
+#   ELEVENLABS_API_KEY=sk_...     (optional — voice degrades gracefully without it;
+#                                  must be the key, not the 64-char hex key ID)
 #   CDSS_LOG_DIR=./logs
 
 # 6. Run
