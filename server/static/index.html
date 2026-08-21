@@ -296,8 +296,12 @@ function splitBanner(text) {
 // reading stays honest without another request. A vital with no timestamp shows
 // "age ?" and is styled as stale: a reading whose age cannot be established is
 // exactly the one a medic needs to look at.
-const VITAL_ORDER = ['hr', 'sbp', 'spo2', 'rr', 'gcs', 'temp_c'];
-const VITAL_LABEL = { hr: 'HR', sbp: 'BP', spo2: 'SpO2', rr: 'RR', gcs: 'GCS', temp_c: 'Temp' };
+// `temp` was `temp_c` up to log schema 4, when a temperature was always stored
+// in Celsius. It is now kept in the unit the medic stated it in and `unit` says
+// which — the chip reads "104 F" for someone who typed 104 F, and the response
+// carries value_c/value_f for anything that needs to convert.
+const VITAL_ORDER = ['hr', 'sbp', 'spo2', 'rr', 'gcs', 'temp'];
+const VITAL_LABEL = { hr: 'HR', sbp: 'BP', spo2: 'SpO2', rr: 'RR', gcs: 'GCS', temp: 'Temp' };
 const STALE_MIN = 15;
 let patientCtx = null;
 

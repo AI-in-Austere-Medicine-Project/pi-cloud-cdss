@@ -244,13 +244,30 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 4
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 5
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):
         assert field in entry, f"schema 3 must carry {field}"
     for field in ("vitals", "vitals_superseded", "vitals_rejected", "vitals_cautions"):
         assert field in entry, f"schema 4 must carry {field}"
+
+
+def test_schema_5_logs_a_temperature_in_the_unit_it_was_stated_in():
+    """The rename is the reason for the version bump.
+
+    A schema 4 reading was named `temp_c` and its value was always Celsius.
+    Reading a schema 5 `temp` the same way would be wrong, so analysis tooling
+    has to be able to tell the two apart without inspecting the value.
+    """
+    readings, _ = oc.vitals_mod.parse_vitals("fever of 104",
+                                             ts="2026-08-21T10:00:00+00:00")
+    logged = oc.vitals_mod.to_dict(readings)
+    assert "temp_c" not in logged
+    assert logged["temp"]["value"] == 104.0
+    assert logged["temp"]["unit"] == "F"
+    assert logged["temp"]["value_c"] == 40.0
+    assert logged["temp"]["value_f"] == 104.0
 
 
 def test_finalise_can_never_produce_an_unsafe_verdict():
@@ -263,8 +280,12 @@ def test_finalise_can_never_produce_an_unsafe_verdict():
     a response already served must not become one that is blocked.
     """
     ctx = oc.PatientContext()
-    ctx.vitals, _ = oc.vitals_mod.parse_vitals("RR 6 BP 82/40 HR 42 GCS 5 temp 33",
+    # 93F is 33.9C: hypothermic, and inside the plausible Fahrenheit band. A
+    # Celsius "temp 33" is now rejected rather than stored, so it would arm
+    # nothing and this fixture would stop testing what it says it tests.
+    ctx.vitals, _ = oc.vitals_mod.parse_vitals("RR 6 BP 82/40 HR 42 GCS 5 temp 93 F",
                                                ts="2026-08-21T10:00:00+00:00")
+    assert ctx.vitals["temp"].canonical < 35
     responses = ["Give lorazepam 4mg IV.", "Give fentanyl 50mcg IV.",
                  "Encourage oral fluids.", "Give TXA 1g IV.",
                  "Need weight in kg before dosing.", "Reassess the patient."]

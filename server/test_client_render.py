@@ -125,7 +125,8 @@ def test_a_missing_field_costs_its_element_and_nothing_else(rendered):
     assert "undefined" not in deg["ctx"], "an unreadable reading is omitted, not printed"
     assert "NaN" not in deg["ctx"]
     assert "WT" not in deg["ctx"]
-    assert "Temp <b>40 C</b>" in deg["ctx"], "the readable vitals still render"
+    assert "Temp <b>104 F</b>" in deg["ctx"], \
+        "the readable vitals still render, in the unit they were stated in"
 
 
 def test_an_absent_patient_context_renders_an_empty_strip(rendered):

@@ -129,7 +129,12 @@ def _get_log_file() -> pathlib.Path:
 # against — the question "what did the system believe the blood pressure was
 # when it said that" has to be answerable from the log alone, which is the S-1
 # lesson applied to the audit surface rather than the UI.
-LOG_SCHEMA_VERSION = 4
+# Schema 5 reshapes one of them: the vital named `temp_c` is now `temp`, its
+# `value` is in whichever unit the medic stated (`unit` says which), and a
+# temperature carries `value_c` and `value_f` alongside. Reading a schema 4
+# `temp_c` as Celsius is correct; reading a schema 5 `temp` that way is not,
+# which is why this is a version and not a silent change of contents.
+LOG_SCHEMA_VERSION = 5
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is

@@ -68,8 +68,12 @@ def values(readings):
     ("respiratory rate 8", {"rr": 8}),
     ("GCS 13", {"gcs": 13}),
     ("gcs of 13", {"gcs": 13}),
-    ("temp 38.2", {"temp_c": 38.2}),
-    ("T 38.5", {"temp_c": 38.5}),
+    ("temp 38.2", {"temp": 38.2}),
+    ("T 38.5", {"temp": 38.5}),
+    ("temperature of 39", {"temp": 39}),
+    ("fever of 104", {"temp": 104}),
+    ("fever 104", {"temp": 104}),
+    ("fever at 39.4", {"temp": 39.4}),
 ])
 def test_common_phrasings(text, expected):
     readings, rejections = parse(text)
@@ -96,15 +100,108 @@ def test_gcs_component_form_is_summed():
 def test_several_vitals_in_one_sentence():
     readings, _ = parse("34yo male HR 128 BP 82/40 sats 91 RR 28 GCS 14 temp 35.1")
     assert values(readings) == {"hr": 128, "sbp": 82, "dbp": 40, "spo2": 91,
-                                "rr": 28, "gcs": 14, "temp_c": 35.1}
+                                "rr": 28, "gcs": 14, "temp": 35.1}
 
 
-def test_fahrenheit_is_normalised_to_celsius():
-    assert parse("temp 101.2 F")[0]["temp_c"].value == pytest.approx(38.4, abs=0.1)
-    # No unit: 45C is already incompatible with life, so anything at or above it
-    # can only be Fahrenheit. Same split has_fever uses.
-    assert parse("temp 99")[0]["temp_c"].value == pytest.approx(37.2, abs=0.1)
-    assert parse("temp 36.8")[0]["temp_c"].value == pytest.approx(36.8, abs=0.1)
+# ── temperature: two units, one canonical value ─────────────────────────────
+#
+# The medic states a temperature in Celsius or Fahrenheit and rarely says which.
+# The two plausible bands do not overlap, so the number itself says which — and
+# a number in neither band is not a temperature this parser can read.
+
+def test_a_stated_unit_is_kept_and_both_conversions_are_stored():
+    """Showing 40 C to someone who typed 104 F is a translation they did not ask
+    for, and a number they cannot check against the thermometer in their hand."""
+    r = parse("temp 101.2 F")[0]["temp"]
+    assert (r.value, r.unit) == (101.2, "F")
+    assert r.value_c == pytest.approx(38.4, abs=0.1)
+    assert r.value_f == 101.2
+    assert r.canonical == r.value_c
+
+    r = parse("temp 38.5 C")[0]["temp"]
+    assert (r.value, r.unit) == (38.5, "C")
+    assert r.value_c == 38.5
+    assert r.value_f == pytest.approx(101.3, abs=0.1)
+    assert r.canonical == 38.5
+
+
+def test_an_unlabelled_temperature_is_read_by_which_band_it_falls_in():
+    """35-43 is a Celsius patient; 93-110 is a Fahrenheit one. No overlap."""
+    for text, value, unit in (("temp 39", 39.0, "C"),
+                              ("temp 36.8", 36.8, "C"),
+                              ("temp 99", 99.0, "F"),
+                              ("fever of 104", 104.0, "F")):
+        r = parse(text)[0]["temp"]
+        assert (r.value, r.unit) == (value, unit), text
+
+
+def test_a_temperature_in_neither_band_is_rejected_visibly():
+    """Guessing a unit for an implausible number is how a system holds 50C."""
+    for text in ("temp 44", "temp 50", "fever of 130", "temp 12"):
+        readings, rejections = parse(text)
+        assert "temp" not in readings, text
+        assert [r.name for r in rejections] == ["temp"], text
+        assert "either unit" in rejections[0].reason
+    assert "Couldn't read that vital" in v.rejection_notice(parse("temp 50")[1])
+
+
+def test_a_stated_unit_is_never_reinterpreted():
+    """"temp 104 C" is a mistyped reading, not a Fahrenheit one.
+
+    Reading it as F would invent a plausible vital out of an implausible one,
+    which is the failure the rejection path exists to prevent.
+    """
+    readings, rejections = parse("temp 104 C")
+    assert "temp" not in readings
+    assert "35-43C" in rejections[0].reason
+
+    readings, rejections = parse("temp 39 F")
+    assert "temp" not in readings
+    assert "93-110F" in rejections[0].reason
+
+
+def test_hypothermia_in_celsius_is_rejected_by_the_shipped_band():
+    """Pinned because it is a consequence, not an accident.
+
+    temp.min is 35, so a Celsius hypothermia reading falls outside the band and
+    is not stored. Stated in Fahrenheit the same patient reads fine (93F is
+    33.9C), which is the only way hypothermia_txa arms. Lowering temp.min in
+    vitals_rules.json restores it with no code change; this test says out loud
+    which way the shipped config is set.
+    """
+    readings, rejections = parse("temp 33")
+    assert "temp" not in readings
+    assert rejections and rejections[0].name == "temp"
+    assert parse("temp 93 F")[0]["temp"].canonical == pytest.approx(33.9, abs=0.1)
+
+
+def test_febrile_without_a_number_captures_nothing():
+    """This table stores measurements. The word alone is the router's business
+    (has_fever), and a described fever is not a measured one."""
+    for text in ("he is febrile", "febrile and tachycardic", "patient has a fever",
+                 "fever for two days", "denies fever"):
+        readings, rejections = parse(text)
+        assert readings == {}, text
+        assert rejections == [], text
+
+
+def test_a_temperature_is_shown_in_the_unit_it_was_stated_in():
+    readings = parse("fever of 104")[0]
+    assert v.format_pair(readings, "temp") == "Temp 104 F"
+    assert v.summary_line(readings) == "Temp 104 F"
+    # The prompt carries the conversion too: a model reasoning about a fever
+    # should not have to do the arithmetic or guess the unit.
+    assert "(40C)" in v.prompt_block(readings, now_ts=T5)
+    assert "(40C)" not in v.prompt_block(parse("temp 39")[0], now_ts=T5)
+
+
+def test_the_caution_table_compares_the_canonical_value():
+    """The thresholds are written in one unit. A reading kept in the other one
+    would compare 93 against a rule that means 33.9."""
+    cautions = v.conflicts("Give TXA 1 g IV.", armed("temp 93 F"))
+    assert len(cautions) == 1
+    assert "93 F" in cautions[0], "quoted back in the unit the medic used"
+    assert not v.conflicts("Give TXA 1 g IV.", armed("temp 39"))
 
 
 def test_bare_blood_pressure_is_read():
@@ -400,6 +497,22 @@ def test_builtin_fallback_has_no_cautions_and_all_ranges():
     assert set(v._BUILTIN_RULES["ranges"]) == set(v.VITAL_ORDER)
 
 
+def test_an_old_rules_file_still_arms_its_temperature_caution():
+    """vitals_rules.json is meant to be edited by a clinician, and an edited
+    copy outlives a deploy. A `temp_c` key from before the rename is renamed on
+    load rather than ignored: a caution that silently stops arming is the one
+    failure mode this table must not have."""
+    raw = {"ranges": {"temp_c": {"label": "Temp", "unit": "C", "min": 35, "max": 43,
+                                 "alt_unit": "F", "alt_min": 93, "alt_max": 110}},
+           "cautions": [{"id": "legacy", "when": {"temp_c": {"lt": 35}},
+                         "drugs": ["txa"],
+                         "caution": "The recorded temperature is {temp_c}C."}]}
+    v._rename_legacy_temp(raw)
+    assert "temp" in raw["ranges"] and "temp_c" not in raw["ranges"]
+    assert raw["cautions"][0]["when"] == {"temp": {"lt": 35}}
+    assert "{temp}" in raw["cautions"][0]["caution"]
+
+
 def test_every_caution_rule_names_a_known_vital():
     for rule in v.CAUTIONS:
         for name in (rule.get("when") or {}):
@@ -527,7 +640,7 @@ def test_the_log_records_vitals_state_and_cautions(stub_llm, tmp_path, monkeypat
     oc.query_with_rag("80kg male BP 82/40, analgesia options?", FakeChroma(),
                       conversation_history=[])
     entry = json.loads(sorted(tmp_path.glob("*.jsonl"))[0].read_text().strip())
-    assert entry["log_schema"] == 4
+    assert entry["log_schema"] == 5
     assert entry["vitals"]["sbp"]["value"] == 82
     assert entry["vitals_cautions"], "a fired caution must be in the log"
     assert entry["vitals_rejected"] == []
