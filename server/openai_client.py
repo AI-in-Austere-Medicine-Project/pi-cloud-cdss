@@ -50,6 +50,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, List
 import general_reference
 import providers
+import vent_module
 import vitals as vitals_mod
 
 # The OpenAI SDK is no longer imported here. Both LLM calls go through
@@ -152,7 +153,13 @@ def _get_log_file() -> pathlib.Path:
 # precondition that stopped a validator NEEDS_HUMAN_REVIEW from becoming a
 # banner, or null. Same reason override_fired exists — a suppression with no
 # trace makes "why did this answer carry no banner" unanswerable from the log.
-LOG_SCHEMA_VERSION = 8
+# Schema 9 adds the card tier. `source` gains a third value, "card", and a
+# card answer records `card_id` and `card_version` so a served answer can be
+# traced to the exact authored revision that produced it — the same question
+# override_fired answers for the gate. Both are null on every non-card answer,
+# present-and-null rather than absent, because absent is indistinguishable
+# from a log written before cards existed.
+LOG_SCHEMA_VERSION = 9
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -164,9 +171,18 @@ GENERAL_SOURCE_MODES = frozenset({
     "FIXED_PREP", "GENERAL_MEDICAL", "GENERAL_REFERENCE",
 })
 
+# The third provenance label. A card answer is neither retrieved from the JTS
+# corpus nor produced from general model knowledge: a named clinician wrote it,
+# dated it and signed it off, and the medic should be able to see whose
+# judgement they are acting on. Folding it into "jts" would claim a provenance
+# it does not have.
+CARD_SOURCE_MODES = frozenset({"VENT_CARD"})
+
 
 def knowledge_source(source_mode: str) -> str:
-    """"jts" | "general" — which knowledge source produced the answer."""
+    """"jts" | "general" | "card" — which knowledge source produced the answer."""
+    if source_mode in CARD_SOURCE_MODES:
+        return "card"
     return "general" if source_mode in GENERAL_SOURCE_MODES else "jts"
 
 
@@ -197,6 +213,8 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
             "review_suppressed": result.get("review_suppressed"),
+            "card_id": result.get("card_id"),
+            "card_version": result.get("card_version"),
             "boundary_reset": result.get("boundary_reset"),
             "vitals": (result.get("patient_context") or {}).get("vitals", {}),
             # What this turn displaced, with both values: the prior belief is
@@ -474,6 +492,21 @@ def extract_patient_context(query: str,
         else:
             ctx.confirmed_weight_kg = _wt_kg
             ctx.weight_source = f"confirmed_{_wt_unit}"
+
+    # ── Sex ───────────────────────────────────────────────────────────────
+    # Declared on PatientContext since v3 and never populated. Needed now
+    # because the Devine ideal-body-weight formula the vent cards dose tidal
+    # volume on takes a different constant per sex.
+    #
+    # Word-anchored, and NOT inferred from anything else: "he"/"she" are not
+    # read as sex here. A pronoun is how someone is being referred to, an
+    # 80 kg "male" is a stated fact, and the gap between them is not one this
+    # parser gets to close on a number that scales every breath.
+    if _has_any_word(q, ("male", "man", "m", "gentleman")) and not _has_any_word(
+            q, ("female", "woman", "f", "lady")):
+        ctx.sex = "male"
+    elif _has_any_word(q, ("female", "woman", "f", "lady")):
+        ctx.sex = "female"
 
     # ── Altered mental status, as stated (F-3) ────────────────────────────
     # Sticky within a patient, like route and access: a turn that says nothing
@@ -3246,6 +3279,36 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                     "validator_issues": [],
                     "patient_context": patient_ctx.to_dict()
                 }
+
+        # Step 2k-ii: Ventilator cards (F-12). Deterministic tier, authored
+        # content, third provenance label. Returns None for anything it does
+        # not own AND for any card still awaiting clinical signoff — the two
+        # are indistinguishable to this call site on purpose, so a pending
+        # card behaves exactly like an absent one and the pipeline carries on
+        # to the gate question or the referral it produced before.
+        vent_hit = vent_module.dispatch(query, patient_ctx)
+        if vent_hit:
+            family, card = vent_hit
+            basis = vent_module.dosing_basis(patient_ctx)
+            response = vent_module.render(family, card, patient_ctx, query)
+            ask = vent_module.follow_up_ask(family, basis)
+            if ask:
+                # Non-blocking. The settings are served and the ask is for what
+                # would make the NEXT answer better — blocking here would be
+                # F-12 again, a vent question answered with something else.
+                response += f"\n\n**ALSO SEND**\n- {ask}"
+            print(f"🫁 VENT CARD [{family}/{card['id']}]")
+            return {
+                "response": response,
+                "sources": [],
+                "source_mode": "VENT_CARD",
+                "card_id": card["id"],
+                "card_family": family,
+                "card_version": card.get("version"),
+                "validator_result": "SAFE",
+                "validator_issues": [],
+                "patient_context": patient_ctx.to_dict()
+            }
 
         # Step 2l: Standard pre-gate (weight/route) — after all deterministic cases
         gate_action, gate_response = pre_gate(query, patient_ctx, prior_queries)

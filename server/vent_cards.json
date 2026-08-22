@@ -1,0 +1,230 @@
+{
+  "_comment": [
+    "EdgeCDSS — ventilator cards. CLINICAL CONTENT IS THE OWNER'S.",
+    "",
+    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by A. Azelton and",
+    "by nobody else. The engine (vent_module.py) REFUSES to serve any card whose",
+    "signoff is not true, whose reviewed_by is not an authorised signer, or whose",
+    "clinical fields still carry the sentinel — so a half-authored card is",
+    "indistinguishable from an absent one and the pipeline falls through to the",
+    "behaviour it had before this module existed.",
+    "",
+    "Cards go live ONE AT A TIME. Partial deployment is the normal state.",
+    "Fill a card, set reviewed_by and review_date, flip signoff to true, and that",
+    "card starts carrying traffic while the rest stay dark.",
+    "",
+    "`applies_when` is DISPATCH VOCABULARY, not clinical content: it is the list",
+    "of words that route a query to this card, and it is pre-filled from the card",
+    "names in the build request so the routing tests have something to assert.",
+    "Review it anyway — a wrong signal here sends a real query to the wrong card."
+  ],
+  "cards": [
+    {
+      "id": "lung_protective_baseline",
+      "title": "Lung-protective baseline",
+      "applies_when": [
+        "ards",
+        "lung protective",
+        "baseline",
+        "vent settings",
+        "ventilator settings",
+        "initial settings",
+        "set the vent",
+        "start the vent",
+        "vent the patient",
+        "mechanical ventilation"
+      ],
+      "initial_settings": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "vt_ml_per_kg_ibw": "PENDING_CLINICAL_SIGNOFF",
+        "rate_strategy": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "titrate_on": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "actual_weight_caveat": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "Default card. Applies when no other physiology claims the query."
+    },
+    {
+      "id": "metabolic_acidosis",
+      "title": "Metabolic acidosis — compensation preserved",
+      "applies_when": [
+        "dka",
+        "diabetic ketoacidosis",
+        "ketoacidosis",
+        "acidosis",
+        "acidotic",
+        "salicylate",
+        "aspirin overdose",
+        "septic acidosis",
+        "ph 7.1",
+        "ph 7.0",
+        "ph 6.9",
+        "kussmaul",
+        "bicarb low"
+      ],
+      "initial_settings": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "vt_ml_per_kg_ibw": "PENDING_CLINICAL_SIGNOFF",
+        "rate_strategy": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "titrate_on": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "actual_weight_caveat": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "THIS IS THE F-12 CARD. The eval baseline showed 0 of 4 DKA vent queries returning any settings while 4 of 4 TBI queries did. PLAN_v4.1 5.3 has been waiting on this content."
+    },
+    {
+      "id": "obstructive",
+      "title": "Obstructive — asthma and COPD",
+      "applies_when": [
+        "asthma",
+        "asthmatic",
+        "copd",
+        "obstructive",
+        "wheezing",
+        "bronchospasm",
+        "air trapping",
+        "status asthmaticus"
+      ],
+      "initial_settings": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "vt_ml_per_kg_ibw": "PENDING_CLINICAL_SIGNOFF",
+        "rate_strategy": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "titrate_on": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "actual_weight_caveat": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "Shares vocabulary with breath_stacking_auto_peep in the troubleshooting family. Troubleshooting wins when alarm language is present; check that split is what you want."
+    },
+    {
+      "id": "tbi",
+      "title": "Traumatic brain injury",
+      "applies_when": [
+        "tbi",
+        "traumatic brain injury",
+        "head injury",
+        "gcs",
+        "herniation",
+        "icp",
+        "intracranial"
+      ],
+      "initial_settings": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "vt_ml_per_kg_ibw": "PENDING_CLINICAL_SIGNOFF",
+        "rate_strategy": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "titrate_on": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "actual_weight_caveat": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "Control card for the F-12 regression test: TBI vent queries already answered correctly through RAG, so this card must not make them worse. S-7 also flagged three different SBP targets across three TBI answers — a card is where that gets settled."
+    },
+    {
+      "id": "chest_trauma",
+      "title": "Chest trauma",
+      "applies_when": [
+        "chest trauma",
+        "blast lung",
+        "pulmonary contusion",
+        "flail",
+        "flail chest",
+        "hemothorax",
+        "pneumothorax",
+        "chest injury",
+        "penetrating chest"
+      ],
+      "initial_settings": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "vt_ml_per_kg_ibw": "PENDING_CLINICAL_SIGNOFF",
+        "rate_strategy": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "titrate_on": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "actual_weight_caveat": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "Overlaps chest_trauma with the tension-pneumo override in the safety gate; they answer different questions and should not contradict each other."
+    }
+  ]
+}

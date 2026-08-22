@@ -247,7 +247,7 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 8
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 9
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):
@@ -266,6 +266,11 @@ def test_log_schema_version_is_stamped():
     # is indistinguishable from a log written before suppression existed.
     assert "review_suppressed" in entry
     assert entry["review_suppressed"] is None
+    # Schema 9: the card tier. Present-and-null on a non-card answer, so a
+    # reader can tell "not a card" from "written before cards existed".
+    for field in ("card_id", "card_version"):
+        assert field in entry, f"schema 9 must carry {field}"
+        assert entry[field] is None
 
 
 def test_schema_5_logs_a_temperature_in_the_unit_it_was_stated_in():

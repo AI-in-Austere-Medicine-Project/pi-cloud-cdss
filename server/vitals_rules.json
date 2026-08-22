@@ -75,7 +75,26 @@
     "when.<flag>  a rule may also arm on a boolean fact about the patient",
     "          rather than a measurement — `ams_stated` is the first. Written",
     "          {\"is\": true}. These come from PatientContext, not from the",
-    "          vitals table, because a stated descriptor is not a measurement."
+    "          vitals table, because a stated descriptor is not a measurement.",
+    "",
+    "height    Captured for ideal body weight, which is what tidal volume is",
+    "          dosed on. Two units, and TWO KINDS OF BAND:",
+    "",
+    "            min/max, alt_min/alt_max   plausibility for a STATED unit.",
+    "            50-230 cm and 20-84 in, so a 90 cm child parses when the unit",
+    "            is given.",
+    "",
+    "            unlabelled_cm_min          disambiguation for a BARE number.",
+    "            At or above 100 it is cm; at or below alt_max (84) it is",
+    "            inches; 85-99 is neither and is rejected rather than guessed.",
+    "            The two never overlap in the NUMBER, which is the temperature",
+    "            pattern rather than the glucose one.",
+    "",
+    "          Rejection is asymmetric on purpose. A number next to the word",
+    "          height/ht/tall was MEANT as a height, so failing to read it is",
+    "          surfaced. A bare '3 cm laceration' was not, so it is skipped",
+    "          silently — a notice that fires on wound measurements is a notice",
+    "          nobody reads."
   ],
   "ranges": {
     "hr": {
@@ -138,6 +157,16 @@
       "alt_min": 0.6,
       "alt_max": 44.4,
       "assumed_unit_when_unstated": "mg/dL"
+    },
+    "height": {
+      "label": "Height",
+      "unit": "cm",
+      "min": 50,
+      "max": 230,
+      "alt_unit": "in",
+      "alt_min": 20,
+      "alt_max": 84,
+      "unlabelled_cm_min": 100
     }
   },
   "cautions": [
