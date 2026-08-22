@@ -44,9 +44,12 @@ BASE_RESULT = {
     "source_mode": "GENERAL_MEDICAL",
     "validator_result": "SAFE",
     "validator_issues": [],
+    # Mirrors PatientContext.to_dict(), which is what the real pipeline hands
+    # log_query. The logger whitelists keys out of this dict, so a field the
+    # fixture omits is a field the contract test cannot see.
     "patient_context": {"age_years": None, "confirmed_weight_kg": None,
                         "is_pediatric": False, "access_state": "UNKNOWN",
-                        "route_preference": "UNKNOWN"},
+                        "route_preference": "UNKNOWN", "ams_stated": False},
 }
 
 
@@ -244,13 +247,25 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 6
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 8
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):
         assert field in entry, f"schema 3 must carry {field}"
     for field in ("vitals", "vitals_superseded", "vitals_rejected", "vitals_cautions"):
         assert field in entry, f"schema 4 must carry {field}"
+    # Schema 7: a boolean patient fact rather than a measurement, so it lives
+    # in patient_ctx and not in vitals. A reader that treats its absence as
+    # False would mis-read every entry written before it existed, which is the
+    # same rule every field in this block is here to state.
+    assert "ams_stated" in entry["patient_ctx"], "schema 7 must carry ams_stated"
+    # The fixture above is hand-written, so pin that the REAL context supplies
+    # the key too — otherwise this passes on a dict that production never sends.
+    assert "ams_stated" in oc.PatientContext().to_dict()
+    # Schema 8: present-and-null, not absent — the override_fired rule. Absent
+    # is indistinguishable from a log written before suppression existed.
+    assert "review_suppressed" in entry
+    assert entry["review_suppressed"] is None
 
 
 def test_schema_5_logs_a_temperature_in_the_unit_it_was_stated_in():

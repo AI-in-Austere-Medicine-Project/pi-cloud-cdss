@@ -77,13 +77,28 @@ F2_ROWS = [
 ]
 
 # Aliases that must still resolve when typed as standalone words.
+# Unambiguous keys: typed as words, they resolve on their own. This is why
+# short keys were word-anchored in v4.1 rather than deleted.
 ALIAS_STANDALONE_CASES = [
-    ("give k now",            "k",             "ketamine (context-dependent)"),
-    ("pa on scene",           "pa",            "physician assistant"),
-    ("apply a cat",           "cat",           "combat application tourniquet"),
     ("need to make push dose epi", "push dose epi", "epinephrine 10mcg/mL bolus preparation"),
     ("rocky onium please",    "rocky onium",   "rocuronium"),
     ("vitamin k for pain",    "vitamin k",     "ketamine"),
+    ("start a norepi drip",   "norepi drip",   "norepinephrine infusion"),
+    ("apply a tq",            "tq",            "tourniquet"),
+]
+
+# F-6: keys whose collision IS the whole word, so word anchoring cannot help.
+# These resolve only when a second term pointing at the same protocol is
+# present. Each row is (query_alone, query_corroborated, key).
+#
+# Measured misroute that motivated the change: "his K is 6.8 and the ECG has
+# peaked T waves, what is the order of treatment" resolved k -> ketamine and
+# searched a hyperkalaemia emergency as a ketamine question (G-TRP-12).
+ALIAS_CONTEXT_DEPENDENT_CASES = [
+    ("give k now", "give k now, ketamine 100mg/mL drawn up", "k"),
+    ("he is cold", "he is cold, hypothermia after two hours in the water", "cold"),
+    ("hs suspected", "hs suspected, hemorrhagic shock from the pelvis", "hs"),
+    ("check the pus", "check the pus, sepsis is the working diagnosis", "pus"),
 ]
 
 # ── SC-6 unchanged-path case: a populated contract, three real issues ────────

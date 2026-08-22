@@ -57,6 +57,11 @@ _BUILTIN_CONFIG = {
         "anthropic": {"label": "Anthropic", "adapter": "anthropic",
                       "key_env": "ANTHROPIC_API_KEY", "key_prefix": "sk-ant-",
                       "base_url": None, "base_url_env": "CDSS_ANTHROPIC_BASE_URL"},
+        "gemini": {"label": "Google Gemini", "adapter": "openai_compat",
+                   "key_env": "GEMINI_API_KEY", "key_prefix": None,
+                   "requires_key": True,
+                   "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+                   "base_url_env": "CDSS_GEMINI_BASE_URL"},
     },
     "models": [
         {"id": "gpt-4o-mini", "provider": "openai", "label": "GPT-4o mini",
@@ -174,8 +179,14 @@ def config_problem(provider_id: str) -> Optional[str]:
     key_env = provider.get("key_env", "")
     key = _api_key(provider_id)
     if not key:
-        # A self-hosted endpoint is legitimately keyless. Everything else needs one.
-        if _base_url(provider_id):
+        # A self-hosted endpoint is legitimately keyless, and "has a base_url"
+        # was the proxy for self-hosted. That proxy breaks for a hosted
+        # provider reached through an OpenAI-compatibility endpoint: Gemini
+        # ships a PUBLIC base_url in providers.json and still requires a key,
+        # so without `requires_key` it looked configured, and /status made a
+        # real network round trip for it every five minutes — on a device that
+        # may have no network at all.
+        if _base_url(provider_id) and not provider.get("requires_key"):
             return None
         return f"{provider.get('label', provider_id)} is not configured ({key_env} is unset)"
 

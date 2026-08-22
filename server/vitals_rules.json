@@ -50,81 +50,282 @@
     "          in neither is rejected visibly rather than stored in a unit it",
     "          was never given in.",
     "",
-    "          The reading keeps the unit it was stated in \u2014 a medic who typed",
-    "          104 F is shown 104 F \u2014 and carries both conversions. Only the",
+    "          The reading keeps the unit it was stated in — a medic who typed",
+    "          104 F is shown 104 F — and carries both conversions. Only the",
     "          canonical Celsius value is compared against the table below.",
     "",
     "          NOTE: min 35 excludes hypothermia stated in Celsius. 'temp 33' is",
     "          rejected, and hypothermia_txa can then only arm from a Fahrenheit",
     "          reading (93-94.9F is 33.9-34.9C). Lowering temp.min here restores",
-    "          it with no code change."
+    "          it with no code change.",
+    "",
+    "glucose   TWO units whose plausible bands OVERLAP, which temperature's do",
+    "          not: 32 is a critical low in mg/dL and a high in mmol/L, the",
+    "          opposite emergency. A stated unit is always honoured. An",
+    "          UNLABELLED value is read as `assumed_unit_when_unstated`, and",
+    "          the assumption is written into the reading and quoted back in",
+    "          the caution, so it is visible rather than silent.",
+    "",
+    "          THE DEFAULT IS A CLINICAL CONVENTION, NOT A MEASUREMENT, and it",
+    "          is config for that reason. It is set to mg/dL because the whole",
+    "          corpus is US JTS/TCCC. A deployment where medics state mmol/L",
+    "          changes this line and nothing else. Flagged for owner",
+    "          ratification — see the round-1 PR notes.",
+    "",
+    "when.<flag>  a rule may also arm on a boolean fact about the patient",
+    "          rather than a measurement — `ams_stated` is the first. Written",
+    "          {\"is\": true}. These come from PatientContext, not from the",
+    "          vitals table, because a stated descriptor is not a measurement."
   ],
-
   "ranges": {
-    "hr":     { "label": "HR",    "unit": "bpm",  "min": 10,  "max": 300 },
-    "sbp":    { "label": "SBP",   "unit": "mmHg", "min": 40,  "max": 300 },
-    "dbp":    { "label": "DBP",   "unit": "mmHg", "min": 10,  "max": 200 },
-    "spo2":   { "label": "SpO2",  "unit": "%",    "min": 50,  "max": 100 },
-    "rr":     { "label": "RR",    "unit": "/min", "min": 2,   "max": 80  },
-    "gcs":    { "label": "GCS",   "unit": "",     "min": 3,   "max": 15  },
-    "map":    { "label": "MAP",   "unit": "mmHg", "min": 20,  "max": 240 },
-    "temp":   { "label": "Temp",  "unit": "C",    "min": 35,  "max": 43,
-                "alt_unit": "F", "alt_min": 93, "alt_max": 110 }
+    "hr": {
+      "label": "HR",
+      "unit": "bpm",
+      "min": 10,
+      "max": 300
+    },
+    "sbp": {
+      "label": "SBP",
+      "unit": "mmHg",
+      "min": 40,
+      "max": 300
+    },
+    "dbp": {
+      "label": "DBP",
+      "unit": "mmHg",
+      "min": 10,
+      "max": 200
+    },
+    "spo2": {
+      "label": "SpO2",
+      "unit": "%",
+      "min": 50,
+      "max": 100
+    },
+    "rr": {
+      "label": "RR",
+      "unit": "/min",
+      "min": 2,
+      "max": 80
+    },
+    "gcs": {
+      "label": "GCS",
+      "unit": "",
+      "min": 3,
+      "max": 15
+    },
+    "map": {
+      "label": "MAP",
+      "unit": "mmHg",
+      "min": 20,
+      "max": 240
+    },
+    "temp": {
+      "label": "Temp",
+      "unit": "C",
+      "min": 35,
+      "max": 43,
+      "alt_unit": "F",
+      "alt_min": 93,
+      "alt_max": 110
+    },
+    "glucose": {
+      "label": "Glucose",
+      "unit": "mg/dL",
+      "min": 10,
+      "max": 800,
+      "alt_unit": "mmol/L",
+      "alt_min": 0.6,
+      "alt_max": 44.4,
+      "assumed_unit_when_unstated": "mg/dL"
+    }
   },
-
   "cautions": [
     {
       "id": "hypotension_vasoactive_risk",
       "group": "hypotension",
-      "when": { "sbp": { "lt": 90 } },
-      "drugs": ["propofol", "midazolam", "lorazepam", "diazepam",
-                "fentanyl", "morphine", "hydromorphone",
-                "metoprolol", "labetalol", "esmolol",
-                "diltiazem", "verapamil", "nitroglycerin", "nitro"],
+      "when": {
+        "sbp": {
+          "lt": 90
+        }
+      },
+      "drugs": [
+        "propofol",
+        "midazolam",
+        "lorazepam",
+        "diazepam",
+        "fentanyl",
+        "morphine",
+        "hydromorphone",
+        "metoprolol",
+        "labetalol",
+        "esmolol",
+        "diltiazem",
+        "verapamil",
+        "nitroglycerin",
+        "nitro"
+      ],
       "caution": "{drug} carries a hypotension risk and the recorded SBP is {sbp} mmHg. Confirm the haemodynamic plan before giving it."
     },
     {
       "id": "hypotension_vasoactive_risk_map",
       "group": "hypotension",
-      "when": { "map": { "lt": 65 } },
-      "drugs": ["propofol", "midazolam", "lorazepam", "diazepam",
-                "fentanyl", "morphine", "hydromorphone",
-                "metoprolol", "labetalol", "esmolol",
-                "diltiazem", "verapamil", "nitroglycerin", "nitro"],
+      "when": {
+        "map": {
+          "lt": 65
+        }
+      },
+      "drugs": [
+        "propofol",
+        "midazolam",
+        "lorazepam",
+        "diazepam",
+        "fentanyl",
+        "morphine",
+        "hydromorphone",
+        "metoprolol",
+        "labetalol",
+        "esmolol",
+        "diltiazem",
+        "verapamil",
+        "nitroglycerin",
+        "nitro"
+      ],
       "caution": "{drug} carries a hypotension risk and the recorded MAP is {map} mmHg. Confirm the haemodynamic plan before giving it."
     },
     {
       "id": "respiratory_depressant_low_rr",
-      "when": { "rr": { "lt": 10 } },
-      "drugs": ["fentanyl", "morphine", "hydromorphone",
-                "midazolam", "lorazepam", "diazepam", "propofol"],
+      "when": {
+        "rr": {
+          "lt": 10
+        }
+      },
+      "drugs": [
+        "fentanyl",
+        "morphine",
+        "hydromorphone",
+        "midazolam",
+        "lorazepam",
+        "diazepam",
+        "propofol"
+      ],
       "caution": "{drug} is a respiratory depressant and the recorded RR is {rr}/min. Confirm airway and ventilation support before giving it."
     },
     {
       "id": "respiratory_depressant_low_spo2",
-      "when": { "spo2": { "lt": 90 } },
-      "drugs": ["fentanyl", "morphine", "hydromorphone",
-                "midazolam", "lorazepam", "diazepam", "propofol"],
+      "when": {
+        "spo2": {
+          "lt": 90
+        }
+      },
+      "drugs": [
+        "fentanyl",
+        "morphine",
+        "hydromorphone",
+        "midazolam",
+        "lorazepam",
+        "diazepam",
+        "propofol"
+      ],
       "caution": "{drug} is a respiratory depressant and the recorded SpO2 is {spo2}%. Confirm oxygenation and airway support before giving it."
     },
     {
       "id": "bradycardia_av_nodal_blocker",
-      "when": { "hr": { "lt": 50 } },
-      "drugs": ["metoprolol", "labetalol", "esmolol", "atenolol",
-                "diltiazem", "verapamil", "digoxin", "adenosine"],
+      "when": {
+        "hr": {
+          "lt": 50
+        }
+      },
+      "drugs": [
+        "metoprolol",
+        "labetalol",
+        "esmolol",
+        "atenolol",
+        "diltiazem",
+        "verapamil",
+        "digoxin",
+        "adenosine"
+      ],
       "caution": "{drug} slows AV conduction and the recorded HR is {hr} bpm. Confirm the rhythm before giving it."
     },
     {
       "id": "hypothermia_txa",
-      "when": { "temp":   { "lt": 35 } },
-      "drugs": ["txa", "tranexamic"],
+      "when": {
+        "temp": {
+          "lt": 35
+        }
+      },
+      "drugs": [
+        "txa",
+        "tranexamic"
+      ],
       "caution": "The recorded temperature is {temp}. TXA is for traumatic haemorrhagic shock, not hypothermia — confirm active haemorrhage."
     },
     {
       "id": "depressed_gcs_oral_route",
-      "when": { "gcs": { "lte": 8 } },
-      "drugs": ["by mouth", "oral fluids", "po fluids", "drink"],
-      "caution": "The recorded GCS is {gcs}. Anything by mouth carries an aspiration risk at this level of consciousness."
+      "when": {
+        "gcs": {
+          "lte": 8
+        }
+      },
+      "drugs": [
+        "by mouth",
+        "oral fluids",
+        "po fluids",
+        "drink",
+        "drinking",
+        "oral glucose",
+        "glucose gel",
+        "oral rehydration",
+        "swallow",
+        "orally"
+      ],
+      "caution": "The recorded GCS is {gcs}. Anything by mouth carries an aspiration risk at this level of consciousness.",
+      "group": "oral_route_aspiration"
+    },
+    {
+      "id": "stated_ams_oral_route",
+      "group": "oral_route_aspiration",
+      "when": {
+        "ams_stated": {
+          "is": true
+        }
+      },
+      "drugs": [
+        "by mouth",
+        "oral fluids",
+        "po fluids",
+        "drink",
+        "drinking",
+        "oral glucose",
+        "glucose gel",
+        "oral rehydration",
+        "swallow",
+        "orally"
+      ],
+      "caution": "The patient is described as having altered mental status. Anything by mouth carries an aspiration risk until they are protecting their own airway."
+    },
+    {
+      "id": "hypoglycaemia_oral_route",
+      "group": "oral_route_aspiration",
+      "when": {
+        "glucose": {
+          "lt": 70
+        }
+      },
+      "drugs": [
+        "by mouth",
+        "oral fluids",
+        "po fluids",
+        "drink",
+        "drinking",
+        "oral glucose",
+        "glucose gel",
+        "oral rehydration",
+        "swallow",
+        "orally"
+      ],
+      "caution": "The recorded glucose is {glucose}. Treat the hypoglycaemia, and give nothing by mouth unless the patient is fully awake and protecting their airway."
     }
   ]
 }

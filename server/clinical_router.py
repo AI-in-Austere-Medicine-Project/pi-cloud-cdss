@@ -15,6 +15,7 @@ Usage:
 
 import json
 import re
+from functools import lru_cache
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
@@ -48,6 +49,7 @@ class ClinicalRouter:
         self.query_aliases = self._load_json("query_aliases.json")
 
         # Build fast lookup structures
+        self._term_patterns = {}
         self._build_lookup_index()
 
     def _load_json(self, filename: str) -> dict:
@@ -77,7 +79,96 @@ class ClinicalRouter:
                 if protocol_id not in self.term_to_protocols[t]:
                     self.term_to_protocols[t].append(protocol_id)
 
+        # Compile every term's matcher now, so the first clinical query of the
+        # day is not the one that pays for 625 regex compilations.
+        for t in self.term_to_protocols:
+            self._term_pattern(t)
+
+    # F-6 (eval baseline). Short alias keys that are ordinary English words or
+    # ordinary clinical abbreviations with a second meaning. Word anchoring
+    # cannot help here — the collision IS the whole word — so these resolve
+    # only when a second term pointing at the same protocol also matched.
+    #
+    # Measured: "his K is 6.8 and the ECG has peaked T waves" resolved
+    # k -> ketamine and searched a hyperkalaemia emergency as a ketamine
+    # question (G-TRP-12).
+    # Only keys whose STANDARD names something in the protocol index are here.
+    # Corroboration is measured against index terms, so a key whose standard
+    # names nothing can never be corroborated — putting it here would not
+    # guard it, it would silently kill it. Measured: "cat" -> combat
+    # application tourniquet, "map" -> mean arterial pressure, "pa" ->
+    # physician assistant and "mag" -> magnesium sulfate all name nothing in
+    # the index, so they keep their v4.1 behaviour (word-anchored, resolving
+    # freely) and are noted in the PR rather than quietly disabled.
+    # test_every_context_dependent_key_is_corroborable pins this.
+    CONTEXT_DEPENDENT_ALIASES = frozenset({
+        "k", "hs", "cold", "march", "tube", "pus",
+    })
+
+    # Index terms that are ordinary clinical prose rather than a topic. A term
+    # here cannot carry a routing ON ITS OWN; corroborated by any second
+    # matched term it counts normally.
+    #
+    # This is a stoplist and not a rule because no rule in the data works.
+    # Measured over the 625 index terms and the 160-scenario bank:
+    #   - document frequency does not separate them: "treatment" claims ONE
+    #     protocol and "burns" claims three.
+    #   - index field does not: "resuscitation" is in primary_conditions,
+    #     "hypothermia" is only in search_terms and is good.
+    #   - term LENGTH is inverted: "tbi" is 3 characters and correct,
+    #     "resuscitation" is 13 and wrong.
+    # So the generic terms are a DATA defect in protocol_index.json, and this
+    # is the narrowest place to neutralise them without editing the clinical
+    # index. Both entries below are measured misroutes:
+    #   "what are the criteria for terminating resuscitation in the field"
+    #        -> Burn Care [HIGH]                                (G-GEN-05)
+    #   "what does a rising end tidal CO2 tell me during a resuscitation"
+    #        -> Burn Care [HIGH]                                (G-GEN-03)
+    #   "his K is 6.8 ... what is the order of treatment"
+    #        -> Medical Management of Chemical Agent Exposure   (G-TRP-12)
+    # FLAGGED FOR OWNER REVIEW: this list is routing vocabulary, and the
+    # durable fix is removing these words from the index entries that claim
+    # them.
+    GENERIC_ROUTING_TERMS = frozenset({"resuscitation", "treatment"})
+
+    def _protocols_for_alias(self, alias: str) -> set:
+        """Protocols the alias points at, via its key and its standard term.
+
+        The standard is prose — "ketamine (context-dependent)", "sepsis
+        (context-dependent)" — so the parenthetical is stripped and the
+        remainder tried whole and word by word. An alias whose standard names
+        nothing in the index has no protocols, and therefore can never be
+        corroborated: it fails closed, which is the right direction for a
+        token this ambiguous.
+        """
+        out = set(self.term_to_protocols.get(alias, ()))
+        standard = re.sub(r'\([^)]*\)', ' ', self.query_aliases.get(alias, "")).lower()
+        out |= set(self.term_to_protocols.get(standard.strip(), ()))
+        for word in standard.split():
+            out |= set(self.term_to_protocols.get(word, ()))
+        return out
+
+    def _term_pattern(self, term: str):
+        """Word-boundary matcher for a protocol-index term.
+
+        Compiled ONCE per term at index-build time. Compiling on every call
+        cost 125 ms per route() against 625 index terms — measured, and a
+        180x regression on the 0.7 ms this took before word anchoring. The
+        router runs on every query that reaches retrieval.
+
+        The same fix F-2 applied to the alias table, which was never applied to
+        term_to_protocols. Measured: "organophosphate exposure from a farm
+        sprayer" matched the index term "pra" inside "s-pra-yer" and routed to
+        Progressive Return to Activity at HIGH confidence.
+        """
+        cached = self._term_patterns.get(term)
+        if cached is None:
+            cached = re.compile(r'(?<!\w)' + re.escape(term) + r'(?!\w)')
+            self._term_patterns[term] = cached
+        return cached
+
     @staticmethod
+    @lru_cache(maxsize=512)
     def _alias_pattern(alias: str):
         """Word-boundary matcher for one alias key.
 
@@ -101,12 +192,28 @@ class ClinicalRouter:
         resolved = []
         enhanced = query
 
-        for alias, standard in self.query_aliases.items():
-            if self._alias_pattern(alias).search(q):
-                resolved.append(f"{alias} → {standard}")
-                # Don't replace in query text — just note the resolution
-                # Use standard term for search enhancement
-                enhanced = enhanced + " " + standard
+        matched = [alias for alias in self.query_aliases
+                   if self._alias_pattern(alias).search(q)]
+        # Protocol-index terms present in the query. Corroboration is measured
+        # against THESE, not against other aliases: the ruling is "resolves
+        # only with a second same-protocol term present", and an alias rarely
+        # has a second alias beside it.
+        query_terms = {t for t in self.term_to_protocols
+                       if self._term_pattern(t).search(q)}
+
+        for alias in matched:
+            if alias in self.CONTEXT_DEPENDENT_ALIASES:
+                mine = self._protocols_for_alias(alias)
+                corroborated = any(
+                    term != alias and set(self.term_to_protocols[term]) & mine
+                    for term in query_terms)
+                if not corroborated:
+                    continue
+            standard = self.query_aliases[alias]
+            resolved.append(f"{alias} → {standard}")
+            # Don't replace in query text — just note the resolution
+            # Use standard term for search enhancement
+            enhanced = enhanced + " " + standard
 
         return enhanced, resolved
 
@@ -172,21 +279,27 @@ class ClinicalRouter:
         # Step 1: Resolve aliases
         enhanced_query, aliases_resolved = self.resolve_aliases(query)
 
-        # Step 2: Score protocols by term matches
+        # Step 2: Score protocols by term matches.
+        # Word-anchored (F-6): bare `term in combined` matched "pra" inside
+        # "sprayer". Distinct terms are tracked alongside the score, because
+        # the score alone cannot tell one term counted twice from two terms.
         combined = (full_history + " " + query).lower()
-        scores = {}
-
-        for term, protocol_ids in self.term_to_protocols.items():
-            if term in combined:
-                for pid in protocol_ids:
-                    scores[pid] = scores.get(pid, 0) + 1
-
-        # Boost score for terms in current query (not just history)
         q_lower = query.lower()
+        scores = {}
+        terms_hit = {}
+
         for term, protocol_ids in self.term_to_protocols.items():
-            if term in q_lower:
-                for pid in protocol_ids:
+            pattern = self._term_pattern(term)
+            in_combined = pattern.search(combined) is not None
+            in_query = pattern.search(q_lower) is not None
+            if not in_combined and not in_query:
+                continue
+            for pid in protocol_ids:
+                if in_combined:
+                    scores[pid] = scores.get(pid, 0) + 1
+                if in_query:
                     scores[pid] = scores.get(pid, 0) + 2  # current query worth more
+                terms_hit.setdefault(pid, set()).add(term)
 
         # Step 3: Find best match
         matched_protocol = None
@@ -197,13 +310,25 @@ class ClinicalRouter:
         if scores:
             best_pid = max(scores, key=scores.get)
             best_score = scores[best_pid]
+            hits = terms_hit.get(best_pid, set())
+            # One distinct term is the NORM, not a weak signal — measured over
+            # the bank, a typical query matches exactly one index term, so
+            # requiring two would disable routing almost entirely and take the
+            # burn-narrative mitigation with it (the +0.118 the 2026-08-21
+            # retrieval diagnosis attributes to the router).
+            #
+            # So: a routing needs at least one term that is not generic prose,
+            # OR two distinct terms — a generic term corroborated by a second
+            # term is a real signal.
+            specific = (bool(hits - self.GENERIC_ROUTING_TERMS)
+                        or len(hits) >= 2)
 
-            if best_score >= 3:
+            if specific and best_score >= 3:
                 confidence = "HIGH"
-            elif best_score >= 1:
+            elif specific and best_score >= 1:
                 confidence = "MEDIUM"
 
-            if best_score >= 1:
+            if specific and best_score >= 1:
                 matched_protocol = best_pid
                 meta = self.protocol_index.get(best_pid, {})
                 protocol_title = meta.get("title", best_pid)

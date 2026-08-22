@@ -778,10 +778,17 @@ def test_an_old_rules_file_still_arms_its_temperature_caution():
     assert "{temp}" in raw["cautions"][0]["caution"]
 
 
-def test_every_caution_rule_names_a_known_vital():
+def test_every_caution_rule_names_a_known_vital_or_flag():
+    """A `when` key must name a measurement in RANGES or a declared patient flag.
+
+    Both halves matter. An unknown vital name never arms, so the rule is dead
+    config that reads as live protection; and a flag that is not in
+    PATIENT_FLAGS is the same defect wearing different clothes.
+    """
     for rule in v.CAUTIONS:
         for name in (rule.get("when") or {}):
-            assert name in v.RANGES, f"{rule.get('id')} tests unknown vital {name}"
+            assert name in v.RANGES or name in v.PATIENT_FLAGS, (
+                f"{rule.get('id')} tests unknown vital/flag {name}")
         assert rule.get("drugs"), f"{rule.get('id')} has no drugs"
         assert rule.get("caution"), f"{rule.get('id')} has no caution text"
 
@@ -791,6 +798,15 @@ def test_every_caution_template_formats():
     for rule in v.CAUTIONS:
         fields = {name: "0" for name in (rule.get("when") or {})}
         rule["caution"].format(drug="testdrug", **fields)
+
+
+def test_a_flag_rule_arms_without_any_reading():
+    """The point of PATIENT_FLAGS: no measurement, still armed."""
+    assert v._rule_armed({"when": {"ams_stated": {"is": True}}}, {},
+                         {"ams_stated": True}) == {}
+    assert v._rule_armed({"when": {"ams_stated": {"is": True}}}, {},
+                         {"ams_stated": False}) is None
+    assert v._rule_armed({"when": {"ams_stated": {"is": True}}}, {}, {}) is None
 
 
 # ── end to end through the real pipeline ────────────────────────────────────
