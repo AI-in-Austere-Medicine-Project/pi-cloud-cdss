@@ -220,13 +220,61 @@ def _reset_status_cache():
 # Providers quote the offending key back in their own error bodies, partially
 # masked ("sk-clear*****-xyz"). Their masking is not ours to rely on, and
 # /status is unauthenticated — the same endpoint the web client polls once a
-# minute without a token. Anything key-shaped is replaced before it can reach a
-# response body or a log line.
-_KEY_SHAPED_RE = re.compile(r'\bsk-[A-Za-z0-9_*\-]{4,}', re.IGNORECASE)
+# minute without a token.
+#
+# This was a SHAPE denylist matching /\bsk-.../ and nothing else, which covered
+# OpenAI and Anthropic and silently missed every other credential this process
+# holds: xAI (xai-), Gemini (AQ.), and ElevenLabs — whose keys begin "sk_" with
+# an underscore, so it looked covered and was not. A denylist of shapes fails
+# closed only for the shapes someone remembered.
+#
+# It is now FIELD-based. The field list is read from providers.json's own
+# key_env declarations, so a provider added there is redacted from the moment
+# it is added rather than the moment someone remembers to add a pattern here.
+_EXTRA_SECRET_ENV = ("ELEVENLABS_API_KEY", "CDSS_ACCESS_TOKEN")
+
+# Below this a value is not a credential — it is "", "0" or a test stub — and
+# blanking it would eat ordinary words out of a diagnostic.
+_MIN_SECRET_LEN = 8
+
+# Shape backstop, still needed: the value pass cannot match what this process
+# does not hold — a key quoted back partially masked, or one rotated upstream
+# but not here.
+_KEY_SHAPED_RE = re.compile(
+    r'\b(?:sk[-_][A-Za-z0-9_*\-]{4,}'
+    r'|xai-[A-Za-z0-9_*\-]{4,}'
+    r'|AIza[A-Za-z0-9_*\-]{10,}'
+    r'|AQ\.[A-Za-z0-9_*\-]{10,})', re.IGNORECASE)
+
+# Provider error bodies quote the console URL of the account that failed — the
+# xAI team URL is one of these. An account identifier is not something a
+# diagnostic needs to carry onto an unauthenticated endpoint.
+_URL_RE = re.compile(r'https?://\S+')
+
+
+def _secret_values() -> list:
+    """Every secret this process holds, by field, read live from the environment.
+
+    Live rather than cached at import: a key rotated into the environment and
+    the process reloaded must not leave the old value unredacted, and provider
+    status is cached for five minutes anyway so the cost is nothing.
+    """
+    names = [(p.get("key_env") or "") for p in PROVIDERS.values()]
+    names += list(_EXTRA_SECRET_ENV)
+    values = {v for v in ((os.getenv(n) or "").strip() if n else "" for n in names)
+              if len(v) >= _MIN_SECRET_LEN}
+    # Longest first: where one secret contains another as a prefix, replacing
+    # the shorter first would leave the tail of the longer one behind.
+    return sorted(values, key=len, reverse=True)
 
 
 def _redact(text: str) -> str:
-    return _KEY_SHAPED_RE.sub("[redacted]", text or "")
+    """Strip anything secret from a string bound for /status, a log or a caller."""
+    out = text or ""
+    for secret in _secret_values():
+        out = out.replace(secret, "[redacted]")
+    out = _KEY_SHAPED_RE.sub("[redacted]", out)
+    return _URL_RE.sub("[url removed]", out)
 
 
 def _auth_problem(provider_id: str) -> Optional[str]:
