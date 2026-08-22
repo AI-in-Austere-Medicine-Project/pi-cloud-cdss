@@ -80,6 +80,10 @@ _BUILTIN_RULES = {
         # read as whichever band it falls in.
         "temp":   {"label": "Temp", "unit": "C",    "min": 35, "max": 43,
                    "alt_unit": "F", "alt_min": 93, "alt_max": 110},
+        # Bands OVERLAP, unlike temperature's — see vitals_rules.json.
+        "glucose": {"label": "Glucose", "unit": "mg/dL", "min": 10, "max": 800,
+                    "alt_unit": "mmol/L", "alt_min": 0.6, "alt_max": 44.4,
+                    "assumed_unit_when_unstated": "mg/dL"},
     },
     "cautions": [],
 }
@@ -127,7 +131,7 @@ CAUTIONS = [c for c in _RULES["cautions"] if isinstance(c, dict)]
 
 # Display order for the client strip and the prompt block. Explicit rather than
 # dict order so a reordered config file does not reorder what the medic reads.
-VITAL_ORDER = ("hr", "sbp", "dbp", "map", "spo2", "rr", "gcs", "temp")
+VITAL_ORDER = ("hr", "sbp", "dbp", "map", "spo2", "rr", "gcs", "temp", "glucose")
 
 
 @dataclass(frozen=True)
@@ -158,10 +162,17 @@ class VitalReading:
     value_c: Optional[float] = None
     value_f: Optional[float] = None
     derived: bool = False
+    # Set only when a vital has a second unit that is NOT a temperature —
+    # glucose is the first. `value_c` cannot carry it: that field means
+    # Celsius, is emitted under that name, and a glucose in Celsius is not a
+    # thing. Not emitted in to_dict, so the log shape is unchanged.
+    canonical_value: Optional[float] = None
 
     @property
     def canonical(self) -> float:
         """The value in the unit the rules are written in."""
+        if self.canonical_value is not None:
+            return self.canonical_value
         return self.value_c if self.value_c is not None else self.value
 
     def to_dict(self) -> dict:
@@ -228,6 +239,17 @@ _MAP_LABEL = _B + r"(?:mean\s*arterial\s*(?:pressure|bp)?|map)"
 # this table stores measurements — the sepsis router reads the word itself
 # (has_fever) and is where an unmeasured fever belongs.
 _TEMP_LABEL = _B + r"(?:temperature|temp|fever|t)"
+# "sugar" and "glucose" are what medics say; "bg"/"cbg"/"bgl"/"dstick"/
+# "accucheck" are what they write. Anchored like every other label: "bg" must
+# not fire inside "bgcolor" and "t" is already the narrowest label here.
+_GLUCOSE_LABEL = _B + (r"(?:blood\s*sugar|blood\s*glucose|glucose|sugar"
+                       r"|cbg|bgl|bg|dstick|d-stick|accucheck|accu-chek|fingerstick)")
+# "his sugar CAME BACK AT 32" — a lab value gets reported, not just stated, and
+# _SEP alone only spans a single connective. An explicit verb list rather than
+# a wildcard filler: "\w+{0,3}" would read "sugar was fine, bp 118" as a
+# glucose of 118. Each alternative here is a word that introduces a result.
+_REPORTED = r"(?:\s*(?:came\s*back|comes\s*back|came\s*in|came\s*out"
+_REPORTED += r"|reads?|showed|shows|returned|resulted|measured))?"
 
 
 def _spans_overlap(span, consumed) -> bool:
@@ -338,6 +360,20 @@ def parse_vitals(text: str, ts: Optional[str] = None):
         for m in re.finditer(pattern + r"\b", q):
             take(name, float(m.group(1)), m.span(), m.group(0))
 
+    # ── Glucose, in whichever unit it was stated ────────────────────────────
+    # Before temperature on purpose: _TEMP_LABEL includes a bare "t", and
+    # _spans_overlap only defends spans that have ALREADY been consumed.
+    # (?!\d) is load-bearing. Every other label in this file is followed by a
+    # trailing \b, which is what stops "hr 1288" being read as a heart rate of
+    # 128; this pattern ends in an OPTIONAL unit group, so \b would sit after
+    # something that may not be there and "glucose 2000" silently became 200 —
+    # a rejectable value turned into a plausible one.
+    for m in re.finditer(
+            _GLUCOSE_LABEL + _REPORTED + _SEP + r"(\d{1,4}(?:\.\d+)?)(?!\d)\s*"
+            r"(mg/dl|mg\s*per\s*dl|mmol/l|mmol)?", q):
+        _take_glucose(float(m.group(1)), (m.group(2) or "").strip(),
+                      m, consumed, readings, rejections, ts)
+
     # ── Temperature, in whichever unit it was stated ────────────────────────
     for m in re.finditer(_TEMP_LABEL + _SEP + r"(\d{2,3}(?:\.\d+)?)\s*(c|f|°c|°f)?\b", q):
         _take_temp(float(m.group(1)), (m.group(2) or "").strip("°"),
@@ -400,6 +436,54 @@ def _f_to_c(value: float) -> float:
 
 def _c_to_f(value: float) -> float:
     return value * 9.0 / 5.0 + 32
+
+
+def _take_glucose(value: float, stated_unit: str, m, consumed, readings,
+                  rejections, ts):
+    """A blood glucose, in the unit it was stated in — or the assumed one.
+
+    Temperature can disambiguate an unlabelled number because its two bands do
+    not overlap. Glucose's DO: 32 is a critical low in mg/dL and a high in
+    mmol/L, which are opposite emergencies with opposite treatments. There is
+    no reading of the number that resolves that, so this does not guess from
+    the value — it applies the documented convention in
+    `assumed_unit_when_unstated`, records which unit it assumed, and lets the
+    caution quote it back. Visible assumption, not a silent one.
+
+    A STATED unit is always honoured and never reinterpreted.
+    """
+    if _spans_overlap(m.span(), consumed):
+        return
+    spec = RANGES.get("glucose") or {}
+    canonical_unit = _unit("glucose")
+    alt_unit = _alt_unit("glucose")
+    stated = stated_unit.lower().replace(" ", "").replace("per", "/")
+
+    if stated in ("mg/dl", "mg/dl"):
+        unit = canonical_unit if _in_range("glucose", value) else None
+    elif stated in ("mmol/l", "mmol"):
+        unit = alt_unit if _in_alt_range("glucose", value) else None
+    else:
+        # Unlabelled. Convention, not inference.
+        assumed = spec.get("assumed_unit_when_unstated") or canonical_unit
+        if assumed == alt_unit:
+            unit = alt_unit if _in_alt_range("glucose", value) else None
+        else:
+            unit = canonical_unit if _in_range("glucose", value) else None
+
+    if unit is None:
+        consumed.append(m.span())
+        rejections.append(VitalRejection(
+            name="glucose", raw=m.group(0),
+            reason=_reason("glucose", value, stated_unit.upper())))
+        return
+
+    # Canonical is mg/dL, which is what the caution thresholds are written in.
+    canonical = value if unit == canonical_unit else round(value * 18.0182, 1)
+    consumed.append(m.span())
+    readings["glucose"] = VitalReading(
+        value=value, unit=unit, ts=ts, raw=m.group(0),
+        canonical_value=canonical, derived=False)
 
 
 def _take_temp(value: float, stated_unit: str, m, consumed, readings, rejections, ts):
@@ -664,15 +748,33 @@ _COMPARATORS = {
 }
 
 
-def _rule_armed(rule: dict, readings: dict):
+# The boolean patient facts a caution rule may arm on, as opposed to a
+# measurement in RANGES. Declared here so the meta-test that checks every rule
+# names something real still catches a typo in vitals_rules.json — an unknown
+# `when` key must fail loudly, not silently never arm.
+PATIENT_FLAGS = ("ams_stated",)
+
+
+def _rule_armed(rule: dict, readings: dict, flags: Optional[dict] = None):
     """The readings that arm this rule, or None if it is not armed.
 
     A rule whose vital was never recorded is not armed. Absence of a vital is
     not a normal vital — the system does not know the blood pressure, and must
     not reason as though it were fine.
+
+    `flags` carries boolean facts about the patient that are not measurements
+    — `ams_stated` is the first. A rule tests one with {"is": true}. They are
+    kept out of `readings` because that table stores things that were measured,
+    and "the medic called him confused" is not a measurement.
     """
     armed = {}
+    flags = flags or {}
     for name, test in (rule.get("when") or {}).items():
+        if name in flags:
+            if not all(comparator == "is" and bool(flags[name]) == bool(expected)
+                       for comparator, expected in test.items()):
+                return None
+            continue
         reading = (readings or {}).get(name)
         if reading is None:
             return None
@@ -700,7 +802,8 @@ def _drug_present(response_lower: str, drug: str) -> bool:
                      response_lower) is not None
 
 
-def conflicts(response_text: str, readings: dict) -> list:
+def conflicts(response_text: str, readings: dict,
+              flags: Optional[dict] = None) -> list:
     """Cautions where the response and the recorded vitals disagree.
 
     Returns caution strings, not issues. These never block: apply_safety_gate
@@ -708,7 +811,7 @@ def conflicts(response_text: str, readings: dict) -> list:
     NEEDS_HUMAN_REVIEW. A parser reading one-handed free text does not get to
     stand between a medic and a protocol answer.
     """
-    if not response_text or not readings:
+    if not response_text or not (readings or flags):
         return []
     response_lower = response_text.lower()
     out = []
@@ -723,7 +826,7 @@ def conflicts(response_text: str, readings: dict) -> list:
         group = rule.get("group")
         if group is not None and group in spoken_for:
             continue
-        armed = _rule_armed(rule, readings)
+        armed = _rule_armed(rule, readings, flags)
         if armed is None:
             continue
         for drug in rule.get("drugs", []):

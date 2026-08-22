@@ -140,7 +140,15 @@ def _get_log_file() -> pathlib.Path:
 # `map`. The flag is written even where it is false because "the medic said this"
 # is a fact worth recording, and a flag that only appeared when true would leave
 # a stated MAP looking exactly like a log written before the field existed.
-LOG_SCHEMA_VERSION = 6
+# Schema 7 adds two things a reader must not guess about. `vitals` may now
+# carry `glucose`, whose two plausible unit bands OVERLAP — unlike temperature's
+# — so an unlabelled value is read by a documented convention
+# (vitals_rules.json: assumed_unit_when_unstated) rather than inferred from the
+# number. The `unit` on the reading says which unit was used and is the only
+# safe way to read the value: 32 mg/dL and 32 mmol/L are opposite emergencies.
+# `patient_ctx` also now carries `ams_stated` — a boolean patient fact, not a
+# measurement, which is why it is not in `vitals`.
+LOG_SCHEMA_VERSION = 7
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -197,7 +205,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "patient_ctx": {
                 k: v for k, v in (result.get("patient_context") or {}).items()
                 if k in ["confirmed_weight_kg", "is_pediatric", "route_preference",
-                         "access_state", "age_years"]
+                         "access_state", "age_years", "ams_stated"]
             }
         }
         with open(_get_log_file(), "a") as f:
@@ -256,6 +264,14 @@ class PatientContext:
     # fresh PatientContext() starts with it clear, which is what makes it mean
     # "this turn" rather than "some turn".
     boundary_reset_reason: Optional[str] = None
+    # F-3: "the medic said this patient's mental status is off", as a fact
+    # about the patient rather than a measurement. It lives here and not in
+    # `vitals` on purpose — vitals stores measurements, and a stated
+    # descriptor is not one — but the caution table needs it, and both of the
+    # places that call vitals.conflicts() have the context in hand.
+    # Describes the CURRENT turn plus anything a prior turn established, and
+    # is cleared by a patient boundary with the rest of the context.
+    ams_stated: bool = False
 
     @property
     def dosing_weight_kg(self) -> Optional[float]:
@@ -448,6 +464,13 @@ def extract_patient_context(query: str,
             ctx.confirmed_weight_kg = _wt_kg
             ctx.weight_source = f"confirmed_{_wt_unit}"
 
+    # ── Altered mental status, as stated (F-3) ────────────────────────────
+    # Sticky within a patient, like route and access: a turn that says nothing
+    # about mental status does not mean it has recovered. A patient boundary
+    # clears it with everything else.
+    if has_ams_descriptor(q):
+        ctx.ams_stated = True
+
     # ── Age extraction ────────────────────────────────────────────────────
     age_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:yo|y/o|year[\s-]*old|yr\s*old)\b', q)
     if age_match:
@@ -548,6 +571,54 @@ def extract_patient_context(query: str,
 # Interpolating the number would put this response outside the set and it
 # would be validated, cautioned and banner-able like a clinical plan.
 WEIGHT_CONFIRM_ASK = "Confirm the weight in kg before dosing — I only have an estimate."
+
+# F-3 (eval baseline, G-MTN-08). "his sugar came back at 32, he's confused"
+# was answered with "provide oral glucose (e.g., glucose gel or candy)" and no
+# caution fired, because two independent guards each missed on a word:
+# run_deterministic_checks matched the query against ['altered','ams',
+# 'unconscious','shock','unresponsive'] and the medic had said "confused", and
+# depressed_gcs_oral_route arms on a numeric GCS that was never stated.
+#
+# One list, three consumers — run_deterministic_checks, extract_patient_context
+# (which sets ctx.ams_stated) and, through that flag, the caution table. Two
+# copies of a clinical word list is how the pediatric-word bug in S-6 survived
+# its own fix.
+#
+# Word-anchored at both ends per doctrine: "out" must not match "outer",
+# "confused" must not match inside a longer token, and — the specific trap —
+# 'ams' must never match "milligrams", which is the bug _SHOCK_WORDS was
+# already bitten by.
+AMS_DESCRIPTORS = (
+    "altered", "altered mental status", "ams", "unconscious", "unresponsive",
+    "confused", "confusion", "disoriented", "disorientated", "obtunded",
+    "not tracking", "gcs", "stuporous", "somnolent", "won't wake",
+    "wont wake", "not waking", "postictal", "post-ictal",
+)
+
+# The response-side list. What the answer proposes putting in the patient's
+# mouth. "oral glucose" and "glucose gel" are here because the baseline answer
+# used exactly those words and neither was in the old four-term list.
+ORAL_ROUTE_TERMS = (
+    "by mouth", "oral fluids", "po fluids", "drink", "drinking",
+    "oral glucose", "glucose gel", "oral rehydration", "ors", "swallow",
+    "sips", "orally", "po intake", "buccal", "sublingual glucose",
+)
+
+
+def has_ams_descriptor(text: str) -> bool:
+    """Whether the text says this patient's mental status is not normal.
+
+    Negation-aware through has_positive_term for the descriptors that are
+    routinely negated in a handover — "not altered", "no confusion" — because
+    reading a negation as its opposite is the _SHOCK_WORDS 'unaltered' bug and
+    this list is wider than that one was.
+    """
+    q = (text or "").lower()
+    return any(_has_word(q, t) and has_positive_term(q, t)
+               for t in AMS_DESCRIPTORS if " " not in t) or \
+           any(t in q and has_positive_term(q, t)
+               for t in AMS_DESCRIPTORS if " " in t)
+
 
 SAFE_GATE_RESPONSES = {
     "Need weight in kg before dosing.",
@@ -1541,8 +1612,12 @@ def run_deterministic_checks(query: str, response_text: str,
         issues.append("Calcium chloride central line only. Peripheral: calcium gluconate.")
 
     # ── Oral intake in AMS/shock ──────────────────────────────────────────
-    if any(x in r for x in ['drink', 'po fluids', 'oral fluids', 'by mouth']):
-        if any(x in q for x in ['altered', 'ams', 'unconscious', 'shock', 'unresponsive']):
+    # F-3: both halves of this test used to be short hand-written lists and
+    # both missed on G-MTN-08 — "confused" was not an AMS word and "oral
+    # glucose" was not an oral-route word. Shared lists now, word-anchored.
+    if _has_any_word(r, ORAL_ROUTE_TERMS) or any(
+            t in r for t in ORAL_ROUTE_TERMS if " " in t):
+        if has_ams_descriptor(q) or _has_any_word(q, ["shock"]):
             issues.append("Oral intake in AMS or shock — aspiration risk.")
 
     return DeterministicCheck(passed=len(issues) == 0, issues=issues)
@@ -2743,7 +2818,8 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
         return result
 
     if result.get("source_mode") not in GATED_SOURCE_MODES:
-        cautions = vitals_mod.conflicts(result.get("response", ""), ctx.vitals)
+        cautions = vitals_mod.conflicts(result.get("response", ""), ctx.vitals,
+                                        flags={"ams_stated": ctx.ams_stated})
         if cautions:
             outcome = _with_cautions(
                 GateOutcome(response=result.get("response", ""),
@@ -3119,7 +3195,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # Step 7b: deterministic vitals conflicts. Python owns the explicit rule
         # table (vitals_rules.json); the validator above catches what a table
         # cannot. Both arrive at the gate as cautions, neither can block.
-        cautions = vitals_mod.conflicts(response_text, patient_ctx.vitals)
+        cautions = vitals_mod.conflicts(response_text, patient_ctx.vitals,
+                                        flags={"ams_stated": patient_ctx.ams_stated})
 
         # Step 8: Safety gate with full history context
         outcome = apply_safety_gate(
