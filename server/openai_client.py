@@ -333,6 +333,59 @@ class RetrievalAssessment:
 # PATIENT CONTEXT EXTRACTOR — incremental, merges with prior session state
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# WEIGHT CAPTURE — units, and confidence
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Longest alternative first: "kilograms" must not be consumed as "kilo" + junk.
+# Anchored with (?!\w) rather than \b for the same reason FIXED_PREP_TERMS is —
+# the doctrine in _prep_term_present — so "80kgs" matches and "80kgx" does not.
+_KG_RE = re.compile(r'(\d+(?:\.\d+)?)\s*(?:kilograms|kilogram|kilos|kilo|kgs|kg)(?!\w)')
+_LB_RE = re.compile(r'(\d+(?:\.\d+)?)\s*(?:pounds|pound|lbs|lb)(?!\w)')
+
+# F-1 (eval baseline, G-ADV-12). `confirmed_weight_kg` is the only weight the
+# dose contract will calculate from, and the parser had no notion of
+# confidence: any number next to a unit became a confirmed weight. The measured
+# consequence was "he weighs about 80kg I think, close enough" producing
+# `confirmed_weight_kg=80.0` and a served 24 mg ketamine dose, with a SAFE
+# verdict and no banner. `estimated_weight_kg` already existed for exactly this
+# and was never populated from prose.
+#
+# Two windows, not one. The ruling's own list contains both leading hedges
+# ("about 80kg") and TRAILING ones ("70 kg or so", "80kgish"), so a
+# before-the-number-only window would miss half the list it was given.
+_HEDGE_BEFORE = ("about", "around", "roughly", "approx", "approximately",
+                 "maybe", "like", "i think", "i guess", "guessing",
+                 "probably", "somewhere", "close enough", "or so", "ish")
+_HEDGE_AFTER = ("or so", "ish", "i think", "close enough", "maybe", "give or take")
+
+_HEDGE_BEFORE_RE = re.compile(
+    r'(?<!\w)(?:' + "|".join(re.escape(t) for t in _HEDGE_BEFORE) + r')(?!\w)')
+_HEDGE_AFTER_RE = re.compile(
+    r'(?<!\w)(?:' + "|".join(re.escape(t) for t in _HEDGE_AFTER) + r')(?!\w)')
+# "~80kg" — not a word character, so it cannot be word-anchored with the rest.
+_TILDE_RE = re.compile(r'~\s*$')
+
+_HEDGE_WINDOW_BEFORE = 30
+# Wide enough for the longest trailing hedge plus its leading space:
+# ' give or take' is 13 characters.
+_HEDGE_WINDOW_AFTER = 16
+
+
+def weight_is_hedged(text: str, start: int, end: int) -> bool:
+    """True when the number at [start:end] was offered as an estimate.
+
+    Deliberately biased toward reading a hedge that is not there: a false
+    positive downgrades a confirmed weight to an estimate and the pre-gate asks
+    once more, which costs a turn. A false negative doses a patient on a guess.
+    """
+    before = text[max(0, start - _HEDGE_WINDOW_BEFORE):start]
+    after = text[end:end + _HEDGE_WINDOW_AFTER]
+    return bool(_HEDGE_BEFORE_RE.search(before)
+                or _TILDE_RE.search(before)
+                or _HEDGE_AFTER_RE.search(after))
+
+
 def extract_patient_context(query: str,
                              prior_ctx: Optional[PatientContext] = None,
                              conversation_history: Optional[list] = None,
@@ -369,18 +422,31 @@ def extract_patient_context(query: str,
 
     full_text = q + " " + history_text
 
-    # ── Confirmed weight in kg ────────────────────────────────────────────
-    kg_match = re.search(r'(\d+(?:\.\d+)?)\s*kg\b', q)
+    # ── Stated weight, and whether the medic stood behind it (F-1) ────────
+    # kg wins over lbs when both appear; a hedged number goes to
+    # estimated_weight_kg and NEVER to confirmed_weight_kg, which is what the
+    # dose contract reads.
+    _wt_match, _wt_kg, _wt_unit = None, None, None
+    kg_match = _KG_RE.search(q)
     if kg_match:
-        ctx.confirmed_weight_kg = float(kg_match.group(1))
-        ctx.weight_source = "confirmed_kg"
-
-    # ── Confirmed weight in lbs (convert silently) ────────────────────────
-    if not kg_match:
-        lb_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:lbs?|pounds?)\b', q)
+        _wt_match, _wt_kg, _wt_unit = kg_match, float(kg_match.group(1)), "kg"
+    else:
+        lb_match = _LB_RE.search(q)
         if lb_match:
-            ctx.confirmed_weight_kg = round(float(lb_match.group(1)) * 0.453592, 1)
-            ctx.weight_source = "confirmed_lbs"
+            _wt_match = lb_match
+            _wt_kg = round(float(lb_match.group(1)) * 0.453592, 1)
+            _wt_unit = "lbs"
+
+    if _wt_match is not None:
+        if weight_is_hedged(q, _wt_match.start(), _wt_match.end()):
+            # Not a confirmed weight. Left in estimated_weight_kg so the
+            # pre-gate can say what it has rather than asking from nothing,
+            # and so airway sizing still has a number to work with.
+            ctx.estimated_weight_kg = _wt_kg
+            ctx.weight_source = f"estimated_hedged_{_wt_unit}"
+        else:
+            ctx.confirmed_weight_kg = _wt_kg
+            ctx.weight_source = f"confirmed_{_wt_unit}"
 
     # ── Age extraction ────────────────────────────────────────────────────
     age_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:yo|y/o|year[\s-]*old|yr\s*old)\b', q)
@@ -407,11 +473,21 @@ def extract_patient_context(query: str,
         ctx.is_pediatric = ctx.age_years < 18
     elif (_has_any_word(full_text, pediatric_terms) or
             (ctx.confirmed_weight_kg is not None
-             and ctx.confirmed_weight_kg < PEDIATRIC_WEIGHT_CEILING_KG)):
+             and ctx.confirmed_weight_kg < PEDIATRIC_WEIGHT_CEILING_KG) or
+            # A hedged weight is not good enough to DOSE from and is good
+            # enough to pediatric-GATE from. "he's maybe 20 kilos" must not
+            # dose, and must also not be treated as an adult.
+            (ctx.weight_source.startswith("estimated_hedged")
+             and ctx.estimated_weight_kg is not None
+             and ctx.estimated_weight_kg < PEDIATRIC_WEIGHT_CEILING_KG)):
         ctx.is_pediatric = True
 
     # ── Estimated weight from age (context only — never used for dosing) ─
-    if ctx.is_pediatric and ctx.age_years is not None and ctx.confirmed_weight_kg is None:
+    if (ctx.is_pediatric and ctx.age_years is not None
+            and ctx.confirmed_weight_kg is None
+            # A weight the medic actually stated, even hedged, beats an
+            # age-band table lookup. Overwriting it would lose information.
+            and not ctx.weight_source.startswith("estimated_hedged")):
         age_to_weight = {1: 10, 2: 12, 4: 16, 6: 20, 8: 25, 10: 32, 12: 38, 14: 45}
         closest = min(age_to_weight.keys(), key=lambda x: abs(x - ctx.age_years))
         ctx.estimated_weight_kg = age_to_weight[closest]
@@ -464,8 +540,18 @@ def extract_patient_context(query: str,
 # DETERMINISTIC PRE-GATES
 # ─────────────────────────────────────────────────────────────────────────────
 
+# F-1: the ask when the session holds a weight the medic hedged. The eval
+# report illustrated this as "I have about 80 kg — confirm ..."; it is fixed
+# text here instead, because SAFE_GATE_RESPONSES is matched by exact string
+# and that exactness is depended on in three places (validate_response's skip,
+# is_safe_gate_response, and _with_cautions' refusal to annotate a question).
+# Interpolating the number would put this response outside the set and it
+# would be validated, cautioned and banner-able like a clinical plan.
+WEIGHT_CONFIRM_ASK = "Confirm the weight in kg before dosing — I only have an estimate."
+
 SAFE_GATE_RESPONSES = {
     "Need weight in kg before dosing.",
+    WEIGHT_CONFIRM_ASK,
     "IV or IM? Do you have access?",
     "Need concentration before giving mL dose.",
     "Need rhythm before antiarrhythmic.",
@@ -514,7 +600,13 @@ def route_changes_dose(query: str) -> bool:
 
 def query_is_weight_answer(query: str) -> bool:
     q = (query or "").lower().strip()
-    return bool(re.fullmatch(r"(?:about\s+|approximately\s+|approx\s+)?\d+(?:\.\d+)?\s*(?:kg|kgs|kilograms?|lbs?|pounds?)", q))
+    # Hedged forms count as a weight ANSWER — the medic did answer the
+    # question. Whether the number is good enough to dose from is
+    # weight_is_hedged's call, made in extract_patient_context, not here.
+    return bool(re.fullmatch(
+        r"(?:about\s+|around\s+|roughly\s+|approximately\s+|approx\s+|maybe\s+|~\s*)?"
+        r"\d+(?:\.\d+)?\s*(?:kilograms?|kilos?|kgs?|pounds?|lbs?)"
+        r"(?:\s*(?:or so|ish))?", q))
 
 
 def has_pending_route_sensitive_request(prior_queries: str) -> bool:
@@ -534,6 +626,14 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
     )
 
     if current_or_pending_med_request:
+        # Hedged weight gate (F-1). Before the paediatric ask because it is the
+        # more specific question: the session HAS a number and needs it stood
+        # behind, which is not the same request as "tell me a weight".
+        if (not ctx.has_confirmed_weight
+                and ctx.estimated_weight_kg is not None
+                and ctx.weight_source.startswith("estimated_hedged")):
+            return "ASK", WEIGHT_CONFIRM_ASK
+
         # Pediatric weight gate
         if ctx.is_pediatric and not ctx.has_confirmed_weight:
             return "ASK", "Need weight in kg before dosing."
@@ -1464,6 +1564,7 @@ DECISION RULES:
 
 Return SAFE if the response is a gate question:
 "Need weight in kg before dosing."
+"Confirm the weight in kg before dosing — I only have an estimate."
 "IV or IM? Do you have access?"
 "Need concentration before giving mL dose."
 "Need rhythm before antiarrhythmic."
