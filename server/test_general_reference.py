@@ -153,7 +153,14 @@ def test_the_prompt_forbids_the_canonical_give_format():
     prompt = gr.GENERAL_REFERENCE_PROMPT
     assert "Draw X mL of Y mg/mL" in prompt
     assert "150 words" in prompt
-    assert "AUSTERE-CDS handles medical queries only." in prompt
+    # F-2 inverts what this line used to assert. The refusal sentence was in
+    # this prompt and the model reached for it as a catch-all: 22 of 160 bank
+    # scenarios were answered "AUSTERE-CDS handles medical queries only",
+    # including a serum-lactate reference question and a keppra dilution — both
+    # squarely inside this mode's stated scope. is_non_medical_query() owns
+    # that decision and runs first; a second, softer copy here could only
+    # disagree with it.
+    assert "AUSTERE-CDS handles medical queries only." not in prompt
 
 
 def test_patient_context_is_marked_not_for_dosing():

@@ -1238,10 +1238,16 @@ Your priorities:
 5. Keep output short enough to be heard through an earpiece during care.
 
 ────────────────────────────────
-NON-MEDICAL QUERY RULE
+SCOPE
 ────────────────────────────────
 
-If the query is not clinical: "AUSTERE-CDS handles medical queries only."
+Every query that reaches you has already been judged clinical. Answer it.
+
+You have no refusal sentence. If a query is unclear, ask the ONE question that
+would let you answer it. If it is outside what you can answer safely, say what
+you cannot answer and what you can. Never reply that this system handles
+medical queries only — that decision is made before you see the query, and
+saying it here refuses a question that was already accepted.
 
 ────────────────────────────────
 VOICE-FIRST STYLE
@@ -1483,15 +1489,25 @@ def build_source_block(assessment: RetrievalAssessment) -> str:
         )
 
 
+# Where the patient block is spliced into GENERATOR_BASE. Named because the
+# splice is a string match against a heading, and a heading that is edited
+# without editing this constant silently drops the patient block.
+GENERATOR_SCOPE_ANCHOR = "────────────────────────────────\nSCOPE"
+
+
 def build_system_prompt(ctx: PatientContext, assessment: RetrievalAssessment,
                         allowed_dose_block: str, now_ts=None) -> str:
     patient_block = build_patient_block(ctx, now_ts=now_ts)
     source_block = build_source_block(assessment)
     prompt = GENERATOR_BASE
     if patient_block:
+        # Anchored to the SCOPE heading, which replaced NON-MEDICAL QUERY RULE
+        # (F-2). Asserted in test_generator_prompt.py rather than left to fail
+        # silently: a rename that misses this line drops the patient block out
+        # of the prompt entirely and nothing else notices.
         prompt = prompt.replace(
-            "────────────────────────────────\nNON-MEDICAL QUERY RULE",
-            f"────────────────────────────────\nPATIENT CONTEXT\n────────────────────────────────\n\n{patient_block}\n\n────────────────────────────────\nNON-MEDICAL QUERY RULE"
+            GENERATOR_SCOPE_ANCHOR,
+            f"────────────────────────────────\nPATIENT CONTEXT\n────────────────────────────────\n\n{patient_block}\n\n{GENERATOR_SCOPE_ANCHOR}"
         )
     prompt += f"\n\n────────────────────────────────\nRETRIEVED PROTOCOL CONTEXT\n────────────────────────────────\n\n{source_block}"
     prompt += f"\n\n────────────────────────────────\n{allowed_dose_block}\n────────────────────────────────"
