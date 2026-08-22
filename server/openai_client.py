@@ -148,7 +148,11 @@ def _get_log_file() -> pathlib.Path:
 # safe way to read the value: 32 mg/dL and 32 mmol/L are opposite emergencies.
 # `patient_ctx` also now carries `ams_stated` — a boolean patient fact, not a
 # measurement, which is why it is not in `vitals`.
-LOG_SCHEMA_VERSION = 7
+# Schema 8 adds `review_suppressed`: the name of the deterministic
+# precondition that stopped a validator NEEDS_HUMAN_REVIEW from becoming a
+# banner, or null. Same reason override_fired exists — a suppression with no
+# trace makes "why did this answer carry no banner" unanswerable from the log.
+LOG_SCHEMA_VERSION = 8
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -192,6 +196,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
+            "review_suppressed": result.get("review_suppressed"),
             "boundary_reset": result.get("boundary_reset"),
             "vitals": (result.get("patient_context") or {}).get("vitals", {}),
             # What this turn displaced, with both values: the prior belief is
@@ -335,6 +340,12 @@ class GateOutcome:
     # validator findings and must not read as such in the audit log: an issue is
     # something the gate weighed, a caution is something appended after it.
     cautions: list = field(default_factory=list)
+    # F-8. Names the deterministic precondition that stopped a validator
+    # NEEDS_HUMAN_REVIEW from becoming a banner, or None. Recorded for the same
+    # reason override_fired is (T-13): a suppression that leaves no trace makes
+    # "why did this answer carry no banner" unanswerable from the log, which is
+    # the question S-2 could not answer in the other direction.
+    review_suppressed: Optional[str] = None
 
 
 @dataclass
@@ -1973,6 +1984,92 @@ def find_fired_override(issues: list, response_text: str, patient_ctx,
     return None
 
 
+# F-8. 109 of 160 bank turns carried the human-review banner, and of 110
+# validator issues raised, 87 mentioned weight, 87 mentioned paediatric status
+# and 78 mentioned both — one complaint, rephrased. It fired on a documentation
+# checklist and on ventilator settings, neither of which is a dose.
+#
+# The VALIDATOR_PROMPT's NEEDS_HUMAN_REVIEW rule already says "Medication
+# dosing given for ...". The prompt says it and is not obeyed, so the
+# precondition is evaluated here instead: no medication in the response, no
+# weight/paediatric review.
+#
+# Keywords that identify the rule from its issue text. Matched the same way
+# SafetyOverride matches, via _partition_issues, so an issue about something
+# ELSE co-occurring keeps the banner.
+WEIGHT_REVIEW_KEYWORDS = ("confirmed weight", "without confirmed", "pediatric",
+                          "paediatric", "weight for", "no confirmed weight",
+                          "confirming weight", "confirming the weight")
+
+# Drug names the system itself names elsewhere — the deterministic calculators,
+# the steroid list, the vitals caution table and the standard-concentration
+# block. Assembled rather than hand-written so it cannot drift from the lists
+# that already exist.
+# MEDICATION dose units only. Bare "mL" and "L" are deliberately absent: a
+# tidal volume of 420 mL, a 1 L bag and a 500 mL fluid bolus are all volumes
+# and none of them is a drug dose. Including mL was the first thing this
+# precondition got wrong, and it got it wrong on H-S6-a — the ventilator-
+# settings answer whose banner is the finding's own headline example, where
+# the validator called a tidal volume "dosing in mL/kg" and the precondition
+# agreed with it. Volume plus a drug NAME still counts, via MEDICATION_TERMS.
+_DOSE_UNIT_RE = re.compile(
+    r'(?<!\w)\d+(?:\.\d+)?\s*(?:mg|mcg|µg|units?|meq|mmol|mg/kg|mcg/kg'
+    r'|mcg/kg/min|mcg/min|mg/ml|mcg/ml|mg/hr|mg/min)(?!\w)', re.IGNORECASE)
+
+
+def _medication_vocabulary() -> frozenset:
+    names = set(_STEROID_DRUGS)
+    names.update(["ketamine", "rocuronium", "succinylcholine", "vecuronium",
+                  "lorazepam", "midazolam", "diazepam", "levetiracetam",
+                  "keppra", "fentanyl", "morphine", "hydromorphone",
+                  "epinephrine", "norepinephrine", "vasopressin", "dopamine",
+                  "dobutamine", "adenosine", "amiodarone", "atropine",
+                  "diltiazem", "verapamil", "metoprolol", "labetalol",
+                  "esmolol", "digoxin", "txa", "tranexamic", "cefazolin",
+                  "ertapenem", "ceftriaxone", "moxifloxacin", "etomidate",
+                  "propofol", "naloxone", "dextrose", "calcium chloride",
+                  "calcium gluconate", "sodium bicarbonate", "magnesium",
+                  "hypertonic saline", "albuterol", "ondansetron",
+                  "tranexamic acid", "nitroglycerin", "insulin", "glucagon",
+                  # Fluids and blood products. Weight-dependent in a child, so
+                  # a review complaint about them IS about dosing — and their
+                  # volumes are in mL, which the unit pattern deliberately
+                  # ignores, so they have to be recognised by name.
+                  "crystalloid", "normal saline", "lactated ringer", "ltowb",
+                  "whole blood", "packed red", "plasma", "platelets"])
+    try:
+        for rule in vitals_mod.CAUTIONS:
+            # The oral-route rules list ROUTES under `drugs` — "swallow",
+            # "drink", "orally". A route is not a medication and must not
+            # satisfy this precondition. Excluded by GROUP rather than by word
+            # shape: "swallow" is alphabetic and seven characters long, which
+            # is exactly what a drug name looks like from the outside.
+            if rule.get("group") == "oral_route_aspiration":
+                continue
+            for drug in rule.get("drugs", []):
+                names.add(str(drug).lower())
+    except Exception:
+        pass
+    return frozenset(names)
+
+
+MEDICATION_TERMS = _medication_vocabulary()
+
+
+def response_states_a_medication(response_text: str) -> bool:
+    """Whether the response actually proposes a drug or a dose.
+
+    The precondition for the weight/paediatric review rule. A response that
+    names no medication and states no dose cannot be "medication dosing given
+    without a confirmed weight", whatever the validator says about it.
+    """
+    r = (response_text or "").lower()
+    if _DOSE_UNIT_RE.search(r):
+        return True
+    return any(re.search(r'(?<!\w)' + re.escape(term) + r'(?!\w)', r)
+               for term in MEDICATION_TERMS)
+
+
 VITALS_CAUTION_HEADING = "\n\n⚠️ **VITALS CAUTION**\n"
 
 
@@ -2007,6 +2104,7 @@ def _with_cautions(outcome: GateOutcome, cautions: list) -> GateOutcome:
         verdict="NEEDS_HUMAN_REVIEW" if outcome.verdict == "SAFE" else outcome.verdict,
         override_fired=outcome.override_fired,
         cautions=list(cautions),
+        review_suppressed=outcome.review_suppressed,
     )
 
 
@@ -2092,9 +2190,23 @@ def _gate_core(response_text: str, det_check: DeterministicCheck,
 
     # NEEDS_HUMAN_REVIEW appends warning
     if llm_result["result"] == "NEEDS_HUMAN_REVIEW":
+        issues = llm_result.get("issues", [])
+        # F-8: the weight/paediatric rule has a precondition the prompt states
+        # and the model does not honour. Applied here, deterministically, and
+        # ONLY when every issue raised is that one complaint — an unrelated
+        # issue co-occurring keeps the banner, the same guard
+        # requires_sole_issue gives the override registry.
+        weight_issues, other = _partition_issues(list(issues),
+                                                 list(WEIGHT_REVIEW_KEYWORDS))
+        if (weight_issues and not other
+                and not response_states_a_medication(response_text)):
+            print(f"🔇 REVIEW PRECONDITION UNMET — no medication in response, "
+                  f"suppressing: {weight_issues}")
+            return GateOutcome(response_text, False, [], "SAFE",
+                               review_suppressed="no_medication_in_response")
         print(f"⚠️ NEEDS_HUMAN_REVIEW: {llm_result.get('rationale','')}")
         return GateOutcome(response_text + HUMAN_REVIEW_BANNER, False,
-                           llm_result.get("issues", []), "NEEDS_HUMAN_REVIEW")
+                           issues, "NEEDS_HUMAN_REVIEW")
 
     print(f"✅ SAFE")
     return GateOutcome(response_text, False, [], "SAFE")
@@ -2244,6 +2356,27 @@ def detect_patient_boundary(query: str, ctx: Optional[PatientContext] = None,
     return None
 
 
+def context_holds_anything(ctx: Optional[PatientContext]) -> bool:
+    """Whether a reset would actually discard something the medic told us.
+
+    Deliberately a list of the facts the notice NAMES — weight, age, access,
+    vitals — plus route, which it does not name but which is the same class of
+    carried-over belief. If the notice's wording changes, this list changes
+    with it; a notice that claims to have cleared something the system never
+    held is exactly the defect this closes.
+    """
+    if ctx is None:
+        return False
+    return bool(ctx.confirmed_weight_kg is not None
+                or ctx.estimated_weight_kg is not None
+                or ctx.age_years is not None
+                or ctx.vitals
+                or ctx.access_state != "UNKNOWN"
+                or ctx.route_preference != "UNKNOWN"
+                or ctx.is_pediatric
+                or ctx.ams_stated)
+
+
 BOUNDARY_RESET_NOTICE = (
     "🔄 **Starting a new patient — previous weight, age, access and vitals cleared.** "
     "If this is still the same patient, restate the weight and vitals before "
@@ -2286,6 +2419,16 @@ def rebuild_patient_context_from_history(
 
     reason = detect_patient_boundary(query, ctx, prev_ts=prev_ts, now_ts=now_ts)
     if reason:
+        # F-9: the reset is free and stays unconditional. The NOTICE is what
+        # needs something to have been cleared. 15 notices fired across the
+        # eval bank and 10 of them were on turns with no conversation history
+        # at all — "have a 56kg patient with 3rd degree burns" on turn 1 was
+        # told that a previous weight, age, access and vitals had been cleared,
+        # and asked to restate a weight it had just been given in the same
+        # sentence. The notice made a false statement, which is the fastest way
+        # to teach a medic to stop reading it.
+        if not context_holds_anything(ctx):
+            reason = None
         ctx = PatientContext()
 
     ctx = extract_patient_context(query, prior_ctx=ctx, turn_ts=now_ts)
@@ -2841,7 +2984,8 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
                 GateOutcome(response=result.get("response", ""),
                             blocked=result.get("validator_result") == "UNSAFE",
                             issues=result.get("validator_issues", []),
-                            verdict=result.get("validator_result", "SAFE")),
+                            verdict=result.get("validator_result", "SAFE"),
+                            review_suppressed=result.get("review_suppressed")),
                 cautions)
             result["response"] = outcome.response
             result["validator_result"] = outcome.verdict
@@ -3252,6 +3396,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "validator_result": outcome.verdict,
             "validator_issues": outcome.issues,
             "override_fired": outcome.override_fired,
+            "review_suppressed": outcome.review_suppressed,
             "boundary_reset": patient_ctx.boundary_reset_reason,
             "vitals_cautions": outcome.cautions,
             "vitals_superseded": patient_ctx.vitals_superseded,

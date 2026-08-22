@@ -247,7 +247,7 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 7
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 8
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):
@@ -262,6 +262,10 @@ def test_log_schema_version_is_stamped():
     # The fixture above is hand-written, so pin that the REAL context supplies
     # the key too — otherwise this passes on a dict that production never sends.
     assert "ams_stated" in oc.PatientContext().to_dict()
+    # Schema 8: present-and-null, not absent — the override_fired rule. Absent
+    # is indistinguishable from a log written before suppression existed.
+    assert "review_suppressed" in entry
+    assert entry["review_suppressed"] is None
 
 
 def test_schema_5_logs_a_temperature_in_the_unit_it_was_stated_in():
