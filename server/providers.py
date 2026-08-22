@@ -39,6 +39,7 @@ import re
 import pathlib
 import threading
 import time
+from functools import lru_cache
 from dataclasses import dataclass
 from typing import Optional
 
@@ -62,6 +63,11 @@ _BUILTIN_CONFIG = {
                    "requires_key": True,
                    "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
                    "base_url_env": "CDSS_GEMINI_BASE_URL"},
+        "xai": {"label": "xAI", "adapter": "openai_compat",
+                "key_env": "XAI_API_KEY", "key_prefix": None,
+                "requires_key": True,
+                "base_url": "https://api.x.ai/v1",
+                "base_url_env": "CDSS_XAI_BASE_URL"},
     },
     "models": [
         {"id": "gpt-4o-mini", "provider": "openai", "label": "GPT-4o mini",
@@ -376,6 +382,38 @@ def _chat_openai_compat(spec: ModelSpec, system: str, messages: list,
     return (result.choices[0].message.content or "").strip()
 
 
+@lru_cache(maxsize=1)
+def _anthropic_accepts_temperature() -> bool:
+    """Whether the INSTALLED anthropic SDK still takes a temperature.
+
+    Two independent things decide whether temperature is sent, and conflating
+    them is what broke the menu: models[].supports_temperature says whether the
+    MODEL accepts it, and this says whether the SDK exposes it at all.
+
+    anthropic 1.0.0 removed `temperature` from Messages.create and the method
+    takes no **kwargs, so passing it raises TypeError before any request is
+    made. Measured on the deployed venv 2026-08-22: claude-haiku-4-5, whose
+    config says supports_temperature: true, failed every call with
+    "Messages.create() got an unexpected keyword argument 'temperature'" while
+    claude-sonnet-5 worked — because its config already said false.
+
+    Inspected rather than version-compared: a version table is another thing to
+    keep in step with reality, and the signature IS the reality. Fails toward
+    dropping the parameter, which costs default sampling; the other direction
+    costs every query.
+    """
+    try:
+        import inspect
+        import anthropic
+        sig = inspect.signature(anthropic.Anthropic(api_key="probe").messages.create)
+        if any(prm.kind is inspect.Parameter.VAR_KEYWORD
+               for prm in sig.parameters.values()):
+            return True
+        return "temperature" in sig.parameters
+    except Exception:
+        return False
+
+
 def _chat_anthropic(spec: ModelSpec, system: str, messages: list,
                     temperature: float, max_tokens: int) -> str:
     client = _anthropic_client(spec.provider)
@@ -383,7 +421,8 @@ def _chat_anthropic(spec: ModelSpec, system: str, messages: list,
               "max_tokens": max_tokens + spec.reserve_tokens}
     if system:
         kwargs["system"] = system
-    if spec.supports_temperature:
+    # Both must agree: the model accepts it AND the installed SDK exposes it.
+    if spec.supports_temperature and _anthropic_accepts_temperature():
         kwargs["temperature"] = temperature
     if spec.effort:
         kwargs["output_config"] = {"effort": spec.effort}

@@ -185,14 +185,20 @@ def test_a_hosted_provider_with_a_base_url_still_needs_its_key(monkeypatch):
     assert providers.config_problem("local") is None
 
 
-def test_gemini_is_config_only_until_models_are_specified():
-    """The provider block is inert on purpose. Guessing a model id produces a
-    menu entry that 404s at the first clinical query, which is the failure
-    available_models() exists to prevent."""
+def test_gemini_models_are_specified_and_activated():
+    """Supersedes test_gemini_is_config_only_until_models_are_specified.
+
+    That test held the provider inert while the ids were unknown, because
+    guessing one produces a menu entry that 404s at the first clinical query.
+    The ids are now specified and were verified against the live API on
+    2026-08-22 — see test_provider_grid.py for the grid-level assertions.
+    """
     assert "gemini" in providers.PROVIDERS
-    assert not [m for m in providers.MODELS.values() if m.provider == "gemini"], (
-        "a gemini model was added without an owner spec for its id, "
-        "supports_temperature and reserve_tokens")
+    gemini_models = [m for m in providers.MODELS.values() if m.provider == "gemini"]
+    assert gemini_models, "gemini is registered but contributes no models"
+    for spec in gemini_models:
+        assert spec.reserve_tokens >= 3000, (
+            f"{spec.id} is a reasoning tier and needs room for a visible answer")
 
 
 def test_status_is_cached_between_calls(monkeypatch):
