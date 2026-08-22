@@ -1,0 +1,217 @@
+{
+  "_comment": [
+    "EdgeCDSS — ventilator cards. CLINICAL CONTENT IS THE OWNER'S.",
+    "",
+    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by A. Azelton and",
+    "by nobody else. The engine (vent_module.py) REFUSES to serve any card whose",
+    "signoff is not true, whose reviewed_by is not an authorised signer, or whose",
+    "clinical fields still carry the sentinel — so a half-authored card is",
+    "indistinguishable from an absent one and the pipeline falls through to the",
+    "behaviour it had before this module existed.",
+    "",
+    "Cards go live ONE AT A TIME. Partial deployment is the normal state.",
+    "Fill a card, set reviewed_by and review_date, flip signoff to true, and that",
+    "card starts carrying traffic while the rest stay dark.",
+    "",
+    "`applies_when` is DISPATCH VOCABULARY, not clinical content: it is the list",
+    "of words that route a query to this card, and it is pre-filled from the card",
+    "names in the build request so the routing tests have something to assert.",
+    "Review it anyway — a wrong signal here sends a real query to the wrong card.",
+    "",
+    "COPYRIGHT RULE, STRUCTURAL. Device card content is the owner's AUTHORED",
+    "SUMMARY referencing each manufacturer's operator manual. Never reproduced",
+    "manual text, no verbatim passages, no figures. manual_reference cites title",
+    "and revision; the served source line says 'summarized from operator's manual",
+    "rev X, verified <date>'.",
+    "",
+    "Enforced, not just stated: no content field may exceed 400 characters, and",
+    "lint_device_cards() flags any field sharing a 60-character verbatim run with",
+    "manual text if manual text is ever present. Manual files must NOT be",
+    "committed — '.manual.' is in .gitignore for exactly that reason."
+  ],
+  "cards": [
+    {
+      "id": "hamilton_t1",
+      "title": "Hamilton T1",
+      "applies_when": [
+        "hamilton",
+        "hamilton t1",
+        "t1"
+      ],
+      "startup_sequence": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "parameter_map": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "tidal_volume": "PENDING_CLINICAL_SIGNOFF",
+        "rate": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF",
+        "alarm_limits": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "alarm_table": [
+        {
+          "display": "PENDING_CLINICAL_SIGNOFF",
+          "meaning": "PENDING_CLINICAL_SIGNOFF",
+          "first_action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "quirks": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "crosswalk": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "manual_reference": {
+        "title": "PENDING_CLINICAL_SIGNOFF",
+        "revision": "PENDING_CLINICAL_SIGNOFF",
+        "verified_date": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "'t1' is ambiguous — thoracic level, trauma category, ventilator. The engine requires vent context before 't1' names a device."
+    },
+    {
+      "id": "zoll_emv_plus_731",
+      "title": "Zoll EMV+ 731",
+      "applies_when": [
+        "zoll",
+        "emv",
+        "emv+",
+        "emv plus",
+        "731",
+        "eagle"
+      ],
+      "startup_sequence": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "parameter_map": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "tidal_volume": "PENDING_CLINICAL_SIGNOFF",
+        "rate": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF",
+        "alarm_limits": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "alarm_table": [
+        {
+          "display": "PENDING_CLINICAL_SIGNOFF",
+          "meaning": "PENDING_CLINICAL_SIGNOFF",
+          "first_action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "quirks": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "crosswalk": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "manual_reference": {
+        "title": "PENDING_CLINICAL_SIGNOFF",
+        "revision": "PENDING_CLINICAL_SIGNOFF",
+        "verified_date": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "'731' and 'eagle' are context-dependent aliases."
+    },
+    {
+      "id": "ltv_1200_family",
+      "title": "LTV 1200 family",
+      "applies_when": [
+        "ltv",
+        "ltv 1200",
+        "1200",
+        "ltv1200"
+      ],
+      "startup_sequence": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "parameter_map": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "tidal_volume": "PENDING_CLINICAL_SIGNOFF",
+        "rate": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF",
+        "alarm_limits": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "alarm_table": [
+        {
+          "display": "PENDING_CLINICAL_SIGNOFF",
+          "meaning": "PENDING_CLINICAL_SIGNOFF",
+          "first_action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "quirks": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "crosswalk": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "manual_reference": {
+        "title": "PENDING_CLINICAL_SIGNOFF",
+        "revision": "PENDING_CLINICAL_SIGNOFF",
+        "verified_date": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "'1200' is context-dependent — it is also a time, a volume and a dose."
+    },
+    {
+      "id": "ventway_sparrow",
+      "title": "Ventway Sparrow",
+      "applies_when": [
+        "ventway",
+        "sparrow"
+      ],
+      "startup_sequence": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "parameter_map": {
+        "mode": "PENDING_CLINICAL_SIGNOFF",
+        "tidal_volume": "PENDING_CLINICAL_SIGNOFF",
+        "rate": "PENDING_CLINICAL_SIGNOFF",
+        "peep": "PENDING_CLINICAL_SIGNOFF",
+        "fio2": "PENDING_CLINICAL_SIGNOFF",
+        "alarm_limits": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "alarm_table": [
+        {
+          "display": "PENDING_CLINICAL_SIGNOFF",
+          "meaning": "PENDING_CLINICAL_SIGNOFF",
+          "first_action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "quirks": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "crosswalk": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "manual_reference": {
+        "title": "PENDING_CLINICAL_SIGNOFF",
+        "revision": "PENDING_CLINICAL_SIGNOFF",
+        "verified_date": "PENDING_CLINICAL_SIGNOFF"
+      },
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "Both aliases are unambiguous in this corpus."
+    }
+  ]
+}
