@@ -111,6 +111,90 @@ def lines_of(path):
 
 
 # ═════════════════════════════════════════════════════════════════════════
+# The gate runs BEFORE the body is validated
+# ═════════════════════════════════════════════════════════════════════════
+#
+# The bug a naive fix leaves behind. Checked inside the handler, the token test
+# happens AFTER pydantic has parsed and validated the body — so an anonymous
+# caller sending a malformed body got 422, not 401. That hands out the schema
+# and makes the server do the validation work for someone who never
+# authenticated. As a dependency, FastAPI solves it before body validation.
+#
+# Nothing in require_token's signature reveals this ordering, which is exactly
+# why it is pinned here.
+
+MALFORMED = [
+    ("/feedback", "missing required fields", {}),
+    ("/feedback", "oversized query",
+     {"query": "x" * (main.MAX_QUERY_CHARS + 1), "response": "r",
+      "feedback_type": "appropriate"}),
+    ("/feedback", "wrong types",
+     {"query": 123, "response": [], "feedback_type": {}}),
+    ("/feedback", "too many issues",
+     {"query": "q", "response": "r", "feedback_type": "appropriate",
+      "issues": ["t"] * (main.MAX_FEEDBACK_ISSUES + 1)}),
+    ("/query", "missing required fields", {}),
+    ("/query", "oversized query",
+     {"query": "x" * (main.MAX_QUERY_CHARS + 1), "device_id": "d",
+      "timestamp": "t"}),
+    ("/query", "history over the byte budget",
+     {"query": "q", "device_id": "d", "timestamp": "t",
+      "conversation_history": [{"q": "x" * 40_000} for _ in range(10)]}),
+]
+
+
+@pytest.mark.parametrize("path,label,body",
+                         [(p, l, b) for p, l, b in MALFORMED],
+                         ids=[f"{p}-{l}" for p, l, _ in MALFORMED])
+def test_auth_runs_before_body_validation(feedback_log, path, label, body):
+    """An unauthenticated caller gets 401 whatever they sent — never 422."""
+    for headers in ({}, DEMO):
+        r = call("POST", path, json=body, headers=headers)
+        assert r.status_code == 401, (
+            f"{path} with {label} returned {r.status_code} to an "
+            "unauthenticated caller — the body was validated before the gate")
+
+
+@pytest.mark.parametrize("path,label,body",
+                         [(p, l, b) for p, l, b in MALFORMED],
+                         ids=[f"{p}-{l}" for p, l, _ in MALFORMED])
+def test_the_same_bodies_are_still_rejected_once_authenticated(
+        feedback_log, path, label, body):
+    """The gate must not be swallowing the validation, only preceding it."""
+    r = call("POST", path, json=body, headers=TOKEN)
+    assert r.status_code == 422, (
+        f"{path} with {label} returned {r.status_code} to an authenticated "
+        "caller — the caps are not being enforced")
+
+
+def test_a_well_formed_unauthenticated_post_is_still_401(feedback_log):
+    """The case that already worked, kept so a refactor cannot regress it."""
+    assert call("POST", "/feedback", json=FEEDBACK_BODY).status_code == 401
+
+
+def test_every_gated_route_uses_the_shared_dependency():
+    """One gate, not four copies of an if-statement that can drift apart.
+
+    /status, /models, /health and / are deliberately absent: /status is public
+    by design and this patch must not have changed that.
+    """
+    gated = {"/query", "/feedback", "/feedback/summary", "/speak"}
+    for route in main.app.routes:
+        path = getattr(route, "path", None)
+        if path not in gated:
+            continue
+        # route.dependencies holds Depends markers (.dependency); the solved
+        # Dependant tree holds the callables (.call). Check both, so this keeps
+        # working whether the gate is declared on the decorator or in the
+        # signature.
+        declared = [d.dependency for d in getattr(route, "dependencies", [])]
+        solved = [d.call for d in getattr(getattr(route, "dependant", None),
+                                          "dependencies", [])]
+        assert main.require_token in declared + solved, (
+            f"{path} is not behind require_token")
+
+
+# ═════════════════════════════════════════════════════════════════════════
 # AE-1 — /feedback was the only unauthenticated write on the box
 # ═════════════════════════════════════════════════════════════════════════
 
@@ -225,6 +309,15 @@ def test_every_stored_record_is_parseable_jsonl(feedback_log):
 def test_feedback_summary_requires_the_token(feedback_log):
     assert call("GET", "/feedback/summary").status_code == 401
     assert call("GET", "/feedback/summary", headers=DEMO).status_code == 401
+
+
+def test_feedback_summary_is_gated_before_it_touches_the_log(monkeypatch):
+    """An anonymous caller must not even cause the file to be opened."""
+    def explode(*a, **k):
+        raise AssertionError("the log was read before the token was checked")
+    monkeypatch.setattr(main, "summarise_feedback_line", explode)
+    monkeypatch.setattr(main, "FEEDBACK_LOG", "/nonexistent/must-not-be-read")
+    assert call("GET", "/feedback/summary").status_code == 401
 
 
 def test_feedback_summary_never_returns_the_client_ip(feedback_log):

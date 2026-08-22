@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse
 from pydantic import BaseModel, Field, StringConstraints, field_validator
@@ -46,6 +46,25 @@ MAX_HISTORY_TURNS = 100
 # EVERY turn through the vitals and context regexes, so the work tracks
 # total text, not list length.
 MAX_HISTORY_BYTES = 256_000
+
+def require_token(x_access_token: str = Header(default="")) -> None:
+    """The access-token gate, as a dependency rather than a line in each handler.
+
+    FastAPI solves a route's dependencies BEFORE it validates the request body,
+    so an anonymous caller gets 401 whatever they sent. Checked INSIDE the
+    handler — where these checks used to live — pydantic ran first, so an
+    unauthenticated request carrying a malformed body got 422: it told an
+    anonymous caller the shape of the schema, and it made the server do the
+    validation work for someone who had not authenticated. That is the bug a
+    naive fix leaves behind, and it is the reason this is a dependency and not
+    four copies of an if-statement.
+
+    test_auth_runs_before_body_validation pins the ordering, because nothing in
+    the signature of this function reveals it.
+    """
+    if x_access_token != ACCESS_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid access token")
+
 
 class QueryRequest(BaseModel):
     query: str = Field(..., max_length=MAX_QUERY_CHARS)
@@ -150,10 +169,9 @@ async def health_check():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/query", response_model=QueryResponse)
+@app.post("/query", response_model=QueryResponse,
+          dependencies=[Depends(require_token)])
 async def query_endpoint(request: QueryRequest, http_request: Request):
-    if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
-        raise HTTPException(status_code=401, detail="Invalid access token")
     start = datetime.now()
     # T-2: self-declared test-suite traffic. Log hygiene only — run_tests.sh
     # fires at the live endpoint by design, and nothing may branch on this.
@@ -189,14 +207,12 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/feedback")
+# AE-1. The other three endpoints have carried the token gate since the token
+# existed; this one was simply missed. Without it every field below was an
+# anonymous, uncapped, append-only write to the root filesystem, reachable
+# from the public internet. The web client was already sending the header.
+@app.post("/feedback", dependencies=[Depends(require_token)])
 async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
-    # AE-1. The other three endpoints have carried this check since the token
-    # existed; this one was simply missed. Without it every field below was an
-    # anonymous, uncapped, append-only write to the root filesystem, reachable
-    # from the public internet.
-    if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
-        raise HTTPException(status_code=401, detail="Invalid access token")
     entry = {"timestamp": datetime.now().isoformat(), "ip": http_request.client.host, "device_id": feedback.device_id, "feedback_type": feedback.feedback_type, "query": feedback.query, "response_preview": feedback.response[:200], "severity": feedback.severity, "issues": feedback.issues, "suggestion": feedback.suggestion, "comment": feedback.comment}
     with open(FEEDBACK_LOG, "a") as f:
         # json.dumps, not str(). A dict repr passes a newline inside the
@@ -238,10 +254,8 @@ def summarise_feedback_line(line: str) -> Optional[dict]:
     return out
 
 
-@app.get("/feedback/summary")
-async def feedback_summary(http_request: Request):
-    if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+@app.get("/feedback/summary", dependencies=[Depends(require_token)])
+async def feedback_summary():
     total = 0
     # A bounded tail. readlines() pulled a file an anonymous caller could
     # grow without limit entirely into memory — its own denial of service.
@@ -257,10 +271,8 @@ async def feedback_summary(http_request: Request):
                if e is not None]
     return {"total_feedback": total, "entries": entries}
 
-@app.post("/speak")
+@app.post("/speak", dependencies=[Depends(require_token)])
 async def speak_endpoint(http_request: Request):
-    if http_request.headers.get("X-Access-Token", "") != ACCESS_TOKEN:
-        raise HTTPException(status_code=401, detail="Invalid access token")
     try:
         body = await http_request.json()
     except Exception:
