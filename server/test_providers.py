@@ -165,6 +165,36 @@ def test_auth_check_is_not_run_when_config_is_already_broken(monkeypatch):
     assert calls == [], f"auth checked for unconfigured providers: {calls}"
 
 
+def test_a_hosted_provider_with_a_base_url_still_needs_its_key(monkeypatch):
+    """`requires_key` — the keyless exemption is for SELF-hosted endpoints.
+
+    "has a base_url" was the proxy for self-hosted, and it breaks for a hosted
+    provider reached through an OpenAI-compatibility endpoint: Gemini ships a
+    public base_url and still needs a key. Without the flag it read as
+    configured, and /status made a real network round trip for it every five
+    minutes on a device that may be offline.
+    """
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    providers._reset_status_cache()
+    problem = providers.config_problem("gemini")
+    assert problem and "GEMINI_API_KEY" in problem
+
+    # A genuinely self-hosted provider is unaffected.
+    monkeypatch.setenv("CDSS_LOCAL_BASE_URL", "http://127.0.0.1:11434/v1")
+    monkeypatch.delenv("CDSS_LOCAL_API_KEY", raising=False)
+    assert providers.config_problem("local") is None
+
+
+def test_gemini_is_config_only_until_models_are_specified():
+    """The provider block is inert on purpose. Guessing a model id produces a
+    menu entry that 404s at the first clinical query, which is the failure
+    available_models() exists to prevent."""
+    assert "gemini" in providers.PROVIDERS
+    assert not [m for m in providers.MODELS.values() if m.provider == "gemini"], (
+        "a gemini model was added without an owner spec for its id, "
+        "supports_temperature and reserve_tokens")
+
+
 def test_status_is_cached_between_calls(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-good")
     calls = []

@@ -23,12 +23,34 @@
     "models[].reserve_tokens  added to the caller's max_tokens. Models that think",
     "                      by default spend max_tokens on reasoning before any",
     "                      visible text, so a 700-token cap can return an empty",
-    "                      string. Reserve gives the answer room."
+    "                      string. Reserve gives the answer room.",
+    "",
+    "gemini    Config only, per TODO.md 'Gemini would be a config entry against",
+    "          its OpenAI-compatible endpoint'. The provider block below is",
+    "          everything that line determines: the openai_compat adapter, the",
+    "          documented OpenAI-compatibility base_url, and a key_env.",
+    "",
+    "          NO MODELS ARE LISTED, so this provider is inert and cannot be",
+    "          selected. Adding them needs three decisions this repo has no",
+    "          record of: WHICH model ids to expose, whether each accepts a",
+    "          `temperature` (supports_temperature), and whether any needs",
+    "          reserve_tokens because it spends max_tokens on reasoning before",
+    "          any visible text. Guessing an id produces a menu entry that 404s",
+    "          at the first clinical query, which is the failure available_models",
+    "          exists to prevent. AWAITING OWNER SPEC.",
+    "",
+    "          key_prefix is null on purpose: rejecting a key by shape before",
+    "          any network call is only safe when the shape is certain, and it",
+    "          is not certain here.",
+    "",
+    "providers[].requires_key   a hosted provider reached through an OpenAI-",
+    "          compatibility endpoint ships a real base_url AND needs a key.",
+    "          Without this flag config_problem() reads 'has a base_url' as",
+    "          'self-hosted, legitimately keyless' and lets an unconfigured",
+    "          provider through to a network auth check on every /status poll."
   ],
-
   "default_model": "gpt-4o-mini",
   "validator_model": "gpt-4o-mini",
-
   "providers": {
     "openai": {
       "label": "OpenAI",
@@ -53,9 +75,17 @@
       "key_prefix": null,
       "base_url": null,
       "base_url_env": "CDSS_LOCAL_BASE_URL"
+    },
+    "gemini": {
+      "label": "Google Gemini",
+      "adapter": "openai_compat",
+      "key_env": "GEMINI_API_KEY",
+      "key_prefix": null,
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+      "base_url_env": "CDSS_GEMINI_BASE_URL",
+      "requires_key": true
     }
   },
-
   "models": [
     {
       "id": "gpt-4o-mini",
