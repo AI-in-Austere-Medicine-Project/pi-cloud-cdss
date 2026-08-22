@@ -212,7 +212,11 @@ class VitalRejection:
 # without swallowing the numbers out of "GCS 3-4-5" or a dose ratio.
 
 _NUM = r"(\d{1,3}(?:\.\d+)?)"
-_SEP = r"\s*(?:of|is|was|at|=|:)?\s*"
+# "are" joins the rest: "sats are 91" is as ordinary as "sats of 91". Trend
+# phrasings ("dropped to 88", "down to 84") are deliberately NOT here — they
+# are surfaced by the unparsed-number sweep instead, so how often medics use
+# them is measured rather than guessed at before widening the parser.
+_SEP = r"\s*(?:of|is|was|are|at|=|:)?\s*"
 
 # Label alternations. Ordered longest-first within each group so "resp rate"
 # wins over "resp". The 'sp02' spellings are not typos to be tolerated later —
@@ -227,7 +231,11 @@ _SEP = r"\s*(?:of|is|was|at|=|:)?\s*"
 _B = r"(?<!\w)"
 _HR_LABEL = _B + r"(?:heart\s*rate|pulse\s*rate|pulse|hr)"
 _BP_LABEL = _B + r"(?:blood\s*pressure|bp)"
-_SPO2_LABEL = _B + r"(?:pulse\s*ox(?:imetry)?|o2\s*sats?|sp[o0]2|sa[o0]2|sats|sat)"
+# "he's satting 84 on room air now" — the verb form is what a medic says out
+# loud and what speech-to-text produces. Before "sats|sat" in the alternation
+# or it matches the stem and leaves "ting" where a number should be.
+_SPO2_LABEL = _B + (r"(?:pulse\s*ox(?:imetry)?|o2\s*sats?|sp[o0]2|sa[o0]2"
+                    r"|satt?ing|sat'?ing|sats|sat)")
 _RR_LABEL = _B + r"(?:respiratory\s*rate|resp\s*rate|resps|resp|rr)"
 _GCS_LABEL = _B + r"(?:gcs)"
 # "map" is an ordinary English word, so this label is the one that most needs
@@ -250,6 +258,30 @@ _GLUCOSE_LABEL = _B + (r"(?:blood\s*sugar|blood\s*glucose|glucose|sugar"
 # glucose of 118. Each alternative here is a word that introduces a result.
 _REPORTED = r"(?:\s*(?:came\s*back|comes\s*back|came\s*in|came\s*out"
 _REPORTED += r"|reads?|showed|shows|returned|resulted|measured))?"
+
+
+# Every label this file knows, for the unparsed-number sweep below. Built from
+# the same strings the real patterns use, so a label added above is swept for
+# automatically rather than needing to be remembered here.
+# NOT _TEMP_LABEL: it carries a bare "t", which is correct for the parser
+# (it is followed there by a two-to-three digit number in a plausible
+# temperature band) and far too loose for a sweep that only has to find a
+# number nearby. Measured over the 186 bank queries, the bare "t" produced
+# every single false positive — "the next 4", "to 1", "tidal co2", "tbi 5" —
+# and nothing else did.
+_TEMP_LABEL_SWEEP = _B + r"(?:temperature|temp|fever)"
+
+_ALL_VITAL_LABELS = (_HR_LABEL, _BP_LABEL, _SPO2_LABEL, _RR_LABEL, _GCS_LABEL,
+                     _MAP_LABEL, _TEMP_LABEL_SWEEP, _GLUCOSE_LABEL)
+
+# Numbers that follow a vital stem but are plainly not that vital. Without
+# this, "fever for 2 days" reports a vital it could not read, and a notice that
+# fires on ordinary prose is a notice nobody reads — the same failure mode the
+# caution table's narrowness exists to avoid.
+_NOT_A_VITAL_AFTER = (
+    r"(?!\s*(?:days?|hours?|hrs?|mins?|minutes?|weeks?|months?|years?|yo\b|y/o"
+    r"|mg|mcg|ml|g\b|kg|kgs|lbs?|pounds?|kilos?|kilograms?|%\s*tbsa|units?"
+    r"|french|fr\b|ga\b|gauge|joules?|j\b|litres?|liters?|l\b))")
 
 
 def _spans_overlap(span, consumed) -> bool:
@@ -396,6 +428,26 @@ def parse_vitals(text: str, ts: Optional[str] = None):
             take("sbp", sbp, m.span(), m.group(0))
             readings.setdefault("dbp", VitalReading(
                 value=dbp, unit=_unit("dbp"), ts=ts, raw=m.group(0).strip()))
+
+    # ── A number beside a vital label that nothing above could read ─────────
+    # F-4. "he's satting 84 on room air now" left the PREVIOUS SpO2 of 96 in
+    # place, recorded no supersession and said nothing — so the answer was
+    # produced against a saturation twelve points too high and nothing in the
+    # response, the context or the log showed that the newer number had been
+    # dropped. Silence must never be indistinguishable from agreement.
+    #
+    # This is the backstop, not the fix: the label table above is where a
+    # phrasing should be read correctly. What this guarantees is that failing
+    # to read one is VISIBLE.
+    for label in _ALL_VITAL_LABELS:
+        for m in re.finditer(
+                label + r"[^\d\n]{0,12}?(\d{1,4}(?:\.\d+)?)" + _NOT_A_VITAL_AFTER, q):
+            if _spans_overlap(m.span(), consumed):
+                continue
+            consumed.append(m.span())
+            rejections.append(VitalRejection(
+                name="unreadable", raw=m.group(0).strip(),
+                reason="could not be read as a vital in that phrasing"))
 
     return readings, rejections
 
