@@ -24,15 +24,10 @@
       "title": "Lung-protective baseline",
       "applies_when": [
         "ards",
+        "ardsnet",
         "lung protective",
-        "baseline",
-        "vent settings",
-        "ventilator settings",
-        "initial settings",
-        "set the vent",
-        "start the vent",
-        "vent the patient",
-        "mechanical ventilation"
+        "lung-protective",
+        "acute respiratory distress"
       ],
       "initial_settings": {
         "mode": "PENDING_CLINICAL_SIGNOFF",
@@ -59,7 +54,7 @@
       "review_date": "PENDING_CLINICAL_SIGNOFF",
       "version": "0.1.0-draft",
       "signoff": false,
-      "_authoring_note": "Default card. Applies when no other physiology claims the query."
+      "_authoring_note": "ARDS-pattern card. It is NO LONGER the silent default: it used to also match \"vent settings\", \"set the vent\" and similar, which made it the FIRST match for almost every real vent question and shadowed all four specific cards — a DKA query reached this card, which is F-12 with the roles reversed. A settings question naming no physiology now asks which one instead of defaulting here. Own signals only."
     },
     {
       "id": "metabolic_acidosis",

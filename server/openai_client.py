@@ -3310,6 +3310,24 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "patient_context": patient_ctx.to_dict()
             }
 
+        # Step 2k-iii: a settings question that named no physiology. ASK, do
+        # not default. The physiology decides the settings, and serving one
+        # card because it happened to be first in the file is how a DKA
+        # patient would get the ARDS-pattern answer — F-12 with the roles
+        # reversed. Returns None while no physiology card is live, so this
+        # stays invisible until there is something to choose between.
+        vent_ask = vent_module.physiology_gate(query)
+        if vent_ask:
+            print(f"🚪 VENT GATE: {vent_ask}")
+            return {
+                "response": vent_ask,
+                "sources": [],
+                "source_mode": "VENT_GATE",
+                "validator_result": "SKIPPED_SAFE_GATE",
+                "validator_issues": [],
+                "patient_context": patient_ctx.to_dict()
+            }
+
         # Step 2l: Standard pre-gate (weight/route) — after all deterministic cases
         gate_action, gate_response = pre_gate(query, patient_ctx, prior_queries)
         if gate_action in ["ASK", "BLOCK"]:

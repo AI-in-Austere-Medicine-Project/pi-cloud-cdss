@@ -46,7 +46,7 @@ The engine refuses to serve a card that is signed while any clinical field is st
 
 *Version 0.1.0-draft · not live: signoff is not true*
 
-> Default card. Applies when no other physiology claims the query.
+> ARDS-pattern card. It is NO LONGER the silent default: it used to also match "vent settings", "set the vent" and similar, which made it the FIRST match for almost every real vent question and shadowed all four specific cards — a DKA query reached this card, which is F-12 with the roles reversed. A settings question naming no physiology now asks which one instead of defaulting here. Own signals only.
 
 - [ ] `initial_settings` — mode, vt_ml_per_kg_ibw, rate_strategy, peep, fio2
 - [ ] `titrate_on` — what you adjust against, in order

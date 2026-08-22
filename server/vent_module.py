@@ -296,6 +296,21 @@ _TROUBLE_SIGNALS = _anchored([
     "won't ventilate", "cannot ventilate", "hypoxic", "cyanotic",
 ])
 
+# A request for settings that names no physiology. These phrases used to sit in
+# lung_protective_baseline's own applies_when, which made that card the first
+# match for almost every real vent question and shadowed the four specific
+# cards behind it — a DKA query reached the ARDS-pattern card, which is exactly
+# the F-12 failure with the roles reversed. They live here now, and they lead to
+# a QUESTION rather than to a default: the physiology decides the settings, and
+# guessing which one is not a thing a ventilator card gets to do.
+_SETTINGS_REQUEST = _anchored([
+    "vent settings", "ventilator settings", "initial settings",
+    "vent setup", "settings for the vent", "settings on the vent",
+    "set the vent", "setting the vent", "set up the vent", "start the vent",
+    "vent the patient", "mechanical ventilation", "what settings",
+    "which settings", "what vent settings",
+])
+
 # Device aliases. Deliberately short lists — every extra alias is a collision
 # waiting to route a clinical query into a hardware manual.
 _DEVICE_ALIASES = {
@@ -403,6 +418,37 @@ def dispatch(text: str, ctx=None) -> Optional[tuple]:
                 return "physiology", card
 
     return None
+
+
+def needs_physiology_choice(text: str) -> bool:
+    """A settings question in a vent context that names no physiology."""
+    q = (text or "").lower()
+    if not has_vent_context(q) or not _SETTINGS_REQUEST.search(q):
+        return False
+    return not any(_match_applies_when(c, q) for c in PHYSIOLOGY.values())
+
+
+def physiology_gate(text: str) -> Optional[str]:
+    """The question to ask instead of guessing a physiology. None to stay quiet.
+
+    Silent unless at least one physiology card is actually live. A question is
+    only worth a turn if answering it leads somewhere: with nothing signed off,
+    asking "which physiology?" would take a turn and then have nothing to serve,
+    while today that same query falls through to a retrieval that already
+    answers the TBI phrasings correctly. Blocking working behaviour to ask a
+    question we cannot act on would be F-12 in a third costume.
+
+    Lists only the cards that can answer, so the options are never a menu of
+    things that are still dark.
+    """
+    if not needs_physiology_choice(text):
+        return None
+    live = [c for c in PHYSIOLOGY.values()
+            if card_is_servable(c, "physiology")[0]]
+    if not live:
+        return None
+    options = " / ".join(c.get("title") or c["id"] for c in live)
+    return f"Which physiology? {options}."
 
 
 def cross_referenced_device(text: str) -> Optional[dict]:

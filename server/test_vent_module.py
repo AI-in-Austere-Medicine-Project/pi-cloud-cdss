@@ -234,6 +234,155 @@ def test_a_served_settings_card_actually_contains_settings():
         assert heading in out, heading
 
 
+# ── THE PHYSIOLOGY GATE ─────────────────────────────────────────────────────
+#
+# lung_protective_baseline used to carry "vent settings", "ventilator
+# settings", "initial settings", "baseline", "set the vent", "start the vent",
+# "vent the patient" and "mechanical ventilation" in its OWN applies_when. It
+# is first in the file, so it was the first match for almost every real vent
+# question and shadowed the four specific cards behind it — a DKA query
+# reaching the ARDS-pattern card is F-12 with the roles reversed, and it stayed
+# invisible only because no card is signed off yet. The generic phrases live in
+# the module now, and they lead to a QUESTION rather than to a default: the
+# physiology decides the settings, and guessing which one is not a thing a
+# ventilator card gets to do.
+
+GENERIC_SETTINGS_QUERIES = [
+    "what are the vent settings for this guy",
+    "vent settings",
+    "ventilator settings, 80kg male",
+    "initial settings on the vent",
+    "set the vent up",
+    "about to start the vent, what settings",
+    "mechanical ventilation for this patient",
+]
+
+
+@pytest.mark.parametrize("query,expected", [
+    ("Ventilator settings for 75kg male in DKA. Ph 7.1", "metabolic_acidosis"),
+    ("need basic vent settings for TBI patient", "tbi"),
+    ("vent settings for an asthmatic, status asthmaticus", "obstructive"),
+    ("initial vent settings, blast lung and pulmonary contusion", "chest_trauma"),
+])
+def test_the_baseline_card_no_longer_shadows_the_specific_ones(query, expected, live):
+    """Every physiology card live at once — the state the fence is walking
+    towards, one signoff at a time. The card that names the physiology answers,
+    not the one that happens to be first in the file."""
+    for card_id in vm.PHYSIOLOGY:
+        live("physiology", signed_physiology(card_id))
+    family, card = vm.dispatch(query)
+    assert (family, card["id"]) == ("physiology", expected), query
+
+
+@pytest.mark.parametrize("query", [
+    "ards vent settings",
+    "lung protective vent settings",
+    "acute respiratory distress, what settings on the vent",
+    "ardsnet on the vent",
+])
+def test_the_baseline_card_still_answers_its_own_physiology(query, live):
+    """Narrowing it to its own signals must not switch it off. ARDS is a
+    physiology like the other four, not the drawer everything else falls into."""
+    for card_id in vm.PHYSIOLOGY:
+        live("physiology", signed_physiology(card_id))
+    family, card = vm.dispatch(query)
+    assert (family, card["id"]) == ("physiology", "lung_protective_baseline"), query
+
+
+def test_no_physiology_card_claims_a_generic_settings_phrase():
+    """The card files, checked directly. A generic phrase in any card's
+    applies_when re-creates the shadow for whichever card is first."""
+    for query in GENERIC_SETTINGS_QUERIES:
+        claimed = [cid for cid, card in vm.PHYSIOLOGY.items()
+                   if vm._match_applies_when(card, query)]
+        assert claimed == [], f"{claimed} claimed {query!r} on generic wording"
+
+
+def test_a_generic_settings_question_is_recognised_as_one():
+    for query in GENERIC_SETTINGS_QUERIES:
+        assert vm.needs_physiology_choice(query), query
+
+
+@pytest.mark.parametrize("query", DKA_PHRASINGS + TBI_PHRASINGS + [
+    "vent settings for an asthmatic",
+    "ards vent settings",
+])
+def test_a_settings_question_that_names_a_physiology_is_not_a_choice(query):
+    """The gate is for the ones that named nothing. A query with a physiology
+    in it has already answered the question the gate would ask — and this holds
+    while every card is still pending, because applies_when is data, not a
+    signoff."""
+    assert not vm.needs_physiology_choice(query), query
+
+
+def test_an_alarm_is_not_a_settings_question():
+    """Troubleshooting outranks settings, and it outranks the gate for the same
+    reason: a patient deteriorating on a ventilator is not being asked about."""
+    for query in ("high pressure alarm on the vent",
+                  "the vent is alarming, patient desatting",
+                  "breath stacking on the vent"):
+        assert not vm.needs_physiology_choice(query), query
+
+
+def test_the_settings_phrases_are_word_anchored():
+    """House doctrine, applied to the phrases that now decide whether a medic
+    gets asked a question. Each of these carries vent context — it is the
+    settings phrase itself that must not match inside a longer word."""
+    for text in ("solvent settings on the bench",
+                 "the event settings look wrong on the vent",
+                 "reset the vents in the tent, then check the patient"):
+        assert vm.has_vent_context(text), f"weak specimen: {text!r}"
+        assert not vm.needs_physiology_choice(text), text
+
+
+def test_the_gate_is_silent_while_no_physiology_card_is_live():
+    """Today's shipped state. A question is only worth a turn if answering it
+    leads somewhere: with nothing signed off, asking "which physiology?" would
+    cost a turn and then have nothing to serve, while that same query falls
+    through to a retrieval that already answers the TBI phrasings. Blocking
+    working behaviour to ask a question we cannot act on would be F-12 in a
+    third costume."""
+    for query in GENERIC_SETTINGS_QUERIES:
+        assert vm.needs_physiology_choice(query), query
+        assert vm.physiology_gate(query) is None, query
+
+
+def test_the_gate_asks_which_physiology_once_a_card_is_live(live):
+    live("physiology", signed_physiology("metabolic_acidosis"))
+    for query in GENERIC_SETTINGS_QUERIES:
+        ask = vm.physiology_gate(query)
+        assert ask is not None, query
+        assert vm.PHYSIOLOGY["metabolic_acidosis"]["title"] in ask
+
+
+def test_the_gate_lists_only_the_cards_that_can_answer(live):
+    """Partial deployment is the normal state, so the menu is never a list of
+    things that are still dark."""
+    live("physiology", signed_physiology("metabolic_acidosis"))
+    live("physiology", signed_physiology("tbi"))
+    ask = vm.physiology_gate("what are the vent settings for this guy")
+    assert vm.PHYSIOLOGY["metabolic_acidosis"]["title"] in ask
+    assert vm.PHYSIOLOGY["tbi"]["title"] in ask
+    for dark in ("lung_protective_baseline", "obstructive", "chest_trauma"):
+        assert vm.PHYSIOLOGY[dark]["title"] not in ask, dark
+
+
+def test_the_gate_does_not_fire_when_a_card_claims_the_query(live):
+    """dispatch() runs first in the pipeline. The gate must not shadow a card
+    the way the card used to shadow the others."""
+    live("physiology", signed_physiology("metabolic_acidosis"))
+    for query in DKA_PHRASINGS:
+        assert vm.dispatch(query) is not None, query
+        assert vm.physiology_gate(query) is None, query
+
+
+def test_an_unsigned_card_cannot_appear_in_the_gate(live):
+    """The fence covers the menu too: naming a card is a weaker claim than
+    serving one, but it is still a claim that the content is there."""
+    live("physiology", signed_physiology("metabolic_acidosis", signoff=False))
+    assert vm.physiology_gate("what are the vent settings for this guy") is None
+
+
 # ── IBW AND THE DOSING BASIS ────────────────────────────────────────────────
 
 @pytest.mark.parametrize("height_cm,sex,expected", [
@@ -663,3 +812,53 @@ def test_a_card_answer_still_gets_the_boundary_notice_and_vitals_cautions(monkey
     monkeypatch.setattr(vm, "PHYSIOLOGY", table)
     monkeypatch.setitem(vm.FAMILIES, "physiology", table)
     assert "VENT_CARD" not in oc.GATED_SOURCE_MODES
+
+
+def test_the_pipeline_asks_which_physiology_instead_of_defaulting(monkeypatch, tmp_path):
+    """The gate, end to end. Two cards live, the query names neither, and the
+    medic is asked rather than handed the first card in the file. No retrieval
+    and no model call: the question is deterministic."""
+    monkeypatch.setattr(oc, "_LOG_DIR", tmp_path)
+    monkeypatch.setattr(oc.providers, "chat", _no_model)
+    table = dict(vm.PHYSIOLOGY)
+    for card_id in ("lung_protective_baseline", "metabolic_acidosis"):
+        table[card_id] = signed_physiology(card_id)
+    monkeypatch.setattr(vm, "PHYSIOLOGY", table)
+    monkeypatch.setitem(vm.FAMILIES, "physiology", table)
+
+    result = oc._query_with_rag_internal(
+        "what are the vent settings for this guy", _NoChroma())
+
+    assert result["source_mode"] == "VENT_GATE"
+    assert result["validator_result"] == "SKIPPED_SAFE_GATE"
+    assert "Which physiology?" in result["response"]
+    assert "**SETTINGS**" not in result["response"], "it answered instead of asking"
+    assert table["metabolic_acidosis"]["title"] in result["response"]
+
+
+def test_the_pipeline_does_not_ask_while_every_card_is_pending(monkeypatch, tmp_path):
+    """Today's shipped state, pinned at the pipeline. A question we cannot act
+    on would cost a turn and take away a retrieval that already answers."""
+    monkeypatch.setattr(oc, "_LOG_DIR", tmp_path)
+    reached = []
+
+    class _Chroma:
+        def query(self, text, n_results=5):
+            reached.append(text)
+            return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    monkeypatch.setattr(oc.providers, "chat",
+                        lambda *a, **kw: '{"result":"SAFE","issues":[],"rationale":""}')
+    result = oc._query_with_rag_internal(
+        "what are the vent settings for this guy", _Chroma())
+    assert result["source_mode"] != "VENT_GATE"
+    assert reached, "the gate swallowed a query it had nothing to serve for"
+
+
+def test_the_gate_is_a_question_not_an_answer():
+    """VENT_GATE bypasses the validator the way every other gate question does,
+    and it must not be mistaken for a card answer in the provenance log — no
+    card produced it."""
+    assert "VENT_GATE" not in oc.GATED_SOURCE_MODES
+    assert "VENT_GATE" not in oc.CARD_SOURCE_MODES
+    assert oc.knowledge_source("VENT_GATE") == oc.knowledge_source("PRE_GATE")
