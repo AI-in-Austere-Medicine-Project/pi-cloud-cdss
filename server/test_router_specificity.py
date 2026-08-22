@@ -143,3 +143,35 @@ def test_the_bank_lost_no_correct_routing():
     assert routed_n >= 55, (
         f"only {routed_n} of {len(queries)} bank queries still route; the "
         f"baseline preserved 56")
+
+
+# ── the cost of correctness ─────────────────────────────────────────────────
+
+def test_route_does_not_recompile_the_index_on_every_call():
+    """Word anchoring replaced `term in combined` with a regex per term.
+
+    Compiled per call against 625 index terms that cost 125 ms per route() —
+    a 180x regression on the 0.7 ms substring matching took, paid on every
+    query that reaches retrieval. Patterns are compiled once at index-build
+    time now.
+
+    Asserted structurally rather than by wall clock, so it does not flake on a
+    loaded Jetson: the cache must be populated at construction and route()
+    must not add to it.
+    """
+    r = ClinicalRouter()
+    assert len(r._term_patterns) == len(r.term_to_protocols), (
+        "every index term should have a compiled matcher after __init__")
+    before = len(r._term_patterns)
+    r.route("severe TBI patient GCS 6 BP 90/60 needs management")
+    r.route("he's got burns and broken bones from a car wreck")
+    assert len(r._term_patterns) == before, (
+        "route() compiled new patterns — the cache is not being used")
+
+
+def test_alias_patterns_are_cached_too():
+    info_before = ClinicalRouter._alias_pattern.cache_info()
+    ClinicalRouter._alias_pattern("ketamine")
+    ClinicalRouter._alias_pattern("ketamine")
+    info_after = ClinicalRouter._alias_pattern.cache_info()
+    assert info_after.hits > info_before.hits

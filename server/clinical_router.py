@@ -15,6 +15,7 @@ Usage:
 
 import json
 import re
+from functools import lru_cache
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
@@ -48,6 +49,7 @@ class ClinicalRouter:
         self.query_aliases = self._load_json("query_aliases.json")
 
         # Build fast lookup structures
+        self._term_patterns = {}
         self._build_lookup_index()
 
     def _load_json(self, filename: str) -> dict:
@@ -76,6 +78,11 @@ class ClinicalRouter:
                     self.term_to_protocols[t] = []
                 if protocol_id not in self.term_to_protocols[t]:
                     self.term_to_protocols[t].append(protocol_id)
+
+        # Compile every term's matcher now, so the first clinical query of the
+        # day is not the one that pays for 625 regex compilations.
+        for t in self.term_to_protocols:
+            self._term_pattern(t)
 
     # F-6 (eval baseline). Short alias keys that are ordinary English words or
     # ordinary clinical abbreviations with a second meaning. Word anchoring
@@ -141,18 +148,27 @@ class ClinicalRouter:
             out |= set(self.term_to_protocols.get(word, ()))
         return out
 
-    @staticmethod
-    def _term_pattern(term: str):
+    def _term_pattern(self, term: str):
         """Word-boundary matcher for a protocol-index term.
+
+        Compiled ONCE per term at index-build time. Compiling on every call
+        cost 125 ms per route() against 625 index terms — measured, and a
+        180x regression on the 0.7 ms this took before word anchoring. The
+        router runs on every query that reaches retrieval.
 
         The same fix F-2 applied to the alias table, which was never applied to
         term_to_protocols. Measured: "organophosphate exposure from a farm
         sprayer" matched the index term "pra" inside "s-pra-yer" and routed to
         Progressive Return to Activity at HIGH confidence.
         """
-        return re.compile(r'(?<!\w)' + re.escape(term) + r'(?!\w)')
+        cached = self._term_patterns.get(term)
+        if cached is None:
+            cached = re.compile(r'(?<!\w)' + re.escape(term) + r'(?!\w)')
+            self._term_patterns[term] = cached
+        return cached
 
     @staticmethod
+    @lru_cache(maxsize=512)
     def _alias_pattern(alias: str):
         """Word-boundary matcher for one alias key.
 
