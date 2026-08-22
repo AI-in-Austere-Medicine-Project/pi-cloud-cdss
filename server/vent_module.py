@@ -57,11 +57,18 @@ _DIR = pathlib.Path(__file__).parent
 
 PENDING = "PENDING_CLINICAL_SIGNOFF"
 
-# The one author permitted to sign a card, and the name that appears in the
-# served source line. Config so a second reviewer is an edit, not a code
-# change; a list so co-signature is expressible without reshaping anything.
+# The authors permitted to sign a card, and the name that appears in the served
+# source line. Config so a second reviewer is an edit, not a code change; a list
+# so co-signature is expressible without reshaping anything.
+#
+# "AI-AIM" is the project signing as an organisation rather than as a person.
+# It authorises the SIGNATURE, and nothing more: a card signed by an authorised
+# name and still carrying a PENDING sentinel in a clinical field is refused
+# exactly as before, because the fence is about whether the content exists, not
+# about who is willing to put their name to it.
 SIGNOFF_AUTHORS = tuple(
-    a.strip() for a in os.getenv("CDSS_CARD_AUTHORS", "A. Azelton").split(",")
+    a.strip() for a in os.getenv("CDSS_CARD_AUTHORS",
+                                 "A. Azelton,AI-AIM").split(",")
     if a.strip())
 
 # Longest content field a device card may carry. Device cards are the owner's

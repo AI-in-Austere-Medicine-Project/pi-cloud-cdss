@@ -179,6 +179,34 @@ def test_a_pending_card_is_indistinguishable_from_an_absent_one(live):
     assert vm.dispatch("vent settings for a DKA patient") is None
 
 
+def test_the_organisation_may_sign_but_signing_is_not_authoring():
+    """AI-AIM signs as an organisation rather than as a person. It authorises
+    the SIGNATURE and nothing else: an authorised name on a card whose clinical
+    fields are still sentinels is refused exactly as an unauthorised one is,
+    and refused for the content rather than for the name. The fence is about
+    whether the settings exist, not about who is willing to put a name to
+    them."""
+    assert "AI-AIM" in vm.SIGNOFF_AUTHORS
+
+    empty = copy.deepcopy(vm.PHYSIOLOGY["metabolic_acidosis"])
+    empty.update({"signoff": True, "reviewed_by": "AI-AIM",
+                  "review_date": "2026-08-22", "references": ["TEST reference"]})
+    ok, why = vm.card_is_servable(empty, "physiology")
+    assert not ok
+    assert "PENDING_CLINICAL_SIGNOFF" in why
+    assert "authorised signer" not in why, "refused for the name, not the content"
+
+    authored = signed_physiology("metabolic_acidosis", reviewed_by="AI-AIM")
+    assert vm.card_is_servable(authored, "physiology")[0]
+
+
+def test_an_unauthorised_name_is_still_refused():
+    """Widening the list to two names is not widening it to any name."""
+    card = signed_physiology("metabolic_acidosis", reviewed_by="AI AIM")
+    ok, why = vm.card_is_servable(card, "physiology")
+    assert not ok and "authorised signer" in why
+
+
 # ── F-12 REGRESSION ─────────────────────────────────────────────────────────
 
 DKA_PHRASINGS = [
