@@ -24,6 +24,7 @@ from openai_client import (  # noqa: E402
     is_vent_settings_query, looks_like_sepsis, should_use_rsi_pregate,
 )
 from test_fixtures import (  # noqa: E402
+    ALIAS_CONTEXT_DEPENDENT_CASES,
     ALIAS_STANDALONE_CASES, F2_ROWS, S4_VENT_QUERY, S4_VENT_REFUSED,
 )
 
@@ -96,6 +97,39 @@ def test_standalone_aliases_still_resolve():
         enhanced, resolved = _ROUTER.resolve_aliases(query)
         assert key in _resolved_keys(query), f"{key!r} did not resolve in {query!r}"
         assert standard in enhanced
+
+
+def test_context_dependent_aliases_need_corroboration():
+    """F-6 supersedes part of the v4.1 decision above, for one subset.
+
+    v4.1 word-anchored the short keys and kept them resolving alone, which is
+    right for "tq" and wrong for "k": anchoring cannot help when the collision
+    IS the whole word. "his K is 6.8 with peaked T waves" resolved k ->
+    ketamine and searched a hyperkalaemia emergency as a ketamine question.
+
+    Paired, so this cannot be satisfied by deleting the keys.
+    """
+    for alone, corroborated, key in ALIAS_CONTEXT_DEPENDENT_CASES:
+        assert key not in _resolved_keys(alone), (
+            f"{key!r} resolved with nothing to corroborate it, in {alone!r}")
+        assert key in _resolved_keys(corroborated), (
+            f"{key!r} failed to resolve even when corroborated, in "
+            f"{corroborated!r} — the key is now dead rather than guarded")
+
+
+def test_every_context_dependent_key_is_corroborable():
+    """Two ways this list can be wrong, both of them silent.
+
+    A key the alias table does not have is dead config. A key whose STANDARD
+    names nothing in the protocol index can never be corroborated, so listing
+    it does not guard it — it disables it permanently, and the medic sees a
+    word that used to resolve quietly stop resolving.
+    """
+    for key in ClinicalRouter.CONTEXT_DEPENDENT_ALIASES:
+        assert key in _ROUTER.query_aliases, f"{key!r} is not an alias key"
+        assert _ROUTER._protocols_for_alias(key), (
+            f"{key!r} names no protocol, so it can never be corroborated — "
+            f"guarding it here disables it instead of guarding it")
 
 
 def test_multiword_aliases_resolve():

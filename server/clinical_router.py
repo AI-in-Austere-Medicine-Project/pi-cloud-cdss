@@ -85,9 +85,17 @@ class ClinicalRouter:
     # Measured: "his K is 6.8 and the ECG has peaked T waves" resolved
     # k -> ketamine and searched a hyperkalaemia emergency as a ketamine
     # question (G-TRP-12).
+    # Only keys whose STANDARD names something in the protocol index are here.
+    # Corroboration is measured against index terms, so a key whose standard
+    # names nothing can never be corroborated — putting it here would not
+    # guard it, it would silently kill it. Measured: "cat" -> combat
+    # application tourniquet, "map" -> mean arterial pressure, "pa" ->
+    # physician assistant and "mag" -> magnesium sulfate all name nothing in
+    # the index, so they keep their v4.1 behaviour (word-anchored, resolving
+    # freely) and are noted in the PR rather than quietly disabled.
+    # test_every_context_dependent_key_is_corroborable pins this.
     CONTEXT_DEPENDENT_ALIASES = frozenset({
-        "k", "cat", "hs", "cold", "map", "march", "mag", "t", "bg",
-        "pa", "doc", "king", "tube", "sat", "plt", "pus",
+        "k", "hs", "cold", "march", "tube", "pus",
     })
 
     # Index terms that are ordinary clinical prose rather than a topic. A term
