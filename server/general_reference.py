@@ -257,6 +257,71 @@ Lead with the answer. Follow with the one caveat that matters, if there is one.
 End with: "General reference, not JTS. Confirm against local protocol."
 """
 
+# F-7 (eval baseline). Tier selection is a pure function of the retrieval
+# score — use_general_reference fires on source_mode == "INSUFFICIENT" and
+# nothing else — so a retrieval MISS silently changes the response format. It
+# does so most often on exactly the queries retrieval is worst at, which the
+# same run showed are disproportionately the urgent short ones.
+#
+# Measured: 43 of 132 served answers came through this path, and 45 of 48 had
+# no **TLDR** at all. Among them "he's tanking, BP is 78/44 now and he's grey"
+# (G-MTN-01), "his sugar came back at 32, he's confused" (G-MTN-08),
+# "circumferential burn, fingers are getting dusky" (G-BRN-06) and "hypothermic
+# arest, found in the snow, no pulse" (G-TYP-07) — all answered in three
+# sentences of prose with no actions, no TLDR and no evacuation trigger.
+#
+# The content rules above do NOT change: recipe-yes-prescription-no and the
+# 150-word cap hold on both registers. Only the shape of an ACUTE answer does.
+ACUTE_FORMAT_BLOCK = """
+
+────────────────────────────────
+FORMAT OVERRIDE — ACUTE PRESENTATION
+────────────────────────────────
+
+This query is about a patient in front of the medic right now, so the
+reference-card shape above is replaced by the action shape below. Everything
+else on this page still applies: no dose for a patient, the referral sentence
+for dosing questions, and the 150-word cap.
+
+**DO THIS**
+1. [Most critical action]
+2. [Second action]
+3. [Third]
+
+**WATCH**
+- [One monitoring line]
+
+**TLDR**
+- [One sentence. Most critical action or number.]
+
+End with: "General reference, not JTS. Confirm against local protocol."
+"""
+
+# What makes a query acute. Two signals, both cheap and both stated by the
+# medic rather than inferred: the session holds a vital sign, or the query
+# asks what to do now. Neither reads the retrieval score, which is the whole
+# point — the tier's SHAPE stops being a side-effect of a retrieval miss.
+_ACUTE_IMPERATIVES = (
+    "what do i do", "what do we do", "what now", "what next", "now what",
+    "what should i do", "how do i manage", "how should i manage",
+    "do i give", "should i give", "can i give", "what do i give",
+    "he's tanking", "hes tanking", "she's tanking", "shes tanking",
+    "is crashing", "is dying", "no pulse", "not breathing", "unresponsive",
+    "right now", "immediately", "first thing", "priority",
+)
+
+
+def is_acute_presentation(query: str, vitals_present: bool = False) -> bool:
+    """Whether a general-reference answer should use the action format.
+
+    Deliberately biased toward the action shape: a reference question answered
+    in DO THIS / WATCH / TLDR is mildly over-structured, and an acute question
+    answered as a paragraph of prose is the failure this exists to close.
+    """
+    if vitals_present:
+        return True
+    return _has_any(query, _ACUTE_IMPERATIVES)
+
 
 REFERRAL_BASE = "Dosing goes through the protocol path"
 
@@ -289,7 +354,8 @@ def dosing_referral(weight_confirmed: bool = False,
 
 def build_system_prompt(patient_block: str = "",
                         weight_confirmed: bool = False,
-                        route_known: bool = False) -> str:
+                        route_known: bool = False,
+                        acute: bool = False) -> str:
     """Reference prompt, plus patient context when the session has any.
 
     Patient context is included so the model can decline coherently — knowing a
@@ -304,6 +370,8 @@ def build_system_prompt(patient_block: str = "",
     text to decide what it knows is one rewording away from being wrong.
     """
     prompt = GENERAL_REFERENCE_PROMPT
+    if acute:
+        prompt += ACUTE_FORMAT_BLOCK
     prompt += ("\n\n────────────────────────────────\nREFERRAL SENTENCE\n"
                "────────────────────────────────\n\n"
                "Answer a dosing question with exactly this sentence:\n\n"

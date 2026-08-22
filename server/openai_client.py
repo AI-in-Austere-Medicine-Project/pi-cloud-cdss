@@ -3302,11 +3302,18 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         if use_general:
             assessment.source_mode = "GENERAL_REFERENCE"
             print("📖 GENERAL REFERENCE — no usable JTS retrieval")
+            # F-7: the reference tier keeps its content rules and takes the
+            # action format when the query is about a patient in front of the
+            # medic. Acuteness is read from the session's own vitals and the
+            # query's shape, never from the retrieval score — a retrieval miss
+            # must not decide what a response looks like.
             system_prompt = general_reference.build_system_prompt(
                 build_patient_block(patient_ctx, now_ts=now_ts),
                 weight_confirmed=patient_ctx.has_confirmed_weight,
                 route_known=patient_ctx.route_preference != "UNKNOWN"
-                            or patient_ctx.access_state == "CONFIRMED_IV_IO")
+                            or patient_ctx.access_state == "CONFIRMED_IV_IO",
+                acute=general_reference.is_acute_presentation(
+                    full_query_history, vitals_present=bool(patient_ctx.vitals)))
             allowed_actions = []
         else:
             system_prompt = build_system_prompt(patient_ctx, assessment,
