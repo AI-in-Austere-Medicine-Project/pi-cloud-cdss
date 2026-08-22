@@ -6,15 +6,13 @@ httpx>=0.27.0
 pydantic>=2.7.0
 python-dotenv>=1.0.0
 openai>=1.30.0
-# PINNED, not floating. Verified against providers._chat_anthropic's call
-# shape in a throwaway venv on 2026-08-22: `system`, `temperature`,
-# `max_tokens` and `output_config` are all parameters of messages.create at
-# this version.
+# PINNED to what is deployed and verified. 1.0.0 removed `temperature` from
+# messages.create; _chat_anthropic now inspects the installed SDK and omits
+# the parameter when it is absent, so BOTH 0.125.x and 1.0.0 work and this pin
+# is a statement of what was tested rather than a constraint holding the
+# adapter together.
 #
-# DO NOT move to 1.x without changing the adapter. anthropic 1.0.0 REMOVES
-# `temperature` from messages.create and the method takes no **kwargs, so
-# _chat_anthropic raises TypeError for any model whose providers.json entry
-# says supports_temperature: true — which claude-haiku-4-5 does today. The
-# adapter would need to drop temperature unconditionally first.
-anthropic==0.125.0
+# Verified against the live API on 2026-08-22 at this version: claude-haiku-4-5,
+# claude-sonnet-5 and claude-opus-5 all round-trip through providers.chat().
+anthropic==1.0.0
 chromadb>=0.5.0
