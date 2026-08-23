@@ -2,7 +2,7 @@
   "_comment": [
     "EdgeCDSS — ventilator cards. CLINICAL CONTENT IS THE OWNER'S.",
     "",
-    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by A. Azelton and",
+    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by a credentialed clinician and",
     "by nobody else. The engine (vent_module.py) REFUSES to serve any card whose",
     "signoff is not true, whose reviewed_by is not an authorised signer, or whose",
     "clinical fields still carry the sentinel — so a half-authored card is",

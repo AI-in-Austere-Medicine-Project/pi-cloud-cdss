@@ -2,7 +2,7 @@
   "_comment": [
     "EdgeCDSS — ventilator cards. CLINICAL CONTENT IS THE OWNER'S.",
     "",
-    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by A. Azelton and",
+    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by a credentialed clinician and",
     "by nobody else. The engine (vent_module.py) REFUSES to serve any card whose",
     "signoff is not true, whose reviewed_by is not an authorised signer, or whose",
     "clinical fields still carry the sentinel — so a half-authored card is",
@@ -59,7 +59,7 @@
         "ARDSNet/NHLBI ARDS Network low-tidal-volume protocol"
       ],
       "source_label": "EdgeCDSS clinical card",
-      "reviewed_by": "A. Azelton",
+      "reviewed_by": "clinician",
       "review_date": "2026-08-22",
       "version": "1.0.0",
       "signoff": true,
@@ -116,7 +116,7 @@
         "Weingart & Levitan peri-intubation physiology"
       ],
       "source_label": "EdgeCDSS clinical card",
-      "reviewed_by": "A. Azelton",
+      "reviewed_by": "clinician",
       "review_date": "2026-08-22",
       "version": "1.0.0",
       "signoff": true,
@@ -168,7 +168,7 @@
         "LITFL permissive hypercapnia and disconnect maneuver"
       ],
       "source_label": "EdgeCDSS clinical card",
-      "reviewed_by": "A. Azelton",
+      "reviewed_by": "clinician",
       "review_date": "2026-08-22",
       "version": "1.0.0",
       "signoff": true,
@@ -219,7 +219,7 @@
         "Emergency Neurological Life Support ENLS 6.0 TBI"
       ],
       "source_label": "EdgeCDSS clinical card",
-      "reviewed_by": "A. Azelton",
+      "reviewed_by": "clinician",
       "review_date": "2026-08-22",
       "version": "1.0.0",
       "signoff": true,
@@ -270,7 +270,7 @@
         "Standard trauma-ventilation consensus lung-protective VT for pulmonary contusion tension-pneumothorax-on-PPV recognition"
       ],
       "source_label": "EdgeCDSS clinical card",
-      "reviewed_by": "A. Azelton",
+      "reviewed_by": "clinician",
       "review_date": "2026-08-22",
       "version": "1.0.0",
       "signoff": true,

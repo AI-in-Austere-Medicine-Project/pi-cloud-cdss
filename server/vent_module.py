@@ -25,7 +25,7 @@ behaviour it had before this module existed. There is no flag, no override and
 no debug path that serves an unsigned card, because the failure mode of a
 half-authored ventilator card is a patient ventilated on a placeholder.
 
-The owner (A. Azelton) is the sole author of clinical content. Cards go live
+A credentialed clinician is the sole author of clinical content. Cards go live
 one at a time as signoff lands; partial deployment is the normal state, not a
 migration step.
 
@@ -57,18 +57,24 @@ _DIR = pathlib.Path(__file__).parent
 
 PENDING = "PENDING_CLINICAL_SIGNOFF"
 
-# The authors permitted to sign a card, and the name that appears in the served
+# The signatures permitted on a card, and the string that appears in the served
 # source line. Config so a second reviewer is an edit, not a code change; a list
 # so co-signature is expressible without reshaping anything.
 #
-# "AI-AIM" is the project signing as an organisation rather than as a person.
-# It authorises the SIGNATURE, and nothing more: a card signed by an authorised
-# name and still carrying a PENDING sentinel in a clinical field is refused
-# exactly as before, because the fence is about whether the content exists, not
-# about who is willing to put their name to it.
+# These are ROLES, not people: the owner elected to sign as "clinician" rather
+# than by name, and "AI-AIM" is the project signing as an organisation. Be clear
+# about what that costs — a role string identifies nobody, so the served
+# provenance line no longer tells a medic whose judgement they are acting on,
+# and this list can no longer distinguish one signer from another. Set
+# CDSS_CARD_AUTHORS to real names to get that back.
+#
+# What it does NOT change: the signature authorises itself and nothing more. A
+# card signed by an authorised string and still carrying a PENDING sentinel in a
+# clinical field is refused exactly as before, because the fence is about
+# whether the content exists, not about who is willing to put a name to it.
 SIGNOFF_AUTHORS = tuple(
     a.strip() for a in os.getenv("CDSS_CARD_AUTHORS",
-                                 "A. Azelton,AI-AIM").split(",")
+                                 "clinician,AI-AIM").split(",")
     if a.strip())
 
 # Longest content field a device card may carry. Device cards are the owner's
@@ -483,12 +489,14 @@ DISCLAIMER = "Guideline-based support only. Not a substitute for clinical judgme
 def source_line(card: dict, family: str) -> str:
     """The third provenance label. JTS corpus / general reference / AUTHORED CARD.
 
-    A card answer is neither retrieved nor general knowledge: a named clinician
-    wrote it and put a date on it, and the medic reading it should be able to
-    see whose judgement they are acting on.
+    A card answer is neither retrieved nor general knowledge: a clinician wrote
+    it and put a date on it. The signature is a ROLE and not a name, so this
+    line tells the medic that a clinician stands behind the card and the date
+    they signed it, but not which clinician — set CDSS_CARD_AUTHORS to real
+    names if the deployment needs an auditable signer.
     """
     refs = ", ".join(str(r) for r in (card.get("references") or []))
-    line = (f"**SOURCE**: EdgeCDSS clinical card — reviewed "
+    line = (f"**SOURCE**: EdgeCDSS clinical card — reviewed by "
             f"{card.get('reviewed_by')}, {card.get('review_date')}")
     if family == "device":
         manual = card.get("manual_reference") or {}

@@ -107,7 +107,7 @@ def main():
     L.append("Fill under each field; leave a card blank to skip it.")
     L.append(f"Lists: one item per line. Anything left as {BLANK} stays unsigned.")
     L.append("")
-    L.append("Signer: A. Azelton, and nobody else. Set reviewed_by to that exact")
+    L.append("Signer: a credentialed clinician. Set reviewed_by to the exact")
     L.append("string, review_date to the day you signed, signoff true, version 1.0.0.")
     L.append("")
     L.append("A signed card must carry NO PENDING_CLINICAL_SIGNOFF in any field —")

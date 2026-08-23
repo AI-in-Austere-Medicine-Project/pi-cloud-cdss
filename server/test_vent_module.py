@@ -32,7 +32,7 @@ from openai_client import PatientContext, extract_patient_context
 
 def _sign(card: dict, **overrides) -> dict:
     card = copy.deepcopy(card)
-    card.update({"reviewed_by": "A. Azelton", "review_date": "2026-08-22",
+    card.update({"reviewed_by": "clinician", "review_date": "2026-08-22",
                  "references": ["TEST reference"], "signoff": True})
     card.update(overrides)
     return card
@@ -757,7 +757,7 @@ def test_every_served_card_carries_its_source_line(family, builder, query):
     card = builder()
     out = vm.render(family, card, PatientContext(), query)
     assert "**SOURCE**: EdgeCDSS clinical card" in out
-    assert "reviewed A. Azelton, 2026-08-22" in out
+    assert "reviewed by clinician, 2026-08-22" in out
     assert "refs: TEST reference" in out
     assert vm.DISCLAIMER in out
 
