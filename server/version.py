@@ -10,5 +10,5 @@ literal version string survives anywhere else, so the next bump is one edit and
 cannot half-land.
 """
 
-__version__ = "4.2.0"
+__version__ = "4.3.0"
 VERSION = __version__

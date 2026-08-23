@@ -2,6 +2,82 @@
 
 ## [Unreleased]
 
+## [4.3.0] — 2026-08-22
+
+The ventilator module: a card engine, thirteen cards, and the first five signed
+and carrying traffic. A card answer is neither retrieved nor generated — a
+clinician wrote it, dated it, and the engine refuses to serve it until they
+have.
+
+### F-12 closed — a DKA vent question now returns vent settings
+- The round-1 eval measured **0 of 4 DKA vent phrasings returning any of
+  VT / RR / PEEP / FiO2, against 4 of 4 for TBI**, 100% reproducible. TBI was
+  answered well by retrieval; DKA fell through to prose that never reached a
+  number.
+- **DKA is now 4 of 4** — all four phrasings reach `metabolic_acidosis` and
+  return all four settings. **TBI holds at 4 of 4**, the control that proves
+  the module did not buy one physiology at another's expense.
+- The card says the thing the corpus never did: *match the compensatory minute
+  ventilation, do not set a normal rate.* A patient breathing 35-40 was
+  defending their pH, and 12-16 halves their minute ventilation.
+
+### S-7 settled — one SBP target, not three
+- Three TBI answers gave three different SBP targets. The `tbi` card carries
+  one: **SBP >= 110 mmHg**. A card is where a number stops depending on which
+  answer you happened to get.
+
+### The authorship fence
+- **The engine refuses to serve a card whose clinical fields are still
+  `PENDING_CLINICAL_SIGNOFF`**, whose `signoff` is not true, whose `reviewed_by`
+  is not an authorised signature, or whose `references` are empty. A
+  half-authored card is indistinguishable from an absent one: the query falls
+  through to whatever answered it before the module existed.
+- **There is no override.** `EDGECDSS_DEBUG_WARN_ONLY` downgrades safety holds
+  elsewhere in this system and does not reach this gate. A test asserts the
+  flag's name does not appear in `vent_module.py` and that `card_is_servable()`
+  takes no parameter a bypass could ride in on.
+- **Cards go live one at a time.** Partial deployment is the normal state, not
+  a migration step — five physiology cards are live, four troubleshooting and
+  four device cards are still dark and invisible to the pipeline.
+- Signing authorises the **signature and nothing more**. An authorised
+  signature on a card still holding a sentinel is refused for the *content*,
+  not for the name.
+- A signed card must carry no sentinel in **any** field, including
+  `actual_weight_caveat` and `tldr`, which sit outside the gate's clinical set.
+  `render_physiology()` printed the caveat verbatim on the actual-weight path,
+  so a truthy sentinel would have put `PENDING_CLINICAL_SIGNOFF` in front of a
+  medic. Guarded, and a test now checks every field rather than the gated ones.
+
+### Height and IBW capture — tidal volume is dosed on ideal body weight
+- **Height and sex are captured** and VT is dosed on **Devine IBW**, not actual
+  weight. A 75 kg casualty at 178 cm is 439 mL at 6 mL/kg, not 450.
+- **Missing height does not guess.** VT falls back to actual weight, says so in
+  the settings line — `450 mL (ACTUAL weight 75.0 kg — not IBW)` — and the card
+  adds its own caveat naming the VT a ceiling until a height is entered.
+- An ambiguous bare measurement is **rejected rather than guessed**, a height
+  does not eat a blood pressure, and a patient boundary clears it like every
+  other vital.
+
+### Provenance — a third source mode
+- `VENT_CARD` joins the JTS corpus and general reference as a distinct
+  provenance value, logged as itself and never as a synonym for JTS. The served
+  line reads **`reviewed by clinician, <date>`** with the card's references.
+- Cards are signed by **role rather than by name**. A role identifies nobody, so
+  the line tells a medic that a clinician stands behind the card and when they
+  signed it, but not which clinician. `CDSS_CARD_AUTHORS` takes real names where
+  a deployment needs an auditable signer.
+
+### Dispatch
+- **The baseline card is no longer the silent default.** `lung_protective_baseline`
+  also matched "vent settings" and "set the vent", which made it the first match
+  for nearly every real vent question and shadowed all four specific cards — a
+  DKA query reached the ARDS card, which is F-12 with the roles reversed. A
+  settings question naming no physiology now **asks which one** instead, and the
+  menu lists only cards that are actually live.
+- Troubleshooting outranks settings when alarm language is present; device
+  aliases (`t1`, `1200`, `731`, `eagle`) require vent context before they name a
+  device; no vent pattern matches inside a longer word.
+
 ## [4.2.0] — 2026-08-21
 
 Everything below shipped between 4.1.0 and 4.2.0. `/status` reported `4.1.0`
