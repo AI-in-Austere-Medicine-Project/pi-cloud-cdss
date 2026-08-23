@@ -53,8 +53,8 @@
         "Rising pressor requirement with the respiratory failure"
       ],
       "escape_hatch": "General lung-protective/ARDS-pattern card. If the driver is a specific physiology — metabolic acidosis, obstruction, TBI, chest trauma — use that card. Assumes VT on height-derived IBW, not actual weight.",
-      "actual_weight_caveat": "",
-      "tldr": "",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "6 mL/kg IBW, plateau under 30, permissive hypercapnia to pH 7.2.",
       "references": [
         "ARDSNet/NHLBI ARDS Network low-tidal-volume protocol"
       ],
@@ -107,8 +107,8 @@
         "Haemodynamic collapse peri- or post-intubation"
       ],
       "escape_hatch": "Assumes metabolic acidosis with preserved respiratory compensation (DKA, salicylate, sepsis, severe diarrhoea). Does NOT apply to respiratory/mixed acidosis or ARDS-pattern lungs — use the lung-protective card. Correcting the underlying cause is definitive; the vent only buys time.",
-      "actual_weight_caveat": "",
-      "tldr": "",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "Match their fast breathing — start RR 20-30, never a normal rate, or the pH crashes.",
       "references": [
         "ARDSNet/NHLBI ARDS Network low-tidal-volume protocol",
         "REBEL EM Simplifying Mechanical Ventilation Part 3 Severe Metabolic Acidosis 2024",
@@ -159,8 +159,8 @@
         "Pneumothorax or haemodynamic instability"
       ],
       "escape_hatch": "Assumes severe obstructive physiology (status asthmaticus, severe COPD). Disconnect-to-exhale is specific to hyperinflation — if collapse is from tension pneumothorax that is a different emergency (decompression). Continue aggressive bronchodilator/steroid therapy; the vent is supportive.",
-      "actual_weight_caveat": "",
-      "tldr": "",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "Slow rate (8-12), long exhale, accept high CO2 — disconnect if they crash.",
       "references": [
         "StatPearls Status Asthmaticus 2025",
         "Medscape Status Asthmaticus Treatment & Management",
@@ -210,8 +210,8 @@
         "GCS deterioration"
       ],
       "escape_hatch": "Assumes isolated/predominant TBI. Polytrauma with haemorrhagic shock changes priorities — resuscitate pressure first. If chest trauma coexists, cross-check the chest-trauma card. Herniation hyperventilation is a temporary bridge, not a setting.",
-      "actual_weight_caveat": "",
-      "tldr": "",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "Normocapnia (EtCO2 35-40), SpO2 >= 94%, SBP >= 110 — don't hyperventilate unless herniating.",
       "references": [
         "Brain Trauma Foundation Guidelines for Severe TBI 4th ed",
         "ACS TBI Best Practices 2024 SBP >= 110",
@@ -263,8 +263,8 @@
         "Signs of massive haemothorax or cardiac injury"
       ],
       "escape_hatch": "Assumes blunt/penetrating chest trauma being ventilated. Does NOT override the safety gate's tension-pneumothorax response — if tension physiology is present decompression comes before any ventilator adjustment. For predominant TBI or ARDS-pattern failure use those cards.",
-      "actual_weight_caveat": "",
-      "tldr": "",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "6 mL/kg, watch for tension pneumo on positive pressure — decompress before you touch the vent.",
       "references": [
         "JTS Thoracic Trauma CPG",
         "Standard trauma-ventilation consensus lung-protective VT for pulmonary contusion tension-pneumothorax-on-PPV recognition"

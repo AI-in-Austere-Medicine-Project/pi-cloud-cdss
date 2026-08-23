@@ -815,6 +815,25 @@ def test_manual_files_are_gitignored():
     assert "manuals/" in ignored
 
 
+def test_the_fill_in_sheet_does_not_offer_a_live_card_for_authoring():
+    """CARD_FILL_IN.txt is generated and lists only what is still dark.
+
+    Its hand-maintained predecessor drifted into claiming 13 cards, 0 live and
+    naming a signer the owner had not agreed to, while five cards were signed
+    and serving. A sheet that disagrees with the card files about what is live
+    invites someone to author over content that already shipped.
+    """
+    root = pathlib.Path(vm.__file__).resolve().parent.parent
+    sheet = (root / "CARD_FILL_IN.txt").read_text()
+    offered = {line.split()[1] for line in sheet.splitlines()
+               if line.startswith("CARD: ")}
+    live = {c for family in vm.servable_cards().values() for c in family}
+    assert not (offered & live), f"live cards offered for authoring: {offered & live}"
+    dark = {card_id for family, cards in vm.FAMILIES.items()
+            for card_id in cards if card_id not in live}
+    assert offered == dark, f"sheet is stale — re-run gen_card_fill_in.py"
+
+
 # ── LOG CONTRACT ────────────────────────────────────────────────────────────
 
 def test_log_records_the_card_that_answered(tmp_path, monkeypatch):
