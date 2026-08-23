@@ -53,7 +53,7 @@
       "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
       "review_date": "PENDING_CLINICAL_SIGNOFF",
       "version": "0.1.0-draft",
-      "signoff": true,
+      "signoff": false,
       "_authoring_note": "ARDS-pattern card. It is NO LONGER the silent default: it used to also match \"vent settings\", \"set the vent\" and similar, which made it the FIRST match for almost every real vent question and shadowed all four specific cards — a DKA query reached this card, which is F-12 with the roles reversed. A settings question naming no physiology now asks which one instead of defaulting here. Own signals only."
     },
     {
@@ -98,7 +98,7 @@
       "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
       "review_date": "PENDING_CLINICAL_SIGNOFF",
       "version": "0.1.0-draft",
-      "signoff": true,
+      "signoff": false,
       "_authoring_note": "THIS IS THE F-12 CARD. The eval baseline showed 0 of 4 DKA vent queries returning any settings while 4 of 4 TBI queries did. PLAN_v4.1 5.3 has been waiting on this content."
     },
     {
@@ -138,7 +138,7 @@
       "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
       "review_date": "PENDING_CLINICAL_SIGNOFF",
       "version": "0.1.0-draft",
-      "signoff": true,
+      "signoff": false,
       "_authoring_note": "Shares vocabulary with breath_stacking_auto_peep in the troubleshooting family. Troubleshooting wins when alarm language is present; check that split is what you want."
     },
     {
@@ -177,7 +177,7 @@
       "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
       "review_date": "PENDING_CLINICAL_SIGNOFF",
       "version": "0.1.0-draft",
-      "signoff": true,
+      "signoff": false,
       "_authoring_note": "Control card for the F-12 regression test: TBI vent queries already answered correctly through RAG, so this card must not make them worse. S-7 also flagged three different SBP targets across three TBI answers — a card is where that gets settled."
     },
     {
@@ -218,7 +218,7 @@
       "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
       "review_date": "PENDING_CLINICAL_SIGNOFF",
       "version": "0.1.0-draft",
-      "signoff": true,
+      "signoff": false,
       "_authoring_note": "Overlaps chest_trauma with the tension-pneumo override in the safety gate; they answer different questions and should not contradict each other."
     }
   ]
