@@ -533,7 +533,9 @@ def render_physiology(card: dict, basis: dict) -> str:
     if basis.get("basis") == "actual":
         # The caveat text is the CARD's, not this module's. The engine decides
         # only WHEN it is shown.
-        caveat = card.get("actual_weight_caveat") or card.get("escape_hatch")
+        caveat = card.get("actual_weight_caveat")
+        if not caveat or caveat == PENDING:
+            caveat = card.get("escape_hatch")
         out += [f"**CAVEAT**\n- {caveat}", ""]
 
     tldr = card.get("tldr")

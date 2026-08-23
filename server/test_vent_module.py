@@ -1,11 +1,17 @@
 """
 Ventilator card engine — the fence, the dispatch, and the arithmetic.
 
-Every card in the repo ships UNSIGNED, so the serve paths here build signed
-cards locally. Those fixtures carry obviously-synthetic content ("TEST mode",
-"step one") and no clinical values: a test fixture that looked like real
-settings would be exactly the thing the fence exists to prevent, sitting in
-the repo where someone could copy it into a card file.
+The five physiology cards are signed and carrying traffic; the eight
+troubleshooting and device cards are still unsigned. Cards go live one at a
+time, so "which cards are live" is a moving fact and no test asserts a global
+"nothing is live" — the fence tests install a PENDING card (pending_physiology)
+and prove that one is refused, which stays true however many others ship.
+
+The serve paths still build signed cards locally. Those fixtures carry
+obviously-synthetic content ("TEST mode", "step one") and no clinical values: a
+test fixture that looked like real settings would be exactly the thing the
+fence exists to prevent, sitting in the repo where someone could copy it into a
+card file.
 
 F-12, which this closes the class of: the eval baseline measured 4 of 4 TBI
 vent queries returning VT/RR/PEEP/FiO2 and 0 of 4 DKA vent queries returning
@@ -69,6 +75,42 @@ def signed_device(card_id="hamilton_t1", **overrides):
     return card
 
 
+# The physiology cards signed and carrying traffic. Expected to grow as cards
+# ship one at a time; the fence tests below must not depend on its length.
+LIVE_PHYSIOLOGY = ("chest_trauma", "lung_protective_baseline",
+                   "metabolic_acidosis", "obstructive", "tbi")
+
+_SETTINGS_KEYS = ("mode", "vt_ml_per_kg_ibw", "rate_strategy", "peep", "fio2")
+
+
+def pending_physiology(card_id="metabolic_acidosis", **overrides):
+    """A shipped card wound back to the sentinel in every clinical field.
+
+    The state every card was in before content landed, and the state the
+    unsigned cards are still in. The fence tests assert against THIS rather
+    than against the repo, so signing a card is never what makes them pass.
+    """
+    card = copy.deepcopy(vm.PHYSIOLOGY[card_id])
+    card["initial_settings"] = {k: vm.PENDING for k in _SETTINGS_KEYS}
+    card.update({"titrate_on": [vm.PENDING], "watch_for": [vm.PENDING],
+                 "evac_if": [vm.PENDING], "escape_hatch": vm.PENDING,
+                 "actual_weight_caveat": vm.PENDING, "tldr": vm.PENDING,
+                 "references": [], "reviewed_by": vm.PENDING,
+                 "review_date": vm.PENDING, "version": "0.1.0-draft",
+                 "signoff": False})
+    card.update(overrides)
+    return card
+
+
+@pytest.fixture
+def all_pending(live):
+    """Wind every physiology card back to unsigned for one test."""
+    def install():
+        for card_id in vm.PHYSIOLOGY:
+            live("physiology", pending_physiology(card_id))
+    return install
+
+
 @pytest.fixture
 def live(monkeypatch):
     """Install signed cards for the duration of one test."""
@@ -84,19 +126,34 @@ def live(monkeypatch):
 
 # ── THE FENCE ───────────────────────────────────────────────────────────────
 
-def test_every_shipped_card_is_unsigned():
-    """The repo state. Clinical content is the owner's and none has landed."""
+def test_the_shipped_card_state():
+    """The repo state: five physiology cards authored and signed, everything
+    else still the owner's to write. Every card is one or the other — signed
+    with content, or dark with a reason."""
     for family, cards in vm.FAMILIES.items():
         assert cards, f"{family} loaded no cards at all"
         for card_id, card in cards.items():
             servable, reason = vm.card_is_servable(card, family)
-            assert not servable, f"{family}/{card_id} is live and should not be"
-            assert reason
+            if family == "physiology" and card_id in LIVE_PHYSIOLOGY:
+                assert servable, f"{card_id} should be live: {reason}"
+            else:
+                assert not servable, f"{family}/{card_id} is live and should not be"
+                assert reason
 
 
-def test_nothing_is_servable_today():
-    assert vm.servable_cards() == {"physiology": [], "troubleshooting": [],
-                                   "device": []}
+def test_what_is_servable_today():
+    assert vm.servable_cards() == {"physiology": sorted(LIVE_PHYSIOLOGY),
+                                   "troubleshooting": [], "device": []}
+
+
+def test_no_signed_card_kept_a_sentinel_anywhere():
+    """A signed card must not carry the sentinel in ANY field, including the
+    ones outside the gate's clinical tuple — the gate would not catch those,
+    and PENDING_CLINICAL_SIGNOFF is not a string a medic should ever read."""
+    for card_id in LIVE_PHYSIOLOGY:
+        leaked = [k for k, v in vm.PHYSIOLOGY[card_id].items()
+                  if vm.PENDING in json.dumps(v)]
+        assert not leaked, f"{card_id} still has the sentinel in: {leaked}"
 
 
 @pytest.mark.parametrize("family,builder", [
@@ -158,6 +215,10 @@ def test_there_is_no_override_that_serves_an_unsigned_card(monkeypatch):
     monkeypatch.setenv("EDGECDSS_DEBUG_WARN_ONLY", "1")
     monkeypatch.setenv("CDSS_CARD_FORCE", "1")
     monkeypatch.setenv("CDSS_SERVE_PENDING_CARDS", "1")
+    monkeypatch.setattr(vm, "PHYSIOLOGY", {k: pending_physiology(k)
+                                           for k in vm.PHYSIOLOGY})
+    monkeypatch.setitem(vm.FAMILIES, "physiology", vm.PHYSIOLOGY)
+    assert vm.dispatch("vent settings for a DKA patient") is None
     source = pathlib.Path(vm.__file__).read_text()
     assert "DEBUG_WARN_ONLY" not in source, "the warn-only flag must not reach this gate"
 
@@ -166,14 +227,17 @@ def test_there_is_no_override_that_serves_an_unsigned_card(monkeypatch):
     import inspect
     assert list(inspect.signature(vm.card_is_servable).parameters) == ["card", "family"]
 
-    for family, cards in vm.FAMILIES.items():
-        for card in cards.values():
+    for card_id in vm.PHYSIOLOGY:
+        assert not vm.card_is_servable(pending_physiology(card_id), "physiology")[0]
+    for family, builder in (("troubleshooting", signed_trouble),
+                            ("device", signed_device)):
+        for card_id, card in vm.FAMILIES[family].items():
             assert not vm.card_is_servable(card, family)[0]
-    assert vm.dispatch("vent settings for a DKA patient") is None
 
 
 def test_a_pending_card_is_indistinguishable_from_an_absent_one(live):
     """The caller must not be able to branch on "pending" vs "no such card"."""
+    live("physiology", pending_physiology("metabolic_acidosis"))
     assert vm.dispatch("vent settings for a DKA patient") is None
     live("physiology", signed_physiology(signoff=False))
     assert vm.dispatch("vent settings for a DKA patient") is None
@@ -188,7 +252,7 @@ def test_the_organisation_may_sign_but_signing_is_not_authoring():
     them."""
     assert "AI-AIM" in vm.SIGNOFF_AUTHORS
 
-    empty = copy.deepcopy(vm.PHYSIOLOGY["metabolic_acidosis"])
+    empty = pending_physiology("metabolic_acidosis")
     empty.update({"signoff": True, "reviewed_by": "AI-AIM",
                   "review_date": "2026-08-22", "references": ["TEST reference"]})
     ok, why = vm.card_is_servable(empty, "physiology")
@@ -247,8 +311,12 @@ def test_f12_tbi_phrasings_reach_the_tbi_card_as_control(query, live):
 
 
 @pytest.mark.parametrize("query", DKA_PHRASINGS + TBI_PHRASINGS)
-def test_vent_queries_fall_through_untouched_while_cards_are_pending(query):
-    """Today's behaviour, pinned. Until content lands, nothing changes."""
+def test_vent_queries_fall_through_untouched_while_cards_are_pending(query,
+                                                                    all_pending):
+    """An unsigned card changes nothing: the query reaches whatever answered it
+    before the module existed. Pinned against wound-back cards, so it keeps
+    testing the fence rather than the repo's signing state."""
+    all_pending()
     assert vm.dispatch(query) is None
 
 
@@ -363,13 +431,14 @@ def test_the_settings_phrases_are_word_anchored():
         assert not vm.needs_physiology_choice(text), text
 
 
-def test_the_gate_is_silent_while_no_physiology_card_is_live():
-    """Today's shipped state. A question is only worth a turn if answering it
+def test_the_gate_is_silent_while_no_physiology_card_is_live(all_pending):
+    """A question is only worth a turn if answering it
     leads somewhere: with nothing signed off, asking "which physiology?" would
     cost a turn and then have nothing to serve, while that same query falls
     through to a retrieval that already answers the TBI phrasings. Blocking
     working behaviour to ask a question we cannot act on would be F-12 in a
     third costume."""
+    all_pending()
     for query in GENERIC_SETTINGS_QUERIES:
         assert vm.needs_physiology_choice(query), query
         assert vm.physiology_gate(query) is None, query
@@ -386,6 +455,8 @@ def test_the_gate_asks_which_physiology_once_a_card_is_live(live):
 def test_the_gate_lists_only_the_cards_that_can_answer(live):
     """Partial deployment is the normal state, so the menu is never a list of
     things that are still dark."""
+    for dark in ("lung_protective_baseline", "obstructive", "chest_trauma"):
+        live("physiology", pending_physiology(dark))
     live("physiology", signed_physiology("metabolic_acidosis"))
     live("physiology", signed_physiology("tbi"))
     ask = vm.physiology_gate("what are the vent settings for this guy")
@@ -408,7 +479,8 @@ def test_an_unsigned_card_cannot_appear_in_the_gate(live):
     """The fence covers the menu too: naming a card is a weaker claim than
     serving one, but it is still a claim that the content is there."""
     live("physiology", signed_physiology("metabolic_acidosis", signoff=False))
-    assert vm.physiology_gate("what are the vent settings for this guy") is None
+    ask = vm.physiology_gate("what are the vent settings for this guy")
+    assert vm.PHYSIOLOGY["metabolic_acidosis"]["title"] not in (ask or "")
 
 
 # ── IBW AND THE DOSING BASIS ────────────────────────────────────────────────
@@ -815,9 +887,12 @@ def test_a_signed_card_answers_without_retrieval_or_a_model_call(monkeypatch, tm
 
 
 def test_the_same_query_falls_through_while_the_card_is_pending(monkeypatch, tmp_path):
-    """Today's shipped state: the card exists, is unsigned, and changes
-    nothing. The query reaches retrieval exactly as it did before."""
+    """An unsigned card changes nothing: the query reaches retrieval exactly as
+    it did before the module existed."""
     monkeypatch.setattr(oc, "_LOG_DIR", tmp_path)
+    monkeypatch.setattr(vm, "PHYSIOLOGY", {k: pending_physiology(k)
+                                           for k in vm.PHYSIOLOGY})
+    monkeypatch.setitem(vm.FAMILIES, "physiology", vm.PHYSIOLOGY)
     reached = []
 
     class _Chroma:
@@ -865,9 +940,12 @@ def test_the_pipeline_asks_which_physiology_instead_of_defaulting(monkeypatch, t
 
 
 def test_the_pipeline_does_not_ask_while_every_card_is_pending(monkeypatch, tmp_path):
-    """Today's shipped state, pinned at the pipeline. A question we cannot act
-    on would cost a turn and take away a retrieval that already answers."""
+    """Pinned at the pipeline. A question we cannot act on would cost a turn
+    and take away a retrieval that already answers."""
     monkeypatch.setattr(oc, "_LOG_DIR", tmp_path)
+    monkeypatch.setattr(vm, "PHYSIOLOGY", {k: pending_physiology(k)
+                                           for k in vm.PHYSIOLOGY})
+    monkeypatch.setitem(vm.FAMILIES, "physiology", vm.PHYSIOLOGY)
     reached = []
 
     class _Chroma:
