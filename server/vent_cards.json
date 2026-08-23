@@ -1,0 +1,280 @@
+{
+  "_comment": [
+    "EdgeCDSS — ventilator cards. CLINICAL CONTENT IS THE OWNER'S.",
+    "",
+    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by a credentialed clinician and",
+    "by nobody else. The engine (vent_module.py) REFUSES to serve any card whose",
+    "signoff is not true, whose reviewed_by is not an authorised signer, or whose",
+    "clinical fields still carry the sentinel — so a half-authored card is",
+    "indistinguishable from an absent one and the pipeline falls through to the",
+    "behaviour it had before this module existed.",
+    "",
+    "Cards go live ONE AT A TIME. Partial deployment is the normal state.",
+    "Fill a card, set reviewed_by and review_date, flip signoff to true, and that",
+    "card starts carrying traffic while the rest stay dark.",
+    "",
+    "`applies_when` is DISPATCH VOCABULARY, not clinical content: it is the list",
+    "of words that route a query to this card, and it is pre-filled from the card",
+    "names in the build request so the routing tests have something to assert.",
+    "Review it anyway — a wrong signal here sends a real query to the wrong card."
+  ],
+  "cards": [
+    {
+      "id": "lung_protective_baseline",
+      "title": "Lung-protective baseline",
+      "applies_when": [
+        "ards",
+        "ardsnet",
+        "lung protective",
+        "lung-protective",
+        "acute respiratory distress"
+      ],
+      "initial_settings": {
+        "mode": "Volume control (PRVC)",
+        "vt_ml_per_kg_ibw": 6,
+        "rate_strategy": "Start RR 16-20 for minute ventilation at 6 mL/kg; titrate to pH/EtCO2, permissive hypercapnia acceptable (pH >= 7.20).",
+        "peep": "ARDSNet low-PEEP/FiO2 ladder — start 5-8, climb with FiO2 need",
+        "fio2": "start 100% if acute, down the ladder to lowest FiO2 holding SpO2 >= 94%"
+      },
+      "titrate_on": [
+        "Plateau < 30 — reduce VT toward 4 mL/kg if exceeded",
+        "Oxygenation — climb PEEP/FiO2 ladder together",
+        "pH — permissive hypercapnia to >= 7.20 before increasing VT"
+      ],
+      "watch_for": [
+        "Plateau > 30",
+        "Driving pressure (plateau minus PEEP) > 15",
+        "Rising FiO2 requirement = worsening shunt",
+        "Breath stacking / dyssynchrony"
+      ],
+      "evac_if": [
+        "Refractory hypoxaemia despite optimised PEEP/FiO2",
+        "Plateau/driving pressure uncontrollable at protective VT",
+        "Rising pressor requirement with the respiratory failure"
+      ],
+      "escape_hatch": "General lung-protective/ARDS-pattern card. If the driver is a specific physiology — metabolic acidosis, obstruction, TBI, chest trauma — use that card. Assumes VT on height-derived IBW, not actual weight.",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "6 mL/kg IBW, plateau under 30, permissive hypercapnia to pH 7.2.",
+      "references": [
+        "ARDSNet/NHLBI ARDS Network low-tidal-volume protocol"
+      ],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "clinician",
+      "review_date": "2026-08-22",
+      "version": "1.0.0",
+      "signoff": true,
+      "_authoring_note": "ARDS-pattern card. It is NO LONGER the silent default: it used to also match \"vent settings\", \"set the vent\" and similar, which made it the FIRST match for almost every real vent question and shadowed all four specific cards — a DKA query reached this card, which is F-12 with the roles reversed. A settings question naming no physiology now asks which one instead of defaulting here. Own signals only."
+    },
+    {
+      "id": "metabolic_acidosis",
+      "title": "Metabolic acidosis — compensation preserved",
+      "applies_when": [
+        "dka",
+        "diabetic ketoacidosis",
+        "ketoacidosis",
+        "acidosis",
+        "acidotic",
+        "salicylate",
+        "aspirin overdose",
+        "septic acidosis",
+        "ph 7.1",
+        "ph 7.0",
+        "ph 6.9",
+        "kussmaul",
+        "bicarb low"
+      ],
+      "initial_settings": {
+        "mode": "Volume control (PRVC if available)",
+        "vt_ml_per_kg_ibw": 6,
+        "rate_strategy": "Match the patient's compensatory minute ventilation — do NOT set a normal rate. Start RR 20-30 and titrate immediately to pre-intubation EtCO2/pH. A patient breathing 35-40 spontaneously was defending their pH; setting 12-16 halves minute ventilation and the pH crashes. Match pre-tube minute ventilation if known; otherwise start high (>=24) and correct up on the first EtCO2/gas.",
+        "peep": 5,
+        "fio2": "titrate to SpO2 >= 94%"
+      },
+      "titrate_on": [
+        "EtCO2/serial pH — keep minute ventilation matching pre-intubation compensation, correct rate up if pH falls",
+        "Plateau < 30 — if high rate drives plateau up, accept higher EtCO2 before sacrificing lung protection and escalate",
+        "FiO2 down as SpO2 allows"
+      ],
+      "watch_for": [
+        "Falling pH / rising EtCO2 in the minutes after intubation = under-ventilating a compensating patient",
+        "Peri-intubation cardiac arrest — highest-risk moment in severe acidosis",
+        "Breath stacking if high rate leaves inadequate expiratory time",
+        "Plateau climbing above 30"
+      ],
+      "evac_if": [
+        "pH keeps falling despite matched/maximised safe minute ventilation",
+        "Cannot achieve required minute ventilation within safe plateau pressure",
+        "Haemodynamic collapse peri- or post-intubation"
+      ],
+      "escape_hatch": "Assumes metabolic acidosis with preserved respiratory compensation (DKA, salicylate, sepsis, severe diarrhoea). Does NOT apply to respiratory/mixed acidosis or ARDS-pattern lungs — use the lung-protective card. Correcting the underlying cause is definitive; the vent only buys time.",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "Match their fast breathing — start RR 20-30, never a normal rate, or the pH crashes.",
+      "references": [
+        "ARDSNet/NHLBI ARDS Network low-tidal-volume protocol",
+        "REBEL EM Simplifying Mechanical Ventilation Part 3 Severe Metabolic Acidosis 2024",
+        "Air Medical Journal VAPOX for DKA case series 2025",
+        "Weingart & Levitan peri-intubation physiology"
+      ],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "clinician",
+      "review_date": "2026-08-22",
+      "version": "1.0.0",
+      "signoff": true,
+      "_authoring_note": "THIS IS THE F-12 CARD. The eval baseline showed 0 of 4 DKA vent queries returning any settings while 4 of 4 TBI queries did. PLAN_v4.1 5.3 has been waiting on this content."
+    },
+    {
+      "id": "obstructive",
+      "title": "Obstructive — asthma and COPD",
+      "applies_when": [
+        "asthma",
+        "asthmatic",
+        "copd",
+        "obstructive",
+        "wheezing",
+        "bronchospasm",
+        "air trapping",
+        "status asthmaticus"
+      ],
+      "initial_settings": {
+        "mode": "Volume control",
+        "vt_ml_per_kg_ibw": 6,
+        "rate_strategy": "LOW rate — start RR 8-12 to allow long expiratory time and prevent breath stacking/auto-PEEP. Opposite of the metabolic-acidosis card. Accept high EtCO2; permissive hypercapnia (pH >= 7.20) beats dynamic hyperinflation. Prolong expiration — target I:E 1:4 or longer.",
+        "peep": "low — start 0-5; extrinsic PEEP can worsen auto-PEEP, keep minimal",
+        "fio2": "titrate to SpO2 >= 94%"
+      },
+      "titrate_on": [
+        "Expiratory time / auto-PEEP — lengthen expiration, drop rate, until flow returns to zero before the next breath",
+        "Plateau < 30",
+        "pH — permissive hypercapnia, treat the bronchospasm don't chase CO2 with the vent"
+      ],
+      "watch_for": [
+        "Breath stacking / auto-PEEP — flow doesn't return to baseline, rising plateau, hypotension",
+        "Sudden hypotension or arrest after intubation = dynamic hyperinflation — DISCONNECT the circuit and let them exhale fully then resume at a lower rate",
+        "Rising peak (bronchospasm) vs rising plateau (hyperinflation) are different problems",
+        "Barotrauma / pneumothorax risk"
+      ],
+      "evac_if": [
+        "Refractory hypercapnia with pH < 7.20 despite optimisation",
+        "Recurrent auto-PEEP/hyperinflation not controlled by rate reduction",
+        "Pneumothorax or haemodynamic instability"
+      ],
+      "escape_hatch": "Assumes severe obstructive physiology (status asthmaticus, severe COPD). Disconnect-to-exhale is specific to hyperinflation — if collapse is from tension pneumothorax that is a different emergency (decompression). Continue aggressive bronchodilator/steroid therapy; the vent is supportive.",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "Slow rate (8-12), long exhale, accept high CO2 — disconnect if they crash.",
+      "references": [
+        "StatPearls Status Asthmaticus 2025",
+        "Medscape Status Asthmaticus Treatment & Management",
+        "Deranged Physiology Ventilation strategies for status asthmaticus",
+        "LITFL permissive hypercapnia and disconnect maneuver"
+      ],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "clinician",
+      "review_date": "2026-08-22",
+      "version": "1.0.0",
+      "signoff": true,
+      "_authoring_note": "Shares vocabulary with breath_stacking_auto_peep in the troubleshooting family. Troubleshooting wins when alarm language is present; check that split is what you want."
+    },
+    {
+      "id": "tbi",
+      "title": "Traumatic brain injury",
+      "applies_when": [
+        "tbi",
+        "traumatic brain injury",
+        "head injury",
+        "gcs",
+        "herniation",
+        "icp",
+        "intracranial"
+      ],
+      "initial_settings": {
+        "mode": "Volume control (PRVC)",
+        "vt_ml_per_kg_ibw": 6,
+        "rate_strategy": "Target normocapnia — EtCO2 35-40 / PaCO2 35-45. Start RR 16-20, titrate to EtCO2. Do NOT routinely hyperventilate — prophylactic hypocapnia causes cerebral ischaemia. Brief hyperventilation to EtCO2 30-35 is a TEMPORARY rescue for impending herniation only, then return to normocapnia.",
+        "peep": 5,
+        "fio2": "titrate to SpO2 >= 94% — avoid hypoxia absolutely"
+      },
+      "titrate_on": [
+        "EtCO2 35-40 (normocapnia) — the core rule",
+        "SpO2 >= 94% — never tolerate hypoxia",
+        "Support MAP/SBP for cerebral perfusion"
+      ],
+      "watch_for": [
+        "Hypoxia (SpO2 < 90%) and hypotension each independently worsen TBI outcome",
+        "Maintain SBP >= 110 mmHg (adult TBI) — the single SBP target for this card, treat hypotension aggressively",
+        "Inadvertent hyperventilation (EtCO2 < 35) outside a herniation rescue",
+        "Herniation signs blown pupil posturing Cushing response"
+      ],
+      "evac_if": [
+        "Signs of herniation — expedite neurosurgical evacuation, brief hyperventilation bridge only",
+        "Cannot maintain SpO2 >= 94% or SBP >= 110",
+        "GCS deterioration"
+      ],
+      "escape_hatch": "Assumes isolated/predominant TBI. Polytrauma with haemorrhagic shock changes priorities — resuscitate pressure first. If chest trauma coexists, cross-check the chest-trauma card. Herniation hyperventilation is a temporary bridge, not a setting.",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "Normocapnia (EtCO2 35-40), SpO2 >= 94%, SBP >= 110 — don't hyperventilate unless herniating.",
+      "references": [
+        "Brain Trauma Foundation Guidelines for Severe TBI 4th ed",
+        "ACS TBI Best Practices 2024 SBP >= 110",
+        "JTS TBI/PFC CPG EtCO2 35-45 SpO2 >93%",
+        "Emergency Neurological Life Support ENLS 6.0 TBI"
+      ],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "clinician",
+      "review_date": "2026-08-22",
+      "version": "1.0.0",
+      "signoff": true,
+      "_authoring_note": "Control card for the F-12 regression test: TBI vent queries already answered correctly through RAG, so this card must not make them worse. S-7 also flagged three different SBP targets across three TBI answers — a card is where that gets settled."
+    },
+    {
+      "id": "chest_trauma",
+      "title": "Chest trauma",
+      "applies_when": [
+        "chest trauma",
+        "blast lung",
+        "pulmonary contusion",
+        "flail",
+        "flail chest",
+        "hemothorax",
+        "pneumothorax",
+        "chest injury",
+        "penetrating chest"
+      ],
+      "initial_settings": {
+        "mode": "Volume control (PRVC)",
+        "vt_ml_per_kg_ibw": 6,
+        "rate_strategy": "Start RR 16-20 for normal minute ventilation; titrate to EtCO2/pH.",
+        "peep": "5 — supports oxygenation of contused lung; be alert positive pressure can convert a simple pneumothorax to tension",
+        "fio2": "titrate to SpO2 >= 94% — contusion often needs more"
+      },
+      "titrate_on": [
+        "SpO2/oxygenation — contusion worsens over 24-48h FiO2/PEEP need may climb",
+        "Plateau < 30",
+        "EtCO2/pH for minute ventilation"
+      ],
+      "watch_for": [
+        "Positive-pressure ventilation can convert a simple pneumothorax to TENSION — sudden rising peak pressures + hypotension + unilateral absent breath sounds = decompress NOW (needle/finger) do not troubleshoot the vent first",
+        "Pulmonary contusion evolving — worsening hypoxia over hours",
+        "Rising airway pressures subcutaneous emphysema",
+        "Haemodynamic instability = tension pneumo haemothorax or cardiac/great-vessel injury"
+      ],
+      "evac_if": [
+        "Tension pneumothorax (decompress first then evac)",
+        "Refractory hypoxaemia from contusion",
+        "Signs of massive haemothorax or cardiac injury"
+      ],
+      "escape_hatch": "Assumes blunt/penetrating chest trauma being ventilated. Does NOT override the safety gate's tension-pneumothorax response — if tension physiology is present decompression comes before any ventilator adjustment. For predominant TBI or ARDS-pattern failure use those cards.",
+      "actual_weight_caveat": "No height on file — this tidal volume came off actual body weight, which runs high. Enter a height to dose on ideal body weight; until then treat the VT as a ceiling and watch plateau pressure.",
+      "tldr": "6 mL/kg, watch for tension pneumo on positive pressure — decompress before you touch the vent.",
+      "references": [
+        "JTS Thoracic Trauma CPG",
+        "Standard trauma-ventilation consensus lung-protective VT for pulmonary contusion tension-pneumothorax-on-PPV recognition"
+      ],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "clinician",
+      "review_date": "2026-08-22",
+      "version": "1.0.0",
+      "signoff": true,
+      "_authoring_note": "Overlaps chest_trauma with the tension-pneumo override in the safety gate; they answer different questions and should not contradict each other."
+    }
+  ]
+}

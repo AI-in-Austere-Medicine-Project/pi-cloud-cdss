@@ -38,6 +38,15 @@ cdss_test_results_*.json
 # Keys
 *.pem
 *.key
+
+# Manufacturer operator manuals. Device cards are the owner's AUTHORED SUMMARY
+# referencing these; the manuals themselves are third-party copyrighted works
+# and must never be committed. Defensive: vent_module.lint_device_cards()
+# checks card text against manual text when it is present locally, and this
+# keeps "present locally" from becoming "present in the repo".
+*.manual.*
+.manual.
+manuals/
 # Local working files (review docs, drafts, old versions)
 EdgeCDSS_openai_*
 *.docx

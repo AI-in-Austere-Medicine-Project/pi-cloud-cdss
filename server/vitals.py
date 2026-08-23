@@ -84,6 +84,12 @@ _BUILTIN_RULES = {
         "glucose": {"label": "Glucose", "unit": "mg/dL", "min": 10, "max": 800,
                     "alt_unit": "mmol/L", "alt_min": 0.6, "alt_max": 44.4,
                     "assumed_unit_when_unstated": "mg/dL"},
+        # Bands deliberately do NOT overlap, so an unlabelled number says which
+        # unit it is in. Tidal volume is dosed on the ideal body weight derived
+        # from this.
+        "height": {"label": "Height", "unit": "cm", "min": 50, "max": 230,
+                   "alt_unit": "in", "alt_min": 20, "alt_max": 84,
+                   "unlabelled_cm_min": 100},
     },
     "cautions": [],
 }
@@ -131,7 +137,8 @@ CAUTIONS = [c for c in _RULES["cautions"] if isinstance(c, dict)]
 
 # Display order for the client strip and the prompt block. Explicit rather than
 # dict order so a reordered config file does not reorder what the medic reads.
-VITAL_ORDER = ("hr", "sbp", "dbp", "map", "spo2", "rr", "gcs", "temp", "glucose")
+VITAL_ORDER = ("hr", "sbp", "dbp", "map", "spo2", "rr", "gcs", "temp",
+               "glucose", "height")
 
 
 @dataclass(frozen=True)
@@ -250,6 +257,10 @@ _TEMP_LABEL = _B + r"(?:temperature|temp|fever|t)"
 # "sugar" and "glucose" are what medics say; "bg"/"cbg"/"bgl"/"dstick"/
 # "accucheck" are what they write. Anchored like every other label: "bg" must
 # not fire inside "bgcolor" and "t" is already the narrowest label here.
+# Height. "ht" is anchored like every other short label; "tall" is included
+# because "he's 180 tall" is a thing medics type and it is unambiguous.
+_HEIGHT_LABEL = _B + r"(?:height|ht|tall)"
+
 _GLUCOSE_LABEL = _B + (r"(?:blood\s*sugar|blood\s*glucose|glucose|sugar"
                        r"|cbg|bgl|bg|dstick|d-stick|accucheck|accu-chek|fingerstick)")
 # "his sugar CAME BACK AT 32" — a lab value gets reported, not just stated, and
@@ -272,7 +283,7 @@ _REPORTED += r"|reads?|showed|shows|returned|resulted|measured))?"
 _TEMP_LABEL_SWEEP = _B + r"(?:temperature|temp|fever)"
 
 _ALL_VITAL_LABELS = (_HR_LABEL, _BP_LABEL, _SPO2_LABEL, _RR_LABEL, _GCS_LABEL,
-                     _MAP_LABEL, _TEMP_LABEL_SWEEP, _GLUCOSE_LABEL)
+                     _MAP_LABEL, _TEMP_LABEL_SWEEP, _GLUCOSE_LABEL, _HEIGHT_LABEL)
 
 # Numbers that follow a vital stem but are plainly not that vital. Without
 # this, "fever for 2 days" reports a vital it could not read, and a notice that
@@ -392,6 +403,47 @@ def parse_vitals(text: str, ts: Optional[str] = None):
         for m in re.finditer(pattern + r"\b", q):
             take(name, float(m.group(1)), m.span(), m.group(0))
 
+    # ── Height ──────────────────────────────────────────────────────────────
+    # Before bare BP: 5'10" and 5 ft 10 contain a number pair, and the pressure
+    # sweep must never see them. Feet/inches forms are self-labelling and are
+    # matched without needing the "height" word at all.
+    #
+    #   5'10"  5' 10  5 ft 10 in  5 foot 10  five ten -> NOT matched (words)
+    for m in re.finditer(
+            r"(?<![\w.])(\d)\s*(?:'|’|\s*(?:ft|foot|feet))\s*"
+            r"(\d{1,2})?\s*(?:\"|”|''|in\b|inch(?:es)?\b)?(?![\w.])", q):
+        feet = float(m.group(1))
+        inches = float(m.group(2) or 0)
+        _take_height(feet * 12.0 + inches, "in", m, consumed, readings,
+                     rejections, ts, raw=m.group(0))
+
+    # Labelled: "height 180", "ht 72 in", "he is 180 tall".
+    for m in re.finditer(
+            _HEIGHT_LABEL + _SEP + r"(\d{1,3}(?:\.\d+)?)\s*"
+            r"(cm|centimet(?:er|re)s?|m|in|inch(?:es)?)?(?![\w.])", q):
+        _take_height(float(m.group(1)), (m.group(2) or "").strip(),
+                     m, consumed, readings, rejections, ts)
+
+    # Trailing label: "180 tall", "5 10 tall" is not a thing but "72 in tall"
+    # is. The label follows the number here, which the prefix pattern above
+    # cannot see.
+    for m in re.finditer(
+            r"(?<![\w.])(\d{1,3}(?:\.\d+)?)\s*"
+            r"(cm|centimet(?:er|re)s?|m|in|inch(?:es)?)?\s*tall(?!\w)", q):
+        _take_height(float(m.group(1)), (m.group(2) or "").strip(),
+                     m, consumed, readings, rejections, ts)
+
+    # Unlabelled but unit-carrying: "180cm", "1.8 m". Skipped SILENTLY when the
+    # value is not a plausible height — "3 cm laceration" is not a failed
+    # height reading, it is not a height at all, and a notice that fires on
+    # wound measurements is a notice nobody reads.
+    for m in re.finditer(
+            r"(?<![\w.])(\d{1,3}(?:\.\d+)?)\s*(cm|centimet(?:er|re)s?|m)(?![\w.])", q):
+        value, unit = float(m.group(1)), m.group(2)
+        cm = value * 100.0 if unit == "m" else value
+        if _in_range("height", cm):
+            _take_height(value, unit, m, consumed, readings, rejections, ts)
+
     # ── Glucose, in whichever unit it was stated ────────────────────────────
     # Before temperature on purpose: _TEMP_LABEL includes a bare "t", and
     # _spans_overlap only defends spans that have ALREADY been consumed.
@@ -488,6 +540,53 @@ def _f_to_c(value: float) -> float:
 
 def _c_to_f(value: float) -> float:
     return value * 9.0 / 5.0 + 32
+
+
+def _take_height(value: float, stated_unit: str, m, consumed, readings,
+                 rejections, ts, raw=None):
+    """A height in cm, from whichever unit it was stated in.
+
+    The two bands do not overlap (100-250 cm, 20-98 in), so an UNLABELLED
+    number says which unit it is in — the temperature pattern, not the glucose
+    one. A bare number in neither band is REJECTED rather than assumed: "Need
+    height and sex before vent settings." already exists as a gate question,
+    so asking costs one turn while guessing wrong scales every breath.
+
+    Stored canonically in cm because ideal body weight is computed from it and
+    the formula is written in inches; keeping one canonical unit means the
+    conversion happens in exactly one place.
+    """
+    if _spans_overlap(m.span(), consumed):
+        return
+    text = raw if raw is not None else m.group(0)
+    unit = stated_unit.lower().rstrip(".")
+    cm = None
+    if unit in ("cm", "centimeter", "centimeters", "centimetre", "centimetres"):
+        cm = value if _in_range("height", value) else None
+    elif unit == "m":
+        # "1.8 m" — metres, the one form whose number is not in either band.
+        metres = value * 100.0
+        cm = metres if _in_range("height", metres) else None
+    elif unit in ("in", "inch", "inches"):
+        cm = round(value * 2.54, 1) if _in_alt_range("height", value) else None
+    else:
+        # Unlabelled. The bands do not overlap in the number, so the number
+        # itself decides — and 85-99 belongs to neither and is refused.
+        spec = RANGES.get("height") or {}
+        cm_floor = spec.get("unlabelled_cm_min", spec.get("min"))
+        if value >= cm_floor and _in_range("height", value):
+            cm = value
+        elif _in_alt_range("height", value):
+            cm = round(value * 2.54, 1)
+
+    consumed.append(m.span())
+    if cm is None:
+        rejections.append(VitalRejection(
+            name="height", raw=text.strip(),
+            reason=_reason("height", value, stated_unit.upper())))
+        return
+    readings["height"] = VitalReading(value=round(cm, 1), unit="cm", ts=ts,
+                                      raw=text.strip(), derived=False)
 
 
 def _take_glucose(value: float, stated_unit: str, m, consumed, readings,

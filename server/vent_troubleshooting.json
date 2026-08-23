@@ -1,0 +1,167 @@
+{
+  "_comment": [
+    "EdgeCDSS — ventilator cards. CLINICAL CONTENT IS THE OWNER'S.",
+    "",
+    "Every field marked PENDING_CLINICAL_SIGNOFF is authored by a credentialed clinician and",
+    "by nobody else. The engine (vent_module.py) REFUSES to serve any card whose",
+    "signoff is not true, whose reviewed_by is not an authorised signer, or whose",
+    "clinical fields still carry the sentinel — so a half-authored card is",
+    "indistinguishable from an absent one and the pipeline falls through to the",
+    "behaviour it had before this module existed.",
+    "",
+    "Cards go live ONE AT A TIME. Partial deployment is the normal state.",
+    "Fill a card, set reviewed_by and review_date, flip signoff to true, and that",
+    "card starts carrying traffic while the rest stay dark.",
+    "",
+    "`applies_when` is DISPATCH VOCABULARY, not clinical content: it is the list",
+    "of words that route a query to this card, and it is pre-filled from the card",
+    "names in the build request so the routing tests have something to assert.",
+    "Review it anyway — a wrong signal here sends a real query to the wrong card."
+  ],
+  "cards": [
+    {
+      "id": "sudden_decompensation",
+      "title": "Sudden decompensation on the vent",
+      "applies_when": [
+        "sudden",
+        "crashing",
+        "decompensating",
+        "decompensated",
+        "arrest",
+        "dropped",
+        "acutely worse",
+        "desatting",
+        "desaturating",
+        "not ventilating",
+        "cannot ventilate"
+      ],
+      "steps": [
+        {
+          "check": "PENDING_CLINICAL_SIGNOFF",
+          "finding": "PENDING_CLINICAL_SIGNOFF",
+          "action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "DOPES walk. Disconnect-and-bag-first discipline goes in step 1 — the step ordering IS the clinical content here."
+    },
+    {
+      "id": "high_pressure_alarm",
+      "title": "High pressure alarm",
+      "applies_when": [
+        "high pressure",
+        "high pressure alarm",
+        "peak pressure",
+        "pressure alarm",
+        "pip high",
+        "high pip"
+      ],
+      "steps": [
+        {
+          "check": "PENDING_CLINICAL_SIGNOFF",
+          "finding": "PENDING_CLINICAL_SIGNOFF",
+          "action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "Peak-vs-plateau fork: resistance path and compliance path. Both branches need authoring, and the fork question is step 1."
+    },
+    {
+      "id": "low_pressure_leak",
+      "title": "Low pressure / leak",
+      "applies_when": [
+        "low pressure",
+        "low pressure alarm",
+        "leak",
+        "leaking",
+        "disconnect",
+        "disconnected",
+        "circuit off"
+      ],
+      "steps": [
+        {
+          "check": "PENDING_CLINICAL_SIGNOFF",
+          "finding": "PENDING_CLINICAL_SIGNOFF",
+          "action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": ""
+    },
+    {
+      "id": "breath_stacking_auto_peep",
+      "title": "Breath stacking / auto-PEEP",
+      "applies_when": [
+        "breath stacking",
+        "stacking",
+        "auto-peep",
+        "autopeep",
+        "air trapping",
+        "fighting the vent",
+        "bucking",
+        "not exhaling"
+      ],
+      "steps": [
+        {
+          "check": "PENDING_CLINICAL_SIGNOFF",
+          "finding": "PENDING_CLINICAL_SIGNOFF",
+          "action": "PENDING_CLINICAL_SIGNOFF"
+        }
+      ],
+      "watch_for": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "evac_if": [
+        "PENDING_CLINICAL_SIGNOFF"
+      ],
+      "escape_hatch": "PENDING_CLINICAL_SIGNOFF",
+      "tldr": "PENDING_CLINICAL_SIGNOFF",
+      "references": [],
+      "source_label": "EdgeCDSS clinical card",
+      "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+      "review_date": "PENDING_CLINICAL_SIGNOFF",
+      "version": "0.1.0-draft",
+      "signoff": false,
+      "_authoring_note": "Shares vocabulary with the obstructive physiology card. This one wins when alarm language is present."
+    }
+  ]
+}
