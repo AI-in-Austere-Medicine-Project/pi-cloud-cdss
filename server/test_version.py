@@ -33,9 +33,9 @@ def test_the_version_is_a_semver_string():
 def test_the_version_is_the_one_being_shipped():
     """Bump here and in CHANGELOG.md together, or the release notes describe a
     build nobody is running."""
-    assert version.__version__ == "4.2.0"
+    assert version.__version__ == "4.3.0"
     changelog = (HERE.parent / "CHANGELOG.md").read_text()
-    assert "## [4.2.0]" in changelog, "CHANGELOG has no section for this version"
+    assert "## [4.3.0]" in changelog, "CHANGELOG has no section for this version"
 
 
 def test_status_reports_the_shipped_version():
