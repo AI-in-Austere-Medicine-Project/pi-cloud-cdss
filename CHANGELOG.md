@@ -9,6 +9,12 @@ and carrying traffic. A card answer is neither retrieved nor generated — a
 clinician wrote it, dated it, and the engine refuses to serve it until they
 have.
 
+The release also carries the round-1 evaluation fixes, of which two bumped the
+log schema and are recorded at the end of this section. The rest of that PR —
+F-1, F-2, F-4 through F-7 and F-9 — along with the provider grid and the
+emergency security patch, shipped in this window and is **not yet written up
+here**; the commit messages are the record until it is.
+
 ### F-12 closed — a DKA vent question now returns vent settings
 - The round-1 eval measured **0 of 4 DKA vent phrasings returning any of
   VT / RR / PEEP / FiO2, against 4 of 4 for TBI**, 100% reproducible. TBI was
@@ -77,6 +83,89 @@ have.
 - Troubleshooting outranks settings when alarm language is present; device
   aliases (`t1`, `1200`, `731`, `eagle`) require vent context before they name a
   device; no vent pattern matches inside a longer word.
+
+### Log schema 7 — F-3, the glucose that was not a vital
+The eval baseline scenario the module is named after is not the only thing the
+round-1 bank found. G-MTN-08: turn 1 *"soldier collapsed on a ruck, awake but
+sweaty, BP 118/72"*; turn 2 *"his sugar came back at 32, he's confused"*. The
+answer said **"if the patient is conscious and able to swallow, provide oral
+glucose"** and no caution fired.
+
+- **Two independent guards, each missing on a word.** The query was matched
+  against `['altered','ams','unconscious','shock','unresponsive']` and the medic
+  had said *confused*; the response was matched against
+  `['drink','po fluids','oral fluids','by mouth']` and the answer had said
+  *oral glucose*. `depressed_gcs_oral_route` arms on a numeric GCS that was
+  never stated. And the number the entire turn was about was not captured at
+  all: **glucose was not a vital.**
+- **Both word lists now have one definition each** — `AMS_DESCRIPTORS` and
+  `ORAL_ROUTE_TERMS` — consumed by `run_deterministic_checks` and by
+  `extract_patient_context`. Two copies of a clinical word list is how the
+  pediatric-word bug in S-6 survived its own fix. Word-anchored and
+  negation-aware at both ends: `ams` must not match *milligrams* (the
+  `_SHOCK_WORDS` bug, one release earlier) and "not altered" must not read as
+  its opposite (the *unaltered* bug, the same release).
+- **Glucose becomes a vital, and it is the one whose unit bands overlap.**
+  Temperature can disambiguate an unlabelled number because 35-43C and 93-110F
+  do not intersect. Glucose's do: **32 is a critical low in mg/dL and a high in
+  mmol/L — opposite emergencies with opposite treatments.** There is no reading
+  of the number that resolves that, so the parser does not guess from the value.
+  A stated unit is always honoured. An unlabelled one uses the documented
+  convention in `vitals_rules.json` (`assumed_unit_when_unstated`, `mg/dL`,
+  because the corpus is US JTS), **records which unit it assumed**, and quotes
+  it back in the caution. A visible assumption, not a silent one. *The default
+  is a clinical convention and is flagged for owner ratification.*
+- **A caution rule may now arm on a boolean patient fact**, not only on a
+  measurement. `PATIENT_FLAGS`, of which `ams_stated` is the first, tested with
+  `{"is": true}`. It is deliberately **not** a pseudo-vital: the readings table
+  stores things that were measured, and "the medic called him confused" is not a
+  measurement. `ams_stated` is sticky within a patient, like route and access —
+  a turn that says nothing about mental status does not mean it has recovered —
+  and a patient boundary clears it with everything else.
+- **The three oral-route rules share a group**, so a patient with GCS 6,
+  described as confused, with a glucose of 32 gets **one** caution rather than
+  three. A warning repeated in three sentences that differ only in which number
+  they quote is how a caution stops being read.
+- Two parser bugs found while writing this, both in the new code: the glucose
+  number pattern truncated `glucose 2000` to 200 — every other label is saved
+  from this by a trailing `\b`, which cannot follow an optional unit group —
+  and *"sugar came back at 32"* needs a reported-result verb between label and
+  number. An explicit verb list, not a wildcard filler: `\w+{0,3}` would read
+  *"sugar was fine, bp 118"* as a glucose of 118.
+- **Log schema 6 → 7.** `vitals` may carry `glucose`, **whose unit must be read
+  off the reading rather than assumed** — this is the field where guessing is an
+  opposite-emergency error, not a rounding one — and `patient_ctx` carries
+  `ams_stated`.
+
+### Log schema 8 — F-8, a banner that fired so often it stopped meaning anything
+- **109 of 160 bank turns carried the human-review banner.** Of 110 validator
+  issues raised across the run, 87 mentioned weight, 87 mentioned paediatric
+  status and 78 mentioned both — **one complaint, rephrased.** It fired on
+  ventilator settings (*"provides tidal volume dosing in mL/kg"*) and on a
+  documentation checklist (*"does not provide documentation guidance for a
+  casualty card despite patient context indicating pediatric status is
+  unknown"*).
+- **The prompt already stated the precondition and was not obeyed.** The
+  validator's NEEDS_HUMAN_REVIEW rule begins *"Medication dosing given for …"*.
+  That precondition is now evaluated in Python at the gate: if every issue
+  raised is the weight/paediatric complaint **and** the response names no
+  medication and states no medication dose, the rule cannot fire. An unrelated
+  issue co-occurring keeps the banner — the same guard `requires_sole_issue`
+  gives the override registry. Scoped to NEEDS_HUMAN_REVIEW; **it can never
+  touch a block.**
+- **Two defects in the precondition, both caught by its own tests.** Bare `mL`
+  and `L` were in the dose-unit pattern, so a tidal volume of 420 mL counted as
+  a dose — *the precondition agreed with the exact validator mistake it exists
+  to correct.* They are out, and fluids and blood products are recognised by
+  **name** instead, since their volumes are in mL and they are weight-dependent
+  in a child. Separately, the medication vocabulary was assembled from the
+  vitals caution table filtered by word shape, which admitted `swallow`: the
+  oral-route rules list **routes** under `drugs`. Excluded by group now, not by
+  shape — a route looks exactly like a drug name from the outside.
+- **Log schema 7 → 8.** `review_suppressed` names the precondition that stopped
+  a banner, or null. Same reason `override_fired` exists: **a suppression with
+  no trace makes "why did this answer carry no banner" unanswerable from the
+  log**, which is S-2's question asked in the other direction.
 
 ## [4.2.0] — 2026-08-21
 
