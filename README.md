@@ -5,7 +5,7 @@ Open source. Edge deployed. Safety findings published.
 
 > ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
-**Current release: 4.2.0** — see the [Changelog](CHANGELOG.md); the 4.2 release notes and technical notes are not written yet · [4.1 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [4.1 technical notes](docs/TECH_NOTES_v4.1.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Current release: 4.3.0** — [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) (they also cover 4.2, which never got its own page) · [Changelog](CHANGELOG.md) · [4.1 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html) · [4.1 technical notes](docs/TECH_NOTES_v4.1.md); 4.2 and 4.3 technical notes are not written yet · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
 ---
 
@@ -17,33 +17,41 @@ The entire system — knowledge base, retrieval engine, safety gates, web interf
 
 **Try it:** the live portal is at **https://cdss.arcanekg.com** (demo access token is pre-filled in the interface).
 
-## What's new in 4.1
+## What's new in 4.3
 
-A hardening release with no new clinical features. Every fix came from auditing 135 real
-field queries across 14 session days — not from the test suite, which passed throughout.
+The ventilator module. Until 4.3 a response had two possible sources: a JTS guideline
+passage, or a general medical reference fallback labelled as such — both of them retrieval
+over text somebody else wrote. 4.3 adds a third: a **clinician-authored card**, served
+verbatim with its own references and a dated signing role.
 
-- **Patient context resets at the patient boundary, and says so.** Context accumulated
-  across a whole conversation with no notion of the patient changing, so one patient's
-  weight could reach another patient's dose calculation. Boundaries are now detected and
-  the reset is announced in the response. 9 fire across the audited corpus, zero false
-  positives.
-- **The served verdict and the logged verdict are the same value.** False-positive
-  overrides released responses while the log recorded them blocked, discarding the
-  validator's objections. Overrides now downgrade to human review and preserve the issue
-  list. Pinned by a 216-case invariant: a served response can never be logged unsafe.
-- **An empty dose contract blocks dosing lines instead of skipping the check.** No
-  confirmed weight means nothing was authorised — previously the state in which the
-  check was skipped entirely.
-- **Retrieval and routing fixes.** Ventilator-settings queries no longer route into the
-  intubation drug bundle; the clinical router matches whole words, removing 143 spurious
-  alias matches across 80 of 135 queries.
-- **Logs distinguish test traffic from field traffic**, and record latency, boundary
-  resets, and which override fired. 48 of the 135 audited entries turned out to be test
-  runs indistinguishable from real use.
-- **A mistyped tuning value can no longer prevent startup** — previously a config typo
-  could put the device into a reboot loop behind an outbound-only tunnel.
+- **A DKA ventilator question now returns ventilator settings.** The round-1 eval measured
+  **0 of 4 DKA vent phrasings returning any of VT / RR / PEEP / FiO2**, against 4 of 4 for
+  TBI, 100% reproducible. DKA is now 4 of 4 and TBI holds at 4 of 4 — the control that
+  proves the module did not buy one physiology at another's expense.
+- **The authorship fence.** The engine refuses to serve a card whose clinical fields still
+  hold `PENDING_CLINICAL_SIGNOFF`, whose `signoff` is not true, whose `reviewed_by` is not an
+  authorised signature, or whose `references` are empty. **There is no override** —
+  `EDGECDSS_DEBUG_WARN_ONLY` does not reach this gate, and a test asserts the flag's name
+  does not appear in `vent_module.py`. Cards go live one at a time: **5 of 13 are signed and
+  live**; 4 troubleshooting and 4 device cards are dark and invisible to the pipeline.
+- **One SBP target, not three.** Three TBI answers gave three different systolic targets. The
+  `tbi` card carries one: SBP >= 110 mmHg.
+- **Tidal volume is dosed on Devine IBW**, not actual weight — 439 mL, not 450, for a 75 kg
+  casualty at 178 cm. Missing height does not guess: VT falls back to actual weight and says
+  so on the settings line.
+- **`VENT_CARD` is a distinct provenance value**, logged as itself and never as a synonym for
+  JTS. Cards are signed by role rather than by name.
+- **The baseline card is no longer the silent default.** It matched "vent settings" and so
+  shadowed all four specific cards. A settings question naming no physiology now asks which
+  one, and the menu lists only cards that are live.
 
-Full detail in [`CHANGELOG.md`](CHANGELOG.md); what 4.1 knowingly deferred, and the
+4.2 shipped vitals and derived MAP in patient context, the age band stated to the validator on
+every response, the multi-provider model grid, an emergency security patch closing four
+exploitable findings, and the 160-scenario evaluation harness that produced the vent finding
+above. The [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html)
+cover both releases.
+
+Full detail in [`CHANGELOG.md`](CHANGELOG.md); what each release knowingly deferred, and the
 residual risk of each deferral, in [`TODO.md`](TODO.md).
 
 ## Architecture
@@ -59,6 +67,8 @@ Patient context ───────────── rebuilt deterministicall
       ↓                       announced at a patient boundary
 Clinical router ───────────── protocol index aims retrieval at the right CPG
       ↓
+Vent card engine ──────────── clinician-authored, served verbatim; a card with no
+      ↓                       signature is treated as absent, with no override
 On-device RAG ─────────────── 89 JTS CPGs / 8,559 chunks, local embeddings
       ↓
 LLM generation ────────────── receives an ALLOWED_DOSES contract computed in
@@ -88,7 +98,7 @@ pi-cloud-cdss/
 │   ├── build_protocol_index.py  Builds the router index from the knowledge base
 │   ├── static/index.html        Web portal (served at the API root)
 │   ├── run_tests.sh             24-case live-endpoint clinical suite
-│   ├── run_unit_tests.sh        Offline regression suite (421 tests, ~3s)
+│   ├── run_unit_tests.sh        Offline regression suite (859 tests, ~8s)
 │   └── test_*.py                Offline suites: deterministic parsers/gates,
 │                                safety gate, patient boundary, routing and
 │                                aliases, log contract, env config
@@ -132,7 +142,7 @@ On a Jetson, `jetson_cdss_setup_v2.sh` performs the full deployment (packages, v
 **Test it:**
 
 ```bash
-cd server && ./run_unit_tests.sh   # 105 offline tests, ~2s — no network, no API key, no ChromaDB
+cd server && ./run_unit_tests.sh   # 859 offline tests, ~8s — no network, no API key, no ChromaDB
 bash server/run_tests.sh           # 24 clinical cases against the live endpoint
 ```
 
@@ -253,7 +263,7 @@ measured.
 
 ## Validation status
 
-- Offline regression suite: **421 tests, ~3s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it
+- Offline regression suite: **859 tests, ~8s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it
 - Automated clinical suite: **24 cases** against the live public endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
 - Convention for safety-relevant fixes: **one fix, one commit, one regression test**, plus a mutation check — revert the fix, confirm the named test fails, restore — recorded in the commit message
 - Active field beta with structured clinical feedback: severity triage, issue categories, protocol-cited corrections — reported failures are reproduced from audit logs and fixed with regression tests
