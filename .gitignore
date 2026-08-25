@@ -55,3 +55,6 @@ tests/
 # Runtime logs
 logs/
 *.jsonl
+
+# Concentration change log — an audit trail of a deployment, not source.
+server/drug_concentrations.log.jsonl

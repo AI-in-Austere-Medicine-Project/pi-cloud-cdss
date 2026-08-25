@@ -213,13 +213,18 @@ def test_an_unsigned_drug_serves_no_dose_and_falls_through(monkeypatch):
 
 
 def test_a_signed_entry_actually_reaches_the_serving_path(live):
-    """The fence must be a gate, not a wall — control for the refusal tests."""
+    """The fence must be a gate, not a wall — control for the refusal tests.
+
+    Milligrams only: the volume comes from drug_concentrations.json, which
+    declares nothing for a synthetic test drug, so a None volume here is the
+    fail-closed rule working rather than a gap.
+    """
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
     doses = oc._contract_dose_candidates("testosteril dose", ctx)
     assert len(doses) == 1
     d = doses[0]
-    assert (d.drug, d.route, d.dose_mg, d.volume_ml) == \
-           ("testosteril", "IV", 80.0, 80.0)
+    assert (d.drug, d.route, d.dose_mg) == ("testosteril", "IV", 80.0)
+    assert d.volume_ml is None
     assert d.source.startswith("drug_contract:testosteril")
 
 
@@ -445,31 +450,35 @@ def test_proposed_aliases_are_not_live(monkeypatch):
 
 @pytest.mark.parametrize("query,weight,route,expected", [
     ("ketamine dose for analgesia IV", 80.0, "IV",
-     [("ketamine", "IV", 24.0, 0.24)]),
+     [("ketamine", "IV", 24.0)]),
     ("what is the ketamine dose, no IV yet", 80.0, "IM",
-     [("ketamine", "IM", 160.0, 1.6)]),
+     [("ketamine", "IM", 160.0)]),
     ("rocuronium dose for intubation", 80.0, "IV",
-     [("ketamine", "IV", 120.0, 1.2), ("ketamine", "IV", 40.0, 0.4),
-      ("rocuronium", "IV", 80.0, 8.0)]),
+     [("ketamine", "IV", 120.0), ("ketamine", "IV", 40.0),
+      ("rocuronium", "IV", 80.0)]),
     ("succinylcholine dose for RSI", 80.0, "IV",
-     [("ketamine", "IV", 120.0, 1.2), ("ketamine", "IV", 40.0, 0.4),
-      ("succinylcholine", "IV", 120.0, 6.0)]),
+     [("ketamine", "IV", 120.0), ("ketamine", "IV", 40.0),
+      ("succinylcholine", "IV", 120.0)]),
     ("lorazepam for the seizure", 80.0, "IV",
-     [("lorazepam", "IV", 4.0, 2.0)]),
+     [("lorazepam", "IV", 4.0)]),
 ])
-def test_the_migrated_four_serve_exactly_what_they_served_before(
+def test_the_migrated_four_still_produce_the_same_milligrams(
         query, weight, route, expected):
-    """Migration preserves behaviour byte for byte.
+    """The MILLIGRAMS are unchanged. The millilitres deliberately are not.
 
-    These four still come from the hardcoded calculators; the contract file
-    carries an unsigned migrated draft of each for cross-check. The calculator
-    for a drug is deleted only when the owner signs its migrated entry.
+    This test used to assert exact volumes too — ketamine 24 mg AS 0.24 mL,
+    succinylcholine 120 mg AS 6.0 mL — because the calculators carried
+    hardcoded concentrations. Those volumes were wrong for a kit stocking the
+    WHO/austere strengths, which is the whole reason the concentration master
+    list exists. The dose is a clinical claim and it is unchanged; the volume
+    is a claim about the vial and it now has to come from the vial.
     """
     ctx = PatientContext(confirmed_weight_kg=weight, weight_source="stated",
                          route_preference=route)
-    got = [(d.drug, d.route, d.dose_mg, d.volume_ml)
-           for d in oc.build_allowed_doses(query, ctx)]
-    assert got == expected
+    doses = oc.build_allowed_doses(query, ctx)
+    assert [(d.drug, d.route, d.dose_mg) for d in doses] == expected
+    assert all(d.volume_ml is None for d in doses), \
+        "no concentration is signed, so nothing may carry a volume"
 
 
 def test_the_migrated_values_match_the_calculators_they_came_from():
@@ -521,16 +530,23 @@ def test_the_concentration_mismatches_the_migration_found_are_recorded():
         assert flagged, f"{name} concentration mismatch is not flagged"
 
 
-def test_an_ambiguous_concentration_refuses_to_build_a_volume(monkeypatch):
-    """A drug carrying two different concentrations cannot be turned into a
-    syringe volume, and the engine must refuse rather than pick one."""
+def test_an_ambiguous_sourced_strength_names_no_single_concentration(monkeypatch):
+    """A drug whose sources cite two strengths has no single one.
+
+    This used to gate the serving path. It no longer does — the kit decides
+    the concentration now, not the contract — but the ambiguity is still a
+    fact about the sources and drug_concentrations reads it to decide whether
+    a declared vial is corroborated.
+    """
     d = synthetic_drug(forms=[
         {"description": "TEST a", "concentration_mg_ml": 1.0, "sources": []},
         {"description": "TEST b", "concentration_mg_ml": 50.0, "sources": []}])
     monkeypatch.setattr(dc, "DRUGS", {d["generic_name"]: d})
     assert dc.single_concentration("testosteril") is None
+    # The dose still builds; it simply carries no volume.
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
-    assert oc._contract_dose_candidates("testosteril dose", ctx) == []
+    doses = oc._contract_dose_candidates("testosteril dose", ctx)
+    assert doses and all(x.volume_ml is None for x in doses)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

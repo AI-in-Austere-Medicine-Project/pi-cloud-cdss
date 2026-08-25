@@ -46,7 +46,7 @@ import os
 import re
 import json
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, replace as dc_replace
 from typing import Literal, Optional, List
 import general_reference
 import providers
@@ -60,6 +60,15 @@ try:
 except Exception as _e:                                   # pragma: no cover
     print(f"⚠️  drug_contracts unavailable ({_e}) — no drug dose contracts.")
     drug_contracts = None
+
+# The concentration master list. Same degradation rule: if it cannot be
+# imported, NO volume is served anywhere — mg doses are unaffected.
+try:
+    import drug_concentrations
+except Exception as _e:                                   # pragma: no cover
+    print(f"⚠️  drug_concentrations unavailable ({_e}) — no volumes will be "
+          f"served; milligram doses are unaffected.")
+    drug_concentrations = None
 import vitals as vitals_mod
 
 # The OpenAI SDK is no longer imported here. Both LLM calls go through
@@ -286,6 +295,18 @@ class PatientContext:
     # derived: it is derived FROM this patient's pressure, so it is this
     # patient's number.
     vitals: dict = field(default_factory=dict)
+    # {generic_name: mg/mL} — which vial the medic confirmed they are holding,
+    # for drugs where the kit declares more than one, or where the owner set
+    # confirm_required. Resets with the patient like everything else in here:
+    # a fresh PatientContext is a fresh patient, and buying one turn of
+    # convenience by making an exception to that is how the exception becomes
+    # the bug. The ASK only fires for drugs that genuinely need it.
+    confirmed_concentrations: dict = field(default_factory=dict)
+    # Drugs named so far in THIS patient's turns. Exists so that a bare answer
+    # to the concentration ASK — "50", or "500 in 10" — can be attached to the
+    # drug that was asked about a turn earlier, without reaching back into
+    # history that a patient boundary has already invalidated.
+    drugs_named: list = field(default_factory=list)
     # Both describe the CURRENT turn only, like boundary_reset_reason: reset at
     # the top of every extract_patient_context call so that after the replay
     # loop they hold what this turn did, not what the conversation did.
@@ -328,10 +349,16 @@ class DoseCandidate:
     indication: str
     route: str
     dose_mg: float
-    volume_ml: float
-    concentration_mg_ml: float
     source: str
     warning: Optional[str] = None
+    # NOT set by the calculators. A milligram dose is a clinical claim the
+    # contracts own; a millilitre volume is a claim about the vial in the bag,
+    # which only drug_concentrations.json knows. These stay None until
+    # resolve_dose_volume() fills them from the confirmed concentration, and a
+    # None here is what makes the mg-only GIVE line happen instead of a wrong
+    # volume.
+    volume_ml: Optional[float] = None
+    concentration_mg_ml: Optional[float] = None
 
 
 @dataclass
@@ -609,6 +636,23 @@ def extract_patient_context(query: str,
             ctx.provider_scope = scope
             break
 
+    # Which vial the medic is holding. Matched only against DECLARED, SIGNED
+    # presentations — drug_concentrations.match_confirmation has no path that
+    # parses a concentration out of free text and believes it. This runs on
+    # user turns only (the replay loop feeds it prior_q, never a response), so
+    # the ASK's own text — which necessarily names both options — cannot be
+    # mistaken for an answer to itself.
+    if drug_concentrations is not None and drug_contracts is not None:
+        for drug in drug_contracts.resolve_drugs(full_text):
+            if drug not in ctx.drugs_named:
+                ctx.drugs_named.append(drug)
+        # A bare "50" names no drug, so it is attributed to what is already
+        # under discussion for THIS patient.
+        for drug in ctx.drugs_named:
+            hit = drug_concentrations.match_confirmation(drug, q)
+            if hit is not None:
+                ctx.confirmed_concentrations[drug] = hit
+
     return ctx
 
 
@@ -772,6 +816,27 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
         if route_changes_dose(combined_ctx) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
             return "ASK", "IV or IM? Do you have access?"
 
+        # Which vial? Asked for the same reason route is asked: the answer
+        # changes the number the medic draws up, and guessing is worse than
+        # asking. Fires only where the kit declares more than one signed
+        # strength, or the owner set confirm_required — ketamine, where
+        # 500 mg/10 mL and 200 mg/20 mL are both common and differ five-fold.
+        #
+        # Deliberately AFTER weight and route: those gate the milligram dose,
+        # and a question about the vial is wasted on a turn that is not going
+        # to produce a dose at all. Silent while nothing is signed, because
+        # then there is nothing to choose between and the answer is mg-only
+        # regardless.
+        if (drug_concentrations is not None and drug_contracts is not None
+                and ctx.has_confirmed_weight):
+            for drug in drug_contracts.resolve_drugs(combined_ctx):
+                status, _, _ = drug_concentrations.resolve(
+                    drug, ctx.confirmed_concentrations)
+                if status == drug_concentrations.NEEDS_CONFIRMATION:
+                    question = drug_concentrations.confirmation_question(drug)
+                    if question:
+                        return "ASK", question
+
     return "CONTINUE", None
 
 
@@ -783,8 +848,7 @@ def ketamine_analgesia_iv(weight_kg: float) -> DoseCandidate:
     dose_mg = round(weight_kg * 0.3, 1)
     return DoseCandidate(
         drug="ketamine", indication="subdissociative analgesia", route="IV",
-        dose_mg=dose_mg, volume_ml=round(dose_mg / 100.0, 3),
-        concentration_mg_ml=100.0,
+        dose_mg=dose_mg,
         source="deterministic_calculator:ketamine_analgesia_iv_0.3mgkg",
         warning="Monitor airway and respirations. Subdissociative range."
     )
@@ -794,8 +858,7 @@ def ketamine_analgesia_im(weight_kg: float) -> DoseCandidate:
     dose_mg = round(weight_kg * 2.0, 1)
     return DoseCandidate(
         drug="ketamine", indication="dissociative analgesia (IM — no IV access)",
-        route="IM", dose_mg=dose_mg, volume_ml=round(dose_mg / 100.0, 2),
-        concentration_mg_ml=100.0,
+        route="IM", dose_mg=dose_mg,
         source="deterministic_calculator:ketamine_analgesia_im_2mgkg",
         warning="IM dose is higher than IV analgesia dose — this is expected and correct. Monitor airway."
     )
@@ -807,8 +870,7 @@ def ketamine_induction_iv(weight_kg: float, is_pediatric: bool) -> DoseCandidate
     dose_mg = min(dose_mg, max_mg)
     return DoseCandidate(
         drug="ketamine", indication="RSI induction", route="IV",
-        dose_mg=dose_mg, volume_ml=round(dose_mg / 100.0, 2),
-        concentration_mg_ml=100.0,
+        dose_mg=dose_mg,
         source="deterministic_calculator:ketamine_induction_iv_1.5mgkg",
         warning="Give BEFORE paralytic. Confirm weight and route."
     )
@@ -818,8 +880,7 @@ def ketamine_post_intubation_iv(weight_kg: float) -> DoseCandidate:
     dose_mg = round(weight_kg * 0.5, 1)
     return DoseCandidate(
         drug="ketamine", indication="post-intubation sedation q20-30min", route="IV",
-        dose_mg=dose_mg, volume_ml=round(dose_mg / 100.0, 2),
-        concentration_mg_ml=100.0,
+        dose_mg=dose_mg,
         source="deterministic_calculator:ketamine_post_intubation_0.5mgkg",
         warning="After tube confirmed only. Not the induction dose."
     )
@@ -829,8 +890,7 @@ def rocuronium_rsi(weight_kg: float, is_pediatric: bool) -> DoseCandidate:
     dose_mg = round(weight_kg * 1.0, 1)
     return DoseCandidate(
         drug="rocuronium", indication="RSI paralytic", route="IV",
-        dose_mg=dose_mg, volume_ml=round(dose_mg / 10.0, 1),
-        concentration_mg_ml=10.0,
+        dose_mg=dose_mg,
         source="deterministic_calculator:rocuronium_rsi_1mgkg",
         warning="Give AFTER induction agent. Max 1.2mg/kg."
     )
@@ -841,8 +901,7 @@ def succinylcholine_rsi(weight_kg: float, is_pediatric: bool) -> DoseCandidate:
     dose_mg = round(weight_kg * dkg, 1)
     return DoseCandidate(
         drug="succinylcholine", indication="RSI paralytic", route="IV",
-        dose_mg=dose_mg, volume_ml=round(dose_mg / 20.0, 1),
-        concentration_mg_ml=20.0,
+        dose_mg=dose_mg,
         source=f"deterministic_calculator:succinylcholine_rsi_{dkg}mgkg",
         warning="Contraindicated: hyperkalemia, burns >24hr, crush injury, denervation."
     )
@@ -852,8 +911,7 @@ def lorazepam_seizure(weight_kg: float) -> DoseCandidate:
     dose_mg = min(round(weight_kg * 0.1, 1), 4.0)
     return DoseCandidate(
         drug="lorazepam", indication="active seizure", route="IV",
-        dose_mg=dose_mg, volume_ml=round(dose_mg / 2.0, 1),
-        concentration_mg_ml=2.0,
+        dose_mg=dose_mg,
         source="deterministic_calculator:lorazepam_seizure_0.1mgkg_max4mg",
         warning="Monitor respiratory depression."
     )
@@ -876,9 +934,6 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
     out = []
     for name, entry in drug_contracts.signed_entries_for(
             query, route=None, is_pediatric=ctx.is_pediatric):
-        conc = drug_contracts.single_concentration(name)
-        if conc is None:
-            continue
         rng = entry["dose_range"]
         base = rng.get("min")
         if base is None:
@@ -895,8 +950,7 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
         dose_mg = round(dose_mg, 1)
         out.append(DoseCandidate(
             drug=name, indication=entry["indication"], route=entry["route"],
-            dose_mg=dose_mg, volume_ml=round(dose_mg / conc, 3),
-            concentration_mg_ml=conc,
+            dose_mg=dose_mg,
             source=f"drug_contract:{name}:{entry['indication']}:"
                    f"{entry['route']}:v{entry.get('version')}",
             warning="; ".join(entry.get("cautions") or []) or None,
@@ -962,7 +1016,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(rocuronium_rsi(w, ped))
 
         doses.extend(_contract_dose_candidates(query, ctx))
-        return doses
+        return [resolve_dose_volume(d, ctx) for d in doses]
 
     if has_ketamine:
         if is_analg or (not is_seizure):
@@ -979,7 +1033,59 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
-    return doses
+    return [resolve_dose_volume(d, ctx) for d in doses]
+
+
+CONFIRM_CONCENTRATION_LINE = "confirm concentration to compute volume"
+
+
+def resolve_dose_volume(d: DoseCandidate,
+                        ctx: Optional[PatientContext] = None) -> DoseCandidate:
+    """Fill volume_ml/concentration_mg_ml from the confirmed concentration.
+
+    The ONLY place a millilitre is derived in this system. Returns the
+    candidate unchanged — volume still None — when the kit has not declared a
+    signed concentration for this drug, or has declared more than one and the
+    medic has not said which vial they are holding.
+    """
+    if drug_concentrations is None:
+        return d
+    confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
+    vol, conc = drug_concentrations.volume_ml(d.drug, d.dose_mg, confirmed)
+    if vol is None:
+        return d
+    return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc)
+
+
+def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
+    """One canonical GIVE line, or the mg-only line when there is no volume.
+
+    Every volume-bearing line in the system comes through here, so the
+    fail-closed rule cannot be true in one renderer and false in another. The
+    line always states the concentration it used: that is the medic's
+    catch-point, the thing that would have let someone notice "20mg/mL
+    succinylcholine" was not the vial in their hand.
+    """
+    if d.volume_ml is None or d.concentration_mg_ml is None:
+        return (f"{prefix}{d.drug} {d.route}: {d.dose_mg:g} mg. "
+                f"NO VOLUME — {CONFIRM_CONCENTRATION_LINE}. "
+                f"Indication: {d.indication}.")
+    return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
+            f"{d.drug} {d.route} ({d.dose_mg:g}mg). Indication: {d.indication}.")
+
+
+def render_dose_summary(d: DoseCandidate, label: str) -> str:
+    """The TLDR restatement of a dose. Degrades with the GIVE line it summarises.
+
+    Kept in step deliberately: a TLDR that still said "= 1.2mL of 100mg/mL"
+    under a GIVE line that had already refused to give a volume would be the
+    only number on the screen, and the one a medic would act on.
+    """
+    if d.volume_ml is None or d.concentration_mg_ml is None:
+        return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "
+                f"Volume not computed — {CONFIRM_CONCENTRATION_LINE}.")
+    return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg = "
+            f"{d.volume_ml:g}mL of {d.concentration_mg_ml:g}mg/mL.")
 
 
 def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
@@ -987,14 +1093,15 @@ def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
         return "ALLOWED_DOSES: none. Do not provide medication doses in this response."
     lines = ["ALLOWED_DOSES — use EXACTLY these values. Do not calculate alternatives:"]
     for d in doses:
-        dose_str = int(d.dose_mg) if float(d.dose_mg).is_integer() else d.dose_mg
-        vol_str = d.volume_ml
-        lines.append(
-            f"- {d.drug} {d.route}: Draw {vol_str} mL of {d.concentration_mg_ml:g}mg/mL "
-            f"({dose_str}mg). Indication: {d.indication}."
-        )
+        lines.append(render_give_line(d))
         if d.warning:
             lines.append(f"  Note: {d.warning}")
+    if any(d.volume_ml is None for d in doses):
+        lines.append(
+            "  A line with NO VOLUME has no confirmed concentration for that "
+            "drug. Give the milligram dose and the confirm-concentration "
+            "sentence exactly as written. Do NOT compute or invent a mL "
+            "volume for it.")
     return "\n".join(lines)
 
 
@@ -1406,10 +1513,14 @@ MEDICATION RULES
 
 ALLOWED_DOSES RULE — MANDATORY:
 If ALLOWED_DOSES is present below, you MUST include at least one exact GIVE line copied from it.
-Do NOT say "administer ketamine" — copy the full line with mL, mg/mL, route, and mg total.
-CORRECT: "Draw 0.075 mL of 100mg/mL ketamine IV (7.5mg). Indication: analgesia."
+Copy the line EXACTLY as written. Do NOT say "administer ketamine".
+CORRECT: "Draw 0.075 mL of 50mg/mL ketamine IV (7.5mg). Indication: analgesia."
 WRONG: "Administer ketamine for analgesia."
-Every GIVE line must include: drug name, concentration, route, mL volume, total mg.
+A line that carries a mL volume must include: drug name, concentration, route, mL volume, total mg.
+A line that says NO VOLUME has no confirmed concentration for that drug. Copy it as
+written, with its milligram dose and its confirm-concentration sentence. NEVER
+compute, estimate or supply a mL volume that is not in ALLOWED_DOSES — the volume
+depends on which vial is in the bag, and you do not know that.
 For RSI: name induction agent AND paralytic AND post-intubation sedation explicitly.
 If ALLOWED_DOSES is empty — do not provide medication doses. Give protocol actions only.
 
@@ -1657,6 +1768,97 @@ CANONICAL_GIVE_RE = (
 )
 
 
+VOLUME_STRIPPED_NOTICE = (
+    "⚠️ A dose volume in this response could not be verified against the "
+    "confirmed concentration and has been removed. The milligram dose stands. "
+    "Confirm the vial concentration and recalculate the volume by hand.\n\n")
+
+
+def _decimals(text: str) -> int:
+    return len(text.split(".")[1]) if "." in text else 0
+
+
+def audit_volume_lines(response_text: str,
+                       ctx: Optional[PatientContext] = None) -> tuple:
+    """(rewritten_text, issues). Verifies every millilitre before it is served.
+
+    This is what makes a served volume an actually-checked number rather than
+    one copied through the pipeline. Three things must hold for each canonical
+    GIVE line:
+
+      1. the drug has a SIGNED concentration in the master list;
+      2. the concentration the line states is that one — not a different
+         strength the generator remembered, and not the one the medic
+         confirmed they are NOT holding;
+      3. volume x concentration == milligrams, at the precision the line
+         actually prints. Comparing at the printed precision rather than
+         inside a percentage band is deliberate: a 5% tolerance is wide enough
+         to hide a real error in a small-volume push.
+
+    A line that fails any of these is REWRITTEN to its milligram dose. Flagging
+    it would leave the wrong number on the screen above the warning, and the
+    number is what gets acted on.
+    """
+    issues = []
+    if not response_text:
+        return response_text, issues
+
+    confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
+    out = response_text
+
+    for m in re.finditer(CANONICAL_GIVE_RE, response_text, re.IGNORECASE):
+        vol_s, conc_s, drug_s, mg_s = m.groups()
+        drug_txt = drug_s.strip().lower()
+        vol, conc, mg = float(vol_s), float(conc_s), float(mg_s)
+
+        generic = None
+        if drug_contracts is not None:
+            hits = drug_contracts.resolve_drugs(drug_txt)
+            generic = hits[0] if hits else None
+        if generic is None:
+            generic = drug_txt
+
+        problem = None
+        if drug_concentrations is None:
+            problem = "the concentration master list is unavailable"
+        else:
+            signed = drug_concentrations.all_signed_strengths(generic)
+            if not signed:
+                problem = (f"no signed concentration is declared for "
+                           f"{generic} in the kit")
+            elif generic in confirmed and abs(conc - confirmed[generic]) > 1e-9:
+                problem = (f"states {conc:g}mg/mL but the confirmed vial for "
+                           f"this patient is {confirmed[generic]:g}mg/mL")
+            elif not any(abs(conc - c) < 1e-9 for c in signed):
+                problem = (f"states {conc:g}mg/mL, which is not a declared "
+                           f"concentration for {generic} "
+                           f"({', '.join(f'{c:g}' for c in signed)}mg/mL)")
+            else:
+                true_vol = mg / conc
+                # Two conditions, both required.
+                #
+                # (1) exact at the precision the line actually prints, so a
+                #     real error cannot hide inside a percentage band; and
+                # (2) within 5% of the true volume, which is what stops (1)
+                #     being satisfied by rounding so coarsely that the number
+                #     stops meaning anything — "Draw 0 mL" rounds correctly to
+                #     zero decimal places and is not a dose.
+                rounds_right = abs(round(true_vol, _decimals(vol_s)) - vol) <= 1e-9
+                close_enough = vol > 0 and abs(vol - true_vol) <= true_vol * 0.05
+                if not (rounds_right and close_enough):
+                    problem = (f"states {vol:g} mL of {conc:g}mg/mL for "
+                               f"{mg:g}mg; {mg:g}mg at {conc:g}mg/mL is "
+                               f"{round(true_vol, 3):g} mL")
+
+        if problem:
+            issues.append(f"GIVE line for '{drug_txt}' {problem} — volume removed.")
+            out = out.replace(
+                m.group(0),
+                f"{generic} {mg:g} mg. NO VOLUME — {CONFIRM_CONCENTRATION_LINE}")
+
+    return out, issues
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
                               allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
@@ -1688,6 +1890,10 @@ def run_deterministic_checks(query: str, response_text: str,
         contract_drugs = {d.drug.lower() for d in allowed_doses}
         for vol_s, conc_s, drug_s, mg_s in give_lines:
             stated_mg = float(mg_s)
+            # vol_s and conc_s used to be parsed here and discarded, so the
+            # millilitre was the one number in a GIVE line nothing verified.
+            # audit_volume_lines() owns that check now and runs on every path;
+            # this loop keeps owning the milligram-against-contract check.
             drug_words = drug_s.strip().split()
             matched_drug = None
             for cd in contract_drugs:
@@ -2191,6 +2397,17 @@ def response_states_a_medication(response_text: str) -> bool:
 VITALS_CAUTION_HEADING = "\n\n⚠️ **VITALS CAUTION**\n"
 
 
+# Verdicts that mean "nothing has flagged this yet". DETERMINISTIC_CHECKED is
+# one of them: a deterministic path ran its checks and found nothing, which is
+# the same STARTING point as a validator SAFE for anything that downgrades.
+#
+# This set exists because relabelling the deterministic returns silently broke
+# the vitals-caution downgrade — _with_cautions tested `verdict == "SAFE"`, so
+# a caution on a deterministic card stopped escalating to NEEDS_HUMAN_REVIEW.
+# Anything that softens a verdict must test membership here, not equality.
+CLEAN_VERDICTS = frozenset({"SAFE", "DETERMINISTIC_CHECKED"})
+
+
 def _with_cautions(outcome: GateOutcome, cautions: list) -> GateOutcome:
     """Append vitals cautions to a served response. Never blocks, never releases.
 
@@ -2219,7 +2436,8 @@ def _with_cautions(outcome: GateOutcome, cautions: list) -> GateOutcome:
         response=outcome.response + VITALS_CAUTION_HEADING + lines,
         blocked=False,
         issues=outcome.issues,
-        verdict="NEEDS_HUMAN_REVIEW" if outcome.verdict == "SAFE" else outcome.verdict,
+        verdict=("NEEDS_HUMAN_REVIEW" if outcome.verdict in CLEAN_VERDICTS
+                 else outcome.verdict),
         override_fired=outcome.override_fired,
         cautions=list(cautions),
         review_suppressed=outcome.review_suppressed,
@@ -2658,6 +2876,7 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
         d = ketamine_analgesia_iv(ctx.confirmed_weight_kg)
     else:
         d = ketamine_analgesia_im(ctx.confirmed_weight_kg)
+    d = resolve_dose_volume(d, ctx)
 
     label = "PEDIATRIC PATIENT" if ctx.is_pediatric else f"{ctx.confirmed_weight_kg:g}kg patient"
 
@@ -2667,7 +2886,7 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
 3. Reassess pain, airway, respirations q5min.
 
 **GIVE**
-- Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL ketamine {d.route} ({d.dose_mg:g}mg). Indication: {d.indication}.
+{render_give_line(d)}
 
 **WATCH**
 - Airway, respirations, SpO2, mental status, and emergence reaction.
@@ -2676,7 +2895,7 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
 - Do not redose without reassessment and local protocol.
 
 **TLDR**
-- {label}: ketamine {d.route} = {d.dose_mg:g}mg = {d.volume_ml:g}mL of 100mg/mL.
+{render_dose_summary(d, label)}
 
 **SOURCE**: General Evidence-Based Medicine / deterministic calculator
 
@@ -2693,6 +2912,7 @@ def build_pediatric_ketamine_route_response(ctx: PatientContext) -> Optional[str
         d = ketamine_analgesia_im(ctx.confirmed_weight_kg)
     else:
         return None
+    d = resolve_dose_volume(d, ctx)
 
     return f"""**DO THIS**
 1. Confirm monitoring and airway equipment ready.
@@ -2700,7 +2920,7 @@ def build_pediatric_ketamine_route_response(ctx: PatientContext) -> Optional[str
 3. Reassess pain, airway, respirations, and perfusion.
 
 **GIVE**
-- Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL ketamine {d.route} ({d.dose_mg:g}mg). Indication: {d.indication}.
+{render_give_line(d)}
 
 **WATCH**
 - Monitor airway, respirations, SpO2, mental status, and emergence reaction.
@@ -2709,7 +2929,7 @@ def build_pediatric_ketamine_route_response(ctx: PatientContext) -> Optional[str
 - Do not redose without reassessment and local protocol.
 
 **TLDR**
-- {ctx.confirmed_weight_kg:g}kg pediatric patient: ketamine {d.route} = {d.dose_mg:g}mg = {d.volume_ml:g}mL of 100mg/mL.
+{render_dose_summary(d, f"{ctx.confirmed_weight_kg:g}kg pediatric patient")}
 
 **SOURCE**: General Evidence-Based Medicine / deterministic calculator
 
@@ -2779,12 +2999,13 @@ Guideline-based support only. Not a substitute for clinical judgment."""
     w = ctx.confirmed_weight_kg
     ped = ctx.is_pediatric
 
-    ket_ind = ketamine_induction_iv(w, ped)
-    ket_post = ketamine_post_intubation_iv(w)
+    ket_ind = resolve_dose_volume(ketamine_induction_iv(w, ped), ctx)
+    ket_post = resolve_dose_volume(ketamine_post_intubation_iv(w), ctx)
 
     # Burns RSI: avoid succinylcholine unless explicitly requested; default rocuronium.
     use_succ = any(x in q for x in ["succinylcholine", "sux", "succs"]) and not any(x in q for x in ["burn", "crush"])
-    paralytic = succinylcholine_rsi(w, ped) if use_succ else rocuronium_rsi(w, ped)
+    paralytic = resolve_dose_volume(
+        succinylcholine_rsi(w, ped) if use_succ else rocuronium_rsi(w, ped), ctx)
 
     return f"""**DO THIS**
 1. Pre-oxygenate and prepare suction, backup airway, and cricothyrotomy equipment.
@@ -2792,11 +3013,11 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 3. Intubate, confirm tube, secure tube, then continue post-intubation sedation.
 
 **GIVE**
-- Draw {ket_ind.volume_ml:g} mL of {ket_ind.concentration_mg_ml:g}mg/mL ketamine IV ({ket_ind.dose_mg:g}mg). Indication: RSI induction.
-- Draw {paralytic.volume_ml:g} mL of {paralytic.concentration_mg_ml:g}mg/mL {paralytic.drug} IV ({paralytic.dose_mg:g}mg). Indication: RSI paralysis.
+{render_give_line(ket_ind)}
+{render_give_line(paralytic)}
 
 **POST-INTUBATION SEDATION**
-- Draw {ket_post.volume_ml:g} mL of {ket_post.concentration_mg_ml:g}mg/mL ketamine IV ({ket_post.dose_mg:g}mg) q20-30min after tube confirmation. Indication: post-intubation sedation.
+{render_give_line(ket_post)}
 
 **WATCH**
 - Confirm tube with waveform ETCO2 if available. Monitor SpO2, BP, chest rise, and ventilator pressures.
@@ -3091,6 +3312,23 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     Notices are applied AFTER cautions so the caution attaches to the answer
     rather than to the banner above it.
     """
+    # Volume audit FIRST, so every later step sees the text that will actually
+    # be served. This runs on EVERY path, gated or not: the deterministic
+    # templates return before apply_safety_gate by design, and they were the
+    # ones emitting "Draw 7.1 mL of 20mg/mL succinylcholine" with a hardcoded
+    # SAFE stamped on it. A check that lived on the LLM path would have missed
+    # exactly the path that had the problem.
+    audited, volume_issues = audit_volume_lines(result.get("response", ""), ctx)
+    if volume_issues:
+        result["response"] = VOLUME_STRIPPED_NOTICE + audited
+        result["validator_issues"] = list(result.get("validator_issues") or []) + volume_issues
+        # Downgrade, never escalate to a block: _finalise is not allowed to
+        # introduce UNSAFE, and it does not need to. The dangerous number is
+        # already gone from the text; what is left is a response a human
+        # should look at.
+        if result.get("validator_result") in CLEAN_VERDICTS:
+            result["validator_result"] = "NEEDS_HUMAN_REVIEW"
+
     if ctx is None:
         return result
 
@@ -3198,7 +3436,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "response": build_cico_response(),
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "SAFE",
+                "validator_result": "DETERMINISTIC_CHECKED",
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
@@ -3258,7 +3496,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "response": SEPSIS_DCR_REFUSAL,
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "SAFE",
+                "validator_result": "DETERMINISTIC_CHECKED",
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
@@ -3286,7 +3524,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "response": build_hemorrhagic_shock_dcr_response(),
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "SAFE",
+                "validator_result": "DETERMINISTIC_CHECKED",
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
@@ -3298,7 +3536,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "response": build_sepsis_management_response(),
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "SAFE",
+                "validator_result": "DETERMINISTIC_CHECKED",
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
@@ -3311,7 +3549,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "response": general_response,
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "SAFE",
+                "validator_result": "DETERMINISTIC_CHECKED",
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
@@ -3345,7 +3583,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                     "response": ket_response,
                     "sources": [],
                     "source_mode": "DETERMINISTIC_PRE_GATE",
-                    "validator_result": "SAFE",
+                    "validator_result": "DETERMINISTIC_CHECKED",
                     "validator_issues": [],
                     "patient_context": patient_ctx.to_dict()
                 }
@@ -3360,7 +3598,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                     "response": rsi_response,
                     "sources": [],
                     "source_mode": "DETERMINISTIC_PRE_GATE",
-                    "validator_result": "SAFE",
+                    "validator_result": "DETERMINISTIC_CHECKED",
                     "validator_issues": [],
                     "patient_context": patient_ctx.to_dict()
                 }
