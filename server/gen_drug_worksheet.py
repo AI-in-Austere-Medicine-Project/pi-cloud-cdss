@@ -50,6 +50,44 @@ def _tier_label(tier, source_class=None):
     return f"tier {tier} ({who})" if who else f"tier {tier}"
 
 
+def declaration_block(L, e):
+    """The owner-declaration section, rendered so it cannot read as a citation.
+
+    Deliberately NOT folded into the `- **source:**` list. That list is what a
+    reader scans to answer "who says so", and putting the shape doctrine in it
+    would let three JTS lines sit under a number none of them state — which is
+    the exact conflation the declaration exists to prevent. The doctrine gets
+    its own indented sub-list, each line labelled with what it does and does
+    not support.
+    """
+    ok, why = dc._declaration_ok(e)
+    if not ok:
+        L.append(f"  - 🛑 **OWNER DECLARATION IS MALFORMED — will not sign.** "
+                 f"{why}")
+        return
+    d = e["owner_declaration"]
+    L.append("  - 🖊️ **OWNER-DECLARED VALUE — NOT A GUIDELINE NUMBER.** The "
+             "dose below is the owner's clinical judgement. No published "
+             "guideline states it. It is signable on that basis and on no "
+             "other, and it is shown as owner-declared everywhere it is "
+             "served.")
+    L.append(f"    - **basis:** {d['basis']}, {d['declared_by']}, "
+             f"{d['declared_on']}")
+    dv = d["declared_value"]
+    rng = (f"{dv.get('min')}" if dv.get("min") == dv.get("max")
+           else f"{dv.get('min')}–{dv.get('max')}")
+    L.append(f"    - **declared value:** `{rng} {dv.get('units')}` — must "
+             f"match `dose_range` exactly; change one without the other and "
+             f"the entry stops serving.")
+    L.append(f"    - **justification:** {d['justification']}")
+    L.append("    - **supporting doctrine — SHAPE ONLY, these do NOT state "
+             "the value:**")
+    for doc in d["supporting_doctrine"]:
+        L.append(f"      - {_tier_label(doc.get('tier'), doc.get('source_class'))} "
+                 f"— {doc['citation']}")
+        L.append(f"        - _{doc['supports']}_")
+
+
 def entry_block(L, drug_name, e, n):
     ok, why = dc.entry_is_servable(e)
     status = "✅ LIVE" if ok else f"⬜ not live — {why}"
@@ -100,7 +138,10 @@ def entry_block(L, drug_name, e, n):
     if "MIGRATED_UNSOURCED" in flags:
         L.append("  - ⚠️ **MIGRATED, UNSOURCED.** Value carried over verbatim "
                  "from the pre-contract hardcode. The engine will NOT let this "
-                 "be signed until a tier 1 or tier 2 citation is attached.")
+                 "be signed until a tier 1 or tier 2 citation is attached, or "
+                 "the owner declares the value under `OWNER_DECLARED`.")
+    if dc.OWNER_DECLARED in flags:
+        declaration_block(L, e)
 
     dr = e.get("dose_range")
     if dr == dc.NEEDS_MANUAL:
@@ -109,7 +150,9 @@ def entry_block(L, drug_name, e, n):
         per = "per kg" if dr.get("per_kg") else "flat"
         rng = (f"{dr.get('min')}" if dr.get("min") == dr.get("max")
                else f"{dr.get('min')}–{dr.get('max')}")
-        L.append(f"- **dose_range:** `{rng} {dr.get('units')}` ({per})")
+        mark = " — 🖊️ **owner-declared, not a guideline value**" \
+            if dc.is_owner_declared(e) else ""
+        L.append(f"- **dose_range:** `{rng} {dr.get('units')}` ({per}){mark}")
 
     for f in ("max_single", "max_cumulative"):
         v = e.get(f)
@@ -339,6 +382,35 @@ def main():
         L.append(f"| — | {n} | 0 | {live} / {len(d['dose_entries'])} | "
                  f"{ready_count(d)} | other |")
     L.append("")
+
+    # A standing roll-up rather than a line buried in one drug's section. The
+    # question "which live doses rest on the owner rather than on a guideline"
+    # has to be answerable in one place and in one glance, or the mechanism
+    # becomes a way to lose track of exactly the numbers worth tracking.
+    declared = [(n, e) for n, d in drugs.items() for e in d["dose_entries"]
+                if dc.OWNER_DECLARED in (e.get("flags") or [])]
+    if declared:
+        L.append("## Owner-declared doses")
+        L.append("")
+        L.append("Doses that no published guideline states, signable because "
+                 "the owner declared the value on clinical judgement and put a "
+                 "name and a date to it. Each one is shown as owner-declared "
+                 "wherever it is served. **This list should stay short — every "
+                 "line on it is a number the project is answerable for "
+                 "itself.**")
+        L.append("")
+        for n, e in declared:
+            d_ = e.get("owner_declaration") or {}
+            dr_ = e.get("dose_range")
+            val = (f"{dr_['min']} {dr_['units']}"
+                   if isinstance(dr_, dict) else "no value")
+            live = "LIVE" if dc.entry_is_servable(e)[0] else "not live"
+            ok, why = dc._declaration_ok(e)
+            state = live if ok else f"MALFORMED DECLARATION — {why}"
+            L.append(f"- **{n} · {e['indication']} · {e['route']}** — {val} "
+                     f"— declared by {d_.get('declared_by', '?')} on "
+                     f"{d_.get('declared_on', '?')} — {state}")
+        L.append("")
 
     conflicted = [(n, e) for n, d in drugs.items() for e in d["dose_entries"]
                   if "SOURCE_CONFLICT" in (e.get("flags") or [])]

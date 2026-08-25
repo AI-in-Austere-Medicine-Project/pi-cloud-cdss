@@ -41,7 +41,19 @@ for by name, and because each one has been a real defect in this file:
                              — and the tier check cannot tell which field a
                              source backs, so the flag carries that fact.
 
-The engine refuses all four too, and deliberately: the fence is the thing that
+A fifth refusal joined them with OWNER_DECLARED, the owner's declaration as a
+third basis for a signable dose:
+
+    a malformed declaration  OWNER_DECLARED with no owner_declaration object, a
+                             declaration block on an entry that is not flagged,
+                             a justification too short to be one, or a
+                             declared_value that no longer matches dose_range.
+                             The last is the important one: it is what makes
+                             editing the number without re-declaring it take
+                             the entry off the wire instead of silently
+                             re-using the old signature.
+
+The engine refuses all of them too, and deliberately: the fence is the thing that
 must not be bypassable, and a tool is bypassable by not using it. What is NOT
 duplicated is the wording. entry_is_servable() answers "why is this dose not
 live" for a worksheet; sign_refusal() answers "what do I have to do about it"
@@ -185,14 +197,24 @@ def sign_refusal(entry: dict) -> str:
         return (f"a {' / '.join(dc.SENTINELS)} sentinel is still in: "
                 f"{', '.join(leaked)}")
 
+    # Checked before the tier rule, because a half-written declaration is a
+    # malformed entry rather than an unsourced one, and because a valid one
+    # changes what the tier rule is allowed to accept.
+    ok, why = dc._declaration_ok(entry)
+    if not ok:
+        return why
+    declared = dc.is_owner_declared(entry)
+
     sources = entry.get("sources")
     if not isinstance(sources, list) or not sources:
         return "the entry cites no sources at all"
     tiers = {s.get("tier") for s in sources if isinstance(s, dict)}
-    if not tiers & {1, 2}:
+    if not tiers & {1, 2} and not declared:
         return (f"every source is tier {sorted(t for t in tiers if t is not None)} "
                 f"— tier 0 is the migration carrier, not clinical evidence, and "
-                f"a signed entry needs at least one tier 1 or tier 2 citation")
+                f"a signed entry needs at least one tier 1 or tier 2 citation, "
+                f"or an explicit owner declaration under "
+                f"{dc.OWNER_DECLARED}")
 
     if "SOURCE_CONFLICT" in flags:
         adj = str(entry.get("adjudication") or "").strip()
@@ -202,11 +224,13 @@ def sign_refusal(entry: dict) -> str:
                     f"adjudication — record which source wins and why before "
                     f"signing either side")
 
-    if "MIGRATED_UNSOURCED" in flags:
+    if dc.MIGRATED_UNSOURCED in flags:
         return ("flagged MIGRATED_UNSOURCED — the dose is the pre-contract "
                 "hardcode and no approved source states it. A tier 1 citation "
                 "elsewhere in the entry does not source the NUMBER. Corroborate "
-                "it and re-flag MIGRATION_CORROBORATED, or retire it")
+                "it and re-flag MIGRATION_CORROBORATED, retire it, or — if the "
+                "owner is prepared to put a name to the number — declare it "
+                f"under {dc.OWNER_DECLARED} with a full owner_declaration")
 
     return ""
 
@@ -222,8 +246,13 @@ def _entry_line(entry: dict) -> str:
         dose = f"{lo:g}-{hi:g} {u}" if lo != hi else f"{lo:g} {u}"
     else:
         dose = str(dr)
+    # The marker rides on the line every command prints — --list, the signing
+    # confirmation, the unsign confirmation — because "which of these rests on
+    # the owner rather than a guideline" is a question the person holding the
+    # pen should not have to open the JSON to answer.
+    declared = "  [OWNER-DECLARED]" if dc.is_owner_declared(entry) else ""
     return (f"{entry.get('indication')} · {entry.get('population')} · "
-            f"{entry.get('route')} — {dose}")
+            f"{entry.get('route')} — {dose}{declared}")
 
 
 def cmd_list(only: str = None) -> int:
@@ -320,6 +349,12 @@ def cmd_sign(args) -> int:
                 "dose_range": entry.get("dose_range"),
                 "sources": [s.get("citation") for s in entry.get("sources", [])
                             if isinstance(s, dict)],
+                # A declared dose is the one kind of signature where the audit
+                # log cannot reconstruct the basis from the citations, because
+                # there is no citation for the number. Record the declaration
+                # itself, at the moment the signature lands.
+                "owner_declared": dc.is_owner_declared(entry),
+                "owner_declaration": entry.get("owner_declaration"),
                 "version": [old_version, entry.get("version")],
                 "signer": args.by, "date": args.date, "reason": args.reason,
                 "config_hash": _config_hash()})

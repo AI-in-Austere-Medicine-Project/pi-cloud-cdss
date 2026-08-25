@@ -940,6 +940,21 @@ RSI_PARALYTIC_INDICATIONS = ("RSI paralytic",)
 RSI_SEDATION_INDICATIONS = ("post-intubation sedation", "ongoing sedation")
 
 
+def _contract_source(name: str, entry: dict) -> str:
+    """The provenance string that travels with a contract dose.
+
+    An owner-declared dose gets a `:owner_declared` suffix on top of the
+    human-readable banner in the cautions. Two channels for one fact on
+    purpose: the banner is what a medic reads, the suffix is what the audit
+    log, the transcript and any downstream consumer can match on without
+    parsing prose.
+    """
+    tail = ":owner_declared" if (drug_contracts is not None
+                                 and drug_contracts.is_owner_declared(entry)) else ""
+    return (f"drug_contract:{name}:{entry['indication']}:"
+            f"{entry['route']}:v{entry.get('version')}{tail}")
+
+
 def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     """The signed RSI bundle, looked up by INDICATION rather than by name.
 
@@ -976,9 +991,8 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
             drug=name, indication=entry["indication"], route=entry["route"],
             dose_mg=round(r["dose_mg"], 4), display_value=r["display_value"],
             display_units=r["display_units"],
-            source=f"drug_contract:{name}:{entry['indication']}:"
-                   f"{entry['route']}:v{entry.get('version')}",
-            warning="; ".join(entry.get("cautions") or []) or None))
+            source=_contract_source(name, entry),
+            warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
     return out
 
 
@@ -1017,9 +1031,8 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
             dose_mg=round(resolved["dose_mg"], 4),
             display_value=resolved["display_value"],
             display_units=resolved["display_units"],
-            source=f"drug_contract:{name}:{entry['indication']}:"
-                   f"{entry['route']}:v{entry.get('version')}",
-            warning="; ".join(entry.get("cautions") or []) or None,
+            source=_contract_source(name, entry),
+            warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
         ))
     return out
 
