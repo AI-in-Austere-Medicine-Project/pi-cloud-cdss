@@ -987,7 +987,9 @@ def test_rsi_pregate_gives_exactly_one_dose_per_role():
                   "rapid sequence intubation, we have an infusion pump"):
         text = _oc.build_rsi_response(_rsi_ctx(), query)
         give = text.split("**GIVE**")[1].split("**POST-INTUBATION")[0]
-        post = text.split("**POST-INTUBATION SEDATION**")[1].split("**CAUTIONS**")[0]
+        # Split on the NEXT heading, whatever it is: CONFIRM VIAL sits between
+        # this block and CAUTIONS whenever a vial is still unconfirmed.
+        post = text.split("**POST-INTUBATION SEDATION**")[1].split("\n**")[0]
 
         give_doses = [l for l in give.splitlines() if l.startswith("- ")]
         post_doses = [l for l in post.splitlines() if l.startswith("- ")]
@@ -1047,3 +1049,82 @@ def test_signoff_authors_is_not_shell_widenable(monkeypatch):
     assert dc.SIGNOFF_AUTHORS == ("clinician", "AI-AIM")
     monkeypatch.delenv("CDSS_CARD_AUTHORS")
     importlib.reload(dc)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# THE VIAL ASK REACHES THE RSI BUNDLE
+#
+# pre_gate() has asked "which vial?" since the concentration list shipped, but
+# it runs at step 2l and the RSI dispatch returns at step 2k — so the one
+# bundle most likely to need the question could never be asked it. The medic
+# got "NO VOLUME — confirm concentration to compute volume" with nothing
+# naming what to confirm.
+# ─────────────────────────────────────────────────────────────────────────────
+
+import drug_concentrations as _dcn
+
+
+def _needs_vial_confirmation(drug):
+    return _dcn.resolve(drug, {})[0] == _dcn.NEEDS_CONFIRMATION
+
+
+def test_the_rsi_bundle_names_the_vial_options_it_needs():
+    """Not the generic refusal line — the actual presentations, so the medic
+    can answer without knowing the question was about ketamine."""
+    if not _needs_vial_confirmation("ketamine"):
+        pytest.skip("ketamine no longer needs confirmation in the shipped list")
+    ctx = _oc.extract_patient_context("need to RSI with ketamine and roc, 80kg IV")
+    text = _oc.build_rsi_response(ctx, "need to RSI with ketamine and roc, 80kg IV")
+
+    assert "**CONFIRM VIAL**" in text
+    ask = text.split("**CONFIRM VIAL**")[1].split("**CAUTIONS**")[0]
+    assert "ketamine" in ask
+    # The options themselves, phrased in what is printed on the vial.
+    for p in _dcn.signed_presentations("ketamine"):
+        assert p["label_text"] in ask, f"{p['label_text']} not offered: {ask}"
+    # The doses are still served — the ask does not withhold the bundle.
+    give = text.split("**GIVE**")[1].split("**POST-INTUBATION")[0]
+    assert "160 mg" in give
+
+
+def test_confirming_the_vial_computes_the_volume_and_drops_the_ask():
+    if not _needs_vial_confirmation("ketamine"):
+        pytest.skip("ketamine no longer needs confirmation in the shipped list")
+    conc = _dcn.signed_presentations("ketamine")[0]["concentration_mg_ml"]
+    q = "need to RSI with ketamine and roc, 80kg IV"
+    ctx = _oc.extract_patient_context(q)
+    ctx.confirmed_concentrations["ketamine"] = conc
+
+    text = _oc.build_rsi_response(ctx, q)
+    give = text.split("**GIVE**")[1].split("**POST-INTUBATION")[0]
+    assert "**CONFIRM VIAL**" not in text, "still asking after the answer"
+    assert f"{160.0 / conc:g} mL of {conc:g}mg/mL ketamine" in give, give
+
+
+def test_a_vial_answer_caches_on_the_patient_and_survives_later_turns():
+    """Asked once, not again mid-airway. The cache is per-PATIENT: a patient
+    boundary clears it with everything else, which is the point."""
+    c1 = _oc.extract_patient_context("need to RSI with ketamine and roc, 80kg IV")
+    assert "ketamine" in c1.drugs_named
+    c2 = _oc.extract_patient_context("500 in 10", prior_ctx=c1)
+    assert c2.confirmed_concentrations.get("ketamine") == 50.0
+    c3 = _oc.extract_patient_context("what about the sedation dose", prior_ctx=c2)
+    assert c3.confirmed_concentrations.get("ketamine") == 50.0, \
+        "the confirmation was lost on a later turn"
+
+
+def test_the_bundle_resumes_on_a_vial_answer_and_not_on_anything_else():
+    """The answer turn carries no RSI words. Without the resume the medic
+    answers the question and the volumes arrive nowhere."""
+    rsi = "need to RSI with ketamine and roc, 80kg IV"
+    ctx = _oc.extract_patient_context(rsi)
+
+    assert _oc.rsi_bundle_should_resume("500 in 10", rsi, ctx) is True
+    # A fresh RSI request is the normal path's job, not the resume's.
+    assert _oc.rsi_bundle_should_resume(rsi, rsi, ctx) is False
+    # An ordinary follow-up must not be hijacked into re-serving the bundle.
+    for other in ("what about the sedation dose", "how long does roc last",
+                  "he is bradycardic now"):
+        assert _oc.rsi_bundle_should_resume(other, rsi, ctx) is False, other
+    # No RSI in flight at all.
+    assert _oc.rsi_bundle_should_resume("500 in 10", "tylenol dose", ctx) is False

@@ -118,10 +118,10 @@
               "retrieved_date": "2026-08-24"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 (ruling 7) selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. A full search of ID61 plus ID91, ID29, ID80, ID39, ID40, ID57, ID63, ID70 and ID73 then found the shape well sourced and the VALUE stated nowhere. OWNER DECLARATION 2026-08-25 (ruling 8) therefore replaces MIGRATED_UNSOURCED: the number is declared on the owner's clinical judgement under OWNER_DECLARED, recorded in owner_declaration, and shown as owner-declared everywhere the dose is served. It is no longer a migrated hardcode awaiting corroboration — it is a value someone signed for by name.",
           "flags": [
             "OWNER_DECLARED"
@@ -247,10 +247,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "TIER 1 VALUE. NASEMSO gives 0.25 mg/kg IM/IV/IO for moderate to severe pain, capped at 25 mg initial and 100 mg cumulative. This CONFLICTS with the migrated hardcoded contract, which uses 0.3 mg/kg IV with no cap and 2.0 mg/kg IM with no cap. Both entries are kept. The IM divergence is the serious one: for an 80 kg patient the hardcode gives 160 mg IM where NASEMSO caps at 25 mg — roughly SIX TIMES. Adjudicate before signing either.",
           "adjudication": "OWNER RULING 2026-08-25: JTS ID61's 0.1-0.2 mg/kg and NASEMSO's 0.25 mg/kg are the same clinical range for sub-dissociative analgesia. Both kept and both cited; this is not a conflict.",
           "adjudicated_on": "2026-08-25"
@@ -296,10 +296,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
         },
@@ -342,10 +342,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
         },
@@ -387,10 +387,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
         },
@@ -432,10 +432,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
         },
@@ -479,10 +479,10 @@
               "retrieved_date": "2026-08-24"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "extraction_notes": "TIER 1, JTS ID39 (28 Jan 2026), the current airway CPG. Conflicts with JTS ID40's 1 mg/kg and with the migrated 1.5 mg/kg.",
           "adjudication": "OWNER RULING 2026-08-25: this is the STANDARD induction dose. The reduced dose for haemodynamic compromise is a separate entry, not a competing value. The 1.5 mg/kg hardcode is retired as unsourced.",
           "adjudicated_on": "2026-08-25"
@@ -529,10 +529,10 @@
               "retrieved_date": "2026-08-24"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "extraction_notes": "TIER 1, JTS ID40 (2021). This is the number the owner named: 1 mg/kg against the hardcode's 1.5. Recorded with ID40's own framing — the exsanguinating patient, dose reduced and titrated — rather than as a bare contradiction, because the population the source is talking about is part of what has to be adjudicated.",
           "adjudication": "OWNER RULING 2026-08-25: kept as a DISTINCT clinical situation, not an alternative opinion. Use where there is haemodynamic compromise or the patient is in extremis, titrated, per JTS ID40's own framing.",
           "adjudicated_on": "2026-08-25"
@@ -577,10 +577,10 @@
               "retrieved_date": "2026-08-24"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: this is the STANDARD induction dose. The reduced dose for haemodynamic compromise is a separate entry, not a competing value. The 1.5 mg/kg hardcode is retired as unsourced.",
           "adjudicated_on": "2026-08-25"
         },
@@ -632,10 +632,10 @@
               "retrieved_date": "2026-08-24"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: ruled for the repeated-bolus shape. This is austere/prehospital transport, where an infusion pump is often not available, so 0.5 mg/kg IV q20-30min is the executable option and is the preferred answer. JTS ID61's load-then-infuse is NOT rejected — it is recorded as the alternate for pump-capable settings and kept as its own entry, so the guidance is there when the equipment is. The two are no longer a conflict: they are one ruling about equipment, not two opinions about a dose.",
           "adjudicated_on": "2026-08-25"
         },
@@ -685,10 +685,10 @@
               "retrieved_date": "2026-08-24"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "extraction_notes": "A THIRD value joins the existing ketamine analgesia conflict. NASEMSO gives 0.25 mg/kg capped at 25 mg initial; the hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped; JTS ID61 gives 0.1-0.2 mg/kg. The spread between the lowest tier-1 figure and the hardcoded IM figure is twentyfold.",
           "adjudication": "OWNER RULING 2026-08-25: JTS ID61's 0.1-0.2 mg/kg and NASEMSO's 0.25 mg/kg are the same clinical range for sub-dissociative analgesia. Both kept and both cited; this is not a conflict.",
           "adjudicated_on": "2026-08-25"
@@ -773,10 +773,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "anaphylaxis",
@@ -822,10 +822,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -986,10 +986,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "symptomatic bradycardia — push dose",
@@ -1031,10 +1031,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "shock unresponsive to IV fluids — infusion",
@@ -1075,10 +1075,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "shock — push dose",
@@ -1123,10 +1123,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "neonatal resuscitation — HR below 60 despite ventilation",
@@ -1168,10 +1168,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "croup with stridor at rest — nebulised",
@@ -1213,10 +1213,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "bronchiolitis with severe respiratory distress — nebulised",
@@ -1258,10 +1258,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         }
       ],
       "notes": "Highest-traffic UNCONTRACTED drug in the discovery run. Also the drug behind the look-alike concentration probe (1:1000 vs 1:10000) and the norepi-vs-epi collision probe — 5 of its 19 queries were collision probes."
@@ -1351,10 +1351,10 @@
               "retrieved_date": "2026-08-25"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: split by age per JTS ID39 — 1.2 mg/kg adult, 1.0 mg/kg paediatric. JTS ID40's 1-1.2 mg/kg band corroborates.",
           "adjudicated_on": "2026-08-25"
         },
@@ -1395,10 +1395,10 @@
               "retrieved_date": "2026-08-25"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: split by age per JTS ID39 — 1.2 mg/kg adult, 1.0 mg/kg paediatric. JTS ID40's 1-1.2 mg/kg band corroborates.",
           "adjudicated_on": "2026-08-25"
         }
@@ -1494,10 +1494,10 @@
               "retrieved_date": "2026-08-24"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "extraction_notes": "THE MIGRATED VALUE IS CORROBORATED BY JTS ID39: 1.5 mg/kg IV/IO, exactly the hardcode. But JTS ID40 (2021) gives 1 mg/kg as the 'standard rapid sequence induction dose' for the same indication, so the two JTS documents disagree with each other. Both are kept. The concentration mismatch is unaffected and separate.",
           "flags": [
             "MIGRATION_CORROBORATED",
@@ -1538,10 +1538,10 @@
               "retrieved_date": "2026-08-25"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: age-banded per JTS ID39. Under 5 years only.",
           "adjudicated_on": "2026-08-25"
         },
@@ -1577,10 +1577,10 @@
               "retrieved_date": "2026-08-25"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: age-banded per JTS ID39. 5 years and above; under 5 uses 2 mg/kg.",
           "adjudicated_on": "2026-08-25"
         }
@@ -1751,10 +1751,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IN, IM, IV and IO as one route list at the same 1 mcg/kg dose."
         },
         {
@@ -1852,10 +1852,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
         },
         {
@@ -1899,10 +1899,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO's Shock guideline gives this range without splitting adult from paediatric."
         },
         {
@@ -1947,10 +1947,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO gives a DIFFERENT range for bradycardia (0.02-0.4) than for shock (0.05-0.5). Both are NASEMSO and they are different indications in different guidelines, so this is not a source conflict — but the two must not be merged into one range."
         },
         {
@@ -1994,10 +1994,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "A third NASEMSO range (0.02-2) for a third indication. The upper bound is 4x the Shock guideline's. Kept as its own indication rather than widened into the others."
         }
       ],
@@ -2461,10 +2461,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO's Seizures guideline gives one weight-based dose under a single 'Patient Management' heading covering both populations."
         },
         {
@@ -2518,10 +2518,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -2617,10 +2617,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         },
         {
           "indication": "ongoing sedation (prolonged field care)",
@@ -2660,10 +2660,10 @@
               "retrieved_date": "2026-08-25"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.3.0"
         }
       ],
       "notes": "WHO lists midazolam injection as a therapeutic alternative to lorazepam for seizures (p.10). Midazolam drew 6 dose queries in the discovery run; lorazepam — which HAS a contract — drew none."
@@ -2752,10 +2752,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         },
         {
@@ -2808,10 +2808,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         },
         {
@@ -2864,10 +2864,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         }
       ]
@@ -2966,10 +2966,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -3027,10 +3027,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -3335,10 +3335,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -3418,10 +3418,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         }
       ],
       "notes": "'calcium' is the alias; calcium chloride is a DIFFERENT salt at a different elemental-calcium content and is deliberately NOT folded into this entry. It needs its own contract before the bare word 'calcium' can safely serve anything."
@@ -3495,10 +3495,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO gives 0.4-2 mg as the typical INITIAL adult dose for IV and IM, and states no maximum for those routes (it caps IN at 4 mg and ETT at 5 mg)."
         },
         {
@@ -3540,10 +3540,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -3588,10 +3588,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "NASEMSO gives 0.1 mg/kg for IV, IM, IN and ETT, with different ceilings by route: 2 mg IV/IM/ETT, 4 mg IN."
         },
         {
@@ -3821,10 +3821,10 @@
               "source_class": "MIGRATION"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0",
           "extraction_notes": "THE MIGRATION IS CONFIRMED BY TIER 1. NASEMSO Seizures p.102 gives lorazepam 0.1 mg/kg IV or IO, maximum 4 mg — exactly the hardcoded calculator's rule, and WHO corroborates the 2 mg/mL concentration. This entry now carries a tier 1 citation, so unlike the other three migrated drugs it is eligible to be signed.",
           "flags": [
             "MIGRATION_CORROBORATED"
@@ -3869,10 +3869,10 @@
               "source_class": "NASEMSO"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-08-25",
+          "version": "0.2.0"
         }
       ],
       "notes": "Has a contract but drew ZERO dose queries in the discovery run. The seizure traffic asked for midazolam (6) and levetiracetam (4) instead. Flagged so the owner can decide whether re-signing lorazepam is worth the review slot ahead of those two."

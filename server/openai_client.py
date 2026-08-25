@@ -3145,6 +3145,28 @@ def should_use_rsi_pregate(text: str) -> bool:
     return is_rsi_or_post_intubation_context(text) and not is_vent_settings_query(text)
 
 
+def rsi_bundle_should_resume(query: str, prior_queries: str,
+                             ctx: PatientContext) -> bool:
+    """Whether this turn is a vial answer to an RSI bundle already in flight.
+
+    The RSI dispatch reads the CURRENT query, and "500 in 10" contains no RSI
+    words. Without this the medic answers the vial question and the bundle they
+    were part-way through never comes back — the volumes they asked the
+    question for arrive nowhere. Deliberately narrow: the previous turns must
+    have been an RSI request, this turn must not be one itself (the normal path
+    already owns that), and this turn has to actually match a declared
+    presentation for a drug already under discussion for THIS patient.
+    """
+    if drug_concentrations is None or drug_contracts is None:
+        return False
+    if should_use_rsi_pregate(query):
+        return False
+    if not should_use_rsi_pregate(prior_queries or ""):
+        return False
+    return any(drug_concentrations.match_confirmation(drug, query) is not None
+               for drug in (ctx.drugs_named or []))
+
+
 def build_rsi_response(ctx: PatientContext, text: str) -> Optional[str]:
     """
     Deterministic RSI bundle. RSI should not ask "IV or IM" unless no access is stated.
@@ -3235,6 +3257,30 @@ Guideline-based support only. Not a substitute for clinical judgment."""
         caution_lines += [f"  - {c.strip()}" for c in items if c and c.strip()]
     cautions_block = "\n".join(caution_lines) or "- None recorded for these entries."
 
+    # WHICH VIAL. pre_gate() asks this, but pre_gate runs at step 2l and the
+    # RSI dispatch returns at step 2k, so the question was structurally
+    # unreachable for the one bundle most likely to need it. It is asked here
+    # INLINE rather than as a blocking gate: the milligram doses above are
+    # correct and actionable, and withholding an RSI bundle mid-airway to ask
+    # about a vial would be a worse failure than the mg-only line it replaces.
+    # The answer is picked up by extract_patient_context() on the next turn and
+    # cached on the patient, and rsi_bundle_should_resume() brings the bundle
+    # back with its volumes filled in.
+    asks, seen_drugs = [], set()
+    if drug_concentrations is not None:
+        for d in served:
+            if d.drug in seen_drugs or d.volume_ml is not None:
+                continue
+            seen_drugs.add(d.drug)
+            status, _, _ = drug_concentrations.resolve(
+                d.drug, ctx.confirmed_concentrations)
+            if status == drug_concentrations.NEEDS_CONFIRMATION:
+                ask = drug_concentrations.confirmation_question(d.drug)
+                if ask:
+                    asks.append(f"- {ask}")
+    confirm_block = ("\n**CONFIRM VIAL** (answer to get volumes; the mg doses "
+                     "above stand either way)\n" + "\n".join(asks) + "\n") if asks else ""
+
     # Provenance follows what was actually served. The old fixed string read
     # "deterministic RSI calculator" underneath doses that had come from signed
     # JTS-cited contracts. It deliberately does NOT name a guideline: one of
@@ -3265,7 +3311,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 
 **POST-INTUBATION SEDATION**
 {_give(ket_post, "post-intubation sedation")}
-
+{confirm_block}
 **CAUTIONS**
 {cautions_block}
 
@@ -3840,8 +3886,15 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
 
         # Step 2k: RSI / post-intubation deterministic response — before standard pre-gate.
         # should_use_rsi_pregate() diverts vent-settings queries out of this path (S-4).
-        if should_use_rsi_pregate(query):
-            rsi_response = build_rsi_response(patient_ctx, query)
+        rsi_resume = rsi_bundle_should_resume(query, prior_queries, patient_ctx)
+        if should_use_rsi_pregate(query) or rsi_resume:
+            # On a resume the current turn is just the vial answer — "500 in
+            # 10" — and the bundle's SHAPE (which paralytic, pump or no pump)
+            # lives in the turn that asked for it. So the history is what gets
+            # read, and only on a resume: passing it unconditionally would let
+            # a "sux" from three turns ago steer a fresh RSI request.
+            rsi_text = full_query_history if rsi_resume else query
+            rsi_response = build_rsi_response(patient_ctx, rsi_text)
             if rsi_response:
                 print("💉 RSI PRE-GATE")
                 return {
