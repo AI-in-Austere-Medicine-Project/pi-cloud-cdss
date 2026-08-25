@@ -283,7 +283,13 @@ def build_query_aliases() -> dict:
     return {
         # Medications
         "ket": "ketamine",
-        "vitamin k": "ketamine",
+        # "vitamin k" -> ketamine was REMOVED. It was here as a dictation
+        # mangling, but vitamin K (phytomenadione) is a real drug with its own
+        # indication, so the alias shadowed it: "vitamin K dose for warfarin
+        # reversal" resolved to ketamine and enhanced retrieval with it. An
+        # alias may never be another real drug's name — see
+        # drug_contracts.lint_alias_collisions(), which enforces that
+        # structurally now.
         "k": "ketamine (context-dependent)",
         "roc": "rocuronium",
         "rocky onium": "rocuronium",

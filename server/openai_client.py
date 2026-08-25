@@ -51,6 +51,15 @@ from typing import Literal, Optional, List
 import general_reference
 import providers
 import vent_module
+
+# Same degradation rule the rest of the config layer follows: if the contract
+# engine cannot be imported, the dose contracts are ABSENT — every drug falls
+# through to the empty-contract path — never a server that will not boot.
+try:
+    import drug_contracts
+except Exception as _e:                                   # pragma: no cover
+    print(f"⚠️  drug_contracts unavailable ({_e}) — no drug dose contracts.")
+    drug_contracts = None
 import vitals as vitals_mod
 
 # The OpenAI SDK is no longer imported here. Both LLM calls go through
@@ -850,8 +859,75 @@ def lorazepam_seizure(weight_kg: float) -> DoseCandidate:
     )
 
 
+def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+    """DoseCandidates from SIGNED drug_contracts.json entries only.
+
+    Every value here has already passed drug_contracts.entry_is_servable(), so
+    this function does arithmetic and nothing else — it makes no clinical
+    decision and it never falls back. A signed entry that cannot be turned into
+    a syringe volume is skipped rather than served: a mg with no mL is a number
+    the medic has to convert under load, which is the error this whole contract
+    layer exists to remove.
+    """
+    if drug_contracts is None or ctx.dosing_weight_kg is None:
+        return []
+
+    w = ctx.dosing_weight_kg
+    out = []
+    for name, entry in drug_contracts.signed_entries_for(
+            query, route=None, is_pediatric=ctx.is_pediatric):
+        conc = drug_contracts.single_concentration(name)
+        if conc is None:
+            continue
+        rng = entry["dose_range"]
+        base = rng.get("min")
+        if base is None:
+            continue
+        dose_mg = base * w if rng.get("per_kg") else base
+
+        cap = entry.get("max_single")
+        if isinstance(cap, dict):
+            if cap.get("units") == "mg" and isinstance(cap.get("value"), (int, float)):
+                dose_mg = min(dose_mg, cap["value"])
+            elif cap.get("units") == "mg/kg" and isinstance(cap.get("value"), (int, float)):
+                dose_mg = min(dose_mg, cap["value"] * w)
+
+        dose_mg = round(dose_mg, 1)
+        out.append(DoseCandidate(
+            drug=name, indication=entry["indication"], route=entry["route"],
+            dose_mg=dose_mg, volume_ml=round(dose_mg / conc, 3),
+            concentration_mg_ml=conc,
+            source=f"drug_contract:{name}:{entry['indication']}:"
+                   f"{entry['route']}:v{entry.get('version')}",
+            warning="; ".join(entry.get("cautions") or []) or None,
+        ))
+    return out
+
+
 def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
-    """Build route-specific deterministic dose candidates for the current query."""
+    """Build route-specific deterministic dose candidates for the current query.
+
+    Two paths, and the split is temporary by design:
+
+      LEGACY   ketamine, rocuronium, succinylcholine, lorazepam still come from
+               the hardcoded calculators below. The contract file carries a
+               migrated draft of each, unsigned. Behaviour for these four is
+               unchanged, byte for byte, until the owner re-signs the migrated
+               entries — at which point the calculator for that drug is deleted
+               and it joins the contract path.
+
+      CONTRACT every other drug serves from drug_contracts.json, and ONLY from
+               a signed entry. Nothing is signed yet, so this path returns
+               empty and those drugs land on the existing empty-contract
+               fallback exactly as before.
+
+    DRUG NAMING IS WORD-ANCHORED. It used to be substring matching with an
+    explicit `'vitamin k' in q` mapped onto ketamine as a dictation-mangling
+    alias, so "vitamin K dose for warfarin reversal" built a ketamine contract.
+    Vitamin K is a real drug; the alias was eating it. Naming now goes through
+    drug_contracts.resolve_drugs(), which is word-anchored and which the alias
+    lint forbids from shadowing another contracted drug.
+    """
     if ctx.dosing_weight_kg is None:
         return []
     w = ctx.dosing_weight_kg
@@ -859,13 +935,20 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     q = query.lower()
     doses = []
 
+    named = set(drug_contracts.resolve_drugs(q)) if drug_contracts else set()
+
     is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
     is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
     is_seizure = any(x in q for x in ['seizure', 'seizing', 'status'])
-    has_ketamine = 'ketamine' in q or 'vitamin k' in q or _has_word(q, 'ket')
-    has_roc = 'rocuronium' in q or _has_word(q, 'roc')
-    has_succ = 'succinylcholine' in q or _has_any_word(q, ['sux', 'succs'])
-    has_loraz = any(x in q for x in ['lorazepam', 'ativan', 'benzo'])
+    has_ketamine = 'ketamine' in named
+    has_roc = 'rocuronium' in named
+    has_succ = 'succinylcholine' in named
+    # 'benzo' is a CLASS word, not a lorazepam alias, and it is preserved here
+    # only because removing it would change current behaviour — which this
+    # migration is not allowed to do. It is on the worksheet for the owner:
+    # once midazolam has a signed contract, "benzo" pointing at exactly one
+    # benzodiazepine is its own collision waiting to happen.
+    has_loraz = 'lorazepam' in named or _has_word(q, 'benzo')
 
     if is_rsi:
         # RSI always requires induction + paralytic + post-intubation sedation.
@@ -878,6 +961,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         else:
             doses.append(rocuronium_rsi(w, ped))
 
+        doses.extend(_contract_dose_candidates(query, ctx))
         return doses
 
     if has_ketamine:
@@ -894,6 +978,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     if has_loraz or is_seizure:
         doses.append(lorazepam_seizure(w))
 
+    doses.extend(_contract_dose_candidates(query, ctx))
     return doses
 
 
