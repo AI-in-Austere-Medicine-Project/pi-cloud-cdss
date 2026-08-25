@@ -114,7 +114,8 @@ def main():
                         "label": args.revoke, "old": [pres["concentration_mg_ml"], was],
                         "new": [pres["concentration_mg_ml"], False],
                         "actor": args.by or "unspecified", "reason": args.reason,
-                        "config_hash": dcn._config_hash()})
+                        "config_hash": dcn._config_hash(),
+                        "snapshot": dcn.snapshot_from_file()})
         print(f"revoked {args.drug} {args.revoke} — this drug now serves "
               f"milligram doses with no volume until it is signed again.")
         return 0
@@ -141,7 +142,8 @@ def main():
         dcn.append_log({"event": "DECLARE", "drug": args.drug,
                         "label": args.declare, "old": None, "new": [conc, False],
                         "actor": args.by or "unspecified", "reason": args.reason,
-                        "config_hash": dcn._config_hash()})
+                        "config_hash": dcn._config_hash(),
+                        "snapshot": dcn.snapshot_from_file()})
         print(f"declared {args.drug} {args.declare} = {conc:g} mg/mL, UNSIGNED. "
               f"Sign it before any volume is served.")
         return 0
@@ -174,7 +176,8 @@ def main():
                         "old": old,
                         "new": [pres["concentration_mg_ml"], True],
                         "actor": args.by, "reason": args.reason,
-                        "config_hash": dcn._config_hash()})
+                        "config_hash": dcn._config_hash(),
+                        "snapshot": dcn.snapshot_from_file()})
         print(f"signed {args.drug} {args.sign} = "
               f"{pres['concentration_mg_ml']:g} mg/mL by {args.by} on {args.date}")
         return 0

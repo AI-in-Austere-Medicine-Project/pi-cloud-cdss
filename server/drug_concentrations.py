@@ -425,8 +425,36 @@ def append_log(record: dict) -> None:
         print(f"⚠️  could not write {CHANGE_LOG.name} ({e}): {record}")
 
 
+def snapshot_from_file() -> dict:
+    """The snapshot as the file currently reads, independent of what this
+    process loaded. Used by set_concentration.py after it writes."""
+    try:
+        raw = json.loads(CONFIG.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    out = {}
+    for entry in raw.get("entries", []):
+        name = entry.get("generic_name")
+        if not name:
+            continue
+        out[name] = {
+            (p.get("label_text") or f"{p.get('concentration_mg_ml')}"):
+            [p.get("concentration_mg_ml"), bool(presentation_is_signed(p))]
+            for p in entry.get("presentations", [])
+        }
+    return out
+
+
 def _last_logged_state() -> tuple:
-    """(hash, snapshot) from the most recent log record that carried one."""
+    """(hash, snapshot) from the most recent record carrying BOTH.
+
+    Both, not either. A record with a hash and no snapshot — which is what the
+    edit tool used to write — left the drift check with a hash to compare
+    against and nothing to diff, so every presentation read as new and a
+    routine sign-then-restart produced a page of "changed outside the tool"
+    warnings for changes nobody made. A warning that cries wolf on normal use
+    is worse than no warning, because it trains the reader to skip it.
+    """
     try:
         lines = CHANGE_LOG.read_text().strip().split("\n")
     except OSError:
@@ -436,8 +464,8 @@ def _last_logged_state() -> tuple:
             rec = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if "config_hash" in rec:
-            return rec.get("config_hash"), rec.get("snapshot")
+        if rec.get("config_hash") and rec.get("snapshot"):
+            return rec["config_hash"], rec["snapshot"]
     return None, None
 
 
@@ -452,8 +480,9 @@ def detect_external_edit() -> list:
     last_hash, last_snap = _last_logged_state()
 
     if last_hash is None:
-        append_log({"event": "BASELINE", "config_hash": now_hash,
-                    "snapshot": now_snap})
+        if now_snap:
+            append_log({"event": "BASELINE", "config_hash": now_hash,
+                        "snapshot": now_snap})
         return []
     if last_hash == now_hash:
         return []

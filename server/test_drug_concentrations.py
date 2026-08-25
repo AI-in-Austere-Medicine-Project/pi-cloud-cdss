@@ -636,3 +636,54 @@ def test_the_response_format_shows_the_no_volume_shape():
     give_block = oc.GENERATOR_BASE.split("**GIVE**")[1][:400]
     assert "Draw X mL of Y mg/mL" in give_block
     assert "NO VOLUME" in give_block
+
+
+def test_a_log_record_without_a_snapshot_is_not_a_baseline(tmp_path, monkeypatch):
+    """Regression: the edit tool used to log a hash with no snapshot.
+
+    _last_logged_state then had a hash to compare against and nothing to diff,
+    so every presentation read as new and a routine sign-then-restart printed a
+    page of "changed outside the tool" warnings for changes nobody made. A
+    warning that cries wolf on normal use trains the reader to skip it, which
+    costs more than the warning was worth.
+    """
+    log = tmp_path / "conc.log.jsonl"
+    monkeypatch.setattr(dcn, "CHANGE_LOG", log)
+    dcn.append_log({"event": "BASELINE", "config_hash": "hash-1",
+                    "snapshot": {"ketamine": {"L": [50.0, False]}}})
+    dcn.append_log({"event": "SIGN", "config_hash": "hash-2"})   # no snapshot
+
+    h, snap = dcn._last_logged_state()
+    assert h == "hash-1" and snap, \
+        "a snapshotless record was taken as the baseline"
+
+
+def test_signing_through_the_tool_does_not_report_a_phantom_edit(tmp_path, monkeypatch):
+    log = tmp_path / "conc.log.jsonl"
+    monkeypatch.setattr(dcn, "CHANGE_LOG", log)
+    monkeypatch.setattr(dcn, "_config_hash", lambda: "hash-1")
+    dcn.detect_external_edit()                                   # baseline
+
+    # what the tool writes now: hash AND the post-change snapshot
+    monkeypatch.setattr(dcn, "_config_hash", lambda: "hash-2")
+    dcn.append_log({"event": "SIGN", "drug": "ketamine", "config_hash": "hash-2",
+                    "snapshot": dcn._snapshot()})
+
+    assert dcn.detect_external_edit() == [], \
+        "a tool-made change was reported as an external edit"
+
+
+def test_the_tool_records_a_snapshot_on_every_change():
+    """Enforced at the source, so the bug above cannot come back by someone
+    adding a fourth command that forgets."""
+    src = (dcn._DIR / "set_concentration.py").read_text()
+    assert src.count("snapshot_from_file()") == src.count("dcn.append_log("), \
+        "a set_concentration command logs without a snapshot"
+
+
+def test_snapshot_from_file_reads_the_file_not_the_process():
+    """The tool writes, then logs. It must snapshot what it just WROTE, not
+    the stale copy this process loaded at import."""
+    snap = dcn.snapshot_from_file()
+    assert "succinylcholine" in snap
+    assert snap["succinylcholine"]["100 mg / 2 mL ampoule"][0] == 50.0
