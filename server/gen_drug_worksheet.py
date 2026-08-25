@@ -23,6 +23,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import drug_contracts as dc  # noqa: E402
+import drug_concentrations as dcn  # noqa: E402
 
 OUT = pathlib.Path(__file__).parent / "DRUG_CONTRACT_WORKSHEET.md"
 
@@ -267,6 +268,45 @@ def main():
         if s.get("scope_warning"):
             L.append(f"  - ⚠️ {s['scope_warning']}")
     L.append("")
+
+    L.append("## Concentrations — sign these too, and separately")
+    L.append("")
+    L.append("A dose entry gives **milligrams**. A millilitre volume needs the "
+             "concentration of the vial in the bag, which no guideline knows — "
+             "that lives in `drug_concentrations.json` and is signed on its "
+             "own. **Until a drug's concentration is signed, its dose is served "
+             "in mg with no volume at all.**")
+    L.append("")
+    L.append(f"Kit: `{dcn.kit_id()}`")
+    L.append("")
+    L.append("| drug | declared vial | mg/mL | corroboration | signed |")
+    L.append("|---|---|---|---|---|")
+    for name, entry in sorted(dcn.ENTRIES.items()):
+        ask = " *(always asks)*" if entry.get("confirm_required") else ""
+        for pres in entry["presentations"]:
+            L.append(f"| {name}{ask} | {pres.get('label_text')} | "
+                     f"{pres['concentration_mg_ml']:g} | "
+                     f"{pres.get('corroboration')} | "
+                     f"{'✅' if dcn.presentation_is_signed(pres) else '⬜'} |")
+        ask = ""
+    L.append("")
+    L.append("- `SOURCE_MATCHED` — an approved source cites this exact strength.")
+    L.append("- `OFF_SOURCE` — plausible but uncited; needs a written "
+             "`justification` before it can be signed.")
+    L.append("- `NO_SOURCED_STRENGTH` — **neither approved source lists this "
+             "drug at all**, so the order-of-magnitude guardrail cannot "
+             "protect it. Rocuronium is the one that matters here.")
+    L.append("")
+    L.append("Sign with `python3 set_concentration.py --drug X --sign "
+             "\"<label>\" --by clinician --date YYYY-MM-DD`. Revoking needs no "
+             "signature — pulling a concentration degrades to mg-only, which is "
+             "always safe, so it must never be harder than declaring one.")
+    L.append("")
+    if dcn.REJECTIONS:
+        L.append("**Rejected, not stored:**")
+        for r in dcn.REJECTIONS:
+            L.append(f"- {r.generic_name} {r.raw}: {r.reason}")
+        L.append("")
 
     L.append("## Signing order")
     L.append("")
