@@ -366,6 +366,36 @@ def draw_precision(true_volume_ml: float) -> int:
     return 4
 
 
+# What a syringe can actually deliver as a push. Below the floor the volume
+# cannot be drawn accurately; above the ceiling it is an infusion, not a bolus.
+# Both are physical facts about syringes, not clinical judgements — which is
+# why this module is allowed to state them.
+MIN_DRAWABLE_ML = 0.05
+MAX_BOLUS_ML = 60.0
+
+
+def drawable(volume_ml_value: float) -> tuple:
+    """(ok, reason). The last guard before a volume reaches a medic.
+
+    Catches what the unit conversion and the volume audit cannot: a dose that
+    is arithmetically correct but does not correspond to anything a person can
+    draw up. A thousandfold data error surfaces here as 0.01 mL, and a dose
+    needing a dilution the kit has not declared surfaces here too — the
+    epinephrine push dose is 10 mcg, which is 0.01 mL of the 1 mg/mL ampoule
+    and 1 mL of the 10 mcg/mL dilution the guideline actually specifies. The
+    right answer there is to refuse and say so, not to print 0.01 mL.
+    """
+    if volume_ml_value < MIN_DRAWABLE_ML:
+        return False, (f"{volume_ml_value:g} mL is below {MIN_DRAWABLE_ML:g} mL "
+                       f"and cannot be drawn accurately — this dose likely "
+                       f"needs a dilution the kit has not declared, or the "
+                       f"dose units are wrong")
+    if volume_ml_value > MAX_BOLUS_ML:
+        return False, (f"{volume_ml_value:g} mL exceeds {MAX_BOLUS_ML:g} mL — "
+                       f"that is an infusion, not a bolus")
+    return True, ""
+
+
 def volume_ml(generic_name: str, dose_mg: float,
               confirmed: Optional[dict] = None) -> tuple:
     """(volume_ml, concentration_mg_ml) or (None, None). The ONLY mL source."""
@@ -373,7 +403,20 @@ def volume_ml(generic_name: str, dose_mg: float,
     if status != RESOLVED or not conc:
         return None, None
     true_vol = dose_mg / conc
+    ok, _why = drawable(true_vol)
+    if not ok:
+        return None, None
     return round(true_vol, draw_precision(true_vol)), conc
+
+
+def volume_refusal(generic_name: str, dose_mg: float,
+                   confirmed: Optional[dict] = None) -> Optional[str]:
+    """Why no volume, when a concentration IS resolved. None if there is one."""
+    status, conc, _ = resolve(generic_name, confirmed)
+    if status != RESOLVED or not conc:
+        return None
+    ok, why = drawable(dose_mg / conc)
+    return None if ok else why
 
 
 def declared_concentration(generic_name: str) -> Optional[float]:
@@ -425,8 +468,36 @@ def append_log(record: dict) -> None:
         print(f"⚠️  could not write {CHANGE_LOG.name} ({e}): {record}")
 
 
+def snapshot_from_file() -> dict:
+    """The snapshot as the file currently reads, independent of what this
+    process loaded. Used by set_concentration.py after it writes."""
+    try:
+        raw = json.loads(CONFIG.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    out = {}
+    for entry in raw.get("entries", []):
+        name = entry.get("generic_name")
+        if not name:
+            continue
+        out[name] = {
+            (p.get("label_text") or f"{p.get('concentration_mg_ml')}"):
+            [p.get("concentration_mg_ml"), bool(presentation_is_signed(p))]
+            for p in entry.get("presentations", [])
+        }
+    return out
+
+
 def _last_logged_state() -> tuple:
-    """(hash, snapshot) from the most recent log record that carried one."""
+    """(hash, snapshot) from the most recent record carrying BOTH.
+
+    Both, not either. A record with a hash and no snapshot — which is what the
+    edit tool used to write — left the drift check with a hash to compare
+    against and nothing to diff, so every presentation read as new and a
+    routine sign-then-restart produced a page of "changed outside the tool"
+    warnings for changes nobody made. A warning that cries wolf on normal use
+    is worse than no warning, because it trains the reader to skip it.
+    """
     try:
         lines = CHANGE_LOG.read_text().strip().split("\n")
     except OSError:
@@ -436,8 +507,8 @@ def _last_logged_state() -> tuple:
             rec = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if "config_hash" in rec:
-            return rec.get("config_hash"), rec.get("snapshot")
+        if rec.get("config_hash") and rec.get("snapshot"):
+            return rec["config_hash"], rec["snapshot"]
     return None, None
 
 
@@ -452,8 +523,9 @@ def detect_external_edit() -> list:
     last_hash, last_snap = _last_logged_state()
 
     if last_hash is None:
-        append_log({"event": "BASELINE", "config_hash": now_hash,
-                    "snapshot": now_snap})
+        if now_snap:
+            append_log({"event": "BASELINE", "config_hash": now_hash,
+                        "snapshot": now_snap})
         return []
     if last_hash == now_hash:
         return []

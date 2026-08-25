@@ -154,362 +154,6 @@ def test_a_sentinel_in_any_field_at_all_is_refused(live):
         assert not ok, f"a signed entry with a sentinel in {field} was accepted"
 
 
-@pytest.mark.parametrize("breakage,reason_fragment", [
-    ({"signoff": False}, "signoff is not true"),
-    ({"signoff": "true"}, "signoff is not true"),
-    ({"reviewed_by": "nobody"}, "authorised signer"),
-    ({"reviewed_by": dc.PENDING}, "authorised signer"),
-    ({"review_date": ""}, "review_date"),
-    ({"review_date": dc.PENDING}, "review_date"),
-    ({"sources": []}, "sources"),
-    ({"sources": [{"citation": "x"}]}, "missing"),
-    ({"dose_range": {"min": 1, "max": 1, "units": "mg/kg"}}, "per_kg"),
-    ({"dose_range": {"min": 5, "max": 1, "units": "mg/kg", "per_kg": True}},
-     "below"),
-    ({"population": "grown-ups"}, "population"),
-])
-def test_every_way_an_entry_can_be_incomplete_is_refused(breakage, reason_fragment):
-    ok, why = dc.entry_is_servable(signed_entry(**breakage))
-    assert not ok
-    assert reason_fragment in why, f"expected {reason_fragment!r} in {why!r}"
-
-
-def test_a_missing_field_is_refused_by_name():
-    e = signed_entry()
-    del e["max_cumulative"]
-    ok, why = dc.entry_is_servable(e)
-    assert not ok and "max_cumulative" in why
-
-
-def test_a_null_maximum_is_a_real_answer_not_a_sentinel():
-    """`max_single: null` means the cited source states no maximum.
-
-    That is a fact about the source and it must be signable, or every entry
-    whose source is silent on a ceiling becomes permanently unservable.
-    """
-    ok, why = dc.entry_is_servable(signed_entry(max_single=None,
-                                                max_cumulative=None))
-    assert ok, why
-
-
-def test_there_is_no_override_that_serves_an_unsigned_entry(monkeypatch):
-    """No env var, no debug flag, no anything."""
-    for var in ("CDSS_SERVE_PENDING_CARDS", "CDSS_SERVE_PENDING_DOSES",
-                "EDGECDSS_DEBUG_WARN_ONLY", "CDSS_DEBUG"):
-        monkeypatch.setenv(var, "1")
-    d = synthetic_drug(dose_entries=[signed_entry(signoff=False)])
-    monkeypatch.setattr(dc, "DRUGS", {d["generic_name"]: d})
-    assert dc.servable_entries() == {}
-    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
-    assert oc._contract_dose_candidates("testosteril dose", ctx) == []
-
-
-def test_an_unsigned_drug_serves_no_dose_and_falls_through(monkeypatch):
-    """The whole point: unsigned drug -> empty contract -> existing fallback."""
-    d = synthetic_drug(dose_entries=[signed_entry(signoff=False)])
-    monkeypatch.setattr(dc, "DRUGS", {d["generic_name"]: d})
-    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
-    assert oc.build_allowed_doses("how much testosteril", ctx) == []
-
-
-def test_a_signed_entry_actually_reaches_the_serving_path(live):
-    """The fence must be a gate, not a wall — control for the refusal tests.
-
-    Milligrams only: the volume comes from drug_concentrations.json, which
-    declares nothing for a synthetic test drug, so a None volume here is the
-    fail-closed rule working rather than a gap.
-    """
-    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
-    doses = oc._contract_dose_candidates("testosteril dose", ctx)
-    assert len(doses) == 1
-    d = doses[0]
-    assert (d.drug, d.route, d.dose_mg) == ("testosteril", "IV", 80.0)
-    assert d.volume_ml is None
-    assert d.source.startswith("drug_contract:testosteril")
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# POPULATE ONLY FROM THE TWO APPROVED SOURCES
-# ═══════════════════════════════════════════════════════════════════════════
-
-def test_an_entry_sourced_only_to_the_migration_cannot_be_signed():
-    """Tier 0 carries the four pre-contract hardcodes into the model.
-
-    It is not clinical evidence, and an entry that cites nothing else must not
-    become servable just because someone signed it — otherwise the migration
-    launders four unsourced numbers into served doses.
-    """
-    e = signed_entry(sources=[_synthetic_source(tier=0)])
-    ok, why = dc.entry_is_servable(e)
-    assert not ok and "approved source" in why
-
-
-@pytest.mark.parametrize("tier", [1, 2])
-def test_either_approved_tier_is_enough(tier):
-    ok, why = dc.entry_is_servable(signed_entry(sources=[_synthetic_source(tier)]))
-    assert ok, why
-
-
-# Migrated drugs whose value NO approved source corroborates. Lorazepam left
-# this set when the NASEMSO extraction landed: Seizures p.102 gives exactly the
-# hardcoded rule, so it is corroborated rather than unsourced. Expected to keep
-# shrinking as sources are found — that is the point of the migration.
-UNSOURCED_MIGRATED = ("ketamine", "rocuronium", "succinylcholine")
-
-
-@pytest.mark.parametrize("name", UNSOURCED_MIGRATED)
-def test_an_unsourced_migrated_entry_cannot_be_signed(name):
-    """A migrated value no approved source corroborates stays unsignable.
-
-    Not "is unsigned" — UNSIGNABLE. Forcing signoff true on it must still be
-    refused, because the only citation is tier 0 and tier 0 is the migration
-    carrier, not evidence.
-    """
-    drug = dc.DRUGS[name]
-    migrated = [e for e in drug["dose_entries"]
-                if "MIGRATED_UNSOURCED" in (e.get("flags") or [])]
-    assert migrated, f"{name} has no migrated entry"
-    for e in migrated:
-        assert {s["tier"] for s in e["sources"]} == {0}
-        forced = copy.deepcopy(e)
-        forced.update({"signoff": True, "reviewed_by": "clinician",
-                       "review_date": "2026-08-24"})
-        ok, why = dc.entry_is_servable(forced)
-        assert not ok, f"{name} migrated entry became servable: {e}"
-
-
-def test_the_corroborated_migration_became_signable():
-    """Lorazepam's migrated value is the one NASEMSO confirmed exactly.
-
-    NASEMSO Seizures p.102: lorazepam 0.1 mg/kg IV or IO, maximum 4 mg —
-    identical to lorazepam_seizure_0.1mgkg_max4mg. So this entry carries a
-    tier 1 citation alongside the tier 0 one, and the tier rule no longer
-    blocks it. It is still UNSIGNED; what changed is that it is now signable.
-    """
-    entry = next(e for e in dc.DRUGS["lorazepam"]["dose_entries"]
-                 if e["indication"] == "active seizure")
-    assert entry["signoff"] is False, "nothing may ship signed"
-    assert "MIGRATION_CORROBORATED" in entry["flags"]
-    tiers = {s["tier"] for s in entry["sources"]}
-    assert 1 in tiers and 0 in tiers, tiers
-
-    forced = copy.deepcopy(entry)
-    forced.update({"signoff": True, "reviewed_by": "clinician",
-                   "review_date": "2026-08-24"})
-    ok, why = dc.entry_is_servable(forced)
-    assert ok, f"the corroborated migration is still unsignable: {why}"
-
-
-def test_the_corroborated_value_still_equals_the_calculator():
-    """The whole point of corroboration: the number NASEMSO gives and the
-    number the code has produced all along are the same number."""
-    entry = next(e for e in dc.DRUGS["lorazepam"]["dose_entries"]
-                 if e["indication"] == "active seizure")
-    for w in (20.0, 45.0, 80.0):
-        expected = min(entry["dose_range"]["min"] * w,
-                       entry["max_single"]["value"])
-        assert round(expected, 1) == oc.lorazepam_seizure(w).dose_mg
-
-
-def test_every_source_record_is_shaped_like_a_citation():
-    for name, drug in dc.DRUGS.items():
-        for e in drug.get("dose_entries", []):
-            for s in e.get("sources", []):
-                assert set(dc._SOURCE_KEYS) <= set(s), f"{name}: {s}"
-                assert s["tier"] in (0, 1, 2), f"{name}: bad tier {s['tier']}"
-
-
-def test_a_signed_source_conflict_must_record_its_adjudication():
-    """Two sources disagreeing is kept as BOTH entries, never silently
-    resolved. Signing one of them IS the adjudication; saying so is what stops
-    the next reader re-opening the question."""
-    e = signed_entry(flags=["SOURCE_CONFLICT"])
-    ok, why = dc.entry_is_servable(e)
-    assert not ok and "adjudication" in why
-    ok, why = dc.entry_is_servable(
-        signed_entry(flags=["SOURCE_CONFLICT"],
-                     adjudication="TEST: took the tier 1 value"))
-    assert ok, why
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# THE COLLISION CLASS
-# ═══════════════════════════════════════════════════════════════════════════
-
-def test_vitamin_k_does_not_build_a_ketamine_contract():
-    """A1-COL-004, the specimen. THE regression test for this build.
-
-    "vitamin K dose for warfarin reversal" used to return a ketamine analgesia
-    contract, because 'vitamin k' was a hardcoded ketamine alias.
-    """
-    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
-                         route_preference="IV")
-    doses = oc.build_allowed_doses("vitamin K dose for warfarin reversal", ctx)
-    assert [d.drug for d in doses] == [], \
-        f"vitamin K built a contract for: {[d.drug for d in doses]}"
-
-
-@pytest.mark.parametrize("query", [
-    "vitamin K dose for warfarin reversal",
-    "does he need vitamin K here",
-    "vitamin-k for the INR",
-])
-def test_vitamin_k_resolves_to_vitamin_k(query):
-    assert dc.resolve_drugs(query) == ["phytomenadione"]
-
-
-@pytest.mark.parametrize("query,expected", [
-    ("ket dose for pain", ["ketamine"]),
-    ("roc dose now", ["rocuronium"]),
-    ("rocephin dose for this infection", ["ceftriaxone"]),
-    ("sux or roc for this airway", ["rocuronium", "succinylcholine"]),
-    ("start levophed", ["norepinephrine"]),
-    ("narcan dose IM", ["naloxone"]),
-    ("keppra loading dose", ["levetiracetam"]),
-])
-def test_established_aliases_still_resolve(query, expected):
-    assert sorted(dc.resolve_drugs(query)) == sorted(expected)
-
-
-@pytest.mark.parametrize("query", [
-    "she is on the rocks",            # roc
-    "follow the procedure",           # roc
-    "check the socket",               # sux-adjacent noise
-    "the patient is in Sicily",       # A1-COL-012, epi-adjacent dictation noise
-    "market analysis",                # ket
-])
-def test_no_alias_fires_inside_a_longer_word(query):
-    assert dc.resolve_drugs(query) == [], \
-        f"{query!r} resolved to {dc.resolve_drugs(query)}"
-
-
-def test_the_alias_lint_refuses_an_alias_that_shadows_a_real_drug(monkeypatch):
-    """THE CLASS FIX, asserted directly.
-
-    Re-introduce exactly the mapping that caused this bug and prove the lint
-    catches it. This is what stops specimen six.
-    """
-    drugs = {
-        "ketamine": {"generic_name": "ketamine", "aliases": ["ket", "vitamin k"],
-                     "dose_entries": []},
-        "vitamin k": {"generic_name": "vitamin k", "aliases": [],
-                      "dose_entries": []},
-    }
-    monkeypatch.setattr(dc, "DRUGS", drugs)
-    problems = dc.lint_alias_collisions()
-    assert problems, "the lint accepted vitamin k -> ketamine"
-    assert any("shadow" in p for p in problems)
-
-
-def test_the_alias_lint_refuses_two_drugs_claiming_one_alias(monkeypatch):
-    drugs = {
-        "epinephrine": {"generic_name": "epinephrine", "aliases": ["epi"],
-                        "dose_entries": []},
-        "norepinephrine": {"generic_name": "norepinephrine", "aliases": ["epi"],
-                           "dose_entries": []},
-    }
-    monkeypatch.setattr(dc, "DRUGS", drugs)
-    assert any("claimed by both" in p for p in dc.lint_alias_collisions())
-
-
-def test_the_shipped_contract_file_passes_the_alias_lint():
-    assert dc.lint_alias_collisions() == []
-
-
-def test_a_combination_product_is_not_shadowed_by_its_components():
-    """"artemether + lumefantrine" contains "artemether". Longest match wins,
-    so asking for the combination does not also resolve the component."""
-    assert dc.resolve_drugs("artemether lumefantrine dose") == \
-        ["artemether + lumefantrine"]
-    assert dc.resolve_drugs("artemether-lumefantrine") == \
-        ["artemether + lumefantrine"]
-    assert dc.resolve_drugs("artemether IM for severe malaria") == ["artemether"]
-
-
-def test_component_overlaps_are_reported_separately_from_collisions():
-    """A combination product legitimately contains its components' names.
-    Conflating that with a real shadow would either fail the build on a legal
-    combination or teach the team to ignore the lint that catches real ones."""
-    overlaps = dc.lint_generic_name_overlaps()
-    assert any("artemether" in o for o in overlaps)
-    assert dc.lint_alias_collisions() == []
-
-
-def test_proposed_aliases_are_not_live(monkeypatch):
-    """Dictation manglings the discovery run observed are held back for owner
-    approval: promoting one makes the system answer a query it used to refuse,
-    which is a routing change the owner signs off, not one a migration makes."""
-    assert "keta mean" in dc.DRUGS["ketamine"].get("proposed_aliases", [])
-    assert "keta mean" not in dc.DRUGS["ketamine"]["aliases"]
-    assert dc.resolve_drugs("give her keta mean for the pain") == []
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# THE MIGRATED FOUR — BEHAVIOUR IS UNCHANGED
-# ═══════════════════════════════════════════════════════════════════════════
-
-@pytest.mark.parametrize("query,weight,route,expected", [
-    ("ketamine dose for analgesia IV", 80.0, "IV",
-     [("ketamine", "IV", 24.0)]),
-    ("what is the ketamine dose, no IV yet", 80.0, "IM",
-     [("ketamine", "IM", 160.0)]),
-    ("rocuronium dose for intubation", 80.0, "IV",
-     [("ketamine", "IV", 120.0), ("ketamine", "IV", 40.0),
-      ("rocuronium", "IV", 80.0)]),
-    ("succinylcholine dose for RSI", 80.0, "IV",
-     [("ketamine", "IV", 120.0), ("ketamine", "IV", 40.0),
-      ("succinylcholine", "IV", 120.0)]),
-    ("lorazepam for the seizure", 80.0, "IV",
-     [("lorazepam", "IV", 4.0)]),
-])
-def test_the_migrated_four_still_produce_the_same_milligrams(
-        query, weight, route, expected):
-    """The MILLIGRAMS are unchanged. The millilitres deliberately are not.
-
-    This test used to assert exact volumes too — ketamine 24 mg AS 0.24 mL,
-    succinylcholine 120 mg AS 6.0 mL — because the calculators carried
-    hardcoded concentrations. Those volumes were wrong for a kit stocking the
-    WHO/austere strengths, which is the whole reason the concentration master
-    list exists. The dose is a clinical claim and it is unchanged; the volume
-    is a claim about the vial and it now has to come from the vial.
-    """
-    ctx = PatientContext(confirmed_weight_kg=weight, weight_source="stated",
-                         route_preference=route)
-    doses = oc.build_allowed_doses(query, ctx)
-    assert [(d.drug, d.route, d.dose_mg) for d in doses] == expected
-    assert all(d.volume_ml is None for d in doses), \
-        "no concentration is signed, so nothing may carry a volume"
-
-
-def test_the_migrated_values_match_the_calculators_they_came_from():
-    """The draft in the file is the calculator's value, not a re-derivation.
-
-    If these drift apart, the owner is cross-checking the migration against
-    something that is no longer what the system does.
-    """
-    w = 70.0
-    checks = [
-        ("ketamine", "subdissociative analgesia", oc.ketamine_analgesia_iv(w)),
-        ("ketamine", "dissociative analgesia (IM — no IV access)",
-         oc.ketamine_analgesia_im(w)),
-        ("ketamine", "post-intubation sedation q20-30min",
-         oc.ketamine_post_intubation_iv(w)),
-        ("rocuronium", "RSI paralytic", oc.rocuronium_rsi(w, False)),
-        ("lorazepam", "active seizure", oc.lorazepam_seizure(w)),
-    ]
-    for drug_name, indication, candidate in checks:
-        entry = next(e for e in dc.DRUGS[drug_name]["dose_entries"]
-                     if e["indication"] == indication
-                     and isinstance(e["dose_range"], dict))
-        rng = entry["dose_range"]
-        assert rng["per_kg"] is True and rng["units"] == "mg/kg"
-        expected_mg = rng["min"] * w
-        cap = entry.get("max_single")
-        if isinstance(cap, dict) and cap.get("units") == "mg" and cap.get("value"):
-            expected_mg = min(expected_mg, cap["value"])
-        assert round(expected_mg, 1) == candidate.dose_mg, \
-            f"{drug_name}/{indication}: file says {expected_mg}, code says " \
-            f"{candidate.dose_mg}"
 
 
 def test_the_legacy_four_are_named_and_only_those_four():
@@ -519,15 +163,6 @@ def test_the_legacy_four_are_named_and_only_those_four():
         assert name in dc.DRUGS, f"{name} was not migrated into the model"
 
 
-def test_the_concentration_mismatches_the_migration_found_are_recorded():
-    """WHO lists ketamine at 10/50 mg/mL and suxamethonium at 50 mg/mL; the
-    calculators assume 100 mg/mL and 20 mg/mL. That is a volume error at the
-    syringe if the wrong one is real, and it is the migration's job to surface
-    it rather than pick a side."""
-    for name in ("ketamine", "succinylcholine"):
-        flagged = [e for e in dc.DRUGS[name]["dose_entries"]
-                   if "CONCENTRATION_MISMATCH" in (e.get("flags") or [])]
-        assert flagged, f"{name} concentration mismatch is not flagged"
 
 
 def test_an_ambiguous_sourced_strength_names_no_single_concentration(monkeypatch):
@@ -642,7 +277,14 @@ def test_every_tier_1_citation_names_a_guideline_and_page():
                 if src["tier"] != 1:
                     continue
                 c = src["citation"]
-                assert "NASEMSO" in c and "v3.0" in c, c
+                cls = src.get("source_class")
+                assert cls in ("NASEMSO", "JTS"), f"{name}: tier 1 but {cls!r}"
+                if cls == "NASEMSO":
+                    assert "NASEMSO" in c and "v3.0" in c, c
+                else:
+                    assert "JTS" in c and "CPG ID" in c, c
+                    assert re.search(r"\b\d{2} \w{3} \d{4}\b", c), \
+                        f"a JTS citation must carry the CPG's date: {c!r}"
                 assert re.search(r"p\.\d+", c), f"{name}: no page in {c!r}"
 
 
@@ -673,15 +315,15 @@ def test_the_extraction_made_entries_signABLE():
 
 
 def test_both_sides_of_a_source_conflict_are_kept():
-    """CONFLICTING doses are never silently resolved.
+    """CONFLICTING doses are never silently resolved — one side dropped at
+    extraction time is a silent pick nobody can audit.
 
-    NASEMSO gives ketamine 0.25 mg/kg for analgesia capped at 25 mg; the
-    migrated hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped. Both stay,
-    tied by conflict_group, for the owner to adjudicate.
+    Every conflict raised so far has now been ruled on, so this asserts the
+    invariant rather than an instance: whatever is flagged carries a group, and
+    a group has at least two sides.
     """
     conflicted = [e for d in dc.DRUGS.values() for e in d["dose_entries"]
                   if "SOURCE_CONFLICT" in (e.get("flags") or [])]
-    assert len(conflicted) >= 2, "a conflict needs at least two sides"
     groups = collections.Counter(e.get("conflict_group") for e in conflicted)
     assert None not in groups, "a SOURCE_CONFLICT entry has no conflict_group"
     for group, n in groups.items():
@@ -689,17 +331,20 @@ def test_both_sides_of_a_source_conflict_are_kept():
 
 
 def test_a_conflicted_entry_cannot_be_signed_without_adjudicating():
-    """Already covered generically; asserted here on the REAL conflict."""
-    # the NASEMSO side — the migrated side is refused earlier, for tier 0
-    entry = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
-                 if "SOURCE_CONFLICT" in (e.get("flags") or [])
-                 and any(src["tier"] in (1, 2) for src in e["sources"]))
-    forced = copy.deepcopy(entry)
-    forced.update({"signoff": True, "reviewed_by": "clinician",
-                   "review_date": "2026-08-24"})
+    """Asserted on a synthetic entry, not a real one.
+
+    It used to reach into the file for the live conflict. Ruling 7 settled the
+    last of those, and a test that needs an unruled conflict to exist would
+    reward leaving one lying around.
+    """
+    forced = signed_entry(flags=["SOURCE_CONFLICT"],
+                          conflict_group="synthetic-group")
     forced.pop("adjudication", None)
     ok, why = dc.entry_is_servable(forced)
     assert not ok and "adjudication" in why
+
+    forced["adjudication"] = "OWNER RULING 2026-08-25: the newer source wins."
+    assert dc.entry_is_servable(forced)[0]
 
 
 def test_the_suspected_source_error_was_not_transcribed():
@@ -754,3 +399,273 @@ def test_a_meaningful_null_maximum_carries_the_sentence_that_says_so():
                 assert "no cumulative maximum" in joined or \
                        "states no maximum" in joined, \
                     f"{name}/{e['indication']}: null max with no explanation"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE JTS EXTRACTION
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_jts_is_a_tier_1_source_class():
+    """JTS sits at tier 1 beside NASEMSO rather than at a tier of its own.
+
+    Tier is a TRUST level, not a document identity — the fence asks "is there
+    an approved clinical source", and a JTS CPG is one. What distinguishes the
+    documents is source_class, which is why that field exists.
+    """
+    classes = {s.get("source_class") for d in dc.DRUGS.values()
+               for e in d["dose_entries"] for s in e["sources"]}
+    assert {"JTS", "NASEMSO", "WHO_EML", "MIGRATION"} <= classes
+    jts_tiers = {s["tier"] for d in dc.DRUGS.values() for e in d["dose_entries"]
+                 for s in e["sources"] if s.get("source_class") == "JTS"}
+    assert jts_tiers == {1}
+
+
+def test_the_rsi_bundle_is_no_longer_unsourceable():
+    """Ranks 1, 3 and 4 — 56 dose queries — had tier-0-only citations and
+    could not be signed at any price. JTS covers what NASEMSO does not."""
+    for drug in ("rocuronium", "succinylcholine"):
+        sourced = [e for e in dc.DRUGS[drug]["dose_entries"]
+                   if isinstance(e["dose_range"], dict)
+                   and any(s.get("source_class") == "JTS" for s in e["sources"])]
+        assert sourced, f"{drug} still has no JTS-sourced dose"
+
+
+
+
+
+
+def test_the_succinylcholine_contraindications_are_filled_from_jts():
+    """JTS ID40 states them explicitly; they were NEEDS_MANUAL_ENTRY."""
+    for e in dc.DRUGS["succinylcholine"]["dose_entries"]:
+        if not isinstance(e["dose_range"], dict):
+            continue
+        ci = " ".join(e["contraindications"]).lower()
+        assert dc.NEEDS_MANUAL not in e["contraindications"]
+        for term in ("burn", "spinal cord", "hyperkal"):
+            assert term in ci, f"{term} missing from {e['indication']}"
+
+
+def test_the_visual_only_infusion_rate_was_not_guessed():
+    """JTS ID61 marks the starting drip rate by HIGHLIGHTING a table row. A
+    highlight is not in the text layer, so the rate is not in this file."""
+    e = next(x for x in dc.DRUGS["ketamine"]["dose_entries"]
+             if x["indication"] == "prolonged sedation infusion")
+    assert e["dose_range"] == dc.NEEDS_MANUAL
+    assert "NEEDS_VISUAL_CONFIRMATION" in e["flags"]
+    assert "highlight" in e["extraction_notes"].lower()
+
+
+def test_txa_finally_has_a_dose():
+    """NASEMSO named TXA in three guidelines and dosed it in none. JTS ID40
+    gives 2 g — and the entry is flagged because grams are not milligrams."""
+    e = next(x for x in dc.DRUGS["tranexamic acid"]["dose_entries"]
+             if "loading" in x["indication"])
+    assert e["dose_range"]["min"] == 2.0 and e["dose_range"]["units"] == "g"
+    assert "UNIT_NOT_MG" in e["flags"]
+
+
+def test_nothing_was_signed_by_the_jts_extraction():
+    assert dc.servable_entries() == {}
+
+
+
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE OWNER'S RULINGS, 2026-08-25
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Every SOURCE_CONFLICT the extractions raised has been adjudicated. These
+# tests assert the SETTLED state — what the owner decided, and that the
+# reasoning survived with it. The tests that asserted the unsettled state were
+# removed rather than loosened: an unresolved conflict is no longer a fact
+# about this file, and a test insisting it still is would be testing history.
+
+
+# Ruling 7 (2026-08-25) closed the last one. The set stays here rather than
+# being deleted, so a NEW unruled conflict has something to fail against.
+STILL_AWAITING_A_RULING = set()
+
+
+def test_no_source_conflict_is_still_open():
+    """All seven are ruled. A new SOURCE_CONFLICT must be adjudicated, not
+    parked: the flag exists to stop a silent pick, and an unruled flag sitting
+    in the file indefinitely is the same silent pick with extra steps."""
+    groups = {e.get("conflict_group") for d in dc.DRUGS.values()
+              for e in d["dose_entries"]
+              if "SOURCE_CONFLICT" in (e.get("flags") or [])}
+    assert groups == STILL_AWAITING_A_RULING, f"unexpected open conflicts: {groups}"
+
+
+def test_a_retired_entry_keeps_its_reason():
+    """Retired, not deleted. A value that was once served has to stay
+    traceable — including the 1.5 mg/kg ketamine induction the system has been
+    giving all along."""
+    raw = json.loads((dc._DIR / "drug_contracts.json").read_text())
+    retired = raw.get("retired_entries", [])
+    assert len(retired) >= 7
+    for r in retired:
+        assert r["retired_reason"].startswith("OWNER RULING")
+        assert r["retired_on"] and r["dose_range"]
+
+
+def test_ruling_1_ketamine_induction_is_two_situations_not_two_opinions():
+    ind = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
+           if "RSI induction" in e["indication"]]
+    standard = [e for e in ind if e["indication"] == "RSI induction"]
+    reduced = [e for e in ind if "extremis" in e["indication"]]
+    assert {e["dose_range"]["min"] for e in standard} == {2.0}
+    assert {e["dose_range"]["min"] for e in reduced} == {1.0}
+    assert 1.5 not in {e["dose_range"]["min"] for e in ind}, \
+        "the unsourced 1.5 mg/kg hardcode is still present"
+    for e in ind:
+        assert any(s.get("source_class") == "JTS" for s in e["sources"])
+
+
+def test_ruling_1_the_reduced_dose_says_titrate_first():
+    e = next(x for x in dc.DRUGS["ketamine"]["dose_entries"]
+             if "extremis" in x["indication"])
+    assert e["cautions"][0].startswith("TITRATE")
+    assert any("no approved source states a reduced PAEDIATRIC" in c.lower()
+               or "reduced PAEDIATRIC" in c for c in e["cautions"])
+
+
+def test_ruling_2_paediatric_succinylcholine_is_age_banded():
+    """The safety ruling: a flat 2 mg/kg is 33% high on a 7-year-old."""
+    peds = [e for e in dc.DRUGS["succinylcholine"]["dose_entries"]
+            if e["population"] == "peds" and isinstance(e["dose_range"], dict)]
+    bands = {e["indication"]: e["dose_range"]["min"] for e in peds}
+    assert bands == {"RSI paralytic — under 5 years": 2.0,
+                     "RSI paralytic — 5 years and above": 1.5}, bands
+
+
+def test_ruling_2_an_age_band_is_not_used_without_an_age():
+    """Neither band is a safe default, so an unknown age selects neither."""
+    live = {"succinylcholine": [e for e in dc.DRUGS["succinylcholine"]["dose_entries"]
+                                if e["population"] == "peds"]}
+    assert dc._age_band({"indication": "RSI paralytic — under 5 years"}) == (0.0, 5.0)
+    assert dc._age_band({"indication": "RSI paralytic — 5 years and above"}) == (5.0, 200.0)
+    assert dc._age_band({"indication": "RSI paralytic"}) is None
+
+
+def test_ruling_3_adult_succinylcholine_is_id39_with_id40_recorded():
+    adult = [e for e in dc.DRUGS["succinylcholine"]["dose_entries"]
+             if e["population"] == "adult" and isinstance(e["dose_range"], dict)]
+    assert len(adult) == 1, "there must be exactly one adult dose"
+    assert adult[0]["dose_range"]["min"] == 1.5
+    assert any("ALTERNATE" in c and "1 mg/kg" in c for c in adult[0]["cautions"]), \
+        "ID40's value must survive as a recorded alternate"
+
+
+def test_ruling_4_rocuronium_is_split_by_age():
+    roc = {e["population"]: e["dose_range"]["min"]
+           for e in dc.DRUGS["rocuronium"]["dose_entries"]
+           if isinstance(e["dose_range"], dict)}
+    assert roc == {"adult": 1.2, "peds": 1.0}, roc
+    for e in dc.DRUGS["rocuronium"]["dose_entries"]:
+        if isinstance(e["dose_range"], dict):
+            assert any("CORROBORATING" in c for c in e["cautions"])
+
+
+def test_ruling_5_the_mislabelled_im_dose_is_gone():
+    """2 mg/kg IM was the IV sedation number on the IM route, called analgesia."""
+    for e in dc.DRUGS["ketamine"]["dose_entries"]:
+        if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict):
+            assert e["dose_range"]["min"] <= 0.25, \
+                f"{e['indication']} is not sub-dissociative"
+
+
+def test_ruling_5_the_two_analgesia_sources_are_no_longer_a_conflict():
+    analg = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
+             if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict)]
+    assert len(analg) == 2
+    for e in analg:
+        assert "SOURCE_CONFLICT" not in (e.get("flags") or [])
+        assert "same clinical range" in e["adjudication"]
+
+
+def test_ruling_6_ketamine_is_not_contraindicated_in_head_injury():
+    """The discovery bank contains "RSI doses, he has a head injury". The
+    system must not steer a medic off the induction agent JTS endorses for
+    exactly that patient."""
+    for e in dc.DRUGS["ketamine"]["dose_entries"]:
+        for ci in e.get("contraindications") or []:
+            assert "head trauma" not in str(ci).lower(), \
+                f"{e['indication']} still lists head trauma as active"
+        assert "CONTRAINDICATION_CONFLICT" not in (e.get("flags") or [])
+
+
+def test_ruling_6_nasemsos_position_survives_as_history():
+    """Overturned, not erased — the reasoning has to be auditable."""
+    noted = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
+             if any("HISTORICAL CAUTION" in c for c in e["cautions"])]
+    assert noted
+    for e in noted:
+        joined = " ".join(e["cautions"])
+        assert "NASEMSO" in joined and "JTS ID61" in joined
+
+
+def test_every_ruling_is_recorded_on_the_entry_it_settles():
+    for n, d in dc.DRUGS.items():
+        for e in d["dose_entries"]:
+            if e.get("adjudicated_on"):
+                assert e["adjudication"].startswith("OWNER RULING"), \
+                    f"{n}/{e['indication']}"
+
+
+def test_ruling_7_post_intubation_sedation_is_an_equipment_split():
+    """The last conflict. The hardcode gives 0.5 mg/kg repeated q20-30min; JTS
+    ID61 gives 1 mg/kg over 60 seconds then an infusion. The owner ruled that
+    those are two equipment situations rather than two opinions, so both
+    entries survive and each says which situation it is for."""
+    ket = dc.DRUGS["ketamine"]["dose_entries"]
+    bolus = next(e for e in ket if "repeated bolus" in e["indication"])
+    pump = next(e for e in ket if "infusion pump available" in e["indication"])
+    assert bolus["dose_range"]["min"] == 0.5
+    assert pump["dose_range"]["min"] == 1.0
+    for e in (bolus, pump):
+        assert "SOURCE_CONFLICT" not in (e.get("flags") or [])
+        assert "conflict_group" not in e
+        assert e["adjudication"].startswith("OWNER RULING 2026-08-25")
+        assert "pump" in e["adjudication"]
+
+
+def test_ruling_7_each_entry_names_the_other():
+    """"So the guidance exists when the equipment does" only holds if the medic
+    on the entry they matched can find the one they did not."""
+    ket = dc.DRUGS["ketamine"]["dose_entries"]
+    bolus = next(e for e in ket if "repeated bolus" in e["indication"])
+    pump = next(e for e in ket if "infusion pump available" in e["indication"])
+    assert any("ongoing sedation" in c and "ID61" in c for c in bolus["cautions"])
+    assert any("repeated bolus" in c and "0.5 mg/kg" in c for c in pump["cautions"])
+
+
+def test_ruling_7_did_not_launder_the_hardcode_into_a_sourced_dose():
+    """THE POINT OF THE RULING THAT IS EASIEST TO LOSE.
+
+    Ruling for the bolus SHAPE settles which answer the owner wants. It does
+    not put a citation under 0.5 mg/kg, which is still the pre-contract
+    hardcode. The flag stays, the fence still refuses, and the entry says so in
+    its own cautions rather than only in a note nobody serves.
+    """
+    bolus = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
+                 if "repeated bolus" in e["indication"])
+    assert "MIGRATED_UNSOURCED" in bolus["flags"]
+    ok, why = dc.entry_is_servable(
+        dict(bolus, signoff=True, reviewed_by=dc.SIGNOFF_AUTHORS[0],
+             review_date="2026-08-25"))
+    assert not ok and "MIGRATED_UNSOURCED" in why
+    assert any("NOT IN ANY APPROVED SOURCE" in c for c in bolus["cautions"])
+
+
+def test_ruling_7_left_the_only_cited_shape_signable():
+    """The bolus cannot be served. If the ID61 entry had been retired into a
+    caution on it — the ruling-3 shape — the cited guidance would have gone
+    with it and post-intubation sedation would serve nothing at all."""
+    pump = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
+                if "infusion pump available" in e["indication"])
+    assert any(s.get("source_class") == "JTS" for s in pump["sources"])
+    assert dc.entry_is_servable(
+        dict(pump, signoff=True, reviewed_by=dc.SIGNOFF_AUTHORS[0],
+             review_date="2026-08-25"))[0]

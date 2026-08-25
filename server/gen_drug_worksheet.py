@@ -37,9 +37,17 @@ FIELD_HELP = {
 }
 
 
-def _tier_label(tier):
-    return {0: "tier 0 (migration — NOT an approved source)",
-            1: "tier 1 (NASEMSO)", 2: "tier 2 (WHO EML)"}.get(tier, f"tier {tier}")
+# The tier is a rank; the source_class says which document. They stopped being
+# the same thing when JTS joined NASEMSO at tier 1, and until this read
+# source_class every JTS citation in the worksheet was labelled "tier 1
+# (NASEMSO)" — a mislabelled provenance in the document the owner signs from.
+_TIER_NAME = {0: "migration — NOT an approved source",
+              1: "NASEMSO", 2: "WHO EML"}
+
+
+def _tier_label(tier, source_class=None):
+    who = source_class or _TIER_NAME.get(tier)
+    return f"tier {tier} ({who})" if who else f"tier {tier}"
 
 
 def entry_block(L, drug_name, e, n):
@@ -127,7 +135,8 @@ def entry_block(L, drug_name, e, n):
     for s in srcs:
         rd = s.get("retrieved_date")
         rd = "❌ NOT RETRIEVED" if rd == dc.NEEDS_MANUAL else rd
-        L.append(f"- **source:** {_tier_label(s.get('tier'))} — "
+        L.append(f"- **source:** "
+                 f"{_tier_label(s.get('tier'), s.get('source_class'))} — "
                  f"{s.get('citation')} · retrieved {rd}")
 
     if e.get("extraction_notes"):

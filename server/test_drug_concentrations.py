@@ -561,3 +561,129 @@ def test_an_unwritable_log_does_not_fail_a_clinical_request(monkeypatch):
     monkeypatch.setattr(dcn, "CHANGE_LOG",
                         dcn.pathlib.Path("/proc/nonexistent/conc.log.jsonl"))
     dcn.append_log({"event": "SIGN"})                # must not raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE RSI TLDR NAMES THE DRUG THAT WAS ACTUALLY SELECTED
+# ═══════════════════════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("query,expected,absent", [
+    ("rsi now sux", "succinylcholine", "rocuronium"),
+    ("succinylcholine dose for RSI", "succinylcholine", "rocuronium"),
+    ("rsi now", "rocuronium", "succinylcholine"),
+    ("RSI with a crush injury, which paralytic", "rocuronium", "succinylcholine"),
+])
+def test_the_rsi_tldr_names_the_paralytic_actually_given(query, expected, absent):
+    """The TLDR used to say "rocuronium second" unconditionally.
+
+    It is the line a medic reads when they read nothing else, and it named a
+    drug the GIVE block had not given. A summary that contradicts the body is
+    worse than no summary: the body is right and the summary is the part that
+    gets remembered.
+    """
+    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
+                         route_preference="IV")
+    text = oc.build_rsi_response(ctx, query)
+    tldr = [l for l in text.split("\n") if l.startswith("- RSI:")][0]
+    assert expected in tldr, tldr
+    assert absent not in tldr, tldr
+
+
+def test_the_rsi_tldr_agrees_with_its_own_give_block():
+    """Stronger than the parametrised case: whatever the GIVE block chose, the
+    TLDR must name that, with no list of which drug goes with which query."""
+    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
+                         route_preference="IV")
+    for query in ("rsi now sux", "rsi now", "RSI, he has a crush injury",
+                  "rapid sequence intubation doses", "RSI succs please"):
+        text = oc.build_rsi_response(ctx, query)
+        give = text.split("**GIVE**")[1].split("**POST-INTUBATION")[0]
+        tldr = [l for l in text.split("\n") if l.startswith("- RSI:")][0]
+        for paralytic in ("succinylcholine", "rocuronium"):
+            assert (paralytic in give) == (paralytic in tldr), \
+                f"{query!r}: GIVE and TLDR disagree about {paralytic}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE PROMPT NO LONGER TEACHES THE MODEL STALE CONCENTRATIONS
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_the_prompt_states_no_concentration_at_all():
+    """The system prompt used to carry a STANDARD CONCENTRATIONS table listing
+    ketamine 100mg/mL, succinylcholine 20mg/mL, rocuronium 10mg/mL — the exact
+    hardcodes the master list replaced.
+
+    _finalise would strip a volume built from them, so it was not a live
+    hazard. It was a second source of truth being fed to the model, which is
+    the class of bug the master list exists to remove — and the stripped-volume
+    path is a worse way to find that out than never saying it.
+    """
+    prompt = oc.GENERATOR_BASE
+    assert "STANDARD CONCENTRATIONS" not in prompt
+    for stale in ("100mg/mL", "20mg/mL", "10mg/mL", "50mcg/mL", "16mcg/mL"):
+        assert stale not in prompt, f"the prompt still asserts {stale}"
+
+
+def test_the_prompt_tells_the_model_it_does_not_know_concentrations():
+    prompt = oc.GENERATOR_BASE
+    assert "You do not know any drug concentration" in prompt
+    assert "NO VOLUME" in prompt
+
+
+def test_the_response_format_shows_the_no_volume_shape():
+    """The model needs the mg-only line as a FORM it can produce, not only as
+    a prohibition on the other one."""
+    give_block = oc.GENERATOR_BASE.split("**GIVE**")[1][:400]
+    assert "Draw X mL of Y mg/mL" in give_block
+    assert "NO VOLUME" in give_block
+
+
+def test_a_log_record_without_a_snapshot_is_not_a_baseline(tmp_path, monkeypatch):
+    """Regression: the edit tool used to log a hash with no snapshot.
+
+    _last_logged_state then had a hash to compare against and nothing to diff,
+    so every presentation read as new and a routine sign-then-restart printed a
+    page of "changed outside the tool" warnings for changes nobody made. A
+    warning that cries wolf on normal use trains the reader to skip it, which
+    costs more than the warning was worth.
+    """
+    log = tmp_path / "conc.log.jsonl"
+    monkeypatch.setattr(dcn, "CHANGE_LOG", log)
+    dcn.append_log({"event": "BASELINE", "config_hash": "hash-1",
+                    "snapshot": {"ketamine": {"L": [50.0, False]}}})
+    dcn.append_log({"event": "SIGN", "config_hash": "hash-2"})   # no snapshot
+
+    h, snap = dcn._last_logged_state()
+    assert h == "hash-1" and snap, \
+        "a snapshotless record was taken as the baseline"
+
+
+def test_signing_through_the_tool_does_not_report_a_phantom_edit(tmp_path, monkeypatch):
+    log = tmp_path / "conc.log.jsonl"
+    monkeypatch.setattr(dcn, "CHANGE_LOG", log)
+    monkeypatch.setattr(dcn, "_config_hash", lambda: "hash-1")
+    dcn.detect_external_edit()                                   # baseline
+
+    # what the tool writes now: hash AND the post-change snapshot
+    monkeypatch.setattr(dcn, "_config_hash", lambda: "hash-2")
+    dcn.append_log({"event": "SIGN", "drug": "ketamine", "config_hash": "hash-2",
+                    "snapshot": dcn._snapshot()})
+
+    assert dcn.detect_external_edit() == [], \
+        "a tool-made change was reported as an external edit"
+
+
+def test_the_tool_records_a_snapshot_on_every_change():
+    """Enforced at the source, so the bug above cannot come back by someone
+    adding a fourth command that forgets."""
+    src = (dcn._DIR / "set_concentration.py").read_text()
+    assert src.count("snapshot_from_file()") == src.count("dcn.append_log("), \
+        "a set_concentration command logs without a snapshot"
+
+
+def test_snapshot_from_file_reads_the_file_not_the_process():
+    """The tool writes, then logs. It must snapshot what it just WROTE, not
+    the stale copy this process loaded at import."""
+    snap = dcn.snapshot_from_file()
+    assert "succinylcholine" in snap
+    assert snap["succinylcholine"]["100 mg / 2 mL ampoule"][0] == 50.0

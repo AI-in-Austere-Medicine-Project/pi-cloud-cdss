@@ -359,6 +359,12 @@ class DoseCandidate:
     # volume.
     volume_ml: Optional[float] = None
     concentration_mg_ml: Optional[float] = None
+    # The dose as the SOURCE states it. dose_mg is the normalised figure used
+    # to derive a volume; these two are what the medic reads, because a
+    # guideline that says 25 g should not be read back as 25000 mg.
+    display_value: Optional[float] = None
+    display_units: Optional[str] = None
+    volume_refusal: Optional[str] = None
 
 
 @dataclass
@@ -917,6 +923,65 @@ def lorazepam_seizure(weight_kg: float) -> DoseCandidate:
     )
 
 
+def _rsi_role(indication: str) -> Optional[str]:
+    """Which slot of the RSI bundle an indication fills."""
+    i = (indication or "").lower()
+    if "rsi induction" in i:
+        return "induction"
+    if "rsi paralytic" in i:
+        return "paralytic"
+    if "post-intubation sedation" in i or "ongoing sedation" in i:
+        return "sedation"
+    return None
+
+
+RSI_INDUCTION_INDICATIONS = ("RSI induction",)
+RSI_PARALYTIC_INDICATIONS = ("RSI paralytic",)
+RSI_SEDATION_INDICATIONS = ("post-intubation sedation", "ongoing sedation")
+
+
+def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+    """The signed RSI bundle, looked up by INDICATION rather than by name.
+
+    Mirrors the legacy bundle's shape — induction, one paralytic, post-tube
+    sedation — because that is the clinical unit, and serving two paralytics
+    because both are signed would be a worse failure than serving none.
+    """
+    if drug_contracts is None or ctx.dosing_weight_kg is None:
+        return []
+    q = query.lower()
+    age = ctx.age_years
+    pick = lambda pats: drug_contracts.signed_entries_by_indication(
+        pats, ctx.is_pediatric, age)
+
+    chosen = list(pick(RSI_INDUCTION_INDICATIONS)) + list(pick(RSI_SEDATION_INDICATIONS))
+
+    paralytics = pick(RSI_PARALYTIC_INDICATIONS)
+    wants_succ = (_has_any_word(q, ["sux", "succs"]) or "succinylcholine" in q) \
+        and not any(x in q for x in ["burn", "crush"])
+    preferred = "succinylcholine" if wants_succ else "rocuronium"
+    # Only the PREFERRED paralytic. Falling back to the other one would mean a
+    # query that never mentioned succinylcholine gets succinylcholine because
+    # that is what happened to be signed — and succinylcholine has
+    # contraindications rocuronium does not. An unfilled role falls through to
+    # the legacy calculator for the preferred drug instead.
+    chosen += [(n, e) for n, e in paralytics if n == preferred][:1]
+
+    out = []
+    for name, entry in chosen:
+        r = drug_contracts.resolve_dose(entry, ctx.dosing_weight_kg)
+        if r["dose_mg"] is None:
+            continue
+        out.append(DoseCandidate(
+            drug=name, indication=entry["indication"], route=entry["route"],
+            dose_mg=round(r["dose_mg"], 4), display_value=r["display_value"],
+            display_units=r["display_units"],
+            source=f"drug_contract:{name}:{entry['indication']}:"
+                   f"{entry['route']}:v{entry.get('version')}",
+            warning="; ".join(entry.get("cautions") or []) or None))
+    return out
+
+
 def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     """DoseCandidates from SIGNED drug_contracts.json entries only.
 
@@ -934,23 +999,24 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
     out = []
     for name, entry in drug_contracts.signed_entries_for(
             query, route=None, is_pediatric=ctx.is_pediatric):
-        rng = entry["dose_range"]
-        base = rng.get("min")
-        if base is None:
+        # Units are resolved by drug_contracts, which converts explicitly and
+        # FAILS CLOSED on anything it does not recognise. This loop used to do
+        # `base * w if per_kg else base` and call the answer milligrams
+        # whatever the entry said, so "25 g" became 25 mg and "10 mcg" became
+        # 10 mg. Nothing downstream could catch it: the volume audit checks a
+        # volume against the STATED milligrams, and a wrongly-parsed dose that
+        # is internally consistent passes.
+        resolved = drug_contracts.resolve_dose(entry, w)
+        if resolved["dose_mg"] is None:
+            # A rate, or a unit we refuse to guess at. Either way it is not a
+            # bolus and must not become a volume.
             continue
-        dose_mg = base * w if rng.get("per_kg") else base
 
-        cap = entry.get("max_single")
-        if isinstance(cap, dict):
-            if cap.get("units") == "mg" and isinstance(cap.get("value"), (int, float)):
-                dose_mg = min(dose_mg, cap["value"])
-            elif cap.get("units") == "mg/kg" and isinstance(cap.get("value"), (int, float)):
-                dose_mg = min(dose_mg, cap["value"] * w)
-
-        dose_mg = round(dose_mg, 1)
         out.append(DoseCandidate(
             drug=name, indication=entry["indication"], route=entry["route"],
-            dose_mg=dose_mg,
+            dose_mg=round(resolved["dose_mg"], 4),
+            display_value=resolved["display_value"],
+            display_units=resolved["display_units"],
             source=f"drug_contract:{name}:{entry['indication']}:"
                    f"{entry['route']}:v{entry.get('version')}",
             warning="; ".join(entry.get("cautions") or []) or None,
@@ -991,32 +1057,67 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
 
     named = set(drug_contracts.resolve_drugs(q)) if drug_contracts else set()
 
+    # A drug whose contract the owner has SIGNED serves from the contract, and
+    # the legacy calculator for it stops firing.
+    #
+    # Without this the two paths add together: sign ketamine's JTS 2 mg/kg RSI
+    # induction and the response carries BOTH that and the calculator's
+    # unsourced 1.5 mg/kg, as two GIVE lines for one drug in one intubation.
+    # The design always said the calculator is deleted when its entry is
+    # re-signed; making that automatic means it cannot be forgotten in the
+    # minutes after a signature, which is exactly when it would be.
+    superseded = set()
+    if drug_contracts is not None:
+        for drug_name in drug_contracts.servable_entries():
+            superseded.add(drug_name)
+
     is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
     is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
     is_seizure = any(x in q for x in ['seizure', 'seizing', 'status'])
-    has_ketamine = 'ketamine' in named
-    has_roc = 'rocuronium' in named
-    has_succ = 'succinylcholine' in named
+    has_ketamine = 'ketamine' in named and 'ketamine' not in superseded
+    has_roc = 'rocuronium' in named and 'rocuronium' not in superseded
+    has_succ = 'succinylcholine' in named and 'succinylcholine' not in superseded
     # 'benzo' is a CLASS word, not a lorazepam alias, and it is preserved here
     # only because removing it would change current behaviour — which this
     # migration is not allowed to do. It is on the worksheet for the owner:
     # once midazolam has a signed contract, "benzo" pointing at exactly one
     # benzodiazepine is its own collision waiting to happen.
-    has_loraz = 'lorazepam' in named or _has_word(q, 'benzo')
+    has_loraz = ('lorazepam' in named or _has_word(q, 'benzo')) \
+        and 'lorazepam' not in superseded
 
     if is_rsi:
-        # RSI always requires induction + paralytic + post-intubation sedation.
-        doses.append(ketamine_induction_iv(w, ped))
-        doses.append(ketamine_post_intubation_iv(w))
+        # RSI is a BUNDLE — induction, one paralytic, post-tube sedation — so
+        # it is assembled by ROLE rather than by drug. The signed contract
+        # fills what it can and the legacy calculators backfill only the roles
+        # left empty.
+        #
+        # Filling by role rather than by drug is what stops the failure this
+        # replaced: suppressing the legacy calculator for a signed
+        # succinylcholine made has_succ false, which sent the old branch down
+        # its `else` and served the LEGACY ROCURONIUM alongside the signed
+        # succinylcholine. Two paralytics, one intubation.
+        contract = _contract_rsi_candidates(query, ctx)
+        filled = {_rsi_role(d.indication) for d in contract}
+        prefers_succ = has_succ and not any(x in q for x in ["burn", "crush"])
 
-        # Default to rocuronium unless succinylcholine is explicitly requested.
-        if has_succ and not any(x in q for x in ["burn", "crush"]):
-            doses.append(succinylcholine_rsi(w, ped))
-        else:
-            doses.append(rocuronium_rsi(w, ped))
+        if "induction" not in filled and "ketamine" not in superseded:
+            doses.append(ketamine_induction_iv(w, ped))
+        if "sedation" not in filled and "ketamine" not in superseded:
+            doses.append(ketamine_post_intubation_iv(w))
+        if "paralytic" not in filled:
+            if prefers_succ and "succinylcholine" not in superseded:
+                doses.append(succinylcholine_rsi(w, ped))
+            elif not prefers_succ and "rocuronium" not in superseded:
+                doses.append(rocuronium_rsi(w, ped))
 
+        doses.extend(contract)
         doses.extend(_contract_dose_candidates(query, ctx))
-        return [resolve_dose_volume(d, ctx) for d in doses]
+        seen, unique = set(), []
+        for d in doses:
+            k = (d.drug, d.indication, d.route)
+            if k not in seen:
+                seen.add(k); unique.append(d)
+        return [resolve_dose_volume(d, ctx) for d in unique]
 
     if has_ketamine:
         if is_analg or (not is_seizure):
@@ -1053,7 +1154,11 @@ def resolve_dose_volume(d: DoseCandidate,
     confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
     vol, conc = drug_concentrations.volume_ml(d.drug, d.dose_mg, confirmed)
     if vol is None:
-        return d
+        # A concentration may be known and the volume still refused — a dose
+        # below what a syringe can draw, or above what a push can be. The
+        # reason rides along so the GIVE line can say which.
+        why = drug_concentrations.volume_refusal(d.drug, d.dose_mg, confirmed)
+        return dc_replace(d, volume_refusal=why) if why else d
     return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc)
 
 
@@ -1066,12 +1171,15 @@ def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
     catch-point, the thing that would have let someone notice "20mg/mL
     succinylcholine" was not the vial in their hand.
     """
+    dose_txt = (f"{d.display_value:g} {d.display_units}"
+                if d.display_value is not None and d.display_units
+                else f"{d.dose_mg:g} mg")
     if d.volume_ml is None or d.concentration_mg_ml is None:
-        return (f"{prefix}{d.drug} {d.route}: {d.dose_mg:g} mg. "
-                f"NO VOLUME — {CONFIRM_CONCENTRATION_LINE}. "
-                f"Indication: {d.indication}.")
+        why = d.volume_refusal or CONFIRM_CONCENTRATION_LINE
+        return (f"{prefix}{d.drug} {d.route}: {dose_txt}. "
+                f"NO VOLUME — {why}. Indication: {d.indication}.")
     return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
-            f"{d.drug} {d.route} ({d.dose_mg:g}mg). Indication: {d.indication}.")
+            f"{d.drug} {d.route} ({dose_txt}). Indication: {d.indication}.")
 
 
 def render_dose_summary(d: DoseCandidate, label: str) -> str:
@@ -1563,14 +1671,17 @@ Always include all three in GIVE for RSI: induction + paralytic + post-intubatio
 CICO: Failed ETT + failed rescue + hypoxia → cricothyrotomy immediately.
 
 ────────────────────────────────
-STANDARD CONCENTRATIONS
+CONCENTRATIONS
 ────────────────────────────────
 
-Ketamine: 100mg/mL | Rocuronium: 10mg/mL | Succinylcholine: 20mg/mL
-Fentanyl: 50mcg/mL | Lorazepam: 2mg/mL | Keppra: 100mg/mL | TXA: 100mg/mL
-Norepinephrine: 1mg/mL (mix 4mg in 250mL NS = 16mcg/mL)
-Cefazolin: 100mg/mL (1g in 10mL NS — 2g = 20mL)
-Calcium Chloride 10%: 100mg/mL — CENTRAL LINE ONLY | Calcium Gluconate: 100mg/mL — peripheral OK
+You do not know any drug concentration. There is no standard strength: the same
+drug ships at different strengths in different kits, and the only authority on
+what is in THIS bag is the ALLOWED_DOSES block below.
+
+Never state a mg/mL concentration, and never compute a mL volume, unless it is
+copied from an ALLOWED_DOSES line. If a line gives milligrams and says NO
+VOLUME, that drug has no confirmed concentration — reproduce it exactly as
+written, including its confirm-concentration sentence.
 
 ────────────────────────────────
 RESPONSE FORMAT — JTS SCOPE
@@ -1583,6 +1694,8 @@ RESPONSE FORMAT — JTS SCOPE
 
 **GIVE** [use ALLOWED_DOSES values exactly]
 - Draw X mL of Y mg/mL [drug] [route] (Z mg). Indication: [reason].
+- [drug] [route]: Z mg. NO VOLUME — confirm concentration to compute volume. Indication: [reason].
+  [the second shape when ALLOWED_DOSES gives no volume for that drug]
 
 **DRIP** [infusions]
 - Mix X mg in Y mL NS (Z mg/mL). Start X mL/hr. Target: [goal].
@@ -3027,7 +3140,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 - Avoid succinylcholine in burns/crush/hyperkalemia risk unless specifically indicated by protocol.
 
 **TLDR**
-- RSI: ketamine induction first, rocuronium second, post-intubation ketamine sedation after tube confirmed.
+- RSI: ketamine induction first, {paralytic.drug} second, post-intubation ketamine sedation after tube confirmed.
 
 **SOURCE**: General Evidence-Based Medicine / deterministic RSI calculator
 
