@@ -359,6 +359,12 @@ class DoseCandidate:
     # volume.
     volume_ml: Optional[float] = None
     concentration_mg_ml: Optional[float] = None
+    # The dose as the SOURCE states it. dose_mg is the normalised figure used
+    # to derive a volume; these two are what the medic reads, because a
+    # guideline that says 25 g should not be read back as 25000 mg.
+    display_value: Optional[float] = None
+    display_units: Optional[str] = None
+    volume_refusal: Optional[str] = None
 
 
 @dataclass
@@ -934,23 +940,24 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
     out = []
     for name, entry in drug_contracts.signed_entries_for(
             query, route=None, is_pediatric=ctx.is_pediatric):
-        rng = entry["dose_range"]
-        base = rng.get("min")
-        if base is None:
+        # Units are resolved by drug_contracts, which converts explicitly and
+        # FAILS CLOSED on anything it does not recognise. This loop used to do
+        # `base * w if per_kg else base` and call the answer milligrams
+        # whatever the entry said, so "25 g" became 25 mg and "10 mcg" became
+        # 10 mg. Nothing downstream could catch it: the volume audit checks a
+        # volume against the STATED milligrams, and a wrongly-parsed dose that
+        # is internally consistent passes.
+        resolved = drug_contracts.resolve_dose(entry, w)
+        if resolved["dose_mg"] is None:
+            # A rate, or a unit we refuse to guess at. Either way it is not a
+            # bolus and must not become a volume.
             continue
-        dose_mg = base * w if rng.get("per_kg") else base
 
-        cap = entry.get("max_single")
-        if isinstance(cap, dict):
-            if cap.get("units") == "mg" and isinstance(cap.get("value"), (int, float)):
-                dose_mg = min(dose_mg, cap["value"])
-            elif cap.get("units") == "mg/kg" and isinstance(cap.get("value"), (int, float)):
-                dose_mg = min(dose_mg, cap["value"] * w)
-
-        dose_mg = round(dose_mg, 1)
         out.append(DoseCandidate(
             drug=name, indication=entry["indication"], route=entry["route"],
-            dose_mg=dose_mg,
+            dose_mg=round(resolved["dose_mg"], 4),
+            display_value=resolved["display_value"],
+            display_units=resolved["display_units"],
             source=f"drug_contract:{name}:{entry['indication']}:"
                    f"{entry['route']}:v{entry.get('version')}",
             warning="; ".join(entry.get("cautions") or []) or None,
@@ -1053,7 +1060,11 @@ def resolve_dose_volume(d: DoseCandidate,
     confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
     vol, conc = drug_concentrations.volume_ml(d.drug, d.dose_mg, confirmed)
     if vol is None:
-        return d
+        # A concentration may be known and the volume still refused — a dose
+        # below what a syringe can draw, or above what a push can be. The
+        # reason rides along so the GIVE line can say which.
+        why = drug_concentrations.volume_refusal(d.drug, d.dose_mg, confirmed)
+        return dc_replace(d, volume_refusal=why) if why else d
     return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc)
 
 
@@ -1066,12 +1077,15 @@ def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
     catch-point, the thing that would have let someone notice "20mg/mL
     succinylcholine" was not the vial in their hand.
     """
+    dose_txt = (f"{d.display_value:g} {d.display_units}"
+                if d.display_value is not None and d.display_units
+                else f"{d.dose_mg:g} mg")
     if d.volume_ml is None or d.concentration_mg_ml is None:
-        return (f"{prefix}{d.drug} {d.route}: {d.dose_mg:g} mg. "
-                f"NO VOLUME — {CONFIRM_CONCENTRATION_LINE}. "
-                f"Indication: {d.indication}.")
+        why = d.volume_refusal or CONFIRM_CONCENTRATION_LINE
+        return (f"{prefix}{d.drug} {d.route}: {dose_txt}. "
+                f"NO VOLUME — {why}. Indication: {d.indication}.")
     return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
-            f"{d.drug} {d.route} ({d.dose_mg:g}mg). Indication: {d.indication}.")
+            f"{d.drug} {d.route} ({dose_txt}). Indication: {d.indication}.")
 
 
 def render_dose_summary(d: DoseCandidate, label: str) -> str:

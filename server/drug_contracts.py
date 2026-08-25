@@ -288,6 +288,14 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
                        f"{sorted(t for t in tiers if t is not None)} and a "
                        "signed entry needs at least one tier 1 or tier 2 citation")
 
+    # Unit sanity. Refused rather than flagged: a thousandfold dose is not a
+    # thing to warn about underneath and serve anyway.
+    r = resolve_dose(entry, _LINT_WEIGHT_KG)
+    if r["kind"] == UNKNOWN and r["reason"]:
+        return False, f"dose units unusable: {r['reason']}"
+    if entry.get("_unit_error"):
+        return False, f"dose magnitude refused: {entry['_unit_error']}"
+
     if entry.get("population") not in VALID_POPULATIONS:
         return False, f"population {entry.get('population')!r} is not one of " \
                       f"{', '.join(VALID_POPULATIONS)}"
@@ -472,6 +480,211 @@ def resolve_drugs(query: str) -> list:
     return [n for n in DRUGS if n in hits]
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# UNITS
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# The dose builder used to do `dose_mg = value * weight if per_kg else value`
+# and call the result milligrams whatever the entry actually said. So dextrose
+# "25 g" became 25 mg and epinephrine "10 mcg" became 10 mg — a thousandfold
+# error in both directions, and the volume audit could not see it: that check
+# verifies volume against the STATED milligrams, so a wrongly-parsed dose that
+# is internally consistent passes it cleanly.
+#
+# Two rules here, and the second matters as much as the first:
+#
+#   1. every unit family the contracts actually use is converted explicitly;
+#   2. anything NOT on this list fails closed. Defaulting to milligrams is what
+#      caused the bug, so there is no default.
+#
+# The SOURCE unit survives conversion. A medic reads "25 g" because that is what
+# the guideline says; the milligram figure exists only to derive a volume and is
+# never displayed on its own.
+
+_MASS_TO_MG = {"g": 1000.0, "mg": 1.0, "mcg": 0.001}
+_RATE_MARKERS = ("/min", "/h", "/hr", "/hour", "/minute")
+
+MASS = "MASS"                 # a flat dose: 25 g, 10 mcg
+MASS_PER_KG = "MASS_PER_KG"   # weight-based: 0.1 mg/kg
+RATE = "RATE"                 # an infusion rate: 0.05 mcg/kg/min — not a bolus
+UNKNOWN = "UNKNOWN"           # fail closed
+
+
+def classify_units(units, per_kg: bool) -> tuple:
+    """(kind, mass_unit, reason). kind UNKNOWN means: do not serve this.
+
+    Also catches units and per_kg CONTRADICTING each other. "mg/kg" with
+    per_kg false is not a dose anyone can act on — it is a data error, and
+    guessing which half is right is exactly the habit that produced the
+    thousandfold bug.
+    """
+    if not isinstance(units, str) or not units.strip():
+        return UNKNOWN, None, "dose_range has no units"
+    u = units.strip().lower().replace("µ", "mc")
+
+    if any(m in u for m in _RATE_MARKERS):
+        head = u.split("/")[0]
+        if head not in _MASS_TO_MG:
+            return UNKNOWN, None, f"unrecognised rate unit {units!r}"
+        if not per_kg and "/kg" in u:
+            return UNKNOWN, None, (f"units {units!r} are weight-based but "
+                                   f"per_kg is false")
+        return RATE, head, ""
+
+    if u.endswith("/kg"):
+        head = u[:-3]
+        if head not in _MASS_TO_MG:
+            return UNKNOWN, None, f"unrecognised mass unit in {units!r}"
+        if not per_kg:
+            return UNKNOWN, None, (f"units {units!r} are per-kilogram but "
+                                   f"per_kg is false")
+        return MASS_PER_KG, head, ""
+
+    if u in _MASS_TO_MG:
+        if per_kg:
+            return UNKNOWN, None, (f"units {units!r} are a flat mass but "
+                                   f"per_kg is true")
+        return MASS, u, ""
+
+    return UNKNOWN, None, (f"unrecognised dose unit {units!r} — this is not "
+                           f"defaulted to mg, because defaulting is what "
+                           f"caused the g/mcg thousandfold error")
+
+
+def to_mg(value: float, mass_unit: str) -> float:
+    return value * _MASS_TO_MG[mass_unit]
+
+
+def resolve_dose(entry: dict, weight_kg: Optional[float]) -> dict:
+    """Turn a dose_entry into something servable, or say why not.
+
+    Returns {kind, dose_mg, display_value, display_units, reason}. dose_mg is
+    None for anything that must not become a single volume — a rate, or a unit
+    this module does not recognise.
+    """
+    out = {"kind": UNKNOWN, "dose_mg": None, "display_value": None,
+           "display_units": None, "reason": ""}
+    rng = entry.get("dose_range")
+    if not isinstance(rng, dict):
+        out["reason"] = "dose_range is not authored"
+        return out
+
+    kind, mass_unit, why = classify_units(rng.get("units"), bool(rng.get("per_kg")))
+    out["kind"], out["display_units"] = kind, rng.get("units")
+    if kind == UNKNOWN:
+        out["reason"] = why
+        return out
+    if kind == RATE:
+        # An infusion rate is a rate. It has no single volume, and pretending
+        # otherwise is how "0.05 mcg/kg/min" would become a 0.05 mL push.
+        out["reason"] = ("this is an infusion RATE, not a bolus — no single "
+                         "volume can be derived from it")
+        out["display_value"] = rng.get("min")
+        return out
+
+    base = rng.get("min")
+    if base is None:
+        out["kind"] = UNKNOWN
+        out["reason"] = "dose_range has no minimum"
+        return out
+
+    if kind == MASS_PER_KG:
+        if weight_kg is None:
+            out["kind"] = UNKNOWN
+            out["reason"] = "weight-based dose with no confirmed weight"
+            return out
+        value = base * weight_kg
+    else:
+        value = base
+
+    dose_mg = to_mg(value, mass_unit)
+
+    cap = entry.get("max_single")
+    if isinstance(cap, dict) and isinstance(cap.get("value"), (int, float)):
+        ck, cu, cwhy = classify_units(cap.get("units"),
+                                      str(cap.get("units", "")).endswith("/kg"))
+        if ck == MASS:
+            dose_mg = min(dose_mg, to_mg(cap["value"], cu))
+        elif ck == MASS_PER_KG and weight_kg is not None:
+            dose_mg = min(dose_mg, to_mg(cap["value"] * weight_kg, cu))
+        elif ck == UNKNOWN:
+            out["kind"] = UNKNOWN
+            out["reason"] = f"max_single unit is unusable: {cwhy}"
+            return out
+
+    out["dose_mg"] = dose_mg
+    # Back into the unit the SOURCE stated, so the medic reads the guideline's
+    # own unit rather than a conversion of it.
+    out["display_value"] = round(dose_mg / _MASS_TO_MG[mass_unit], 4)
+    out["display_units"] = mass_unit
+    return out
+
+
+# The unit-error signature is a factor of exactly 1000 — g read as mg, mcg read
+# as mg. Measured against the real file, the widest LEGITIMATE spread between
+# two doses of one drug is epinephrine's 500x: 10 mcg push against 5 mg
+# nebulised. So 1000x separates the error class from real clinical variation,
+# with a margin of two. That margin is thin, and it is thin because
+# epinephrine genuinely spans that much — if a drug is ever added with a wider
+# honest spread, this threshold has to be revisited rather than the entry
+# silenced.
+DOSE_MAGNITUDE_FACTOR = 1000.0
+_LINT_WEIGHT_KG = 70.0
+
+
+def lint_dose_magnitude() -> list:
+    """Entries whose dose is a thousandfold out of family for their own drug.
+
+    The check the volume audit structurally cannot do. That audit verifies a
+    volume against the STATED milligrams, so a dose whose unit was mis-entered
+    is internally consistent and sails through. This compares each bolus entry
+    against its siblings, where a factor-of-1000 outlier is a unit error and
+    not a clinical decision.
+    """
+    problems = []
+    for name, drug in DRUGS.items():
+        doses = []
+        for e in drug.get("dose_entries", []):
+            r = resolve_dose(e, _LINT_WEIGHT_KG)
+            if r["dose_mg"]:
+                doses.append((r["dose_mg"], e))
+        if len(doses) < 2:
+            continue
+        lo = min(v for v, _ in doses)
+        hi = max(v for v, _ in doses)
+        for value, e in doses:
+            others = [v for v, _ in doses if v is not value]
+            if not others:
+                continue
+            if all(value >= o * DOSE_MAGNITUDE_FACTOR for o in others) or \
+                    all(value * DOSE_MAGNITUDE_FACTOR <= o for o in others):
+                msg = (f"{name}/{e.get('indication')}/{e.get('population')}: "
+                       f"{e['dose_range'].get('min')} "
+                       f"{e['dose_range'].get('units')} is {value:g} mg at "
+                       f"{_LINT_WEIGHT_KG:g} kg, more than "
+                       f"{DOSE_MAGNITUDE_FACTOR:g}x from every other dose of "
+                       f"{name} ({lo:g}-{hi:g} mg) — the signature of a unit "
+                       f"error")
+                # Stamped on the entry, not held in a side table keyed by
+                # identity: entry_is_servable is routinely handed a COPY of an
+                # entry, and a verdict that a copy loses is a verdict the fence
+                # cannot enforce.
+                e["_unit_error"] = msg
+                problems.append(msg)
+            else:
+                e.pop("_unit_error", None)
+    return problems
+
+
+DOSE_MAGNITUDE_PROBLEMS = []
+
+
+def refresh_dose_magnitude_lint() -> list:
+    global DOSE_MAGNITUDE_PROBLEMS
+    DOSE_MAGNITUDE_PROBLEMS = lint_dose_magnitude()
+    return DOSE_MAGNITUDE_PROBLEMS
+
+
 def single_concentration(generic_name: str) -> Optional[float]:
     """The one concentration this drug can be drawn from, or None.
 
@@ -511,3 +724,9 @@ def signed_entries_for(query: str, route: Optional[str] = None,
                 continue
             out.append((name, e))
     return out
+
+
+# Run last: the lint needs resolve_dose(), which needs the unit tables above.
+refresh_dose_magnitude_lint()
+for _p in DOSE_MAGNITUDE_PROBLEMS:
+    print(f"⚠️  drug_contracts dose-magnitude lint: {_p}")

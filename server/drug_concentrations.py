@@ -366,6 +366,36 @@ def draw_precision(true_volume_ml: float) -> int:
     return 4
 
 
+# What a syringe can actually deliver as a push. Below the floor the volume
+# cannot be drawn accurately; above the ceiling it is an infusion, not a bolus.
+# Both are physical facts about syringes, not clinical judgements — which is
+# why this module is allowed to state them.
+MIN_DRAWABLE_ML = 0.05
+MAX_BOLUS_ML = 60.0
+
+
+def drawable(volume_ml_value: float) -> tuple:
+    """(ok, reason). The last guard before a volume reaches a medic.
+
+    Catches what the unit conversion and the volume audit cannot: a dose that
+    is arithmetically correct but does not correspond to anything a person can
+    draw up. A thousandfold data error surfaces here as 0.01 mL, and a dose
+    needing a dilution the kit has not declared surfaces here too — the
+    epinephrine push dose is 10 mcg, which is 0.01 mL of the 1 mg/mL ampoule
+    and 1 mL of the 10 mcg/mL dilution the guideline actually specifies. The
+    right answer there is to refuse and say so, not to print 0.01 mL.
+    """
+    if volume_ml_value < MIN_DRAWABLE_ML:
+        return False, (f"{volume_ml_value:g} mL is below {MIN_DRAWABLE_ML:g} mL "
+                       f"and cannot be drawn accurately — this dose likely "
+                       f"needs a dilution the kit has not declared, or the "
+                       f"dose units are wrong")
+    if volume_ml_value > MAX_BOLUS_ML:
+        return False, (f"{volume_ml_value:g} mL exceeds {MAX_BOLUS_ML:g} mL — "
+                       f"that is an infusion, not a bolus")
+    return True, ""
+
+
 def volume_ml(generic_name: str, dose_mg: float,
               confirmed: Optional[dict] = None) -> tuple:
     """(volume_ml, concentration_mg_ml) or (None, None). The ONLY mL source."""
@@ -373,7 +403,20 @@ def volume_ml(generic_name: str, dose_mg: float,
     if status != RESOLVED or not conc:
         return None, None
     true_vol = dose_mg / conc
+    ok, _why = drawable(true_vol)
+    if not ok:
+        return None, None
     return round(true_vol, draw_precision(true_vol)), conc
+
+
+def volume_refusal(generic_name: str, dose_mg: float,
+                   confirmed: Optional[dict] = None) -> Optional[str]:
+    """Why no volume, when a concentration IS resolved. None if there is one."""
+    status, conc, _ = resolve(generic_name, confirmed)
+    if status != RESOLVED or not conc:
+        return None
+    ok, why = drawable(dose_mg / conc)
+    return None if ok else why
 
 
 def declared_concentration(generic_name: str) -> Optional[float]:
