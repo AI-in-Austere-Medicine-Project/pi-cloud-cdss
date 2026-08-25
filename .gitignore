@@ -56,5 +56,6 @@ tests/
 logs/
 *.jsonl
 
-# Concentration change log — an audit trail of a deployment, not source.
+# Change logs — an audit trail of a deployment, not source.
 server/drug_concentrations.log.jsonl
+server/drug_contracts.log.jsonl

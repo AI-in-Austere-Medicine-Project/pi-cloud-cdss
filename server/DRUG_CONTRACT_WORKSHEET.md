@@ -94,12 +94,6 @@ Sign with `python3 set_concentration.py --drug X --sign "<label>" --by clinician
 
 ## Adjudicate these first
 
-**Source conflicts.** Both sides are kept; nothing was picked for you. Sign one and record `adjudication`.
-
-- group `ketamine-post-intubation`
-  - **ketamine · post-intubation sedation q20-30min · IV** — 0.5 mg/kg (tier 0/1)
-  - **ketamine · ongoing sedation — loading dose · IV** — 1.0 mg/kg (tier 1/1/1)
-
 **Suspected errors in the source.** Not transcribed — the printed value looks wrong by an order of magnitude.
 
 - **epinephrine · cardiac arrest · peds** — NOT EXTRACTED — DELIBERATELY. NASEMSO p.121 step 11 reads verbatim: 'Administer epinephrine (0.1 mg/kg, maximum dose 1 mg) IV/IO during the first or second round of compressions.' Two problems. (1) 0.1 mg/kg is TEN TIMES the conventional paediatric arrest dose of 0.01 mg/kg; transcribing it would author a 10x overdose. (2) The step sits in a mixed adult/paediatric list (the adjacent step 9 reads '
@@ -119,24 +113,24 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **form:** Injection 100 mg/mL — the concentration the pre-contract calculator assumed — **100 mg/mL**
 - **form:** Injection 10 mg/mL; 50 mg/mL (as hydrochloride) in vial
 
-#### 1. post-intubation sedation q20-30min · adult|peds · IV
+#### 1. post-intubation sedation — repeated bolus (no infusion pump) · adult|peds · IV
 
 - **status:** ⬜ not live — signoff is not true
-- **flags:** `MIGRATED_UNSOURCED`, `SOURCE_CONFLICT`
-  - ⚠️ **SOURCE CONFLICT — both entries are kept and neither was picked.** Sign the one you adjudicate to and write why in `adjudication`; the engine refuses a signed conflict that has no adjudication note.
-  - **conflicts with:** ketamine · ongoing sedation — loading dose · IV (group `ketamine-post-intubation`)
+- **flags:** `MIGRATED_UNSOURCED`
   - ⚠️ **MIGRATED, UNSOURCED.** Value carried over verbatim from the pre-contract hardcode. The engine will NOT let this be signed until a tier 1 or tier 2 citation is attached.
 - **dose_range:** `0.5 mg/kg` (per kg)
 - **max_single:** none stated by the cited source
 - **max_cumulative:** none stated by the cited source
 - **contraindications:** Hypersensitivity
 - **cautions:** After tube confirmed only. Not the induction dose.
+- **cautions:** PREFERRED SHAPE WHERE THERE IS NO PUMP. Repeat q20-30min. If an infusion pump IS available, see ketamine · ongoing sedation — loading dose · IV: JTS ID61 gives 1 mg/kg IV over 60 seconds followed by an infusion.
+- **cautions:** THE 0.5 mg/kg FIGURE IS NOT IN ANY APPROVED SOURCE. It is the pre-contract hardcode. JTS ID61 states 1 mg/kg as the loading dose and warns of respiratory depression above 1 mg/kg; it says nothing about a 0.5 mg/kg repeated bolus either way. The owner ruled for this shape on equipment grounds, which is an operational judgement the sources do not speak to.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for.
-- **source:** tier 0 (migration — NOT an approved source) — EdgeCDSS pre-contract hardcoded calculator: ketamine_post_intubation_0.5mgkg · retrieved 2026-08-24
+- **source:** tier 0 (MIGRATION) — EdgeCDSS pre-contract hardcoded calculator: ketamine_post_intubation_0.5mgkg · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
-- **why no value was written:** Migrated hardcode, 0.5 mg/kg q20-30min. JTS ID61 specifies a different shape entirely for ongoing sedation: a 1 mg/kg loading dose over 60 seconds followed by an infusion, not repeated boluses. Both kept.
+- **why no value was written:** Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. The ruling settles the shape; it does not supply a citation for the 0.5 mg/kg VALUE, which remains tier 0. MIGRATED_UNSOURCED therefore stands and the fence still refuses to serve this entry. Signing it requires a tier 1 or tier 2 source that states a repeated sub-induction bolus, or an owner decision to serve the JTS loading dose instead.
 
 #### 2. prolonged sedation infusion · adult|peds · IV
 
@@ -150,7 +144,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** JTS ID61 mix: 750 mg (1.5 vials of 500 mg/5 mL) in 250 mL normal saline = a 3 mg/mL solution.
 - **cautions:** JTS ID61 adjustment step: increase or decrease by 0.25 mg/kg/h (one table row).
 - **cautions:** JTS ID61 dose band spans 0.5 mg/kg/h (8 mcg/kg/min) upward through 1.25 mg/kg/h (21 mcg/kg/min) in the printed table.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9 · retrieved 2026-08-25
 - **why no value was written:** PARTIALLY EXTRACTED — the STARTING rate is not written in the text. JTS ID61's table marks it by HIGHLIGHTING a row ('starting dose highlighted'), which is a visual cue the text layer does not carry. The mix, the adjustment step and the dose band are recorded above because they are stated in prose. The start rate is left NEEDS_MANUAL_ENTRY rather than inferred from the table, and there is a second reason to look at the page: ID61's 'Better' rule (initial mL/h = weight in kg divided by 2) does not reconcile with the mL/h column for the rows this extraction could read, so read the page before filling it.
 
 #### 3. moderate to severe pain / analgesia · adult|peds · IV
@@ -245,7 +239,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I: Airway Management Summary — RSI and Intubation Pathway, step 6 Sedative/hypnotic, p.28 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I: Airway Management Summary — RSI and Intubation Pathway, step 6 Sedative/hypnotic, p.28 · retrieved 2026-08-25
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** TIER 1, JTS ID39 (28 Jan 2026), the current airway CPG. Conflicts with JTS ID40's 1 mg/kg and with the migrated 1.5 mg/kg.
 
@@ -265,7 +259,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** No approved source states a reduced PAEDIATRIC induction dose. JTS ID40 has no paediatric section, so this entry is adult only and the gap is deliberate rather than an omission.
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Specific Considerations for Trauma Anesthesia — Induction of Anesthesia, item 4, p.2 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Specific Considerations for Trauma Anesthesia — Induction of Anesthesia, item 4, p.2 · retrieved 2026-08-25
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** TIER 1, JTS ID40 (2021). This is the number the owner named: 1 mg/kg against the hardcode's 1.5. Recorded with ID40's own framing — the exsanguinating patient, dose reduced and titrated — rather than as a bare contradiction, because the population the source is talking about is part of what has to be adjudicated.
 
@@ -283,28 +277,26 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 3 Induction, p.28 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 3 Induction, p.28 · retrieved 2026-08-25
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 
-#### 11. ongoing sedation — loading dose · adult|peds · IV
+#### 11. ongoing sedation — loading dose (infusion pump available) · adult|peds · IV
 
 - **status:** ⬜ not live — signoff is not true
-- **flags:** `SOURCE_CONFLICT`
-  - ⚠️ **SOURCE CONFLICT — both entries are kept and neither was picked.** Sign the one you adjudicate to and write why in `adjudication`; the engine refuses a signed conflict that has no adjudication note.
-  - **conflicts with:** ketamine · post-intubation sedation q20-30min · IV (group `ketamine-post-intubation`)
 - **dose_range:** `1.0 mg/kg` (per kg)
 - **max_single:** none stated by the cited source
 - **max_cumulative:** none stated by the cited source
 - **contraindications:** Hypersensitivity
 - **cautions:** Give as an IV push over 60 SECONDS. JTS ID61 warns of respiratory depression at doses above 1 mg/kg, especially with fast IV/IO administration.
 - **cautions:** Followed by an infusion for continuous sedation — this is a loading dose, not a standalone one.
+- **cautions:** ALTERNATE SHAPE, AND THE ONLY ONE WITH A CITED DOSE. Use where an infusion pump is available. Where it is not, the owner's preferred shape is ketamine · post-intubation sedation — repeated bolus · IV at 0.5 mg/kg q20-30min — which carries no approved source and does not serve.
 - **cautions:** JTS ID61: ketamine is safe for use in TBI and/or eye injury.
 - **cautions:** Sialorrhea (hypersalivation) can be problematic in an austere setting.
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Sedation — ketamine loading dose, p.8 · retrieved 2026-08-25
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Sedation — ketamine loading dose, p.8 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9 · retrieved 2026-08-25
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 
 #### 12. background pain — low-dose analgesia (prolonged field care) · adult · IV
@@ -320,8 +312,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia — ketamine push, p.8 · retrieved 2026-08-25
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication, p.11 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia — ketamine push, p.8 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication, p.11 · retrieved 2026-08-25
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** A THIRD value joins the existing ketamine analgesia conflict. NASEMSO gives 0.25 mg/kg capped at 25 mg initial; the hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped; JTS ID61 gives 0.1-0.2 mg/kg. The spread between the lowest tier-1 figure and the hardcoded IM figure is twentyfold.
 
@@ -568,8 +560,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated.
 - **cautions:** CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28 · retrieved 2026-08-25
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3 · retrieved 2026-08-25
 
 #### 3. RSI paralytic · peds · IV
 
@@ -583,8 +575,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated.
 - **cautions:** CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28 · retrieved 2026-08-25
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3 · retrieved 2026-08-25
 
 ### succinylcholine  — discovery rank #4, 16 dose queries
 
@@ -613,9 +605,9 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** ALTERNATE, recorded not served: JTS ID40 (05 Apr 2021) p.3 gives succinylcholine 1 mg/kg as the standard RSI dose, producing intubating conditions in about 45 seconds. The owner ruled for ID39's 1.5 mg/kg.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28 · retrieved 2026-08-25
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3 · retrieved 2026-08-25
-- **source:** tier 0 (migration — NOT an approved source) — EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi_1.5mgkg · retrieved 2026-08-24
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3 · retrieved 2026-08-25
+- **source:** tier 0 (MIGRATION) — EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi_1.5mgkg · retrieved 2026-08-24
 - **why no value was written:** THE MIGRATED VALUE IS CORROBORATED BY JTS ID39: 1.5 mg/kg IV/IO, exactly the hardcode. But JTS ID40 (2021) gives 1 mg/kg as the 'standard rapid sequence induction dose' for the same indication, so the two JTS documents disagree with each other. Both are kept. The concentration mismatch is unaffected and separate.
 
 #### 2. RSI paralytic — under 5 years · peds · IV
@@ -631,7 +623,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Pre-dose atropine IV/IO 0.02 mg/kg (min 0.1 mg, max 0.5 mg).
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28 · retrieved 2026-08-25
 
 #### 3. RSI paralytic — 5 years and above · peds · IV
 
@@ -646,7 +638,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
 - **cautions:** AGE BAND. Under 5 years takes 2 mg/kg — a separate entry. Confirm age before choosing between them.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28 · retrieved 2026-08-25
 
 ### fentanyl  — discovery rank #5, 10 dose queries
 
@@ -936,7 +928,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** JTS ID40 states the 2 g bolus is now FAVOURED over the traditional 1 g prehospital bolus followed by an infusion.
 - **cautions:** UNITS ARE GRAMS. The dose builder currently treats every dose_range value as milligrams with no conversion — see the unit note on the calcium and epinephrine entries.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Background / Resuscitation — tranexamic acid, p.2 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Background / Resuscitation — tranexamic acid, p.2 · retrieved 2026-08-25
 - **why no value was written:** TIER 1 from JTS ID40, and it unblocks rank 8. NASEMSO named TXA in three guidelines and dosed it in none; JTS does. Flagged UNIT_NOT_MG because the value is in grams and the dose builder has no unit conversion yet.
 
 #### 2. traumatic haemorrhage — maintenance infusion · adult · IV
@@ -949,7 +941,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.
 
 #### 3. traumatic haemorrhage · peds · IV
@@ -962,7 +954,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.
 
 ### midazolam  — discovery rank #9, 6 dose queries
@@ -1064,8 +1056,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** JTS ID61 typical dose 1 mg, range 0.5-2 mg IV/IO, every 1-6 hours PRN, for sedation and amnesia.
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Sedation, p.8 · retrieved 2026-08-25
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix C — recommended dosing summary, p.10 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Sedation, p.8 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix C — recommended dosing summary, p.10 · retrieved 2026-08-25
 
 ### morphine  — discovery rank #10, 6 dose queries
 
@@ -1248,7 +1240,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** JTS ID39 does not list propofol as an RSI induction agent at all — ketamine first line, etomidate 0.3 mg/kg second.
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication.
-- **source:** tier 1 (NASEMSO) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 4, p.3 · retrieved 2026-08-25
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 4, p.3 · retrieved 2026-08-25
 - **why no value was written:** TIER 1 from JTS ID40. Note the scope carefully: this is the reduced dose for the hypotensive trauma patient, which is the population this deployment sees, but it is not a general induction dose and should not be signed as one.
 
 #### 2. sedation infusion · adult · IV
@@ -1497,7 +1489,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 2. severe malaria · peds · IV
@@ -1508,7 +1500,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 3. severe malaria — pre-referral only · adult|peds · PR
@@ -1519,7 +1511,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### artemether  — tropical/austere subset
@@ -1538,7 +1530,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### artemether + lumefantrine  — tropical/austere subset
@@ -1557,7 +1549,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 2. uncomplicated P. falciparum malaria · peds · PO
@@ -1568,7 +1560,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### quinine  — tropical/austere subset
@@ -1587,7 +1579,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 2. severe malaria · peds · IV
@@ -1598,7 +1590,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### antivenom immunoglobulin  — tropical/austere subset
@@ -1618,7 +1610,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.55 (19.2 Sera, immunoglobulins) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.55 (19.2 Sera, immunoglobulins) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO mentions antivenom in the Bites and Envenomations guideline (p.292) but states no dose and defers to the specific product. WHO states 'exact type to be defined locally'. NEITHER approved source can ever fill this entry — it can only come from the local product insert.
 
 ### oral rehydration salts  — tropical/austere subset
@@ -1638,7 +1630,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.1 Oral rehydration) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.1 Oral rehydration) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### zinc sulfate  — tropical/austere subset
@@ -1657,7 +1649,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.2 Medicines for diarrhoea) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.2 Medicines for diarrhoea) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### isoniazid  — tropical/austere subset
@@ -1676,7 +1668,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
@@ -1687,7 +1679,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### rifampicin  — tropical/austere subset
@@ -1706,7 +1698,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
@@ -1717,7 +1709,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### pyrazinamide  — tropical/austere subset
@@ -1736,7 +1728,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
@@ -1747,7 +1739,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### ethambutol  — tropical/austere subset
@@ -1766,7 +1758,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
@@ -1777,7 +1769,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ### ethambutol + isoniazid + pyrazinamide + rifampicin  — tropical/austere subset
@@ -1796,7 +1788,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
 - **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
 
 ---
@@ -1829,7 +1821,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
-- **source:** tier 0 (migration — NOT an approved source) — EdgeCDSS pre-contract hardcoded calculator: lorazepam_seizure_0.1mgkg_max4mg · retrieved 2026-08-24
+- **source:** tier 0 (MIGRATION) — EdgeCDSS pre-contract hardcoded calculator: lorazepam_seizure_0.1mgkg_max4mg · retrieved 2026-08-24
 - **why no value was written:** THE MIGRATION IS CONFIRMED BY TIER 1. NASEMSO Seizures p.102 gives lorazepam 0.1 mg/kg IV or IO, maximum 4 mg — exactly the hardcoded calculator's rule, and WHO corroborates the 2 mg/mL concentration. This entry now carries a tier 1 citation, so unlike the other three migrated drugs it is eligible to be signed.
 
 #### 2. agitated or violent patient / behavioural emergency · adult · IV
