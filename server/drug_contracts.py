@@ -705,6 +705,64 @@ def single_concentration(generic_name: str) -> Optional[float]:
     return float(next(iter(concs)))
 
 
+def signed_entries_by_indication(patterns, is_pediatric: bool = False,
+                                 age_years: Optional[float] = None) -> list:
+    """(drug, entry) pairs whose INDICATION matches, whatever the query named.
+
+    An RSI query rarely names its drugs — "RSI now" is the whole request — so
+    a lookup that only matches drugs mentioned in the text would drop the
+    induction agent from the one bundle that always needs one. The legacy
+    calculators knew the bundle; the contract path has to know it too, or
+    signing an entry makes RSI worse rather than better.
+    """
+    out = []
+    live = servable_entries()
+    for name, entries in live.items():
+        for e in entries:
+            ind = (e.get("indication") or "").lower()
+            if not any(p.lower() in ind for p in patterns):
+                continue
+            pop = e.get("population")
+            if is_pediatric and pop == "adult":
+                continue
+            if not is_pediatric and pop == "peds":
+                continue
+            # Age-banded entries need an age. Neither band is a safe default:
+            # too little paralytic is a patient who moves, too much is a longer
+            # apnoea. So a band is used only when the age is known, and the
+            # gap is visible rather than papered over.
+            band = _age_band(e)
+            if band is not None:
+                if age_years is None:
+                    continue
+                lo, hi = band
+                if not (lo <= age_years < hi):
+                    continue
+            out.append((name, e))
+    return out
+
+
+def _age_band(entry: dict):
+    """(low, high) years this entry is banded to, or None if it is not."""
+    ind = (entry.get("indication") or "").lower()
+    m = re.search(r"under (\d+(?:\.\d+)?) year", ind)
+    if m:
+        return (0.0, float(m.group(1)))
+    m = re.search(r"(\d+(?:\.\d+)?) years? and above", ind)
+    if m:
+        return (float(m.group(1)), 200.0)
+    return None
+
+
+def age_banded_entries(patterns, is_pediatric: bool = True) -> list:
+    """Signed entries that WOULD apply but need an age to choose between."""
+    return [(n, e) for n, es in servable_entries().items() for e in es
+            if _age_band(e) is not None
+            and any(p.lower() in (e.get("indication") or "").lower()
+                    for p in patterns)
+            and (e.get("population") != "adult" if is_pediatric else True)]
+
+
 def signed_entries_for(query: str, route: Optional[str] = None,
                        is_pediatric: bool = False) -> list:
     """(generic_name, entry) pairs that are BOTH named by this query and signed.

@@ -923,6 +923,65 @@ def lorazepam_seizure(weight_kg: float) -> DoseCandidate:
     )
 
 
+def _rsi_role(indication: str) -> Optional[str]:
+    """Which slot of the RSI bundle an indication fills."""
+    i = (indication or "").lower()
+    if "rsi induction" in i:
+        return "induction"
+    if "rsi paralytic" in i:
+        return "paralytic"
+    if "post-intubation sedation" in i or "ongoing sedation" in i:
+        return "sedation"
+    return None
+
+
+RSI_INDUCTION_INDICATIONS = ("RSI induction",)
+RSI_PARALYTIC_INDICATIONS = ("RSI paralytic",)
+RSI_SEDATION_INDICATIONS = ("post-intubation sedation", "ongoing sedation")
+
+
+def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+    """The signed RSI bundle, looked up by INDICATION rather than by name.
+
+    Mirrors the legacy bundle's shape — induction, one paralytic, post-tube
+    sedation — because that is the clinical unit, and serving two paralytics
+    because both are signed would be a worse failure than serving none.
+    """
+    if drug_contracts is None or ctx.dosing_weight_kg is None:
+        return []
+    q = query.lower()
+    age = ctx.age_years
+    pick = lambda pats: drug_contracts.signed_entries_by_indication(
+        pats, ctx.is_pediatric, age)
+
+    chosen = list(pick(RSI_INDUCTION_INDICATIONS)) + list(pick(RSI_SEDATION_INDICATIONS))
+
+    paralytics = pick(RSI_PARALYTIC_INDICATIONS)
+    wants_succ = (_has_any_word(q, ["sux", "succs"]) or "succinylcholine" in q) \
+        and not any(x in q for x in ["burn", "crush"])
+    preferred = "succinylcholine" if wants_succ else "rocuronium"
+    # Only the PREFERRED paralytic. Falling back to the other one would mean a
+    # query that never mentioned succinylcholine gets succinylcholine because
+    # that is what happened to be signed — and succinylcholine has
+    # contraindications rocuronium does not. An unfilled role falls through to
+    # the legacy calculator for the preferred drug instead.
+    chosen += [(n, e) for n, e in paralytics if n == preferred][:1]
+
+    out = []
+    for name, entry in chosen:
+        r = drug_contracts.resolve_dose(entry, ctx.dosing_weight_kg)
+        if r["dose_mg"] is None:
+            continue
+        out.append(DoseCandidate(
+            drug=name, indication=entry["indication"], route=entry["route"],
+            dose_mg=round(r["dose_mg"], 4), display_value=r["display_value"],
+            display_units=r["display_units"],
+            source=f"drug_contract:{name}:{entry['indication']}:"
+                   f"{entry['route']}:v{entry.get('version')}",
+            warning="; ".join(entry.get("cautions") or []) or None))
+    return out
+
+
 def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     """DoseCandidates from SIGNED drug_contracts.json entries only.
 
@@ -998,32 +1057,67 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
 
     named = set(drug_contracts.resolve_drugs(q)) if drug_contracts else set()
 
+    # A drug whose contract the owner has SIGNED serves from the contract, and
+    # the legacy calculator for it stops firing.
+    #
+    # Without this the two paths add together: sign ketamine's JTS 2 mg/kg RSI
+    # induction and the response carries BOTH that and the calculator's
+    # unsourced 1.5 mg/kg, as two GIVE lines for one drug in one intubation.
+    # The design always said the calculator is deleted when its entry is
+    # re-signed; making that automatic means it cannot be forgotten in the
+    # minutes after a signature, which is exactly when it would be.
+    superseded = set()
+    if drug_contracts is not None:
+        for drug_name in drug_contracts.servable_entries():
+            superseded.add(drug_name)
+
     is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
     is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
     is_seizure = any(x in q for x in ['seizure', 'seizing', 'status'])
-    has_ketamine = 'ketamine' in named
-    has_roc = 'rocuronium' in named
-    has_succ = 'succinylcholine' in named
+    has_ketamine = 'ketamine' in named and 'ketamine' not in superseded
+    has_roc = 'rocuronium' in named and 'rocuronium' not in superseded
+    has_succ = 'succinylcholine' in named and 'succinylcholine' not in superseded
     # 'benzo' is a CLASS word, not a lorazepam alias, and it is preserved here
     # only because removing it would change current behaviour — which this
     # migration is not allowed to do. It is on the worksheet for the owner:
     # once midazolam has a signed contract, "benzo" pointing at exactly one
     # benzodiazepine is its own collision waiting to happen.
-    has_loraz = 'lorazepam' in named or _has_word(q, 'benzo')
+    has_loraz = ('lorazepam' in named or _has_word(q, 'benzo')) \
+        and 'lorazepam' not in superseded
 
     if is_rsi:
-        # RSI always requires induction + paralytic + post-intubation sedation.
-        doses.append(ketamine_induction_iv(w, ped))
-        doses.append(ketamine_post_intubation_iv(w))
+        # RSI is a BUNDLE — induction, one paralytic, post-tube sedation — so
+        # it is assembled by ROLE rather than by drug. The signed contract
+        # fills what it can and the legacy calculators backfill only the roles
+        # left empty.
+        #
+        # Filling by role rather than by drug is what stops the failure this
+        # replaced: suppressing the legacy calculator for a signed
+        # succinylcholine made has_succ false, which sent the old branch down
+        # its `else` and served the LEGACY ROCURONIUM alongside the signed
+        # succinylcholine. Two paralytics, one intubation.
+        contract = _contract_rsi_candidates(query, ctx)
+        filled = {_rsi_role(d.indication) for d in contract}
+        prefers_succ = has_succ and not any(x in q for x in ["burn", "crush"])
 
-        # Default to rocuronium unless succinylcholine is explicitly requested.
-        if has_succ and not any(x in q for x in ["burn", "crush"]):
-            doses.append(succinylcholine_rsi(w, ped))
-        else:
-            doses.append(rocuronium_rsi(w, ped))
+        if "induction" not in filled and "ketamine" not in superseded:
+            doses.append(ketamine_induction_iv(w, ped))
+        if "sedation" not in filled and "ketamine" not in superseded:
+            doses.append(ketamine_post_intubation_iv(w))
+        if "paralytic" not in filled:
+            if prefers_succ and "succinylcholine" not in superseded:
+                doses.append(succinylcholine_rsi(w, ped))
+            elif not prefers_succ and "rocuronium" not in superseded:
+                doses.append(rocuronium_rsi(w, ped))
 
+        doses.extend(contract)
         doses.extend(_contract_dose_candidates(query, ctx))
-        return [resolve_dose_volume(d, ctx) for d in doses]
+        seen, unique = set(), []
+        for d in doses:
+            k = (d.drug, d.indication, d.route)
+            if k not in seen:
+                seen.add(k); unique.append(d)
+        return [resolve_dose_volume(d, ctx) for d in unique]
 
     if has_ketamine:
         if is_analg or (not is_seizure):

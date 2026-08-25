@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.2.0",
+  "schema_version": "1.3.0",
   "generated": "2026-08-25",
   "generated_note": "DRAFT. Nothing in this file is signed and nothing in it is served. Every dose_entry carries signoff:false and awaits a credentialed clinician. Build order follows measured query traffic from the v4.3 discovery run, then the tropical/austere priority subset.",
   "approved_sources": {
@@ -80,196 +80,6 @@
       "discovery_query_count": 23,
       "dose_entries": [
         {
-          "indication": "subdissociative analgesia",
-          "population": "adult|peds",
-          "route": "IV",
-          "dose_range": {
-            "min": 0.3,
-            "max": 0.3,
-            "units": "mg/kg",
-            "per_kg": true
-          },
-          "max_single": null,
-          "max_cumulative": null,
-          "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
-          ],
-          "cautions": [
-            "Monitor airway and respirations. Subdissociative range.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
-          ],
-          "sources": [
-            {
-              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_analgesia_iv_0.3mgkg",
-              "tier": 0,
-              "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24",
-              "source_class": "MIGRATION"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "Migrated verbatim from the hardcoded calculator. NOW CONFLICTS with a tier 1 value: NASEMSO Pain Management p.94 gives 0.25 mg/kg IM/IV/IO capped at 25 mg initial / 100 mg cumulative for the same indication. Both entries are kept and neither was picked. Also still carries the concentration mismatch: the calculator assumes 100 mg/mL, WHO lists 10 and 50 mg/mL.",
-          "flags": [
-            "MIGRATED_UNSOURCED",
-            "CONCENTRATION_MISMATCH",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-analgesia"
-        },
-        {
-          "indication": "dissociative analgesia (IM — no IV access)",
-          "population": "adult|peds",
-          "route": "IM",
-          "dose_range": {
-            "min": 2.0,
-            "max": 2.0,
-            "units": "mg/kg",
-            "per_kg": true
-          },
-          "max_single": null,
-          "max_cumulative": null,
-          "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
-          ],
-          "cautions": [
-            "IM dose is higher than the IV analgesia dose — this is expected and correct. Monitor airway.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
-          ],
-          "sources": [
-            {
-              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_analgesia_im_2mgkg",
-              "tier": 0,
-              "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24",
-              "source_class": "MIGRATION"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "Migrated verbatim from the hardcoded calculator. NOW CONFLICTS with a tier 1 value: NASEMSO Pain Management p.94 gives 0.25 mg/kg IM/IV/IO capped at 25 mg initial / 100 mg cumulative for the same indication. Both entries are kept and neither was picked. Also still carries the concentration mismatch: the calculator assumes 100 mg/mL, WHO lists 10 and 50 mg/mL.",
-          "flags": [
-            "MIGRATED_UNSOURCED",
-            "CONCENTRATION_MISMATCH",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-analgesia"
-        },
-        {
-          "indication": "RSI induction",
-          "population": "adult",
-          "route": "IV",
-          "dose_range": {
-            "min": 1.5,
-            "max": 1.5,
-            "units": "mg/kg",
-            "per_kg": true
-          },
-          "max_single": {
-            "value": 200.0,
-            "units": "mg",
-            "rule": "lesser of 2 mg/kg and 200 mg"
-          },
-          "max_cumulative": null,
-          "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
-          ],
-          "cautions": [
-            "Give BEFORE the paralytic. Confirm weight and route.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
-          ],
-          "sources": [
-            {
-              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_induction_iv_1.5mgkg",
-              "tier": 0,
-              "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24",
-              "source_class": "MIGRATION"
-            },
-            {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
-              "tier": 1,
-              "source_class": "NASEMSO",
-              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "extraction_notes": "Migrated hardcode, 1.5 mg/kg. NOW CONFLICTS WITH TWO TIER-1 VALUES, which also disagree with each other: JTS ID39 (2026) gives ketamine 2 mg/kg IV/IO as first-line RSI induction, and JTS ID40 (2021) gives 1 mg/kg for the trauma patient in extremis. All three entries are kept. Nothing was picked.",
-          "flags": [
-            "CONTRAINDICATION_CONFLICT",
-            "MIGRATED_UNSOURCED",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-rsi-induction"
-        },
-        {
-          "indication": "RSI induction",
-          "population": "peds",
-          "route": "IV",
-          "dose_range": {
-            "min": 1.5,
-            "max": 1.5,
-            "units": "mg/kg",
-            "per_kg": true
-          },
-          "max_single": {
-            "value": null,
-            "units": "mg/kg",
-            "rule": "2 mg/kg, no absolute cap"
-          },
-          "max_cumulative": null,
-          "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
-          ],
-          "cautions": [
-            "Give BEFORE the paralytic. Confirm weight and route.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
-          ],
-          "sources": [
-            {
-              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_induction_iv_1.5mgkg",
-              "tier": 0,
-              "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24",
-              "source_class": "MIGRATION"
-            },
-            {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
-              "tier": 1,
-              "source_class": "NASEMSO",
-              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "extraction_notes": "Migrated hardcode, 1.5 mg/kg with no absolute cap. JTS ID39 gives 2 mg/kg for paediatric induction, same as adult.",
-          "flags": [
-            "CONTRAINDICATION_CONFLICT",
-            "MIGRATED_UNSOURCED",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-rsi-induction-peds"
-        },
-        {
           "indication": "post-intubation sedation q20-30min",
           "population": "adult|peds",
           "route": "IV",
@@ -282,14 +92,13 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "After tube confirmed only. Not the induction dose.",
             "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
             "The cited guideline states no maximum single dose for this drug and indication.",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -313,11 +122,12 @@
           "version": "0.3.0-draft",
           "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. JTS ID61 specifies a different shape entirely for ongoing sedation: a 1 mg/kg loading dose over 60 seconds followed by an infusion, not repeated boluses. Both kept.",
           "flags": [
-            "CONTRAINDICATION_CONFLICT",
             "MIGRATED_UNSOURCED",
             "SOURCE_CONFLICT"
           ],
-          "conflict_group": "ketamine-post-intubation"
+          "conflict_group": "ketamine-post-intubation",
+          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "prolonged sedation infusion",
@@ -374,12 +184,12 @@
             "rule": "maximum cumulative dose 100 mg"
           },
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
-            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry."
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -401,11 +211,9 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.2.0-draft",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-analgesia",
-          "extraction_notes": "TIER 1 VALUE. NASEMSO gives 0.25 mg/kg IM/IV/IO for moderate to severe pain, capped at 25 mg initial and 100 mg cumulative. This CONFLICTS with the migrated hardcoded contract, which uses 0.3 mg/kg IV with no cap and 2.0 mg/kg IM with no cap. Both entries are kept. The IM divergence is the serious one: for an 80 kg patient the hardcode gives 160 mg IM where NASEMSO caps at 25 mg — roughly SIX TIMES. Adjudicate before signing either."
+          "extraction_notes": "TIER 1 VALUE. NASEMSO gives 0.25 mg/kg IM/IV/IO for moderate to severe pain, capped at 25 mg initial and 100 mg cumulative. This CONFLICTS with the migrated hardcoded contract, which uses 0.3 mg/kg IV with no cap and 2.0 mg/kg IM with no cap. Both entries are kept. The IM divergence is the serious one: for an 80 kg patient the hardcode gives 160 mg IM where NASEMSO caps at 25 mg — roughly SIX TIMES. Adjudicate before signing either.",
+          "adjudication": "OWNER RULING 2026-08-25: JTS ID61's 0.1-0.2 mg/kg and NASEMSO's 0.25 mg/kg are the same clinical range for sub-dissociative analgesia. Both kept and both cited; this is not a conflict.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "agitated or violent patient — dissociative sedation",
@@ -420,8 +228,7 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
@@ -430,7 +237,8 @@
             "NASEMSO offers ketamine here as an option for high violence risk.",
             "NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour ONLY — not analgesia, and not RSI.",
             "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -451,7 +259,9 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "version": "0.2.0-draft",
+          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "agitated or violent patient — dissociative sedation",
@@ -466,15 +276,15 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "Onset of action 3-5 minutes by this route.",
             "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -495,7 +305,9 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "version": "0.2.0-draft",
+          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "agitated or violent patient — dissociative sedation",
@@ -510,14 +322,14 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -538,7 +350,9 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "version": "0.2.0-draft",
+          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "agitated or violent patient — dissociative sedation",
@@ -553,14 +367,14 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -581,7 +395,9 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "version": "0.2.0-draft",
+          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "RSI induction",
@@ -596,8 +412,7 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "Give BEFORE the paralytic. Confirm weight and route.",
@@ -606,7 +421,7 @@
             "Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3 mg/kg IV/IO is listed second line.",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "The cited guideline states no cumulative maximum for this drug and indication.",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -628,12 +443,9 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "CONTRAINDICATION_CONFLICT",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-rsi-induction",
-          "extraction_notes": "TIER 1, JTS ID39 (28 Jan 2026), the current airway CPG. Conflicts with JTS ID40's 1 mg/kg and with the migrated 1.5 mg/kg."
+          "extraction_notes": "TIER 1, JTS ID39 (28 Jan 2026), the current airway CPG. Conflicts with JTS ID40's 1 mg/kg and with the migrated 1.5 mg/kg.",
+          "adjudication": "OWNER RULING 2026-08-25: this is the STANDARD induction dose. The reduced dose for haemodynamic compromise is a separate entry, not a competing value. The 1.5 mg/kg hardcode is retired as unsourced.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "RSI induction — haemodynamically unstable / in extremis",
@@ -648,18 +460,18 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
+            "TITRATE. JTS ID40: standard induction dosages should be REDUCED and titrated to balance induction against haemodynamic change — this is a starting point, not a fixed dose.",
             "Give BEFORE the paralytic. Confirm weight and route.",
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "JTS ID39: unstable patients require a reduced dosage of induction agent.",
-            "JTS ID40: standard induction dosages should be REDUCED and titrated to balance induction against haemodynamic change.",
             "JTS ID40 selects ketamine here because it does not drop systemic vascular resistance to the same extent as other sedative hypnotics.",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "The cited guideline states no cumulative maximum for this drug and indication.",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+            "No approved source states a reduced PAEDIATRIC induction dose. JTS ID40 has no paediatric section, so this entry is adult only and the gap is deliberate rather than an omission.",
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -681,12 +493,9 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "CONTRAINDICATION_CONFLICT",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-rsi-induction",
-          "extraction_notes": "TIER 1, JTS ID40 (2021). This is the number the owner named: 1 mg/kg against the hardcode's 1.5. Recorded with ID40's own framing — the exsanguinating patient, dose reduced and titrated — rather than as a bare contradiction, because the population the source is talking about is part of what has to be adjudicated."
+          "extraction_notes": "TIER 1, JTS ID40 (2021). This is the number the owner named: 1 mg/kg against the hardcode's 1.5. Recorded with ID40's own framing — the exsanguinating patient, dose reduced and titrated — rather than as a bare contradiction, because the population the source is talking about is part of what has to be adjudicated.",
+          "adjudication": "OWNER RULING 2026-08-25: kept as a DISTINCT clinical situation, not an alternative opinion. Use where there is haemodynamic compromise or the patient is in extremis, titrated, per JTS ID40's own framing.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "RSI induction",
@@ -701,8 +510,7 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "Give BEFORE the paralytic. Confirm weight and route.",
@@ -711,7 +519,7 @@
             "JTS ID39 paediatric column: pre-dose atropine IV/IO 0.02 mg/kg (minimum 0.1 mg, maximum 0.5 mg) in all under 1 year, those under 5 receiving succinylcholine, and all who receive a 2nd dose of succinylcholine.",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "The cited guideline states no cumulative maximum for this drug and indication.",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -733,11 +541,8 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "CONTRAINDICATION_CONFLICT",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-rsi-induction-peds"
+          "adjudication": "OWNER RULING 2026-08-25: this is the STANDARD induction dose. The reduced dose for haemodynamic compromise is a separate entry, not a competing value. The 1.5 mg/kg hardcode is retired as unsourced.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "ongoing sedation — loading dose",
@@ -752,8 +557,7 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "Give as an IV push over 60 SECONDS. JTS ID61 warns of respiratory depression at doses above 1 mg/kg, especially with fast IV/IO administration.",
@@ -762,7 +566,7 @@
             "Sialorrhea (hypersalivation) can be problematic in an austere setting.",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "The cited guideline states no cumulative maximum for this drug and indication.",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -792,10 +596,11 @@
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
           "flags": [
-            "CONTRAINDICATION_CONFLICT",
             "SOURCE_CONFLICT"
           ],
-          "conflict_group": "ketamine-post-intubation"
+          "conflict_group": "ketamine-post-intubation",
+          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "background pain — low-dose analgesia (prolonged field care)",
@@ -810,8 +615,7 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+            "Hypersensitivity"
           ],
           "cautions": [
             "JTS ID61 typical dose 20 mg, range 0.1-0.2 mg/kg IV/IO, every 10-30 minutes PRN.",
@@ -819,7 +623,7 @@
             "JTS ID61: avoid oversedation; respiratory depression appears above 1 mg/kg, especially with fast IV/IO administration.",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "The cited guideline states no cumulative maximum for this drug and indication.",
-            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
           ],
           "sources": [
             {
@@ -848,12 +652,9 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "CONTRAINDICATION_CONFLICT",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-analgesia",
-          "extraction_notes": "A THIRD value joins the existing ketamine analgesia conflict. NASEMSO gives 0.25 mg/kg capped at 25 mg initial; the hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped; JTS ID61 gives 0.1-0.2 mg/kg. The spread between the lowest tier-1 figure and the hardcoded IM figure is twentyfold."
+          "extraction_notes": "A THIRD value joins the existing ketamine analgesia conflict. NASEMSO gives 0.25 mg/kg capped at 25 mg initial; the hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped; JTS ID61 gives 0.1-0.2 mg/kg. The spread between the lowest tier-1 figure and the hardcoded IM figure is twentyfold.",
+          "adjudication": "OWNER RULING 2026-08-25: JTS ID61's 0.1-0.2 mg/kg and NASEMSO's 0.25 mg/kg are the same clinical range for sub-dissociative analgesia. Both kept and both cited; this is not a conflict.",
+          "adjudicated_on": "2026-08-25"
         }
       ],
       "proposed_aliases": [
@@ -1457,66 +1258,6 @@
       "discovery_query_count": 17,
       "dose_entries": [
         {
-          "indication": "RSI paralytic",
-          "population": "adult|peds",
-          "route": "IV",
-          "dose_range": {
-            "min": 1.0,
-            "max": 1.0,
-            "units": "mg/kg",
-            "per_kg": true
-          },
-          "max_single": {
-            "value": 1.2,
-            "units": "mg/kg",
-            "rule": "1.2 mg/kg"
-          },
-          "max_cumulative": null,
-          "contraindications": [],
-          "cautions": [
-            "Give AFTER the induction agent. JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
-            "JTS ID40: rocuronium is the choice where succinylcholine is contraindicated — burns, spinal cord injury, hyperkalemia.",
-            "JTS ID40: an increased dose of 1-1.2 mg/kg produces intubating conditions similar to succinylcholine in approximately 60 SECONDS, against succinylcholine's 45.",
-            "JTS ID39 splits by age where the hardcode does not: 1.2 mg/kg adult, 1 mg/kg paediatric.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
-          ],
-          "sources": [
-            {
-              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3",
-              "tier": 1,
-              "source_class": "JTS",
-              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
-              "retrieved_date": "2026-08-25"
-            },
-            {
-              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28",
-              "tier": 1,
-              "source_class": "JTS",
-              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
-              "retrieved_date": "2026-08-25"
-            },
-            {
-              "citation": "EdgeCDSS pre-contract hardcoded calculator: rocuronium_rsi_1mgkg",
-              "tier": 0,
-              "source_class": "MIGRATION",
-              "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "extraction_notes": "Rocuronium now HAS a tier-1 source. The hardcode's 1 mg/kg with a 1.2 ceiling sits inside JTS ID40's 1-1.2 mg/kg band, so it is not contradicted — but JTS ID39 makes it age-dependent (1.2 adult, 1.0 paediatric), which the single combined adult|peds entry cannot express. That is the thing to adjudicate: whether this entry splits.",
-          "flags": [
-            "MIGRATED_UNSOURCED",
-            "NOT_ON_WHO_EML",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "rocuronium-rsi"
-        },
-        {
           "indication": "redose interval",
           "population": "adult|peds",
           "route": "IV",
@@ -1554,7 +1295,8 @@
             "Give AFTER the induction agent.",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "The cited guideline states no cumulative maximum for this drug and indication.",
-            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
+            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated.",
+            "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band."
           ],
           "sources": [
             {
@@ -1563,16 +1305,21 @@
               "source_class": "JTS",
               "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
               "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "rocuronium-rsi"
+          "adjudication": "OWNER RULING 2026-08-25: split by age per JTS ID39 — 1.2 mg/kg adult, 1.0 mg/kg paediatric. JTS ID40's 1-1.2 mg/kg band corroborates.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "RSI paralytic",
@@ -1592,7 +1339,8 @@
             "Give AFTER the induction agent.",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "The cited guideline states no cumulative maximum for this drug and indication.",
-            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
+            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated.",
+            "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band."
           ],
           "sources": [
             {
@@ -1601,16 +1349,21 @@
               "source_class": "JTS",
               "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
               "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "rocuronium-rsi"
+          "adjudication": "OWNER RULING 2026-08-25: split by age per JTS ID39 — 1.2 mg/kg adult, 1.0 mg/kg paediatric. JTS ID40's 1-1.2 mg/kg band corroborates.",
+          "adjudicated_on": "2026-08-25"
         }
       ]
     },
@@ -1678,7 +1431,8 @@
             "JTS ID40: succinylcholine 1 mg/kg produces intubating conditions in approximately 45 SECONDS.",
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "ALTERNATE, recorded not served: JTS ID40 (05 Apr 2021) p.3 gives succinylcholine 1 mg/kg as the standard RSI dose, producing intubating conditions in about 45 seconds. The owner ruled for ID39's 1.5 mg/kg."
           ],
           "sources": [
             {
@@ -1710,104 +1464,10 @@
           "extraction_notes": "THE MIGRATED VALUE IS CORROBORATED BY JTS ID39: 1.5 mg/kg IV/IO, exactly the hardcode. But JTS ID40 (2021) gives 1 mg/kg as the 'standard rapid sequence induction dose' for the same indication, so the two JTS documents disagree with each other. Both are kept. The concentration mismatch is unaffected and separate.",
           "flags": [
             "MIGRATION_CORROBORATED",
-            "CONCENTRATION_MISMATCH",
-            "SOURCE_CONFLICT"
+            "CONCENTRATION_MISMATCH"
           ],
-          "conflict_group": "succinylcholine-rsi-adult"
-        },
-        {
-          "indication": "RSI paralytic",
-          "population": "peds",
-          "route": "IV",
-          "dose_range": {
-            "min": 2.0,
-            "max": 2.0,
-            "units": "mg/kg",
-            "per_kg": true
-          },
-          "max_single": null,
-          "max_cumulative": null,
-          "contraindications": [
-            "Burns",
-            "Spinal cord injury",
-            "Hyperkalemia"
-          ],
-          "cautions": [
-            "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation.",
-            "JTS ID39 gives 1.5 mg/kg for paediatric patients GENERALLY and 2 mg/kg only for those UNDER 5 YEARS. The migrated hardcode applies 2 mg/kg to all paediatric patients.",
-            "JTS ID39: pre-dose atropine in those under 5 receiving succinylcholine, and in anyone receiving a 2nd dose.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
-          ],
-          "sources": [
-            {
-              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28",
-              "tier": 1,
-              "source_class": "JTS",
-              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
-              "retrieved_date": "2026-08-25"
-            },
-            {
-              "citation": "EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi_2.0mgkg",
-              "tier": 0,
-              "source_class": "MIGRATION",
-              "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "extraction_notes": "The hardcode gives 2 mg/kg to EVERY paediatric patient. JTS ID39 gives 2 mg/kg only under 5 years and 1.5 mg/kg otherwise. This is an age-banding disagreement rather than a flat one — for a 7-year-old the hardcode is 33% high against ID39.",
-          "flags": [
-            "MIGRATED_UNSOURCED",
-            "CONCENTRATION_MISMATCH",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "succinylcholine-rsi-peds"
-        },
-        {
-          "indication": "RSI paralytic",
-          "population": "adult",
-          "route": "IV",
-          "dose_range": {
-            "min": 1.0,
-            "max": 1.0,
-            "units": "mg/kg",
-            "per_kg": true
-          },
-          "max_single": null,
-          "max_cumulative": null,
-          "contraindications": [
-            "Burns",
-            "Spinal cord injury",
-            "Hyperkalemia"
-          ],
-          "cautions": [
-            "JTS ID40: produces intubating conditions in approximately 45 seconds at this dose.",
-            "JTS ID40 names the contraindications explicitly: burns, spinal cord injury, hyperkalemia — use rocuronium instead in those.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
-          ],
-          "sources": [
-            {
-              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3",
-              "tier": 1,
-              "source_class": "JTS",
-              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
-              "retrieved_date": "2026-08-25"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "succinylcholine-rsi-adult",
-          "extraction_notes": "TIER 1, JTS ID40. Conflicts with JTS ID39's 1.5 mg/kg and with the migrated 1.5 mg/kg."
+          "adjudication": "OWNER RULING 2026-08-25: 1.5 mg/kg per JTS ID39 (28 Jan 2026), the newer guidance, which also corroborates prevailing prehospital practice and the pre-contract value.",
+          "adjudicated_on": "2026-08-25"
         },
         {
           "indication": "RSI paralytic — under 5 years",
@@ -1845,13 +1505,11 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "succinylcholine-rsi-peds"
+          "adjudication": "OWNER RULING 2026-08-25: age-banded per JTS ID39. Under 5 years only.",
+          "adjudicated_on": "2026-08-25"
         },
         {
-          "indication": "RSI paralytic",
+          "indication": "RSI paralytic — 5 years and above",
           "population": "peds",
           "route": "IV",
           "dose_range": {
@@ -1870,7 +1528,8 @@
           "cautions": [
             "JTS ID39 paediatric dose for patients 5 YEARS AND OVER; under 5 years the CPG gives 2 mg/kg.",
             "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "AGE BAND. Under 5 years takes 2 mg/kg — a separate entry. Confirm age before choosing between them."
           ],
           "sources": [
             {
@@ -1885,10 +1544,8 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "succinylcholine-rsi-peds"
+          "adjudication": "OWNER RULING 2026-08-25: age-banded per JTS ID39. 5 years and above; under 5 uses 2 mg/kg.",
+          "adjudicated_on": "2026-08-25"
         }
       ]
     },
@@ -5107,5 +4764,142 @@
         }
       ]
     }
-  ]
+  ],
+  "retired_entries": [
+    {
+      "generic_name": "ketamine",
+      "indication": "RSI induction",
+      "population": "adult",
+      "route": "IV",
+      "dose_range": {
+        "min": 1.5,
+        "max": 1.5,
+        "units": "mg/kg",
+        "per_kg": true
+      },
+      "retired_on": "2026-08-25",
+      "retired_reason": "OWNER RULING 2026-08-25: retired. 1.5 mg/kg came from the pre-contract hardcode and no approved source states it. Superseded by JTS ID39's 2 mg/kg standard induction and JTS ID40's 1 mg/kg reduced dose, which are two clinical situations rather than two opinions about one.",
+      "former_flags": [
+        "CONTRAINDICATION_CONFLICT",
+        "MIGRATED_UNSOURCED",
+        "SOURCE_CONFLICT"
+      ]
+    },
+    {
+      "generic_name": "ketamine",
+      "indication": "RSI induction",
+      "population": "peds",
+      "route": "IV",
+      "dose_range": {
+        "min": 1.5,
+        "max": 1.5,
+        "units": "mg/kg",
+        "per_kg": true
+      },
+      "retired_on": "2026-08-25",
+      "retired_reason": "OWNER RULING 2026-08-25: retired. 1.5 mg/kg came from the pre-contract hardcode and no approved source states it. Superseded by JTS ID39's 2 mg/kg standard induction and JTS ID40's 1 mg/kg reduced dose, which are two clinical situations rather than two opinions about one.",
+      "former_flags": [
+        "CONTRAINDICATION_CONFLICT",
+        "MIGRATED_UNSOURCED",
+        "SOURCE_CONFLICT"
+      ]
+    },
+    {
+      "generic_name": "ketamine",
+      "indication": "dissociative analgesia (IM — no IV access)",
+      "population": "adult|peds",
+      "route": "IM",
+      "dose_range": {
+        "min": 2.0,
+        "max": 2.0,
+        "units": "mg/kg",
+        "per_kg": true
+      },
+      "retired_on": "2026-08-25",
+      "retired_reason": "OWNER RULING 2026-08-25: retired. 2 mg/kg IM is not an analgesic dose — analgesia is SUB-dissociative. It is the dissociative sedation dose mislabelled, and it does not even match the IM sedation dose: NASEMSO gives 4 mg/kg IM (adult) and 3 mg/kg IM (paediatric) for agitation, while 2 mg/kg is the adult IV sedation dose. So it is the IV sedation number on the IM route, labelled analgesia. Unsourced, and superseded by the sub-dissociative entries.",
+      "former_flags": [
+        "MIGRATED_UNSOURCED",
+        "CONCENTRATION_MISMATCH",
+        "SOURCE_CONFLICT"
+      ]
+    },
+    {
+      "generic_name": "ketamine",
+      "indication": "subdissociative analgesia",
+      "population": "adult|peds",
+      "route": "IV",
+      "dose_range": {
+        "min": 0.3,
+        "max": 0.3,
+        "units": "mg/kg",
+        "per_kg": true
+      },
+      "retired_on": "2026-08-25",
+      "retired_reason": "OWNER RULING 2026-08-25: retired as unsourced. 0.3 mg/kg came from the hardcode; the sub-dissociative range is covered by NASEMSO's 0.25 mg/kg and JTS ID61's 0.1-0.2 mg/kg, which the owner ruled are the same clinical range.",
+      "former_flags": [
+        "MIGRATED_UNSOURCED",
+        "CONCENTRATION_MISMATCH",
+        "SOURCE_CONFLICT"
+      ]
+    },
+    {
+      "generic_name": "succinylcholine",
+      "indication": "RSI paralytic",
+      "population": "adult",
+      "route": "IV",
+      "dose_range": {
+        "min": 1.0,
+        "max": 1.0,
+        "units": "mg/kg",
+        "per_kg": true
+      },
+      "retired_on": "2026-08-25",
+      "retired_reason": "OWNER RULING 2026-08-25: not retired as wrong — recorded as the ALTERNATE on the primary entry instead of standing as a second servable adult dose. JTS ID40 (2021) gives 1 mg/kg; the owner ruled for JTS ID39 (2026), which is newer and corroborates prevailing prehospital practice.",
+      "former_flags": [
+        "SOURCE_CONFLICT"
+      ]
+    },
+    {
+      "generic_name": "succinylcholine",
+      "indication": "RSI paralytic",
+      "population": "peds",
+      "route": "IV",
+      "dose_range": {
+        "min": 2.0,
+        "max": 2.0,
+        "units": "mg/kg",
+        "per_kg": true
+      },
+      "retired_on": "2026-08-25",
+      "retired_reason": "OWNER RULING 2026-08-25: retired on safety grounds. The flat 2 mg/kg applied to every paediatric patient is 33% high on a 7-year-old against JTS ID39, which bands it: 2 mg/kg under 5 years, 1.5 mg/kg at 5 and above. Replaced by the two banded entries.",
+      "former_flags": [
+        "MIGRATED_UNSOURCED",
+        "CONCENTRATION_MISMATCH",
+        "SOURCE_CONFLICT"
+      ]
+    },
+    {
+      "generic_name": "rocuronium",
+      "indication": "RSI paralytic",
+      "population": "adult|peds",
+      "route": "IV",
+      "dose_range": {
+        "min": 1.0,
+        "max": 1.0,
+        "units": "mg/kg",
+        "per_kg": true
+      },
+      "retired_on": "2026-08-25",
+      "retired_reason": "OWNER RULING 2026-08-25: retired. A single adult|peds entry cannot express JTS ID39's split — 1.2 mg/kg adult, 1.0 mg/kg paediatric. Replaced by the two split entries. Its 1 mg/kg with a 1.2 ceiling was also unsourced.",
+      "former_flags": [
+        "MIGRATED_UNSOURCED",
+        "NOT_ON_WHO_EML",
+        "SOURCE_CONFLICT"
+      ]
+    }
+  ],
+  "rulings": {
+    "adjudicated_on": "2026-08-25",
+    "note": "Owner adjudications of every SOURCE_CONFLICT raised by the NASEMSO and JTS extractions. Each ruling is recorded on the entry it settles, in `adjudication`. Retired entries move to retired_entries with their reason rather than being deleted, so a value that was once served can still be traced."
+  }
 }
