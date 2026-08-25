@@ -297,6 +297,16 @@ def cmd_list(only: str = None) -> int:
                 print(f"  ready     {_entry_line(e)}")
     print(f"\n{signed} signed, {ready} ready to sign, "
           f"{blocked} blocked on work")
+    unhonoured = dc.unhonoured_signatures()
+    if unhonoured:
+        # Called out separately from BROKEN above because this one cause is
+        # invisible in the response — the dose just is not there — and it is
+        # fixed by re-signing rather than by clinical work.
+        print(f"\n⚠️  {len(unhonoured)} signature(s) NOT HONOURED — these serve nothing:")
+        for name, ind, route, signer in unhonoured:
+            print(f"  {name} · {ind} · {route}: signed by {signer!r}, "
+                  f"not one of {', '.join(dc.SIGNOFF_AUTHORS)}")
+        print("  Re-sign with --by from that list; put your name in --reason.")
     return 0
 
 

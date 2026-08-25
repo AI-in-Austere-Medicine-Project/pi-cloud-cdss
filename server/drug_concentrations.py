@@ -70,10 +70,15 @@ _DIR = pathlib.Path(__file__).parent
 
 PENDING = "PENDING_CLINICAL_SIGNOFF"
 
-SIGNOFF_AUTHORS = tuple(
-    a.strip() for a in os.getenv("CDSS_CARD_AUTHORS",
-                                 "clinician,AI-AIM").split(",")
-    if a.strip())
+# NOT env-overridable, deliberately. This decides whose signature the SERVING
+# path will honour, which makes it a safety fence rather than a tunable. It
+# used to read CDSS_CARD_AUTHORS, and a signing shell that had widened it wrote
+# five concentrations under a signer the service — which carried no such export
+# — then refused. The signatures were real and the values were right, and every
+# volume in the system degraded to mg-only with nothing anywhere saying why. A
+# fence a shell export can move is not a fence. Identity beyond the role rides
+# in --reason, where the audit log keeps it.
+SIGNOFF_AUTHORS = ("clinician", "AI-AIM")
 
 CONFIG = _DIR / "drug_concentrations.json"
 CHANGE_LOG = pathlib.Path(os.getenv("CDSS_CONCENTRATION_LOG",
@@ -255,6 +260,26 @@ def presentation_is_signed(pres: dict) -> bool:
         return False
     rd = str(pres.get("review_date") or "").strip()
     return bool(rd) and rd != PENDING
+
+
+def unhonoured_signatures() -> list:
+    """(drug, label, signer) for every presentation SIGNED by someone the
+    allowlist will not honour.
+
+    A signature the fence rejects degrades to mg-only. That is safe, and it is
+    silent: the tool said SIGNED, the response carried no volume, and nothing
+    connected the two. Silence is the part that cost the time, so the
+    mismatch gets a name here and a line in --list.
+    """
+    out = []
+    for name, entry in ENTRIES.items():
+        for p in entry.get("presentations", []):
+            if p.get("signoff") is not True:
+                continue
+            signer = str(p.get("reviewed_by") or "").strip()
+            if signer not in SIGNOFF_AUTHORS:
+                out.append((name, p.get("label_text"), signer))
+    return out
 
 
 def signed_presentations(generic_name: str) -> list:

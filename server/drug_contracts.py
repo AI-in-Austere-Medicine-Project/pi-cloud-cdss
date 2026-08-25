@@ -76,10 +76,15 @@ SENTINELS = (PENDING, NEEDS_MANUAL)
 
 # Same signer list as the vent cards, read from the same variable, because a
 # second reviewer should be one edit in one place rather than two.
-SIGNOFF_AUTHORS = tuple(
-    a.strip() for a in os.getenv("CDSS_CARD_AUTHORS",
-                                 "clinician,AI-AIM").split(",")
-    if a.strip())
+# NOT env-overridable, deliberately. This decides whose signature the SERVING
+# path will honour, which makes it a safety fence rather than a tunable. It
+# used to read CDSS_CARD_AUTHORS, and a signing shell that had widened it wrote
+# five concentrations under a signer the service — which carried no such export
+# — then refused. The signatures were real and the values were right, and every
+# volume in the system degraded to mg-only with nothing anywhere saying why. A
+# fence a shell export can move is not a fence. Identity beyond the role rides
+# in --reason, where the audit log keeps it.
+SIGNOFF_AUTHORS = ("clinician", "AI-AIM")
 
 # The four drugs that had hardcoded calculators before this module existed.
 # Their legacy calculators STAY LIVE until the owner re-signs the migrated
@@ -491,6 +496,27 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
                            "carries no adjudication note")
 
     return True, ""
+
+
+def unhonoured_signatures() -> list:
+    """(drug, indication, route, signer) for every entry SIGNED by someone the
+    allowlist will not honour.
+
+    Same failure the concentration list hit: entry_is_servable() reports
+    "reviewed_by ... is not an authorised signer" per entry, but only if
+    someone asks it entry by entry. This names the whole set at once, so a
+    signature that is not being honoured is visible rather than inferred from
+    an absent dose.
+    """
+    out = []
+    for name, drug in DRUGS.items():
+        for e in drug.get("dose_entries", []):
+            if e.get("signoff") is not True:
+                continue
+            signer = str(e.get("reviewed_by") or "").strip()
+            if signer not in SIGNOFF_AUTHORS:
+                out.append((name, e.get("indication"), e.get("route"), signer))
+    return out
 
 
 def servable_entries() -> dict:

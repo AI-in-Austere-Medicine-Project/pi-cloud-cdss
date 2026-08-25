@@ -365,6 +365,13 @@ class DoseCandidate:
     display_value: Optional[float] = None
     display_units: Optional[str] = None
     volume_refusal: Optional[str] = None
+    # The contract's cautions as a LIST, unjoined. `warning` is the same text
+    # joined with "; " for the generator's ALLOWED_DOSES block; anything that
+    # renders cautions to a human must use this instead, because several of
+    # these strings contain their own semicolons and splitting the joined form
+    # cuts them in half mid-sentence. Empty for the legacy calculators, which
+    # carry a single `warning` and nothing structured.
+    cautions: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -969,7 +976,46 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
     pick = lambda pats: drug_contracts.signed_entries_by_indication(
         pats, ctx.is_pediatric, age)
 
-    chosen = list(pick(RSI_INDUCTION_INDICATIONS)) + list(pick(RSI_SEDATION_INDICATIONS))
+    # ONE ENTRY PER ROLE. signed_entries_by_indication() matches on substring,
+    # so "RSI induction" also returns the "— haemodynamically unstable / in
+    # extremis" entry and "ongoing sedation" returns midazolam's next to
+    # ketamine's. Returning all of them put two induction doses in one
+    # intubation — the same failure as two paralytics, which the block below
+    # already guards. The selectors are the owner's rulings, not new policy.
+    chosen = []
+
+    # RULING 1 — two situations, not two opinions: standard induction is
+    # 2 mg/kg, and the reduced 1 mg/kg entry is for the haemodynamically
+    # unstable patient. has_hypotension_or_shock() reads both shock language
+    # and BP values, and is the same predicate the rest of the pipeline uses.
+    # `or induction` is the paediatric case: no approved source states a
+    # reduced paediatric induction, so there is no extremis entry to pick and
+    # the standard one stands rather than the role going empty.
+    induction = pick(RSI_INDUCTION_INDICATIONS)
+    unstable = has_hypotension_or_shock(q)
+    ranked = [x for x in induction
+              if ("extremis" in (x[1].get("indication") or "").lower()) == unstable]
+    chosen += (ranked or induction)[:1]
+
+    # RULING 7 — an equipment split, not a dose dispute. The repeated-bolus
+    # shape is the owner's preferred one where there is no pump, and no pump is
+    # the field default, so a query that says nothing about equipment gets the
+    # bolus. Each entry's cautions name the other shape, which is what makes
+    # serving one of them safe.
+    #
+    # OWNER RULING 2026-08-25: this slot is KETAMINE. Ruling 7 is written about
+    # ketamine's two shapes and the legacy bundle sedated with ketamine;
+    # midazolam matched only because it shares the "ongoing sedation" wording,
+    # and a bundle that gave ketamine AND midazolam would be two sedatives for
+    # one tube. Midazolam stays reachable when a query names it.
+    sedation = [x for x in pick(RSI_SEDATION_INDICATIONS) if x[0] == "ketamine"]
+    has_pump = "pump" in q and not any(
+        x in q for x in ["no pump", "no infusion pump", "without a pump",
+                         "without pump", "don't have a pump", "dont have a pump"])
+    ranked = [x for x in sedation
+              if ("infusion pump available" in (x[1].get("indication") or "").lower())
+              == has_pump]
+    chosen += (ranked or sedation)[:1]
 
     paralytics = pick(RSI_PARALYTIC_INDICATIONS)
     wants_succ = (_has_any_word(q, ["sux", "succs"]) or "succinylcholine" in q) \
@@ -992,6 +1038,7 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
             dose_mg=round(r["dose_mg"], 4), display_value=r["display_value"],
             display_units=r["display_units"],
             source=_contract_source(name, entry),
+            cautions=list(drug_contracts.serve_cautions(entry)),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
     return out
 
@@ -1032,6 +1079,7 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
             display_value=resolved["display_value"],
             display_units=resolved["display_units"],
             source=_contract_source(name, entry),
+            cautions=list(drug_contracts.serve_cautions(entry)),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
         ))
     return out
@@ -3125,13 +3173,86 @@ Guideline-based support only. Not a substitute for clinical judgment."""
     w = ctx.confirmed_weight_kg
     ped = ctx.is_pediatric
 
-    ket_ind = resolve_dose_volume(ketamine_induction_iv(w, ped), ctx)
-    ket_post = resolve_dose_volume(ketamine_post_intubation_iv(w), ctx)
+    # ONE assembly path, and it is the same one build_allowed_doses() uses.
+    # This function used to call the calculators directly, which is how it went
+    # on serving 1.5 mg/kg ketamine and 1.0 mg/kg rocuronium after those
+    # entries were signed at 2 mg/kg and 1.2 mg/kg: the supersede rule lives in
+    # build_allowed_doses(), and the RSI pre-gate returns before ever reaching
+    # it. A second implementation of the bundle could not help but drift from
+    # the first. Signed contracts now fill what they can, and a calculator
+    # backfills a role only while its drug has no signed entry at all — the
+    # same condition, read from the same place.
+    by_role = {}
+    for d in _contract_rsi_candidates(text, ctx):
+        by_role.setdefault(_rsi_role(d.indication), d)
 
+    superseded = set(drug_contracts.servable_entries()) if drug_contracts else set()
     # Burns RSI: avoid succinylcholine unless explicitly requested; default rocuronium.
     use_succ = any(x in q for x in ["succinylcholine", "sux", "succs"]) and not any(x in q for x in ["burn", "crush"])
-    paralytic = resolve_dose_volume(
-        succinylcholine_rsi(w, ped) if use_succ else rocuronium_rsi(w, ped), ctx)
+
+    if "induction" not in by_role and "ketamine" not in superseded:
+        by_role["induction"] = ketamine_induction_iv(w, ped)
+    if "sedation" not in by_role and "ketamine" not in superseded:
+        by_role["sedation"] = ketamine_post_intubation_iv(w)
+    if "paralytic" not in by_role:
+        if use_succ and "succinylcholine" not in superseded:
+            by_role["paralytic"] = succinylcholine_rsi(w, ped)
+        elif not use_succ and "rocuronium" not in superseded:
+            by_role["paralytic"] = rocuronium_rsi(w, ped)
+
+    by_role = {k: resolve_dose_volume(v, ctx) for k, v in by_role.items() if v}
+    ket_ind = by_role.get("induction")
+    paralytic = by_role.get("paralytic")
+    ket_post = by_role.get("sedation")
+    served = [d for d in (ket_ind, paralytic, ket_post) if d is not None]
+    if not served:
+        # Every role empty — nothing signed and nothing to calculate. Fall
+        # through to the normal pipeline rather than print an RSI heading over
+        # no doses at all.
+        return None
+
+    def _give(d, role):
+        if d is None:
+            return f"- No signed contract and no calculator for the {role}. Use local protocol."
+        return render_give_line(d)
+
+    # The cautions are not decoration. serve_cautions() puts the OWNER-DECLARED
+    # banner at the top of the declared sedation entry, and a bundle that
+    # dropped it would serve the owner's number as though a guideline stated
+    # it — the laundering ruling 8 exists to prevent. They sit in their own
+    # block rather than inside GIVE so the GIVE lines stay the thing a medic
+    # can read under load.
+    # One bullet per caution rather than one semicolon-joined paragraph per
+    # drug. These strings were written for the ALLOWED_DOSES block the
+    # generator reads; this pre-gate puts them in front of a medic mid-airway,
+    # and a wall of prose there is read as no prose at all.
+    caution_lines = []
+    for d in served:
+        items = d.cautions or ([d.warning] if d.warning else [])
+        if not items:
+            continue
+        caution_lines.append(f"- {d.drug} — {d.indication}:")
+        caution_lines += [f"  - {c.strip()}" for c in items if c and c.strip()]
+    cautions_block = "\n".join(caution_lines) or "- None recorded for these entries."
+
+    # Provenance follows what was actually served. The old fixed string read
+    # "deterministic RSI calculator" underneath doses that had come from signed
+    # JTS-cited contracts. It deliberately does NOT name a guideline: one of
+    # these entries is owner-declared, and a blanket citation would relabel it
+    # as sourced.
+    from_contract = [str(d.source or "").startswith("drug_contract:") for d in served]
+    if all(from_contract):
+        source_line = ("Signed dose contracts — each dose carries its own citation "
+                       "or owner declaration under CAUTIONS")
+    elif any(from_contract):
+        source_line = ("Mixed — signed dose contracts where one exists, deterministic "
+                       "calculator otherwise; see CAUTIONS per drug")
+    else:
+        source_line = "General Evidence-Based Medicine / deterministic RSI calculator"
+
+    ind_name = ket_ind.drug if ket_ind else "induction agent"
+    sed_name = ket_post.drug if ket_post else "sedation"
+    par_name = paralytic.drug if paralytic else "paralytic"
 
     return f"""**DO THIS**
 1. Pre-oxygenate and prepare suction, backup airway, and cricothyrotomy equipment.
@@ -3139,11 +3260,14 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 3. Intubate, confirm tube, secure tube, then continue post-intubation sedation.
 
 **GIVE**
-{render_give_line(ket_ind)}
-{render_give_line(paralytic)}
+{_give(ket_ind, "induction")}
+{_give(paralytic, "paralytic")}
 
 **POST-INTUBATION SEDATION**
-{render_give_line(ket_post)}
+{_give(ket_post, "post-intubation sedation")}
+
+**CAUTIONS**
+{cautions_block}
 
 **WATCH**
 - Confirm tube with waveform ETCO2 if available. Monitor SpO2, BP, chest rise, and ventilator pressures.
@@ -3153,9 +3277,9 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 - Avoid succinylcholine in burns/crush/hyperkalemia risk unless specifically indicated by protocol.
 
 **TLDR**
-- RSI: ketamine induction first, {paralytic.drug} second, post-intubation ketamine sedation after tube confirmed.
+- RSI: {ind_name} induction first, {par_name} second, post-intubation {sed_name} sedation after tube confirmed.
 
-**SOURCE**: General Evidence-Based Medicine / deterministic RSI calculator
+**SOURCE**: {source_line}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
