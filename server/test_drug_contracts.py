@@ -935,3 +935,115 @@ def test_the_serve_path_does_not_label_a_CITED_dose(monkeypatch):
     c = oc._contract_dose_candidates("testosteril dose", ctx)[0]
     assert "owner_declared" not in c.source
     assert "OWNER-DECLARED" not in (c.warning or "")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# THE RSI PRE-GATE SERVES CONTRACTS
+#
+# The bug these exist for: build_rsi_response() was a second, older
+# implementation of the RSI bundle that called the retired calculators
+# directly, and the pre-gate returned it before build_allowed_doses() — where
+# the supersede rule lives — was ever reached. Signing the contracts changed
+# nothing on that path. Every assertion here is about the two paths not being
+# allowed to drift apart again.
+# ─────────────────────────────────────────────────────────────────────────────
+
+import openai_client as _oc
+from openai_client import PatientContext as _PC
+
+
+def _rsi_ctx(weight=80.0):
+    return _PC(confirmed_weight_kg=weight, weight_source="stated",
+               route_preference="IV")
+
+
+def test_rsi_pregate_serves_contract_doses_not_the_retired_calculators():
+    """The exact failure reported: 46 contracts signed, service restarted, and
+    the RSI query still answered 120 mg / 80 mg from the 1.5 and 1.0 mg/kg
+    hardcodes with a 'deterministic RSI calculator' source line."""
+    text = _oc.build_rsi_response(_rsi_ctx(),
+                                  "need to RSI with ketamine and roc, 80kg IV")
+    assert text is not None
+    give = text.split("**GIVE**")[1].split("**POST-INTUBATION")[0]
+
+    assert "160 mg" in give, f"ketamine is not the signed 2 mg/kg dose: {give}"
+    assert "96 mg" in give, f"rocuronium is not the signed 1.2 mg/kg dose: {give}"
+    assert "120 mg" not in give, "the retired 1.5 mg/kg ketamine hardcode is back"
+    assert "80 mg" not in give, "the retired 1.0 mg/kg rocuronium hardcode is back"
+
+    assert "deterministic RSI calculator" not in text, \
+        "the hardcoded calculator SOURCE line survived the migration"
+    assert "deterministic_calculator:" not in text
+    assert "Signed dose contracts" in text.split("**SOURCE**")[1]
+
+
+def test_rsi_pregate_gives_exactly_one_dose_per_role():
+    """signed_entries_by_indication() matches on substring, so 'RSI induction'
+    also returns the in-extremis entry and 'ongoing sedation' returns
+    midazolam's. Serving them all is two induction doses in one intubation —
+    the same class of failure as the two-paralytics bug this replaced."""
+    for query in ("need to RSI with ketamine and roc, 80kg IV", "rsi now",
+                  "RSI now, BP 78/40, shocky", "rsi now sux",
+                  "rapid sequence intubation, we have an infusion pump"):
+        text = _oc.build_rsi_response(_rsi_ctx(), query)
+        give = text.split("**GIVE**")[1].split("**POST-INTUBATION")[0]
+        post = text.split("**POST-INTUBATION SEDATION**")[1].split("**CAUTIONS**")[0]
+
+        give_doses = [l for l in give.splitlines() if l.startswith("- ")]
+        post_doses = [l for l in post.splitlines() if l.startswith("- ")]
+        assert len(give_doses) == 2, f"{query!r}: expected induction+paralytic, got {give_doses}"
+        assert len(post_doses) == 1, f"{query!r}: expected one sedative, got {post_doses}"
+
+        # One paralytic, never both.
+        assert sum(p in give for p in ("rocuronium", "succinylcholine")) == 1, give
+        # Owner ruling 2026-08-25: the sedation slot is ketamine.
+        assert "ketamine" in post_doses[0], post_doses
+        assert "midazolam" not in post, f"{query!r}: midazolam in the sedation slot"
+
+
+def test_rsi_pregate_and_build_allowed_doses_agree():
+    """The structural guard. Two code paths that both answer 'what dose' will
+    drift; this asserts they cannot, by making the pre-gate's numbers a
+    function of the same contract lookup build_allowed_doses uses."""
+    for query in ("need to RSI with ketamine and roc, 80kg IV",
+                  "RSI now, BP 78/40, shocky", "rsi now sux"):
+        ctx = _rsi_ctx()
+        text = _oc.build_rsi_response(ctx, query)
+        give = text.split("**GIVE**")[1].split("**WATCH**")[0]
+
+        for d in _oc._contract_rsi_candidates(query, ctx):
+            role = _oc._rsi_role(d.indication)
+            assert f"{d.dose_mg:g} mg" in give, \
+                f"{query!r}: contract {role} {d.drug} {d.dose_mg:g} mg missing from the bundle"
+            assert d.drug in give, f"{query!r}: {d.drug} missing from the bundle"
+
+
+def test_rsi_pregate_keeps_the_owner_declared_banner():
+    """The sedation entry serves on a declaration, not a citation. A bundle
+    that dropped its banner would present the owner's number as the
+    guideline's — exactly what ruling 8 forbids."""
+    text = _oc.build_rsi_response(_rsi_ctx(), "rsi now")
+    assert "OWNER-DECLARED DOSE" in text
+    assert "not a value any CPG states" in text
+
+
+def test_no_signature_is_silently_unhonoured():
+    """A signed entry whose signer the allowlist will not honour serves
+    nothing, and used to do so silently — the tool said SIGNED and the dose
+    simply was not there. If this list is non-empty, --list says so."""
+    assert dc.unhonoured_signatures() == [], (
+        "signed entries whose signer is not in SIGNOFF_AUTHORS: "
+        f"{dc.unhonoured_signatures()}")
+
+
+def test_signoff_authors_is_not_shell_widenable(monkeypatch):
+    """The fence that broke the concentration list: SIGNOFF_AUTHORS read
+    CDSS_CARD_AUTHORS, a signing shell widened it, and the service — which had
+    no such export — refused what was written."""
+    import importlib
+    monkeypatch.setenv("CDSS_CARD_AUTHORS", "clinician,AI-AIM,anyone at all")
+    importlib.reload(dc)
+    assert "anyone at all" not in dc.SIGNOFF_AUTHORS
+    assert dc.SIGNOFF_AUTHORS == ("clinician", "AI-AIM")
+    monkeypatch.delenv("CDSS_CARD_AUTHORS")
+    importlib.reload(dc)

@@ -68,6 +68,13 @@ def cmd_list():
         status, conc, _ = dcn.resolve(name)
         served = f"{conc:g} mg/mL" if conc else "NO VOLUME SERVED"
         print(f"  -> {status}: {served}")
+    unhonoured = dcn.unhonoured_signatures()
+    if unhonoured:
+        print("\n⚠️  SIGNED BUT NOT HONOURED — these serve NO VOLUME:")
+        for name, label, signer in unhonoured:
+            print(f"  {name} {label}: signed by {signer!r}, which is not one "
+                  f"of {', '.join(dcn.SIGNOFF_AUTHORS)}")
+        print("  Re-sign with --by from that list; put your name in --reason.")
     if dcn.REJECTIONS:
         print("\nREJECTED (not stored):")
         for r in dcn.REJECTIONS:

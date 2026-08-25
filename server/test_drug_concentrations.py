@@ -428,11 +428,16 @@ def test_a_block_stays_blocked():
 
 
 def test_the_rsi_template_emits_no_volume_while_unsigned():
+    """160 mg, not 120: the RSI pre-gate no longer calls the retired 1.5 mg/kg
+    calculator. The volume half of this test is unchanged — a signed DOSE and a
+    signed CONCENTRATION are separate gates, and ketamine is confirm_required
+    besides, so the mg is contract-sourced and the mL is still refused."""
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     text = oc.build_rsi_response(ctx, "rsi now")
-    assert "mL of" not in text
-    assert "120 mg" in text and oc.CONFIRM_CONCENTRATION_LINE in text
+    give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
+    assert "mL of" not in give
+    assert "160 mg" in give and oc.CONFIRM_CONCENTRATION_LINE in give
 
 
 def test_the_tldr_degrades_with_the_give_line():
