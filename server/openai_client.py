@@ -1563,14 +1563,17 @@ Always include all three in GIVE for RSI: induction + paralytic + post-intubatio
 CICO: Failed ETT + failed rescue + hypoxia → cricothyrotomy immediately.
 
 ────────────────────────────────
-STANDARD CONCENTRATIONS
+CONCENTRATIONS
 ────────────────────────────────
 
-Ketamine: 100mg/mL | Rocuronium: 10mg/mL | Succinylcholine: 20mg/mL
-Fentanyl: 50mcg/mL | Lorazepam: 2mg/mL | Keppra: 100mg/mL | TXA: 100mg/mL
-Norepinephrine: 1mg/mL (mix 4mg in 250mL NS = 16mcg/mL)
-Cefazolin: 100mg/mL (1g in 10mL NS — 2g = 20mL)
-Calcium Chloride 10%: 100mg/mL — CENTRAL LINE ONLY | Calcium Gluconate: 100mg/mL — peripheral OK
+You do not know any drug concentration. There is no standard strength: the same
+drug ships at different strengths in different kits, and the only authority on
+what is in THIS bag is the ALLOWED_DOSES block below.
+
+Never state a mg/mL concentration, and never compute a mL volume, unless it is
+copied from an ALLOWED_DOSES line. If a line gives milligrams and says NO
+VOLUME, that drug has no confirmed concentration — reproduce it exactly as
+written, including its confirm-concentration sentence.
 
 ────────────────────────────────
 RESPONSE FORMAT — JTS SCOPE
@@ -1583,6 +1586,8 @@ RESPONSE FORMAT — JTS SCOPE
 
 **GIVE** [use ALLOWED_DOSES values exactly]
 - Draw X mL of Y mg/mL [drug] [route] (Z mg). Indication: [reason].
+- [drug] [route]: Z mg. NO VOLUME — confirm concentration to compute volume. Indication: [reason].
+  [the second shape when ALLOWED_DOSES gives no volume for that drug]
 
 **DRIP** [infusions]
 - Mix X mg in Y mL NS (Z mg/mL). Start X mL/hr. Target: [goal].
@@ -3027,7 +3032,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 - Avoid succinylcholine in burns/crush/hyperkalemia risk unless specifically indicated by protocol.
 
 **TLDR**
-- RSI: ketamine induction first, rocuronium second, post-intubation ketamine sedation after tube confirmed.
+- RSI: ketamine induction first, {paralytic.drug} second, post-intubation ketamine sedation after tube confirmed.
 
 **SOURCE**: General Evidence-Based Medicine / deterministic RSI calculator
 
