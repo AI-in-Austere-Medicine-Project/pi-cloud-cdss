@@ -1053,7 +1053,9 @@ def test_a_deterministic_card_without_a_conflict_is_untouched(stub_llm):
     result = run("status epilepticus, seizing 10 minutes, RR 16 sats 98")
     assert result["source_mode"] == "DETERMINISTIC_PRE_GATE"
     assert "VITALS CAUTION" not in result["response"]
-    assert result["validator_result"] == "SAFE"
+    # DETERMINISTIC_CHECKED, not SAFE: a deterministic path may skip the LLM
+    # validator but may not claim to have passed it.
+    assert result["validator_result"] == "DETERMINISTIC_CHECKED"
 
 
 def test_a_boundary_reset_on_a_pre_gate_turn_is_still_announced(stub_llm):
