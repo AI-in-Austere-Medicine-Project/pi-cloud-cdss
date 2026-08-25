@@ -80,7 +80,7 @@
       "discovery_query_count": 23,
       "dose_entries": [
         {
-          "indication": "post-intubation sedation q20-30min",
+          "indication": "post-intubation sedation — repeated bolus (no infusion pump)",
           "population": "adult|peds",
           "route": "IV",
           "dose_range": {
@@ -96,6 +96,8 @@
           ],
           "cautions": [
             "After tube confirmed only. Not the induction dose.",
+            "PREFERRED SHAPE WHERE THERE IS NO PUMP. Repeat q20-30min. If an infusion pump IS available, see ketamine · ongoing sedation — loading dose · IV: JTS ID61 gives 1 mg/kg IV over 60 seconds followed by an infusion.",
+            "THE 0.5 mg/kg FIGURE IS NOT IN ANY APPROVED SOURCE. It is the pre-contract hardcode. JTS ID61 states 1 mg/kg as the loading dose and warns of respiratory depression above 1 mg/kg; it says nothing about a 0.5 mg/kg repeated bolus either way. The owner ruled for this shape on equipment grounds, which is an operational judgement the sources do not speak to.",
             "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
             "The cited guideline states no maximum single dose for this drug and indication.",
             "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
@@ -120,13 +122,11 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. JTS ID61 specifies a different shape entirely for ongoing sedation: a 1 mg/kg loading dose over 60 seconds followed by an infusion, not repeated boluses. Both kept.",
+          "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. The ruling settles the shape; it does not supply a citation for the 0.5 mg/kg VALUE, which remains tier 0. MIGRATED_UNSOURCED therefore stands and the fence still refuses to serve this entry. Signing it requires a tier 1 or tier 2 source that states a repeated sub-induction bolus, or an owner decision to serve the JTS loading dose instead.",
           "flags": [
-            "MIGRATED_UNSOURCED",
-            "SOURCE_CONFLICT"
+            "MIGRATED_UNSOURCED"
           ],
-          "conflict_group": "ketamine-post-intubation",
-          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudication": "OWNER RULING 2026-08-25: ruled for the repeated-bolus shape. This is austere/prehospital transport, where an infusion pump is often not available, so 0.5 mg/kg IV q20-30min is the executable option and is the preferred answer. JTS ID61's load-then-infuse is NOT rejected — it is recorded as the alternate for pump-capable settings and kept as its own entry, so the guidance is there when the equipment is. The two are no longer a conflict: they are one ruling about equipment, not two opinions about a dose.",
           "adjudicated_on": "2026-08-25"
         },
         {
@@ -545,7 +545,7 @@
           "adjudicated_on": "2026-08-25"
         },
         {
-          "indication": "ongoing sedation — loading dose",
+          "indication": "ongoing sedation — loading dose (infusion pump available)",
           "population": "adult|peds",
           "route": "IV",
           "dose_range": {
@@ -562,6 +562,7 @@
           "cautions": [
             "Give as an IV push over 60 SECONDS. JTS ID61 warns of respiratory depression at doses above 1 mg/kg, especially with fast IV/IO administration.",
             "Followed by an infusion for continuous sedation — this is a loading dose, not a standalone one.",
+            "ALTERNATE SHAPE, AND THE ONLY ONE WITH A CITED DOSE. Use where an infusion pump is available. Where it is not, the owner's preferred shape is ketamine · post-intubation sedation — repeated bolus · IV at 0.5 mg/kg q20-30min — which carries no approved source and does not serve.",
             "JTS ID61: ketamine is safe for use in TBI and/or eye injury.",
             "Sialorrhea (hypersalivation) can be problematic in an austere setting.",
             "The cited guideline states no maximum single dose for this drug and indication.",
@@ -595,11 +596,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.3.0-draft",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-post-intubation",
-          "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
+          "adjudication": "OWNER RULING 2026-08-25: ruled for the repeated-bolus shape. This is austere/prehospital transport, where an infusion pump is often not available, so 0.5 mg/kg IV q20-30min is the executable option and is the preferred answer. JTS ID61's load-then-infuse is NOT rejected — it is recorded as the alternate for pump-capable settings and kept as its own entry, so the guidance is there when the equipment is. The two are no longer a conflict: they are one ruling about equipment, not two opinions about a dose.",
           "adjudicated_on": "2026-08-25"
         },
         {

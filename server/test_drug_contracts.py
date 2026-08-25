@@ -315,15 +315,15 @@ def test_the_extraction_made_entries_signABLE():
 
 
 def test_both_sides_of_a_source_conflict_are_kept():
-    """CONFLICTING doses are never silently resolved.
+    """CONFLICTING doses are never silently resolved — one side dropped at
+    extraction time is a silent pick nobody can audit.
 
-    NASEMSO gives ketamine 0.25 mg/kg for analgesia capped at 25 mg; the
-    migrated hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped. Both stay,
-    tied by conflict_group, for the owner to adjudicate.
+    Every conflict raised so far has now been ruled on, so this asserts the
+    invariant rather than an instance: whatever is flagged carries a group, and
+    a group has at least two sides.
     """
     conflicted = [e for d in dc.DRUGS.values() for e in d["dose_entries"]
                   if "SOURCE_CONFLICT" in (e.get("flags") or [])]
-    assert len(conflicted) >= 2, "a conflict needs at least two sides"
     groups = collections.Counter(e.get("conflict_group") for e in conflicted)
     assert None not in groups, "a SOURCE_CONFLICT entry has no conflict_group"
     for group, n in groups.items():
@@ -331,18 +331,20 @@ def test_both_sides_of_a_source_conflict_are_kept():
 
 
 def test_a_conflicted_entry_cannot_be_signed_without_adjudicating():
-    """Already covered generically; asserted here on the REAL conflict."""
-    # the NASEMSO side — the migrated side is refused earlier, for tier 0
-    entry = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
-                 if "SOURCE_CONFLICT" in (e.get("flags") or [])
-                 and "MIGRATED_UNSOURCED" not in (e.get("flags") or [])
-                 and any(src["tier"] in (1, 2) for src in e["sources"]))
-    forced = copy.deepcopy(entry)
-    forced.update({"signoff": True, "reviewed_by": "clinician",
-                   "review_date": "2026-08-24"})
+    """Asserted on a synthetic entry, not a real one.
+
+    It used to reach into the file for the live conflict. Ruling 7 settled the
+    last of those, and a test that needs an unruled conflict to exist would
+    reward leaving one lying around.
+    """
+    forced = signed_entry(flags=["SOURCE_CONFLICT"],
+                          conflict_group="synthetic-group")
     forced.pop("adjudication", None)
     ok, why = dc.entry_is_servable(forced)
     assert not ok and "adjudication" in why
+
+    forced["adjudication"] = "OWNER RULING 2026-08-25: the newer source wins."
+    assert dc.entry_is_servable(forced)[0]
 
 
 def test_the_suspected_source_error_was_not_transcribed():
@@ -481,19 +483,15 @@ def test_nothing_was_signed_by_the_jts_extraction():
 # about this file, and a test insisting it still is would be testing history.
 
 
-# The one conflict the 2026-08-25 rulings did not cover. Named here rather than
-# left as a loose end, so a NEW unruled conflict cannot hide among the old.
-STILL_AWAITING_A_RULING = {"ketamine-post-intubation"}
+# Ruling 7 (2026-08-25) closed the last one. The set stays here rather than
+# being deleted, so a NEW unruled conflict has something to fail against.
+STILL_AWAITING_A_RULING = set()
 
 
-def test_only_the_known_conflict_is_still_open():
-    """The owner ruled on six. Post-intubation sedation was not among them.
-
-    It is a real disagreement about SHAPE, not just value: the hardcode gives
-    0.5 mg/kg repeated q20-30min, JTS ID61 gives a 1 mg/kg loading dose over 60
-    seconds followed by an infusion. Resolving it here would be exactly the
-    silent pick this whole layer exists to prevent.
-    """
+def test_no_source_conflict_is_still_open():
+    """All seven are ruled. A new SOURCE_CONFLICT must be adjudicated, not
+    parked: the flag exists to stop a silent pick, and an unruled flag sitting
+    in the file indefinitely is the same silent pick with extra steps."""
     groups = {e.get("conflict_group") for d in dc.DRUGS.values()
               for e in d["dose_entries"]
               if "SOURCE_CONFLICT" in (e.get("flags") or [])}
@@ -614,3 +612,60 @@ def test_every_ruling_is_recorded_on_the_entry_it_settles():
             if e.get("adjudicated_on"):
                 assert e["adjudication"].startswith("OWNER RULING"), \
                     f"{n}/{e['indication']}"
+
+
+def test_ruling_7_post_intubation_sedation_is_an_equipment_split():
+    """The last conflict. The hardcode gives 0.5 mg/kg repeated q20-30min; JTS
+    ID61 gives 1 mg/kg over 60 seconds then an infusion. The owner ruled that
+    those are two equipment situations rather than two opinions, so both
+    entries survive and each says which situation it is for."""
+    ket = dc.DRUGS["ketamine"]["dose_entries"]
+    bolus = next(e for e in ket if "repeated bolus" in e["indication"])
+    pump = next(e for e in ket if "infusion pump available" in e["indication"])
+    assert bolus["dose_range"]["min"] == 0.5
+    assert pump["dose_range"]["min"] == 1.0
+    for e in (bolus, pump):
+        assert "SOURCE_CONFLICT" not in (e.get("flags") or [])
+        assert "conflict_group" not in e
+        assert e["adjudication"].startswith("OWNER RULING 2026-08-25")
+        assert "pump" in e["adjudication"]
+
+
+def test_ruling_7_each_entry_names_the_other():
+    """"So the guidance exists when the equipment does" only holds if the medic
+    on the entry they matched can find the one they did not."""
+    ket = dc.DRUGS["ketamine"]["dose_entries"]
+    bolus = next(e for e in ket if "repeated bolus" in e["indication"])
+    pump = next(e for e in ket if "infusion pump available" in e["indication"])
+    assert any("ongoing sedation" in c and "ID61" in c for c in bolus["cautions"])
+    assert any("repeated bolus" in c and "0.5 mg/kg" in c for c in pump["cautions"])
+
+
+def test_ruling_7_did_not_launder_the_hardcode_into_a_sourced_dose():
+    """THE POINT OF THE RULING THAT IS EASIEST TO LOSE.
+
+    Ruling for the bolus SHAPE settles which answer the owner wants. It does
+    not put a citation under 0.5 mg/kg, which is still the pre-contract
+    hardcode. The flag stays, the fence still refuses, and the entry says so in
+    its own cautions rather than only in a note nobody serves.
+    """
+    bolus = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
+                 if "repeated bolus" in e["indication"])
+    assert "MIGRATED_UNSOURCED" in bolus["flags"]
+    ok, why = dc.entry_is_servable(
+        dict(bolus, signoff=True, reviewed_by=dc.SIGNOFF_AUTHORS[0],
+             review_date="2026-08-25"))
+    assert not ok and "MIGRATED_UNSOURCED" in why
+    assert any("NOT IN ANY APPROVED SOURCE" in c for c in bolus["cautions"])
+
+
+def test_ruling_7_left_the_only_cited_shape_signable():
+    """The bolus cannot be served. If the ID61 entry had been retired into a
+    caution on it — the ruling-3 shape — the cited guidance would have gone
+    with it and post-intubation sedation would serve nothing at all."""
+    pump = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
+                if "infusion pump available" in e["indication"])
+    assert any(s.get("source_class") == "JTS" for s in pump["sources"])
+    assert dc.entry_is_servable(
+        dict(pump, signoff=True, reviewed_by=dc.SIGNOFF_AUTHORS[0],
+             review_date="2026-08-25"))[0]
