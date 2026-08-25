@@ -254,7 +254,10 @@ def test_either_approved_tier_is_enough(tier):
 # this set when the NASEMSO extraction landed: Seizures p.102 gives exactly the
 # hardcoded rule, so it is corroborated rather than unsourced. Expected to keep
 # shrinking as sources are found — that is the point of the migration.
-UNSOURCED_MIGRATED = ("ketamine", "rocuronium", "succinylcholine")
+# Shrank again when the JTS CPGs landed: rocuronium and succinylcholine now
+# carry tier-1 JTS citations, so only ketamine's RSI entries are still
+# unsourced. Every drug that leaves this tuple is a drug the owner can sign.
+UNSOURCED_MIGRATED = ("ketamine",)
 
 
 @pytest.mark.parametrize("name", UNSOURCED_MIGRATED)
@@ -270,7 +273,10 @@ def test_an_unsourced_migrated_entry_cannot_be_signed(name):
                 if "MIGRATED_UNSOURCED" in (e.get("flags") or [])]
     assert migrated, f"{name} has no migrated entry"
     for e in migrated:
-        assert {s["tier"] for s in e["sources"]} == {0}
+        # The entry MAY now carry a tier-1 citation supporting some other
+        # field — ketamine's contraindications came from NASEMSO Appendix III.
+        # That must not make the DOSE signable, which is what the flag exists
+        # to say and what the fence now enforces.
         forced = copy.deepcopy(e)
         forced.update({"signoff": True, "reviewed_by": "clinician",
                        "review_date": "2026-08-24"})
@@ -642,7 +648,14 @@ def test_every_tier_1_citation_names_a_guideline_and_page():
                 if src["tier"] != 1:
                     continue
                 c = src["citation"]
-                assert "NASEMSO" in c and "v3.0" in c, c
+                cls = src.get("source_class")
+                assert cls in ("NASEMSO", "JTS"), f"{name}: tier 1 but {cls!r}"
+                if cls == "NASEMSO":
+                    assert "NASEMSO" in c and "v3.0" in c, c
+                else:
+                    assert "JTS" in c and "CPG ID" in c, c
+                    assert re.search(r"\b\d{2} \w{3} \d{4}\b", c), \
+                        f"a JTS citation must carry the CPG's date: {c!r}"
                 assert re.search(r"p\.\d+", c), f"{name}: no page in {c!r}"
 
 
@@ -693,6 +706,7 @@ def test_a_conflicted_entry_cannot_be_signed_without_adjudicating():
     # the NASEMSO side — the migrated side is refused earlier, for tier 0
     entry = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
                  if "SOURCE_CONFLICT" in (e.get("flags") or [])
+                 and "MIGRATED_UNSOURCED" not in (e.get("flags") or [])
                  and any(src["tier"] in (1, 2) for src in e["sources"]))
     forced = copy.deepcopy(entry)
     forced.update({"signoff": True, "reviewed_by": "clinician",
@@ -754,3 +768,132 @@ def test_a_meaningful_null_maximum_carries_the_sentence_that_says_so():
                 assert "no cumulative maximum" in joined or \
                        "states no maximum" in joined, \
                     f"{name}/{e['indication']}: null max with no explanation"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE JTS EXTRACTION
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_jts_is_a_tier_1_source_class():
+    """JTS sits at tier 1 beside NASEMSO rather than at a tier of its own.
+
+    Tier is a TRUST level, not a document identity — the fence asks "is there
+    an approved clinical source", and a JTS CPG is one. What distinguishes the
+    documents is source_class, which is why that field exists.
+    """
+    classes = {s.get("source_class") for d in dc.DRUGS.values()
+               for e in d["dose_entries"] for s in e["sources"]}
+    assert {"JTS", "NASEMSO", "WHO_EML", "MIGRATION"} <= classes
+    jts_tiers = {s["tier"] for d in dc.DRUGS.values() for e in d["dose_entries"]
+                 for s in e["sources"] if s.get("source_class") == "JTS"}
+    assert jts_tiers == {1}
+
+
+def test_the_rsi_bundle_is_no_longer_unsourceable():
+    """Ranks 1, 3 and 4 — 56 dose queries — had tier-0-only citations and
+    could not be signed at any price. JTS covers what NASEMSO does not."""
+    for drug in ("rocuronium", "succinylcholine"):
+        sourced = [e for e in dc.DRUGS[drug]["dose_entries"]
+                   if isinstance(e["dose_range"], dict)
+                   and any(s.get("source_class") == "JTS" for s in e["sources"])]
+        assert sourced, f"{drug} still has no JTS-sourced dose"
+
+
+@pytest.mark.parametrize("drug,group,at_least", [
+    ("ketamine", "ketamine-rsi-induction", 3),
+    ("succinylcholine", "succinylcholine-rsi-adult", 2),
+    ("rocuronium", "rocuronium-rsi", 2),
+    ("ketamine", "ketamine-analgesia", 3),
+])
+def test_every_disagreement_kept_all_of_its_sides(drug, group, at_least):
+    """Three sources giving three numbers is three entries, not an average and
+    not a winner. The ketamine induction group is the one the owner named."""
+    members = [e for d in dc.DRUGS.values() for e in d["dose_entries"]
+               if e.get("conflict_group") == group]
+    assert len(members) >= at_least, f"{group} has {len(members)} sides"
+    assert all("SOURCE_CONFLICT" in (e.get("flags") or []) for e in members)
+
+
+def test_the_ketamine_induction_conflict_is_the_one_the_owner_flagged():
+    """JTS ID40 1 mg/kg vs the hardcode 1.5 — plus a third the owner had not
+    seen: JTS ID39 (2026) says 2 mg/kg."""
+    members = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
+               if e.get("conflict_group") == "ketamine-rsi-induction"]
+    values = sorted(e["dose_range"]["min"] for e in members
+                    if isinstance(e["dose_range"], dict))
+    assert values == [1.0, 1.5, 2.0], values
+
+
+def test_the_succinylcholine_contraindications_are_filled_from_jts():
+    """JTS ID40 states them explicitly; they were NEEDS_MANUAL_ENTRY."""
+    for e in dc.DRUGS["succinylcholine"]["dose_entries"]:
+        if not isinstance(e["dose_range"], dict):
+            continue
+        ci = " ".join(e["contraindications"]).lower()
+        assert dc.NEEDS_MANUAL not in e["contraindications"]
+        for term in ("burn", "spinal cord", "hyperkal"):
+            assert term in ci, f"{term} missing from {e['indication']}"
+
+
+def test_the_visual_only_infusion_rate_was_not_guessed():
+    """JTS ID61 marks the starting drip rate by HIGHLIGHTING a table row. A
+    highlight is not in the text layer, so the rate is not in this file."""
+    e = next(x for x in dc.DRUGS["ketamine"]["dose_entries"]
+             if x["indication"] == "prolonged sedation infusion")
+    assert e["dose_range"] == dc.NEEDS_MANUAL
+    assert "NEEDS_VISUAL_CONFIRMATION" in e["flags"]
+    assert "highlight" in e["extraction_notes"].lower()
+
+
+def test_txa_finally_has_a_dose():
+    """NASEMSO named TXA in three guidelines and dosed it in none. JTS ID40
+    gives 2 g — and the entry is flagged because grams are not milligrams."""
+    e = next(x for x in dc.DRUGS["tranexamic acid"]["dose_entries"]
+             if "loading" in x["indication"])
+    assert e["dose_range"]["min"] == 2.0 and e["dose_range"]["units"] == "g"
+    assert "UNIT_NOT_MG" in e["flags"]
+
+
+def test_nothing_was_signed_by_the_jts_extraction():
+    assert dc.servable_entries() == {}
+
+
+def test_the_head_injury_disagreement_is_surfaced_not_resolved():
+    """NASEMSO calls head trauma a relative contraindication to ketamine.
+    JTS ID61 says ketamine is safe in TBI. Both tier 1, and the discovery run
+    contains "RSI doses, he has a head injury" — so this is a disagreement the
+    system will be asked about, not a theoretical one."""
+    hits = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
+            if "CONTRAINDICATION_CONFLICT" in (e.get("flags") or [])]
+    assert hits, "the head-injury disagreement is not flagged anywhere"
+    for e in hits:
+        joined = " ".join(e["cautions"])
+        assert "SOURCES DISAGREE ON HEAD INJURY" in joined
+        assert any("NASEMSO" in c for c in e["contraindications"])
+
+
+def test_a_conflicted_entry_is_complete_apart_from_the_ruling():
+    """The point of adjudication-blocking: these entries need a DECISION, not
+    more research. Anything else would mean the extraction left work behind."""
+    ready = 0
+    for d in dc.DRUGS.values():
+        for e in d["dose_entries"]:
+            flags = e.get("flags") or []
+            if "SOURCE_CONFLICT" not in flags:
+                continue
+            if not isinstance(e["dose_range"], dict):
+                continue
+            # A migrated side of a conflict is blocked by its own unsourced
+            # dose, not by the ruling. It is in the group so the owner sees
+            # what they are ruling against, not because signing it is one
+            # decision away.
+            if "MIGRATED_UNSOURCED" in flags:
+                continue
+            forced = copy.deepcopy(e)
+            forced.update({"signoff": True, "reviewed_by": "clinician",
+                           "review_date": "2026-08-25",
+                           "adjudication": "TEST ruling"})
+            ok, why = dc.entry_is_servable(forced)
+            assert ok, f"{e['indication']}: still incomplete after a ruling — {why}"
+            ready += 1
+    assert ready >= 12

@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.1.0",
-  "generated": "2026-08-24",
+  "schema_version": "1.2.0",
+  "generated": "2026-08-25",
   "generated_note": "DRAFT. Nothing in this file is signed and nothing in it is served. Every dose_entry carries signoff:false and awaits a credentialed clinician. Build order follows measured query traffic from the v4.3 discovery run, then the tropical/austere priority subset.",
   "approved_sources": {
     "tier_1": {
@@ -17,6 +17,18 @@
     "tier_0_migration": {
       "citation": "EdgeCDSS pre-contract hardcoded calculators",
       "note": "Not an approved clinical source. Present only to carry the four migrated contracts. The fence REFUSES to sign an entry whose only source is tier 0."
+    },
+    "tier_1_jts": {
+      "citation": "JTS Clinical Practice Guidelines (Joint Trauma System)",
+      "source_class": "JTS",
+      "url": "https://jts.health.mil/index.cfm/CPGs/cpgs",
+      "documents": [
+        "ID40 — Anesthesia for Trauma Patients, 05 Apr 2021",
+        "ID39 — Airway Management in Trauma, 28 Jan 2026",
+        "ID61 — Analgesia and Sedation Management during Prolonged Field Care, 11 May 2017"
+      ],
+      "retrieval_status": "retrieved 2026-08-25 from jts.health.mil; text layers intact",
+      "note": "Tier 1 alongside NASEMSO. JTS is the source that actually covers RSI: NASEMSO v3.0 contains no RSI drug dosing at all and does not list rocuronium or succinylcholine anywhere. The two JTS documents do NOT always agree with each other — ID39 (2026) and ID40 (2021) give different induction and paralytic doses — and every such disagreement is kept as two entries under one conflict_group."
     }
   },
   "copyright_note": "Values here are extracted FACTS — a strength, a form, a scope statement — restructured into this project's own schema. No source table, figure or layout is reproduced. WHO's third-party-materials notice puts the risk of reusing ITS third-party tables on the reuser, which is the reason this file is authored rather than transcribed.",
@@ -93,7 +105,8 @@
               "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_analgesia_iv_0.3mgkg",
               "tier": 0,
               "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "MIGRATION"
             }
           ],
           "signoff": false,
@@ -134,7 +147,8 @@
               "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_analgesia_im_2mgkg",
               "tier": 0,
               "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "MIGRATION"
             }
           ],
           "signoff": false,
@@ -166,28 +180,41 @@
           },
           "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
           ],
           "cautions": [
             "Give BEFORE the paralytic. Confirm weight and route.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
           ],
           "sources": [
             {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_induction_iv_1.5mgkg",
               "tier": 0,
               "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24",
+              "source_class": "MIGRATION"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "Migrated hardcode, 1.5 mg/kg. NOW CONFLICTS WITH TWO TIER-1 VALUES, which also disagree with each other: JTS ID39 (2026) gives ketamine 2 mg/kg IV/IO as first-line RSI induction, and JTS ID40 (2021) gives 1 mg/kg for the trauma patient in extremis. All three entries are kept. Nothing was picked.",
           "flags": [
-            "MIGRATED_UNSOURCED"
-          ]
+            "CONTRAINDICATION_CONFLICT",
+            "MIGRATED_UNSOURCED",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-rsi-induction"
         },
         {
           "indication": "RSI induction",
@@ -206,28 +233,41 @@
           },
           "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
           ],
           "cautions": [
             "Give BEFORE the paralytic. Confirm weight and route.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
           ],
           "sources": [
             {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_induction_iv_1.5mgkg",
               "tier": 0,
               "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24",
+              "source_class": "MIGRATION"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "Migrated hardcode, 1.5 mg/kg with no absolute cap. JTS ID39 gives 2 mg/kg for paediatric induction, same as adult.",
           "flags": [
-            "MIGRATED_UNSOURCED"
-          ]
+            "CONTRAINDICATION_CONFLICT",
+            "MIGRATED_UNSOURCED",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-rsi-induction-peds"
         },
         {
           "indication": "post-intubation sedation q20-30min",
@@ -242,29 +282,42 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
           ],
           "cautions": [
             "After tube confirmed only. Not the induction dose.",
             "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
           ],
           "sources": [
             {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_post_intubation_0.5mgkg",
               "tier": 0,
               "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24",
+              "source_class": "MIGRATION"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. JTS ID61 specifies a different shape entirely for ongoing sedation: a 1 mg/kg loading dose over 60 seconds followed by an infusion, not repeated boluses. Both kept.",
           "flags": [
-            "MIGRATED_UNSOURCED"
-          ]
+            "CONTRAINDICATION_CONFLICT",
+            "MIGRATED_UNSOURCED",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-post-intubation"
         },
         {
           "indication": "prolonged sedation infusion",
@@ -277,14 +330,28 @@
             "NEEDS_MANUAL_ENTRY"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Preceded by a 1 mg/kg IV/IO loading dose over 60 seconds.",
+            "JTS ID61 mix: 750 mg (1.5 vials of 500 mg/5 mL) in 250 mL normal saline = a 3 mg/mL solution.",
+            "JTS ID61 adjustment step: increase or decrease by 0.25 mg/kg/h (one table row).",
+            "JTS ID61 dose band spans 0.5 mg/kg/h (8 mcg/kg/min) upward through 1.25 mg/kg/h (21 mcg/kg/min) in the printed table."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only."
+          "version": "0.3.0-draft",
+          "extraction_notes": "PARTIALLY EXTRACTED — the STARTING rate is not written in the text. JTS ID61's table marks it by HIGHLIGHTING a row ('starting dose highlighted'), which is a visual cue the text layer does not carry. The mix, the adjustment step and the dose band are recorded above because they are stated in prose. The start rate is left NEEDS_MANUAL_ENTRY rather than inferred from the table, and there is a second reason to look at the page: ID61's 'Better' rule (initial mL/h = weight in kg divided by 2) does not reconcile with the mL/h column for the rows this extraction could read, so read the page before filling it.",
+          "flags": [
+            "NEEDS_VISUAL_CONFIRMATION"
+          ]
         },
         {
           "indication": "moderate to severe pain / analgesia",
@@ -319,13 +386,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -368,13 +437,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -410,13 +481,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -451,13 +524,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -492,11 +567,59 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "RSI induction",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "Give BEFORE the paralytic. Confirm weight and route.",
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
+            "JTS ID39: unstable patients require a reduced dosage of induction agent.",
+            "Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3 mg/kg IV/IO is listed second line.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I: Airway Management Summary — RSI and Intubation Pathway, step 6 Sedative/hypnotic, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
@@ -504,7 +627,233 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft"
+          "version": "0.3.0-draft",
+          "flags": [
+            "CONTRAINDICATION_CONFLICT",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-rsi-induction",
+          "extraction_notes": "TIER 1, JTS ID39 (28 Jan 2026), the current airway CPG. Conflicts with JTS ID40's 1 mg/kg and with the migrated 1.5 mg/kg."
+        },
+        {
+          "indication": "RSI induction — haemodynamically unstable / in extremis",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "Give BEFORE the paralytic. Confirm weight and route.",
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
+            "JTS ID39: unstable patients require a reduced dosage of induction agent.",
+            "JTS ID40: standard induction dosages should be REDUCED and titrated to balance induction against haemodynamic change.",
+            "JTS ID40 selects ketamine here because it does not drop systemic vascular resistance to the same extent as other sedative hypnotics.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Specific Considerations for Trauma Anesthesia — Induction of Anesthesia, item 4, p.2",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "CONTRAINDICATION_CONFLICT",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-rsi-induction",
+          "extraction_notes": "TIER 1, JTS ID40 (2021). This is the number the owner named: 1 mg/kg against the hardcode's 1.5. Recorded with ID40's own framing — the exsanguinating patient, dose reduced and titrated — rather than as a bare contradiction, because the population the source is talking about is part of what has to be adjudicated."
+        },
+        {
+          "indication": "RSI induction",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "Give BEFORE the paralytic. Confirm weight and route.",
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
+            "JTS ID39: unstable patients require a reduced dosage of induction agent.",
+            "JTS ID39 paediatric column: pre-dose atropine IV/IO 0.02 mg/kg (minimum 0.1 mg, maximum 0.5 mg) in all under 1 year, those under 5 receiving succinylcholine, and all who receive a 2nd dose of succinylcholine.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 3 Induction, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "CONTRAINDICATION_CONFLICT",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-rsi-induction-peds"
+        },
+        {
+          "indication": "ongoing sedation — loading dose",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "Give as an IV push over 60 SECONDS. JTS ID61 warns of respiratory depression at doses above 1 mg/kg, especially with fast IV/IO administration.",
+            "Followed by an infusion for continuous sedation — this is a loading dose, not a standalone one.",
+            "JTS ID61: ketamine is safe for use in TBI and/or eye injury.",
+            "Sialorrhea (hypersalivation) can be problematic in an austere setting.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Sedation — ketamine loading dose, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "CONTRAINDICATION_CONFLICT",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-post-intubation"
+        },
+        {
+          "indication": "background pain — low-dose analgesia (prolonged field care)",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.2,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO Appendix III: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "JTS ID61 typical dose 20 mg, range 0.1-0.2 mg/kg IV/IO, every 10-30 minutes PRN.",
+            "If no IV/IO is available, JTS ID61 says QUADRUPLE the dose for the IM route.",
+            "JTS ID61: avoid oversedation; respiratory depression appears above 1 mg/kg, especially with fast IV/IO administration.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "SOURCES DISAGREE ON HEAD INJURY. NASEMSO Appendix III lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications to ketamine; JTS ID61 states plainly that ketamine IS SAFE for use in TBI and/or eye injury. Both are tier 1. This matters for RSI on a head-injured casualty, which is what the discovery run's 'RSI doses, he has a head injury' scenario asks for. Not resolved here."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia — ketamine push, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication, p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "CONTRAINDICATION_CONFLICT",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-analgesia",
+          "extraction_notes": "A THIRD value joins the existing ketamine analgesia conflict. NASEMSO gives 0.25 mg/kg capped at 25 mg initial; the hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped; JTS ID61 gives 0.1-0.2 mg/kg. The spread between the lowest tier-1 figure and the hardcoded IM figure is twentyfold."
         }
       ],
       "proposed_aliases": [
@@ -575,13 +924,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -622,13 +973,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -657,13 +1010,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.118",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -695,13 +1050,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.121",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -780,13 +1137,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -823,13 +1182,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -865,13 +1226,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -911,13 +1274,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -954,13 +1319,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Neonatal Resuscitation, p.160",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -997,13 +1364,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Croup), p.156",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1040,13 +1409,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Bronchiolitis), p.151",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1101,17 +1472,34 @@
             "rule": "1.2 mg/kg"
           },
           "max_cumulative": null,
-          "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
-          ],
+          "contraindications": [],
           "cautions": [
-            "Give AFTER the induction agent. Max 1.2 mg/kg.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            "Give AFTER the induction agent. JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
+            "JTS ID40: rocuronium is the choice where succinylcholine is contraindicated — burns, spinal cord injury, hyperkalemia.",
+            "JTS ID40: an increased dose of 1-1.2 mg/kg produces intubating conditions similar to succinylcholine in approximately 60 SECONDS, against succinylcholine's 45.",
+            "JTS ID39 splits by age where the hardcode does not: 1.2 mg/kg adult, 1 mg/kg paediatric.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
           ],
           "sources": [
             {
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: rocuronium_rsi_1mgkg",
               "tier": 0,
+              "source_class": "MIGRATION",
               "url": "internal:openai_client.py",
               "retrieved_date": "2026-08-24"
             }
@@ -1119,12 +1507,14 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim. Rocuronium is NOT on the WHO EML 24th list (vecuronium and atracurium are), so Tier 2 cannot corroborate any part of this entry — it needs Tier 1.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "Rocuronium now HAS a tier-1 source. The hardcode's 1 mg/kg with a 1.2 ceiling sits inside JTS ID40's 1-1.2 mg/kg band, so it is not contradicted — but JTS ID39 makes it age-dependent (1.2 adult, 1.0 paediatric), which the single combined adult|peds entry cannot express. That is the thing to adjudicate: whether this entry splits.",
           "flags": [
             "MIGRATED_UNSOURCED",
-            "NOT_ON_WHO_EML"
-          ]
+            "NOT_ON_WHO_EML",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "rocuronium-rsi"
         },
         {
           "indication": "redose interval",
@@ -1143,8 +1533,84 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all."
+          "version": "0.3.0-draft",
+          "extraction_notes": "Still NEEDS_MANUAL_ENTRY. Neither JTS ID39 nor ID40 states a rocuronium redose interval; both give the intubating dose only. NASEMSO and WHO do not list rocuronium at all."
+        },
+        {
+          "indication": "RSI paralytic",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.2,
+            "max": 1.2,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [],
+          "cautions": [
+            "JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1 mg/kg IV/IO or succinylcholine 1.5 mg/kg IV/IO.",
+            "Give AFTER the induction agent.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "rocuronium-rsi"
+        },
+        {
+          "indication": "RSI paralytic",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [],
+          "cautions": [
+            "JTS ID39 paediatric column, offered as the alternative to succinylcholine.",
+            "Give AFTER the induction agent.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication.",
+            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "rocuronium-rsi"
         }
       ]
     },
@@ -1203,20 +1669,36 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hyperkalemia",
-            "Burns >24hr",
-            "Crush injury",
-            "Denervation"
+            "Burns",
+            "Spinal cord injury",
+            "Hyperkalemia"
           ],
           "cautions": [
             "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            "JTS ID40: succinylcholine 1 mg/kg produces intubating conditions in approximately 45 SECONDS.",
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
           ],
           "sources": [
             {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi_1.5mgkg",
               "tier": 0,
+              "source_class": "MIGRATION",
               "url": "internal:openai_client.py",
               "retrieved_date": "2026-08-24"
             }
@@ -1224,12 +1706,14 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim. CONCENTRATION_MISMATCH: the calculator assumes 20 mg/mL; WHO EML lists suxamethonium injection at 50 mg/mL. A 2.5x concentration error is a volume error at the syringe — resolve before signing.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "THE MIGRATED VALUE IS CORROBORATED BY JTS ID39: 1.5 mg/kg IV/IO, exactly the hardcode. But JTS ID40 (2021) gives 1 mg/kg as the 'standard rapid sequence induction dose' for the same indication, so the two JTS documents disagree with each other. Both are kept. The concentration mismatch is unaffected and separate.",
           "flags": [
-            "MIGRATED_UNSOURCED",
-            "CONCENTRATION_MISMATCH"
-          ]
+            "MIGRATION_CORROBORATED",
+            "CONCENTRATION_MISMATCH",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "succinylcholine-rsi-adult"
         },
         {
           "indication": "RSI paralytic",
@@ -1244,20 +1728,29 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hyperkalemia",
-            "Burns >24hr",
-            "Crush injury",
-            "Denervation"
+            "Burns",
+            "Spinal cord injury",
+            "Hyperkalemia"
           ],
           "cautions": [
             "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            "JTS ID39 gives 1.5 mg/kg for paediatric patients GENERALLY and 2 mg/kg only for those UNDER 5 YEARS. The migrated hardcode applies 2 mg/kg to all paediatric patients.",
+            "JTS ID39: pre-dose atropine in those under 5 receiving succinylcholine, and in anyone receiving a 2nd dose.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
           ],
           "sources": [
             {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi_2.0mgkg",
               "tier": 0,
+              "source_class": "MIGRATION",
               "url": "internal:openai_client.py",
               "retrieved_date": "2026-08-24"
             }
@@ -1265,12 +1758,137 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim. See adult entry for the concentration mismatch.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "The hardcode gives 2 mg/kg to EVERY paediatric patient. JTS ID39 gives 2 mg/kg only under 5 years and 1.5 mg/kg otherwise. This is an age-banding disagreement rather than a flat one — for a 7-year-old the hardcode is 33% high against ID39.",
           "flags": [
             "MIGRATED_UNSOURCED",
-            "CONCENTRATION_MISMATCH"
-          ]
+            "CONCENTRATION_MISMATCH",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "succinylcholine-rsi-peds"
+        },
+        {
+          "indication": "RSI paralytic",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Burns",
+            "Spinal cord injury",
+            "Hyperkalemia"
+          ],
+          "cautions": [
+            "JTS ID40: produces intubating conditions in approximately 45 seconds at this dose.",
+            "JTS ID40 names the contraindications explicitly: burns, spinal cord injury, hyperkalemia — use rocuronium instead in those.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 5, p.3",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "succinylcholine-rsi-adult",
+          "extraction_notes": "TIER 1, JTS ID40. Conflicts with JTS ID39's 1.5 mg/kg and with the migrated 1.5 mg/kg."
+        },
+        {
+          "indication": "RSI paralytic — under 5 years",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Burns",
+            "Spinal cord injury",
+            "Hyperkalemia"
+          ],
+          "cautions": [
+            "JTS ID39 gives this higher dose specifically for patients UNDER 5 YEARS; 1.5 mg/kg applies to paediatric patients above that age.",
+            "Pre-dose atropine IV/IO 0.02 mg/kg (min 0.1 mg, max 0.5 mg).",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "succinylcholine-rsi-peds"
+        },
+        {
+          "indication": "RSI paralytic",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.5,
+            "max": 1.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Burns",
+            "Spinal cord injury",
+            "Hyperkalemia"
+          ],
+          "cautions": [
+            "JTS ID39 paediatric dose for patients 5 YEARS AND OVER; under 5 years the CPG gives 2 mg/kg.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 4 Neuromuscular blockade, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "succinylcholine-rsi-peds"
         }
       ]
     },
@@ -1334,13 +1952,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1379,13 +1999,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1424,13 +2046,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1523,13 +2147,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1568,13 +2194,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1614,13 +2242,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1659,13 +2289,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Respiratory Distress (includes Bronchospasm, Pulmonary Edema), p.192",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -1955,30 +2587,43 @@
           "indication": "traumatic haemorrhage — loading dose",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 2.0,
+            "units": "g",
+            "rule": "2 g bolus"
+          },
+          "max_cumulative": null,
           "contraindications": [
             "NEEDS_MANUAL_ENTRY"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "JTS ID40: give ASAP, or within 3 HOURS of injury.",
+            "JTS ID40 states the 2 g bolus is now FAVOURED over the traditional 1 g prehospital bolus followed by an infusion.",
+            "UNITS ARE GRAMS. The dose builder currently treats every dose_range value as milligrams with no conversion — see the unit note on the calcium and epinephrine entries.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Background / Resuscitation — tranexamic acid, p.2",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "TIER 1 from JTS ID40, and it unblocks rank 8. NASEMSO named TXA in three guidelines and dosed it in none; JTS does. Flagged UNIT_NOT_MG because the value is in grams and the dose builder has no unit conversion yet.",
           "flags": [
-            "NO_DOSE_IN_SOURCE"
+            "UNIT_NOT_MG"
           ]
         },
         {
@@ -1999,7 +2644,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -2029,7 +2675,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -2109,13 +2756,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2157,19 +2806,22 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.103",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2198,7 +2850,8 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2259,19 +2912,64 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.60",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.2.0-draft"
+        },
+        {
+          "indication": "ongoing sedation (prolonged field care)",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.5,
+            "max": 2.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Documented hypersensitivity",
+            "Severe respiratory depression",
+            "Sleep apnea"
+          ],
+          "cautions": [
+            "JTS ID61 typical dose 1 mg, range 0.5-2 mg IV/IO, every 1-6 hours PRN, for sedation and amnesia.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Sedation, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-08-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix C — recommended dosing summary, p.10",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft"
         }
       ],
       "notes": "WHO lists midazolam injection as a therapeutic alternative to lorazepam for seizures (p.10). Midazolam drew 6 dose queries in the discovery run; lorazepam — which HAS a contract — drew none."
@@ -2349,13 +3047,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2403,13 +3103,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2457,13 +3159,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2543,25 +3247,29 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.84",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2607,19 +3315,22 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2653,19 +3364,22 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2716,21 +3430,38 @@
           "indication": "induction of anaesthesia",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.5,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
             "NEEDS_MANUAL_ENTRY"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "JTS ID40 gives this as the REDUCED dose for HYPOTENSIVE patients — propofol decreases systemic vascular resistance significantly, and this band is the mitigation, not the standard induction dose.",
+            "JTS ID40: ongoing volume resuscitation is vital to prevent vascular collapse.",
+            "JTS ID39 does not list propofol as an RSI induction agent at all — ketamine first line, etomidate 0.3 mg/kg second.",
+            "The cited guideline states no maximum single dose for this drug and indication.",
+            "The cited guideline states no cumulative maximum for this drug and indication."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 4, p.3",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+              "retrieved_date": "2026-08-25"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "TIER 1 from JTS ID40. Note the scope carefully: this is the reduced dose for the hypotensive trauma patient, which is the population this deployment sees, but it is not a general induction dose and should not be signed as one.",
           "flags": [
             "NOT_IN_SOURCE"
           ]
@@ -2899,13 +3630,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.119",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2935,7 +3668,8 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -2979,13 +3713,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.119",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -3054,13 +3790,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -3097,13 +3835,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -3143,13 +3883,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -3185,13 +3927,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -3365,19 +4109,22 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: lorazepam_seizure_0.1mgkg_max4mg",
               "tier": 0,
               "url": "internal:openai_client.py",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "MIGRATION"
             }
           ],
           "signoff": false,
@@ -3417,13 +4164,15 @@
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.60",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "NASEMSO"
             }
           ],
           "signoff": false,
@@ -3491,7 +4240,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3518,7 +4268,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3545,7 +4296,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3604,7 +4356,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3660,7 +4413,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3687,7 +4441,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3746,7 +4501,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3773,7 +4529,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3830,7 +4587,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.55 (19.2 Sera, immunoglobulins)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3889,7 +4647,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.1 Oral rehydration)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -3946,7 +4705,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.2 Medicines for diarrhoea)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4000,7 +4760,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4027,7 +4788,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4081,7 +4843,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4108,7 +4871,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4162,7 +4926,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4189,7 +4954,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4243,7 +5009,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4270,7 +5037,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,
@@ -4327,7 +5095,8 @@
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
               "tier": 2,
               "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
             }
           ],
           "signoff": false,

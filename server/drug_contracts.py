@@ -269,6 +269,19 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
     # so an entry that cites nothing but tier 0 cannot be signed no matter who
     # signs it. This is what stops the migration from laundering an unsourced
     # number into a served dose.
+    # A MIGRATED_UNSOURCED entry is one whose DOSE came from the pre-contract
+    # hardcode and which no approved source corroborates. Attaching a tier-1
+    # citation that supports some OTHER field — a contraindication list, say —
+    # must not make the dose signable: the tier check cannot tell which field a
+    # source backs, so the flag carries that fact instead. Clearing the flag is
+    # how someone asserts the dose itself is now sourced.
+    if "MIGRATED_UNSOURCED" in (entry.get("flags") or []):
+        return False, ("flagged MIGRATED_UNSOURCED: the DOSE came from the "
+                       "pre-contract hardcode and no approved source "
+                       "corroborates it. A citation supporting another field "
+                       "does not change that — clear the flag only when the "
+                       "dose itself has a tier 1 or tier 2 source")
+
     tiers = {s.get("tier") for s in entry["sources"]}
     if not tiers & {1, 2}:
         return False, ("no approved source: every source is tier "
