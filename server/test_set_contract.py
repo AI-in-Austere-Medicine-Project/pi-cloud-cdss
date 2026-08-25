@@ -148,24 +148,27 @@ def test_an_adjudicated_conflict_may_be_signed(sandbox):
 
 
 def test_a_migrated_unsourced_entry_is_refused(sandbox, capsys):
-    args = Args(indication="post-intubation sedation — repeated bolus "
-                           "(no infusion pump)", population="adult|peds")
-    assert sc.cmd_sign(args) == 1
+    _mutate(sandbox, "ketamine", "RSI induction", "adult", "IV",
+            flags=["MIGRATED_UNSOURCED"])
+    assert sc.cmd_sign(Args()) == 1
     assert "MIGRATED_UNSOURCED" in capsys.readouterr().out
 
 
 def test_a_tier_1_citation_on_another_field_does_not_source_the_dose(sandbox):
     """WHY THE FLAG AND NOT THE TIER CHECK.
 
-    Ketamine post-intubation sedation cites NASEMSO tier 1 — for its
-    contraindications. Its dose_range is still the pre-contract hardcode. The
-    tier check alone would pass it, because a tier number cannot say which
-    FIELD its source backs. Both layers therefore gate on the flag.
+    Ketamine post-intubation sedation used to be the live example: it cited
+    NASEMSO tier 1 for its CONTRAINDICATIONS while its dose_range was still the
+    pre-contract hardcode. Ruling 8 moved that entry onto an owner declaration,
+    so the case is now built here rather than borrowed — but the invariant is
+    the one that mattered then and matters now: the tier check alone would pass
+    an entry whose tier 1 source backs some other field, because a tier number
+    cannot say which FIELD its source backs. Both layers therefore gate on the
+    flag, not on the tier.
     """
-    e = _entry(sandbox, "ketamine",
-               "post-intubation sedation — repeated bolus (no infusion pump)",
-               "adult|peds", "IV")
-    assert {s["tier"] for s in e["sources"]} == {0, 1}, \
+    e = _mutate(sandbox, "ketamine", "RSI induction", "adult", "IV",
+                flags=["MIGRATED_UNSOURCED"])
+    assert any(s["tier"] in (1, 2) for s in e["sources"]), \
         "premise is stale: this entry no longer carries a tier 1 citation"
     assert "MIGRATED_UNSOURCED" in sc.sign_refusal(e)
     candidate = dict(e, signoff=True, reviewed_by=SIGNER, review_date=DATE)
@@ -340,9 +343,17 @@ def test_list_splits_ready_from_blocked(sandbox, capsys):
 
 
 def test_list_names_the_blocking_reason(sandbox, capsys):
+    """BLOCKED is not enough on its own — the line has to say what to fix.
+
+    cmd_list reads the SHIPPED file rather than the sandbox, so this asserts on
+    a reason that is actually in it: ketamine's prolonged-sedation-infusion
+    entry is blocked on a sentinel nobody has filled in.
+    """
     sc.cmd_list("ketamine")
     out = capsys.readouterr().out
-    assert "BLOCKED" in out and "MIGRATED_UNSOURCED" in out
+    assert "BLOCKED" in out
+    assert dc.NEEDS_MANUAL in out, \
+        "a blocked entry was listed without naming what blocks it"
 
 
 def test_list_flags_a_signature_that_does_not_serve(sandbox, capsys, monkeypatch):
@@ -364,6 +375,73 @@ def test_list_refuses_an_unknown_drug(sandbox, capsys):
     assert sc.cmd_list("asprin") == 1
     assert "no such drug" in capsys.readouterr().out
 
+
+# ── the owner declaration ───────────────────────────────────────────────────
+
+def test_a_well_formed_declaration_may_be_signed(sandbox, capsys):
+    """The ketamine bolus entry, which ruling 8 moved onto a declaration. If
+    this fails the ruling is inert: the owner's decision does not reach a
+    medic until the tool will actually write the signature."""
+    args = Args(indication="post-intubation sedation — repeated bolus "
+                           "(no infusion pump)", population="adult|peds")
+    assert sc.cmd_sign(args) == 0
+    out = capsys.readouterr().out
+    assert "OWNER-DECLARED" in out, \
+        "the signing confirmation did not say what the signature rests on"
+    e = _entry(sandbox, "ketamine", args.indication, args.population, "IV")
+    assert e["signoff"] is True
+    assert dc.is_owner_declared(e)
+
+
+def test_the_signing_log_records_the_declaration(sandbox):
+    """The one signature whose basis the citations cannot reconstruct, because
+    there is no citation for the number."""
+    args = Args(indication="post-intubation sedation — repeated bolus "
+                           "(no infusion pump)", population="adult|peds")
+    assert sc.cmd_sign(args) == 0
+    rec = json.loads(sc.CHANGE_LOG.read_text().strip().splitlines()[-1])
+    assert rec["owner_declared"] is True
+    assert rec["owner_declaration"]["declared_by"]
+    assert rec["owner_declaration"]["justification"]
+
+
+def test_the_tool_refuses_a_declaration_whose_value_drifted(sandbox, capsys):
+    """Sign-time half of the dose_range/declared_value match. A refusal here
+    reaches the person holding the pen; a refusal at serve time reaches a medic
+    who finds the dose missing."""
+    _mutate(sandbox, "ketamine",
+            "post-intubation sedation — repeated bolus (no infusion pump)",
+            "adult|peds", "IV",
+            dose_range={"min": 0.75, "max": 0.75, "units": "mg/kg",
+                        "per_kg": True})
+    args = Args(indication="post-intubation sedation — repeated bolus "
+                           "(no infusion pump)", population="adult|peds")
+    assert sc.cmd_sign(args) == 1
+    assert "declared_value" in capsys.readouterr().out
+
+
+def test_the_tool_refuses_an_unflagged_declaration(sandbox, capsys):
+    _mutate(sandbox, "ketamine",
+            "post-intubation sedation — repeated bolus (no infusion pump)",
+            "adult|peds", "IV", flags=[])
+    args = Args(indication="post-intubation sedation — repeated bolus "
+                           "(no infusion pump)", population="adult|peds")
+    assert sc.cmd_sign(args) == 1
+    assert "not flagged" in capsys.readouterr().out
+
+
+def test_list_marks_the_declared_entry(sandbox, capsys):
+    """--list is where the signing pass is planned. An owner-declared entry
+    that looks like every other 'ready' line is one somebody signs without
+    noticing what they are signing."""
+    sc.cmd_list("ketamine")
+    out = capsys.readouterr().out
+    for line in out.splitlines():
+        if "repeated bolus" in line:
+            assert "[OWNER-DECLARED]" in line
+            break
+    else:
+        raise AssertionError("the bolus entry was not listed at all")
 
 # ── the shipped file ────────────────────────────────────────────────────────
 

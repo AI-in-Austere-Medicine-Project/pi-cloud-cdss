@@ -641,22 +641,42 @@ def test_ruling_7_each_entry_names_the_other():
     assert any("repeated bolus" in c and "0.5 mg/kg" in c for c in pump["cautions"])
 
 
-def test_ruling_7_did_not_launder_the_hardcode_into_a_sourced_dose():
+def test_ruling_8_did_not_launder_the_hardcode_into_a_SOURCED_dose():
     """THE POINT OF THE RULING THAT IS EASIEST TO LOSE.
 
-    Ruling for the bolus SHAPE settles which answer the owner wants. It does
-    not put a citation under 0.5 mg/kg, which is still the pre-contract
-    hardcode. The flag stays, the fence still refuses, and the entry says so in
-    its own cautions rather than only in a note nobody serves.
+    Ruling 8 made the bolus dose signable. It did NOT make it sourced, and the
+    difference is the whole mechanism: the entry serves on a declaration that
+    names an owner and a date, not on a citation. If this ever passes while the
+    entry also claims a tier 1/2 citation FOR THE VALUE, the declaration has
+    quietly turned into evidence.
     """
     bolus = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
                  if "repeated bolus" in e["indication"])
-    assert "MIGRATED_UNSOURCED" in bolus["flags"]
+    assert dc.OWNER_DECLARED in bolus["flags"]
+    assert dc.MIGRATED_UNSOURCED not in bolus["flags"]
+    assert dc.is_owner_declared(bolus)
+
+    # The shape doctrine lives in the declaration, NOT in sources[]. Nothing in
+    # sources[] may claim to state the number.
+    citations = " ".join(s.get("citation", "") for s in bolus["sources"])
+    assert "Appendix A" not in citations, \
+        "shape doctrine leaked into sources[] where it reads as a dose citation"
+    assert any(d["supports"].startswith("SHAPE ONLY")
+               for d in bolus["owner_declaration"]["supporting_doctrine"])
+
+    # And the entry says so in its own cautions, which is what a medic reads.
+    assert any("OWNER DECLARATION" in c and "NOT A GUIDELINE VALUE" in c
+               for c in bolus["cautions"])
+
+
+def test_ruling_8_left_the_bolus_entry_signable():
+    """The ruling is inert unless the fence actually accepts it."""
+    bolus = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
+                 if "repeated bolus" in e["indication"])
     ok, why = dc.entry_is_servable(
         dict(bolus, signoff=True, reviewed_by=dc.SIGNOFF_AUTHORS[0],
-             review_date="2026-08-25"))
-    assert not ok and "MIGRATED_UNSOURCED" in why
-    assert any("NOT IN ANY APPROVED SOURCE" in c for c in bolus["cautions"])
+             review_date="2026-08-25", version="0.3.0"))
+    assert ok, why
 
 
 def test_ruling_7_left_the_only_cited_shape_signable():
@@ -669,3 +689,249 @@ def test_ruling_7_left_the_only_cited_shape_signable():
     assert dc.entry_is_servable(
         dict(pump, signoff=True, reviewed_by=dc.SIGNOFF_AUTHORS[0],
              review_date="2026-08-25"))[0]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OWNER DECLARATION — the anti-smuggling suite
+#
+# OWNER_DECLARED is the one place where a number with no citation may be
+# served. That makes it the one place worth attacking, so every test below is
+# written as an attack: each one is a way somebody could get an unsourced value
+# onto a screen without meaning to declare it, and each one must be refused.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _declared_fixture(**over):
+    """A minimal, well-formed owner-declared entry. Synthetic drug, synthetic
+    number, for the same reason the rest of this file's fixtures are."""
+    dr = {"min": 1.0, "max": 1.0, "units": "mg/kg", "per_kg": True}
+    e = {
+        "indication": "synthetic indication",
+        "population": "adult",
+        "route": "IV",
+        "dose_range": dict(dr),
+        "max_single": None,
+        "max_cumulative": None,
+        "contraindications": ["Hypersensitivity"],
+        "cautions": ["The cited guideline states no maximum single dose for "
+                     "this drug and indication.",
+                     "The cited guideline states no cumulative maximum for "
+                     "this drug and indication."],
+        "sources": [{"citation": "TESTOSTERIL migration carrier",
+                     "tier": 0, "url": "internal:test",
+                     "retrieved_date": "2026-08-25"}],
+        "signoff": True,
+        "reviewed_by": dc.SIGNOFF_AUTHORS[0],
+        "review_date": "2026-08-25",
+        "version": "0.0.1",
+        "flags": [dc.OWNER_DECLARED],
+        "owner_declaration": {
+            "basis": "owner clinical declaration",
+            "declared_by": "Test Owner - AI-AIM",
+            "declared_on": "2026-08-25",
+            "justification": ("A synthetic justification long enough to be a "
+                              "real one: doctrine supports the shape of this "
+                              "intervention and no guideline states a number "
+                              "for it, so the value is declared."),
+            "declared_value": dict(dr),
+            "supporting_doctrine": [
+                {"citation": "SYNTHETIC CPG — shape only", "tier": 1,
+                 "supports": "SHAPE ONLY — states the approach, not the dose"},
+            ],
+        },
+    }
+    e.update(over)
+    return e
+
+
+def test_the_declaration_fixture_is_actually_servable():
+    """Every refusal below is only meaningful if the baseline passes."""
+    ok, why = dc.entry_is_servable(_declared_fixture())
+    assert ok, why
+    assert dc.is_owner_declared(_declared_fixture())
+
+
+def test_the_flag_alone_declares_nothing():
+    """The flag is a claim that a declaration exists. It is not the
+    declaration."""
+    e = _declared_fixture()
+    del e["owner_declaration"]
+    ok, why = dc.entry_is_servable(e)
+    assert not ok and "no owner_declaration object" in why
+    assert not dc.is_owner_declared(e)
+
+
+def test_a_declaration_without_the_flag_is_refused():
+    """THE QUIET PATH, CLOSED.
+
+    Someone drops an owner_declaration into an entry, does not flag it, and
+    the entry serves on whatever it had before while carrying a document that
+    reads like authority. Refused: a declaration that is not declared is the
+    smuggle this whole mechanism is built against.
+    """
+    e = _declared_fixture(flags=[])
+    ok, why = dc.entry_is_servable(e)
+    assert not ok and "not flagged" in why
+    assert not dc.is_owner_declared(e)
+
+
+def test_a_declaration_must_carry_a_justification():
+    e = _declared_fixture()
+    e["owner_declaration"] = dict(e["owner_declaration"], justification="ok")
+    ok, why = dc.entry_is_servable(e)
+    assert not ok and "justification" in why
+
+
+def test_a_declaration_must_say_what_doctrine_supports_the_shape():
+    """A bare assertion is not a declaration. If nothing at all supports even
+    the SHAPE of the intervention, the answer is not to declare a dose."""
+    e = _declared_fixture()
+    e["owner_declaration"] = dict(e["owner_declaration"],
+                                  supporting_doctrine=[])
+    ok, why = dc.entry_is_servable(e)
+    assert not ok and "supporting_doctrine" in why
+
+
+def test_editing_the_dose_after_declaring_it_takes_the_entry_OFF_THE_WIRE():
+    """THE ONE THAT MATTERS MOST.
+
+    The declaration names the number it authorises. Change dose_range and
+    leave the declaration alone — a plausible edit, and the one that would
+    otherwise let a NEW unsourced value inherit an OLD signature — and the
+    entry stops serving until somebody re-declares it deliberately.
+    """
+    e = _declared_fixture()
+    e["dose_range"] = dict(e["dose_range"], min=2.0, max=2.0)
+    ok, why = dc.entry_is_servable(e)
+    assert not ok
+    assert "declared_value" in why and "does not name the dose" in why
+    assert not dc.is_owner_declared(e)
+
+    # And re-declaring it deliberately is what puts it back.
+    e["owner_declaration"] = dict(e["owner_declaration"],
+                                  declared_value=dict(e["dose_range"]))
+    assert dc.entry_is_servable(e)[0]
+
+
+def test_a_declaration_may_not_ride_on_top_of_the_migration_flag():
+    """Declaring a value is a change of BASIS, and a change of basis has to be
+    a visible edit. Leaving MIGRATED_UNSOURCED in place while adding
+    OWNER_DECLARED would make the entry serve while still claiming, in its own
+    flags, that its dose is an uncorroborated hardcode."""
+    e = _declared_fixture(flags=[dc.OWNER_DECLARED, dc.MIGRATED_UNSOURCED])
+    ok, why = dc.entry_is_servable(e)
+    assert not ok and "cannot be both" in why
+
+
+def test_a_declaration_does_not_source_the_entry_NEXT_DOOR():
+    """PER-ENTRY, AND THERE IS NO GLOBAL 'THE OWNER HAS DECLARED' STATE.
+
+    An undeclared entry with nothing but tier 0 sources is refused whether or
+    not it sits beside a declared one, and whether or not it is in the same
+    drug. If this ever passes, OWNER_DECLARED has become a property of the
+    file rather than of an entry.
+    """
+    declared = _declared_fixture()
+    assert dc.entry_is_servable(declared)[0]
+
+    neighbour = _declared_fixture(flags=[], indication="undeclared neighbour")
+    del neighbour["owner_declaration"]
+    ok, why = dc.entry_is_servable(neighbour)
+    assert not ok
+    assert "tier 1 or tier 2" in why
+
+
+def test_a_declaration_does_not_excuse_any_OTHER_refusal():
+    """It substitutes for the citation and for nothing else. A sentinel, a bad
+    signer, an unresolved conflict — all still refuse."""
+    assert not dc.entry_is_servable(
+        _declared_fixture(cautions=[dc.NEEDS_MANUAL]))[0]
+    assert not dc.entry_is_servable(
+        _declared_fixture(reviewed_by="andrew"))[0]
+    assert not dc.entry_is_servable(
+        _declared_fixture(flags=[dc.OWNER_DECLARED, "SOURCE_CONFLICT"]))[0]
+
+
+def test_a_declared_dose_is_visibly_declared_wherever_it_is_served():
+    """The banner rides in the CAUTIONS, first, because that is the text that
+    reaches a medic at the moment of giving the drug. A provenance that only
+    exists in the JSON is a provenance nobody reads."""
+    e = _declared_fixture()
+    served = dc.serve_cautions(e)
+    assert served[0].startswith("OWNER-DECLARED DOSE")
+    assert "Test Owner - AI-AIM" in served[0]
+    assert served[1:] == e["cautions"], \
+        "serve_cautions dropped or reordered the entry's own cautions"
+
+
+def test_an_ordinary_entry_is_not_labelled_declared():
+    """The label has to mean something, which means it has to be absent from
+    every cited dose."""
+    e = _declared_fixture(flags=[])
+    del e["owner_declaration"]
+    e["sources"] = [{"citation": "SYNTHETIC CPG", "tier": 1,
+                     "url": "internal:test", "retrieved_date": "2026-08-25"}]
+    assert dc.entry_is_servable(e)[0]
+    assert not dc.is_owner_declared(e)
+    assert dc.provenance_label(e) == ""
+    assert dc.serve_cautions(e) == e["cautions"]
+
+
+def test_every_declared_entry_in_the_shipped_file_is_well_formed():
+    """A malformed declaration fails closed — the entry just stops serving —
+    which is safe and silent. This is the loud half."""
+    for name, drug in dc.DRUGS.items():
+        for e in drug["dose_entries"]:
+            if dc.OWNER_DECLARED not in (e.get("flags") or []):
+                continue
+            ok, why = dc._declaration_ok(e)
+            assert ok, f"{name} / {e['indication']}: {why}"
+
+
+def test_the_declared_list_is_short_and_named():
+    """Not a correctness property — a review property. Every entry on this
+    list is a number the project is answerable for itself, so the set is
+    pinned: adding one has to be a deliberate edit to this test.
+    """
+    declared = {(n, e["indication"]) for n, d in dc.DRUGS.items()
+                for e in d["dose_entries"]
+                if dc.OWNER_DECLARED in (e.get("flags") or [])}
+    assert declared == {
+        ("ketamine",
+         "post-intubation sedation — repeated bolus (no infusion pump)"),
+    }
+
+
+def test_the_serve_path_labels_a_declared_dose_in_BOTH_channels(monkeypatch):
+    """END TO END, THROUGH THE REAL SERVE PATH.
+
+    The unit tests above check serve_cautions() in isolation, which proves the
+    helper works and proves nothing about whether anything calls it. This goes
+    through _contract_dose_candidates(), because the failure that matters is a
+    serve path that reads entry["cautions"] directly and hands a medic an
+    owner-declared number dressed as a cited one.
+    """
+    e = _declared_fixture(indication="TEST declared indication",
+                          population="adult|peds")
+    d = synthetic_drug(dose_entries=[e])
+    monkeypatch.setattr(dc, "DRUGS", {d["generic_name"]: d})
+
+    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
+    doses = oc._contract_dose_candidates("testosteril dose", ctx)
+    assert doses, "the declared entry did not serve at all"
+    c = doses[0]
+    # Channel 1: prose a medic reads, first, before the clinical cautions.
+    assert c.warning.startswith("OWNER-DECLARED DOSE")
+    assert "Test Owner - AI-AIM" in c.warning
+    # Channel 2: a machine-matchable marker for the log and the transcript.
+    assert c.source.endswith(":owner_declared")
+
+
+def test_the_serve_path_does_not_label_a_CITED_dose(monkeypatch):
+    """The other half: the marker must be absent from an ordinary dose, or it
+    stops distinguishing anything."""
+    d = synthetic_drug()
+    monkeypatch.setattr(dc, "DRUGS", {d["generic_name"]: d})
+    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
+    c = oc._contract_dose_candidates("testosteril dose", ctx)[0]
+    assert "owner_declared" not in c.source
+    assert "OWNER-DECLARED" not in (c.warning or "")

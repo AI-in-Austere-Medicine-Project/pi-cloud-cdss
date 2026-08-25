@@ -119,6 +119,47 @@ _SOURCE_KEYS = ("citation", "tier", "url", "retrieved_date")
 
 VALID_POPULATIONS = ("adult", "peds", "weight-based", "adult|peds")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# OWNER DECLARATION
+#
+# A third basis for a signable dose, alongside a tier 1 and a tier 2 citation:
+# the owner states the number on clinical judgement because no guideline states
+# it. It exists because refusing to serve is not automatically the safe answer
+# — post-intubation sedation with no pump is a real thing a medic has to do,
+# PFC doctrine prescribes the SHAPE (intermittent ketamine push) and no CPG
+# anywhere prints the repeat-bolus NUMBER. The choice was between an owner who
+# names the value and signs for it, and a system that goes quiet on a case it
+# is deployed into.
+#
+# Everything about the design is aimed at the one failure this opens up:
+# OWNER_DECLARED becoming a quiet way to sign an unsourced number. So —
+#
+#   it is opt-in and per-entry     the flag says so on the entry itself, and it
+#                                  does nothing for the entry next door. There
+#                                  is no global "the owner has declared" state.
+#   it names its own value         declared_value must EQUAL dose_range. Editing
+#                                  the dose without re-declaring it breaks the
+#                                  match and the entry stops serving. This is
+#                                  what makes silent smuggling impossible: the
+#                                  number is written twice, deliberately.
+#   it cannot be implicit          a declaration block with no flag is refused,
+#                                  and a flag with no declaration block is
+#                                  refused. Neither half works alone.
+#   shape and value stay apart     supporting_doctrine cites what the doctrine
+#                                  DOES say (the shape). It is held outside
+#                                  sources[] so no reader can mistake a shape
+#                                  citation for a citation of the number.
+#   it is visible at every serve   provenance_label() rides in the served
+#                                  cautions and in the worksheet, so a medic
+#                                  reads "owner-declared" on the same line as
+#                                  the dose rather than in a file they will
+#                                  never open.
+OWNER_DECLARED = "OWNER_DECLARED"
+MIGRATED_UNSOURCED = "MIGRATED_UNSOURCED"
+
+_DECLARATION_KEYS =("basis", "declared_by", "declared_on", "justification",
+                     "declared_value", "supporting_doctrine")
+
 
 def _load(filename: str = "drug_contracts.json") -> dict:
     path = _DIR / filename
@@ -218,6 +259,129 @@ def _sources_ok(sources) -> tuple:
     return True, ""
 
 
+def _declaration_ok(entry: dict) -> tuple:
+    """(ok, reason) for the owner-declaration half of an entry.
+
+    Called on EVERY entry, not just declared ones, because half the job is
+    catching the two mismatched states: a flag with no declaration, and a
+    declaration with no flag. Returns (True, "") for the ordinary entry that
+    has neither.
+    """
+    flags = entry.get("flags") or []
+    flagged = OWNER_DECLARED in flags
+    decl = entry.get("owner_declaration")
+
+    if decl is not None and not flagged:
+        return False, ("carries owner_declaration but is not flagged "
+                       f"{OWNER_DECLARED} — a declaration that is not declared "
+                       "is how an unsourced value gets in quietly. Flag it or "
+                       "remove it")
+    if not flagged:
+        return True, ""
+
+    if MIGRATED_UNSOURCED in flags:
+        return False, (f"flagged both {MIGRATED_UNSOURCED} and "
+                       f"{OWNER_DECLARED} — the dose cannot be both blocked as "
+                       "an uncorroborated hardcode and declared as the owner's "
+                       "judgement. Clear the migration flag deliberately when "
+                       "declaring, so the change of basis is a visible edit")
+    if not isinstance(decl, dict):
+        return False, (f"flagged {OWNER_DECLARED} with no owner_declaration "
+                       "object — the flag alone declares nothing")
+
+    missing = [k for k in _DECLARATION_KEYS if k not in decl]
+    if missing:
+        return False, (f"owner_declaration is missing "
+                       f"{', '.join(sorted(missing))}")
+    # has_sentinel, not _is_pending: declared_value legitimately carries a null
+    # max where min and max are the same number, and _is_pending would read
+    # that null as unauthored. The per-key checks below cover the rest.
+    if has_sentinel(decl):
+        return False, "owner_declaration is not authored"
+
+    for k in ("basis", "declared_by", "declared_on", "justification"):
+        if not isinstance(decl.get(k), str) or not decl[k].strip():
+            return False, f"owner_declaration.{k} must be a non-empty string"
+
+    # The justification is the whole point of the mechanism: it is the sentence
+    # the next reader gets instead of "someone typed a number". A one-word
+    # placeholder would satisfy a non-empty check and satisfy nobody else.
+    if len(decl["justification"].strip()) < 80:
+        return False, ("owner_declaration.justification is too short to be a "
+                       "justification — say what doctrine supports the shape "
+                       "and why no source states the value")
+
+    doctrine = decl.get("supporting_doctrine")
+    if not isinstance(doctrine, list) or not doctrine:
+        return False, ("owner_declaration.supporting_doctrine is empty — a "
+                       "declared value still has to say what the doctrine "
+                       "does support, or it is a bare assertion")
+    for d in doctrine:
+        if not isinstance(d, dict):
+            return False, "a supporting_doctrine item is not an object"
+        for k in ("citation", "supports"):
+            if not isinstance(d.get(k), str) or not d[k].strip():
+                return False, f"a supporting_doctrine item is missing {k}"
+
+    # The declared value, written out a second time and checked against the
+    # first. Edit dose_range alone and this stops matching, which takes the
+    # entry off the wire until someone re-declares it on purpose.
+    dv = decl.get("declared_value")
+    if not isinstance(dv, dict):
+        return False, "owner_declaration.declared_value is not an object"
+    dr = entry.get("dose_range")
+    if not isinstance(dr, dict):
+        return False, "owner_declaration.declared_value has no dose_range to match"
+    for k in _DOSE_RANGE_KEYS:
+        if dv.get(k) != dr.get(k):
+            return False, (f"owner_declaration.declared_value.{k} is "
+                           f"{dv.get(k)!r} but dose_range.{k} is "
+                           f"{dr.get(k)!r} — the declaration does not name the "
+                           "dose the entry serves. Re-declare the value or "
+                           "revert the dose")
+    return True, ""
+
+
+def is_owner_declared(entry: dict) -> bool:
+    """Whether this entry's DOSE rests on the owner's declaration.
+
+    True only when the flag and a well-formed declaration are both present, so
+    a caller can never be told 'declared' about an entry the fence would refuse.
+    """
+    if not isinstance(entry, dict):
+        return False
+    return (OWNER_DECLARED in (entry.get("flags") or [])
+            and _declaration_ok(entry)[0])
+
+
+def provenance_label(entry: dict) -> str:
+    """The one line that says what the dose rests on, or "" for a cited one.
+
+    Deliberately shouty and deliberately short: it is prepended to the cautions
+    a medic reads at the moment of giving the drug, where a paragraph would be
+    skipped.
+    """
+    if not is_owner_declared(entry):
+        return ""
+    d = entry["owner_declaration"]
+    return (f"OWNER-DECLARED DOSE — NOT FROM A PUBLISHED GUIDELINE. This number "
+            f"is the clinical judgement of {d['declared_by']} "
+            f"({d['declared_on']}), not a value any CPG states. The approach is "
+            f"doctrine; the number is a declaration.")
+
+
+def serve_cautions(entry: dict) -> list:
+    """The cautions as they should reach a medic, provenance first.
+
+    Every serve path goes through this rather than reading entry["cautions"]
+    directly, so an owner-declared dose cannot reach a screen looking like a
+    cited one just because a new call site forgot.
+    """
+    cautions = list(entry.get("cautions") or [])
+    label = provenance_label(entry)
+    return [label] + cautions if label else cautions
+
+
 def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
     """(servable, reason). The single gate every serve path goes through.
 
@@ -275,18 +439,35 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
     # must not make the dose signable: the tier check cannot tell which field a
     # source backs, so the flag carries that fact instead. Clearing the flag is
     # how someone asserts the dose itself is now sourced.
-    if "MIGRATED_UNSOURCED" in (entry.get("flags") or []):
+    # Checked BEFORE the migration flag and the tier rule, because both of the
+    # states it catches are malformed rather than merely unsourced, and naming
+    # the malformation is more use than reporting the symptom.
+    ok, why = _declaration_ok(entry)
+    if not ok:
+        return False, why
+
+    declared = is_owner_declared(entry)
+
+    if MIGRATED_UNSOURCED in (entry.get("flags") or []):
         return False, ("flagged MIGRATED_UNSOURCED: the DOSE came from the "
                        "pre-contract hardcode and no approved source "
                        "corroborates it. A citation supporting another field "
                        "does not change that — clear the flag only when the "
-                       "dose itself has a tier 1 or tier 2 source")
+                       "dose itself has a tier 1 or tier 2 source, or when the "
+                       "owner declares the value under OWNER_DECLARED")
 
+    # Three bases, not two. A tier 1 citation, a tier 2 citation, or the
+    # owner's declaration — and the third one holds for THIS entry only,
+    # because is_owner_declared() reads this entry's own flag and its own
+    # declaration block. There is no state here that another entry can inherit:
+    # an undeclared entry with nothing but tier 0 sources is refused whether or
+    # not the entry beside it is declared.
     tiers = {s.get("tier") for s in entry["sources"]}
-    if not tiers & {1, 2}:
+    if not tiers & {1, 2} and not declared:
         return False, ("no approved source: every source is tier "
                        f"{sorted(t for t in tiers if t is not None)} and a "
-                       "signed entry needs at least one tier 1 or tier 2 citation")
+                       "signed entry needs at least one tier 1 or tier 2 "
+                       "citation, or an explicit owner declaration")
 
     # Unit sanity. Refused rather than flagged: a thousandfold dose is not a
     # thing to warn about underneath and serve anyway.
