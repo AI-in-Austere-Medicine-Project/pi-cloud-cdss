@@ -1,12 +1,12 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "generated": "2026-08-24",
   "generated_note": "DRAFT. Nothing in this file is signed and nothing in it is served. Every dose_entry carries signoff:false and awaits a credentialed clinician. Build order follows measured query traffic from the v4.3 discovery run, then the tropical/austere priority subset.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
       "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-      "retrieval_status": "UNREACHABLE at build time — HTTP 403 from the origin and from every mirror tried on 2026-08-24. NO value in this file is sourced to Tier 1."
+      "retrieval_status": "retrieved 2026-08-24 from a local copy at sources/National_Model_EMS_Clinical_Guidelines_Version_3.pdf (407 pages, text layer intact, printed page == PDF page). Extracted into this file as DRAFT tier 1 values."
     },
     "tier_2": {
       "citation": "WHO — The selection and use of essential medicines 2025: WHO Model List of Essential Medicines, 24th list",
@@ -74,12 +74,15 @@
             "per_kg": true
           },
           "max_single": null,
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
           ],
           "cautions": [
-            "Monitor airway and respirations. Subdissociative range."
+            "Monitor airway and respirations. Subdissociative range.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
           "sources": [
             {
@@ -92,12 +95,14 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim from the hardcoded calculator, value unchanged. Needs a Tier 1/2 citation before it can be signed. CONCENTRATION_MISMATCH: the calculator assumes 100 mg/mL; WHO EML lists ketamine injection at 10 mg/mL and 50 mg/mL only.",
+          "version": "0.2.0-draft",
+          "extraction_notes": "Migrated verbatim from the hardcoded calculator. NOW CONFLICTS with a tier 1 value: NASEMSO Pain Management p.94 gives 0.25 mg/kg IM/IV/IO capped at 25 mg initial / 100 mg cumulative for the same indication. Both entries are kept and neither was picked. Also still carries the concentration mismatch: the calculator assumes 100 mg/mL, WHO lists 10 and 50 mg/mL.",
           "flags": [
             "MIGRATED_UNSOURCED",
-            "CONCENTRATION_MISMATCH"
-          ]
+            "CONCENTRATION_MISMATCH",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-analgesia"
         },
         {
           "indication": "dissociative analgesia (IM — no IV access)",
@@ -110,12 +115,15 @@
             "per_kg": true
           },
           "max_single": null,
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
           ],
           "cautions": [
-            "IM dose is higher than the IV analgesia dose — this is expected and correct. Monitor airway."
+            "IM dose is higher than the IV analgesia dose — this is expected and correct. Monitor airway.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
           "sources": [
             {
@@ -128,12 +136,14 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim. See IV entry for the concentration mismatch.",
+          "version": "0.2.0-draft",
+          "extraction_notes": "Migrated verbatim from the hardcoded calculator. NOW CONFLICTS with a tier 1 value: NASEMSO Pain Management p.94 gives 0.25 mg/kg IM/IV/IO capped at 25 mg initial / 100 mg cumulative for the same indication. Both entries are kept and neither was picked. Also still carries the concentration mismatch: the calculator assumes 100 mg/mL, WHO lists 10 and 50 mg/mL.",
           "flags": [
             "MIGRATED_UNSOURCED",
-            "CONCENTRATION_MISMATCH"
-          ]
+            "CONCENTRATION_MISMATCH",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-analgesia"
         },
         {
           "indication": "RSI induction",
@@ -150,12 +160,13 @@
             "units": "mg",
             "rule": "lesser of 2 mg/kg and 200 mg"
           },
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
             "NEEDS_MANUAL_ENTRY"
           ],
           "cautions": [
-            "Give BEFORE the paralytic. Confirm weight and route."
+            "Give BEFORE the paralytic. Confirm weight and route.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
@@ -168,8 +179,8 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim, including the adult 200 mg absolute cap.",
+          "version": "0.2.0-draft",
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only.",
           "flags": [
             "MIGRATED_UNSOURCED"
           ]
@@ -189,12 +200,13 @@
             "units": "mg/kg",
             "rule": "2 mg/kg, no absolute cap"
           },
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
             "NEEDS_MANUAL_ENTRY"
           ],
           "cautions": [
-            "Give BEFORE the paralytic. Confirm weight and route."
+            "Give BEFORE the paralytic. Confirm weight and route.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
@@ -207,8 +219,8 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim. The paediatric path has no absolute mg cap in the current code — preserved as-is, flagged for review.",
+          "version": "0.2.0-draft",
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only.",
           "flags": [
             "MIGRATED_UNSOURCED"
           ]
@@ -224,12 +236,14 @@
             "per_kg": true
           },
           "max_single": null,
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
             "NEEDS_MANUAL_ENTRY"
           ],
           "cautions": [
-            "After tube confirmed only. Not the induction dose."
+            "After tube confirmed only. Not the induction dose.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
           "sources": [
             {
@@ -242,8 +256,8 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim.",
+          "version": "0.2.0-draft",
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only.",
           "flags": [
             "MIGRATED_UNSOURCED"
           ]
@@ -265,8 +279,228 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "version": "0.2.0-draft",
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all. NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour only."
+        },
+        {
+          "indication": "moderate to severe pain / analgesia",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.25,
+            "max": 0.25,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 25.0,
+            "units": "mg",
+            "rule": "maximum initial dose 25 mg"
+          },
+          "max_cumulative": {
+            "value": 100.0,
+            "units": "mg",
+            "rule": "maximum cumulative dose 100 mg"
+          },
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-analgesia",
+          "extraction_notes": "TIER 1 VALUE. NASEMSO gives 0.25 mg/kg IM/IV/IO for moderate to severe pain, capped at 25 mg initial and 100 mg cumulative. This CONFLICTS with the migrated hardcoded contract, which uses 0.3 mg/kg IV with no cap and 2.0 mg/kg IM with no cap. Both entries are kept. The IM divergence is the serious one: for an 80 kg patient the hardcode gives 160 mg IM where NASEMSO caps at 25 mg — roughly SIX TIMES. Adjudicate before signing either."
+        },
+        {
+          "indication": "agitated or violent patient — dissociative sedation",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "Onset of action about 1 minute by this route.",
+            "NASEMSO offers ketamine here as an option for high violence risk.",
+            "NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour ONLY — not analgesia, and not RSI.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "agitated or violent patient — dissociative sedation",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": {
+            "min": 4.0,
+            "max": 4.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "Onset of action 3-5 minutes by this route.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "agitated or violent patient — dissociative sedation",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "agitated or violent patient — dissociative sedation",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 3.0,
+            "max": 3.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "RELATIVE/CONTROVERSIAL per NASEMSO: head trauma, intracranial mass or haemorrhage, hypertension, angina, stroke, underlying psychiatric disorder"
+          ],
+          "cautions": [
+            "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
         }
       ],
       "proposed_aliases": [
@@ -307,54 +541,96 @@
           "indication": "anaphylaxis",
           "population": "adult",
           "route": "IM",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.3,
+            "max": 0.3,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 0.3,
+            "units": "mg",
+            "rule": "0.3 mg per IM dose"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Adult is defined by WEIGHT here: 25 kg or more.",
+            "Give in the anterolateral thigh.",
+            "Use the 1 mg/mL concentration for the IM route.",
+            "May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose.",
+            "NASEMSO lists 'concentration of epinephrine in relation to route' as an explicit patient-safety consideration.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (3. Antiallergics)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft"
         },
         {
           "indication": "anaphylaxis",
           "population": "peds",
           "route": "IM",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.15,
+            "max": 0.15,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 0.15,
+            "units": "mg",
+            "rule": "0.15 mg per IM dose"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Paediatric is defined by WEIGHT here: less than 25 kg.",
+            "Give in the anterolateral thigh.",
+            "Use the 1 mg/mL concentration for the IM route.",
+            "May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (3. Antiallergics)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
+          "version": "0.2.0-draft",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -365,17 +641,35 @@
           "max_single": "NEEDS_MANUAL_ENTRY",
           "max_cumulative": "NEEDS_MANUAL_ENTRY",
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
           ],
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.118",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO p.118 step 5 says only 'Administer epinephrine during the first or second round of compressions. Prioritize early administration of epinephrine for non-shockable rhythms.' No dose, no concentration, no route detail. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
+          "flags": [
+            "NO_DOSE_IN_SOURCE"
+          ]
         },
         {
           "indication": "cardiac arrest",
@@ -385,17 +679,35 @@
           "max_single": "NEEDS_MANUAL_ENTRY",
           "max_cumulative": "NEEDS_MANUAL_ENTRY",
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
           ],
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.121",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NOT EXTRACTED — DELIBERATELY. NASEMSO p.121 step 11 reads verbatim: 'Administer epinephrine (0.1 mg/kg, maximum dose 1 mg) IV/IO during the first or second round of compressions.' Two problems. (1) 0.1 mg/kg is TEN TIMES the conventional paediatric arrest dose of 0.01 mg/kg; transcribing it would author a 10x overdose. (2) The step sits in a mixed adult/paediatric list (the adjacent step 9 reads 'or 4 J/kg for children'), so even the population it applies to is ambiguous. This needs the owner to adjudicate against the source, not a machine to copy it.",
+          "flags": [
+            "SUSPECTED_SOURCE_ERROR"
+          ]
         },
         {
           "indication": "push-dose vasopressor for hypotension",
@@ -436,6 +748,307 @@
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
           "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        },
+        {
+          "indication": "symptomatic bradycardia — infusion",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.02,
+            "max": 0.2,
+            "units": "mcg/kg/min",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
+          ],
+          "cautions": [
+            "Titrate to a MAP greater than 65 mmHg.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "symptomatic bradycardia — push dose",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 10.0,
+            "max": 20.0,
+            "units": "mcg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
+          ],
+          "cautions": [
+            "This is a DILUTED preparation, not the ampoule. NASEMSO's example: prepare 10 mcg/mL by adding 1 mL of 0.1 mg/mL epinephrine to 9 mL of normal saline.",
+            "10-20 mcg equals 1-2 mL of that 10 mcg/mL dilution.",
+            "Repeat every 2 minutes, titrated to MAP greater than 65 mmHg.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "shock unresponsive to IV fluids — infusion",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.05,
+            "max": 0.3,
+            "units": "mcg/kg/min",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
+          ],
+          "cautions": [
+            "Titrate to physiologic targets.",
+            "NASEMSO prefers norepinephrine in neurogenic and septic distributive shock.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "shock — push dose",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.01,
+            "max": 0.01,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 10.0,
+            "units": "mcg",
+            "rule": "maximum single dose 10 mcg (1 mL of the 10 mcg/mL dilution)"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
+          ],
+          "cautions": [
+            "DILUTED preparation: prepare 10 mcg/mL by diluting 1 mL of epinephrine 0.1 mg/mL (1:10 000) in 9 mL of normal saline.",
+            "0.01 mg/kg equals 0.1 mL/kg of that dilution.",
+            "Repeat every 3-5 minutes, titrated to goal MAP.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "neonatal resuscitation — HR below 60 despite ventilation",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.01,
+            "max": 0.01,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
+          ],
+          "cautions": [
+            "Use the 0.1 mg/mL concentration.",
+            "IV/IO preferred if access obtained. If unable to obtain access, NASEMSO gives 0.1 mg/kg via the ETT — a different, TEN-FOLD HIGHER number for a different route. Do not interchange them.",
+            "Repeat every 3-5 minutes while heart rate remains below 60.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Neonatal Resuscitation, p.160",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "croup with stridor at rest — nebulised",
+          "population": "peds",
+          "route": "NEB",
+          "dose_range": {
+            "min": 5.0,
+            "max": 5.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
+          ],
+          "cautions": [
+            "5 mg is 5 mL of the 1 mg/mL solution.",
+            "May repeat in 20 minutes as needed; NASEMSO states these may be repeated at this dose with unlimited frequency for ongoing respiratory distress.",
+            "Patients who receive inhaled epinephrine should be transported to definitive care.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Croup), p.156",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
+        },
+        {
+          "indication": "bronchiolitis with severe respiratory distress — nebulised",
+          "population": "peds",
+          "route": "NEB",
+          "dose_range": {
+            "min": 5.0,
+            "max": 5.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Cardiac dilatation",
+            "Coronary insufficiency"
+          ],
+          "cautions": [
+            "5 mg is 5 mL of the 1 mg/mL solution.",
+            "Indicated only if suctioning and oxygen have failed to produce clinical improvement.",
+            "If immediate reassessment after treatment shows no clinical improvement, escalate airway management.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Bronchiolitis), p.151",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
         }
       ],
       "notes": "Highest-traffic UNCONTRACTED drug in the discovery run. Also the drug behind the look-alike concentration probe (1:1000 vs 1:10000) and the norepi-vs-epi collision probe — 5 of its 19 queries were collision probes."
@@ -483,12 +1096,13 @@
             "units": "mg/kg",
             "rule": "1.2 mg/kg"
           },
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
             "NEEDS_MANUAL_ENTRY"
           ],
           "cautions": [
-            "Give AFTER the induction agent. Max 1.2 mg/kg."
+            "Give AFTER the induction agent. Max 1.2 mg/kg.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
@@ -526,7 +1140,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear. Airway Management (p.181) refers to 'sedatives and paralytics as indicated by patient presentation' in prose and states no drug or dose. NASEMSO v3.0 contains no RSI drug dosing at all."
         }
       ]
     },
@@ -583,7 +1197,7 @@
             "per_kg": true
           },
           "max_single": null,
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
             "Hyperkalemia",
             "Burns >24hr",
@@ -591,7 +1205,9 @@
             "Denervation"
           ],
           "cautions": [
-            "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation."
+            "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
           "sources": [
             {
@@ -622,7 +1238,7 @@
             "per_kg": true
           },
           "max_single": null,
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
             "Hyperkalemia",
             "Burns >24hr",
@@ -630,7 +1246,9 @@
             "Denervation"
           ],
           "cautions": [
-            "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation."
+            "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
           "sources": [
             {
@@ -686,61 +1304,136 @@
           "indication": "acute pain / analgesia",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mcg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 100.0,
+            "units": "mcg",
+            "rule": "maximum initial dose 100 mcg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is NEEDS_MANUAL_ENTRY because the guideline states a maximum INITIAL dose only."
         },
         {
           "indication": "acute pain / analgesia",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mcg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 100.0,
+            "units": "mcg",
+            "rule": "maximum initial dose 100 mcg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is NEEDS_MANUAL_ENTRY because the guideline states a maximum INITIAL dose only."
         },
         {
           "indication": "acute pain / analgesia",
           "population": "adult|peds",
           "route": "IN",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mcg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 100.0,
+            "units": "mcg",
+            "rule": "maximum initial dose 100 mcg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives IN, IM, IV and IO as one route list at the same 1 mcg/kg dose."
         },
         {
           "indication": "analgesia infusion",
@@ -759,8 +1452,11 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO v3.0 gives fentanyl as intermittent dosing only and describes no infusion. WHO lists only the transdermal patch, scoped to cancer pain. Neither approved source supports an infusion rate.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ],
       "proposed_aliases": [
@@ -796,41 +1492,183 @@
           "indication": "vasodilatory/haemorrhagic shock infusion",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.05,
+            "max": 0.5,
+            "units": "mcg/kg/min",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Hypotension due to blood volume deficit",
+            "Peripheral vascular thrombosis (except for lifesaving procedures)",
+            "RELATIVE: concomitant use with the general anaesthetics chloroform, trichloroethylene, cyclopropane, halothane"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs.",
+            "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
+            "Titrate to physiologic targets.",
+            "NASEMSO states a preference for norepinephrine in both neurogenic and infectious (sepsis) causes of distributive shock.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
+          "version": "0.2.0-draft",
           "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
         },
         {
           "indication": "vasodilatory shock infusion",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.05,
+            "max": 0.5,
+            "units": "mcg/kg/min",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Hypotension due to blood volume deficit",
+            "Peripheral vascular thrombosis (except for lifesaving procedures)",
+            "RELATIVE: concomitant use with the general anaesthetics chloroform, trichloroethylene, cyclopropane, halothane"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs.",
+            "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
+            "Titrate to physiologic targets.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO's Shock guideline gives this range without splitting adult from paediatric."
+        },
+        {
+          "indication": "symptomatic bradycardia — infusion",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.02,
+            "max": 0.4,
+            "units": "mcg/kg/min",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Hypotension due to blood volume deficit",
+            "Peripheral vascular thrombosis (except for lifesaving procedures)",
+            "RELATIVE: concomitant use with the general anaesthetics chloroform, trichloroethylene, cyclopropane, halothane"
+          ],
+          "cautions": [
+            "NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs.",
+            "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
+            "Titrate to physiologic targets.",
+            "Titrate to a MAP greater than 65 mmHg.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives a DIFFERENT range for bradycardia (0.02-0.4) than for shock (0.05-0.5). Both are NASEMSO and they are different indications in different guidelines, so this is not a source conflict — but the two must not be merged into one range."
+        },
+        {
+          "indication": "cardiogenic shock / pulmonary oedema with SBP under 100",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.02,
+            "max": 2.0,
+            "units": "mcg/kg/min",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Hypotension due to blood volume deficit",
+            "Peripheral vascular thrombosis (except for lifesaving procedures)",
+            "RELATIVE: concomitant use with the general anaesthetics chloroform, trichloroethylene, cyclopropane, halothane"
+          ],
+          "cautions": [
+            "NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs.",
+            "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
+            "Titrate to physiologic targets.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Respiratory Distress (includes Bronchospasm, Pulmonary Edema), p.192",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft",
+          "extraction_notes": "A third NASEMSO range (0.02-2) for a third indication. The upper bound is 4x the Shock guideline's. Kept as its own indication rather than widened into the others."
         }
       ],
       "notes": "Not on the WHO EML 24th list (dopamine is, at 40 mg/mL — p.47). Neither approved source supports a norepinephrine value. 3 of its 10 queries were norepi-vs-epi collision probes."
@@ -873,7 +1711,10 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         },
         {
           "indication": "open fracture / wound prophylaxis",
@@ -893,7 +1734,10 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ],
       "notes": "Part of the rank-7 'antibiotics' probe group (7 queries total, shared across cefazolin, ertapenem, moxifloxacin and ceftriaxone)."
@@ -936,7 +1780,10 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ],
       "notes": "Part of the rank-7 'antibiotics' probe group."
@@ -980,19 +1827,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ],
       "notes": "Part of the rank-7 'antibiotics' probe group."
@@ -1039,19 +1882,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.21 (6.2.1 Access group antibiotics)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         },
         {
           "indication": "severe bacterial infection / sepsis",
@@ -1066,19 +1905,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.21 (6.2.1 Access group antibiotics)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ],
       "notes": "Two hats: rank-7 antibiotic AND the WHO-listed agent for severe bacterial infection in the tropical/austere subset. Its alias 'rocephin' is the one the discovery run probed against 'roc' (A1-COL-009) — see the alias lint."
@@ -1136,8 +1971,11 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
+          "flags": [
+            "NO_DOSE_IN_SOURCE"
+          ]
         },
         {
           "indication": "traumatic haemorrhage — maintenance infusion",
@@ -1163,8 +2001,11 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
+          "flags": [
+            "NO_DOSE_IN_SOURCE"
+          ]
         },
         {
           "indication": "traumatic haemorrhage",
@@ -1190,8 +2031,11 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
+          "flags": [
+            "NO_DOSE_IN_SOURCE"
+          ]
         }
       ]
     },
@@ -1230,54 +2074,100 @@
           "indication": "active seizure",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 4.0,
+            "units": "mg",
+            "rule": "maximum 4 mg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Documented hypersensitivity",
+            "Severe respiratory depression",
+            "Sleep apnea"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: may cause respiratory depression, arrest, or apnea.",
+            "This is the dose when vascular access (IV or IO) is already present. NASEMSO prefers IN/IM over IV or IO for seizures and states IV placement is not necessary for treatment.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO's Seizures guideline gives one weight-based dose under a single 'Patient Management' heading covering both populations."
         },
         {
           "indication": "active seizure",
           "population": "peds",
           "route": "IM",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.2,
+            "max": 0.2,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 10.0,
+            "units": "mg",
+            "rule": "maximum 10 mg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Documented hypersensitivity",
+            "Severe respiratory depression",
+            "Sleep apnea"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: may cause respiratory depression, arrest, or apnea.",
+            "This is the NO-VASCULAR-ACCESS dose and it is TWICE the IV/IO dose with a different ceiling — 0.2 mg/kg max 10 mg IM/IN versus 0.1 mg/kg max 4 mg IV/IO. Do not interchange them.",
+            "IM is preferred over IN.",
+            "NASEMSO: recent evidence supports IM midazolam as at least as safe and effective as IV lorazepam for prehospital seizure cessation.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.103",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
+          "version": "0.2.0-draft",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -1288,24 +2178,29 @@
           "max_single": "NEEDS_MANUAL_ENTRY",
           "max_cumulative": "NEEDS_MANUAL_ENTRY",
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Documented hypersensitivity",
+            "Severe respiratory depression",
+            "Sleep apnea"
           ],
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.3 Preoperative medication and sedation)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO indexes midazolam for seizures, uncontrolled shivering in hypothermia, and agitated/violent patients — NOT for procedural sedation. No dose for this indication in either approved source.",
+          "flags": [
+            "NO_DOSE_IN_SOURCE"
+          ]
         },
         {
           "indication": "sedation infusion for the ventilated patient",
@@ -1326,6 +2221,49 @@
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
           "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        },
+        {
+          "indication": "agitated or violent patient / behavioural emergency",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 5.0,
+            "max": 5.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Documented hypersensitivity",
+            "Severe respiratory depression",
+            "Sleep apnea"
+          ],
+          "cautions": [
+            "NASEMSO warns: may cause respiratory depression, arrest, or apnea.",
+            "Onset of action 3-5 minutes by this route.",
+            "NASEMSO states the numbering of medications in this guideline is not a hierarchy or preference.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.60",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
         }
       ],
       "notes": "WHO lists midazolam injection as a therapeutic alternative to lorazepam for seizures (p.10). Midazolam drew 6 dose queries in the discovery run; lorazepam — which HAS a contract — drew none."
@@ -1363,82 +2301,163 @@
           "indication": "acute pain / analgesia",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 10.0,
+            "units": "mg",
+            "rule": "maximum initial dose 10 mg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Paralytic ileus",
+            "Toxin-mediated diarrhoea",
+            "Respiratory depression",
+            "Acute or severe bronchial asthma",
+            "Upper airway obstruction",
+            "Head injuries",
+            "Brain tumours",
+            "Delirium tremens",
+            "Seizure disorders",
+            "During labour when premature birth is anticipated (injectable)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         },
         {
           "indication": "acute pain / analgesia",
           "population": "adult",
           "route": "IM",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 10.0,
+            "units": "mg",
+            "rule": "maximum initial dose 10 mg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Paralytic ileus",
+            "Toxin-mediated diarrhoea",
+            "Respiratory depression",
+            "Acute or severe bronchial asthma",
+            "Upper airway obstruction",
+            "Head injuries",
+            "Brain tumours",
+            "Delirium tremens",
+            "Seizure disorders",
+            "During labour when premature birth is anticipated (injectable)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         },
         {
           "indication": "acute pain / analgesia",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 10.0,
+            "units": "mg",
+            "rule": "maximum initial dose 10 mg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity",
+            "Paralytic ileus",
+            "Toxin-mediated diarrhoea",
+            "Respiratory depression",
+            "Acute or severe bronchial asthma",
+            "Upper airway obstruction",
+            "Head injuries",
+            "Brain tumours",
+            "Delirium tremens",
+            "Seizure disorders",
+            "During labour when premature birth is anticipated (injectable)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         }
       ]
     },
@@ -1477,54 +2496,123 @@
           "indication": "symptomatic hypoglycaemia",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 25.0,
+            "max": 25.0,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 25.0,
+            "units": "g",
+            "rule": "maximum field adult dose 25 g of 10-50% dextrose IV"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hyperglycaemia",
+            "Anuria",
+            "Diabetic coma",
+            "Intracranial or intraspinal haemorrhage",
+            "Dehydrated patients with delirium",
+            "Glucose-galactose malabsorption syndrome",
+            "Documented hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Treat when blood glucose is 60 mg/dL or less.",
+            "25 g can be delivered as 50 mL of 50%, 100 mL of 25%, or 250 mL of 10% — same grams, very different volumes.",
+            "NASEMSO: 10% dextrose is as effective and safer than stronger concentrations, and agencies may consider carrying no more than 25% for adults.",
+            "50% dextrose can cause local tissue damage on extravasation and carries risk for little clinical gain.",
+            "Avoid overshoot hyperglycaemia when correcting.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.65 (26.2 Parenteral solutions)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.84",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
+          "version": "0.2.0-draft",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
           "indication": "symptomatic hypoglycaemia",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.5,
+            "max": 1.0,
+            "units": "g/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 1.0,
+            "units": "g/kg",
+            "rule": "maximum field paediatric dose 0.5-1 g/kg of 10-25% dextrose IV"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hyperglycaemia",
+            "Anuria",
+            "Diabetic coma",
+            "Intracranial or intraspinal haemorrhage",
+            "Dehydrated patients with delirium",
+            "Glucose-galactose malabsorption syndrome",
+            "Documented hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "Treat when blood glucose is 60 mg/dL or less.",
+            "Concentration is age-limited: for children under 8 years, no more than 25%.",
+            "As volume: 2-4 mL/kg of 25% dextrose for those over 8 years old, or 5-10 mL/kg of 10% dextrose.",
+            "Avoid overshoot hyperglycaemia when correcting.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.65 (26.2 Parenteral solutions)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
+          "version": "0.2.0-draft",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -1535,17 +2623,46 @@
           "max_single": "NEEDS_MANUAL_ENTRY",
           "max_cumulative": "NEEDS_MANUAL_ENTRY",
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hyperglycaemia",
+            "Anuria",
+            "Diabetic coma",
+            "Intracranial or intraspinal haemorrhage",
+            "Dehydrated patients with delirium",
+            "Glucose-galactose malabsorption syndrome",
+            "Documented hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO: for neonates and infants under 1 month, use a dextrose concentration of no more than 10%.",
+            "NASEMSO gives newborns 2 mL/kg of 10% dextrose."
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives '5-10 mL/kg of 10% dextrose (newborns 2 mL/kg)' — a VOLUME of a stated concentration, not a g/kg dose, and the newborn figure is parenthetical to a paediatric range. 2 mL/kg of 10% is 0.2 g/kg, which is well below the 0.5-1 g/kg the same guideline gives for children. Deliberately not converted: the owner should decide whether this entry is dosed in mL/kg of a named concentration rather than in g/kg.",
+          "flags": [
+            "AMBIGUOUS_IN_SOURCE"
+          ]
         }
       ],
       "notes": "'glucose' is carried as an alias here AND is a component name in the ORS entry — the alias lint checks that pairing."
@@ -1591,19 +2708,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.1.2 Injectable medicines)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         },
         {
           "indication": "sedation infusion",
@@ -1618,19 +2731,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.1.2 Injectable medicines)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ]
     },
@@ -1675,19 +2784,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. Note the EML lists oral forms only; the IV loading dose the traffic asks for has no Tier 2 support at all."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         },
         {
           "indication": "seizure — loading dose",
@@ -1707,7 +2812,10 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ]
     },
@@ -1743,27 +2851,50 @@
           "indication": "hyperkalaemia — membrane stabilisation",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 1.0,
+            "units": "g",
+            "rule": "1 g per bolus"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypercalcaemia",
+            "Documented hypersensitivity",
+            "Sarcoidosis",
+            "Life-threatening cardiac arrhythmias may occur in known or suspected severe hypokalaemia"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: risk of digitalis toxicity.",
+            "Give as an IV bolus over 2 minutes.",
+            "10% solution.",
+            "May repeat the dose if there is no response.",
+            "NASEMSO gives this for the dialysis / known hyperkalaemic patient as a reversible cause of cardiac arrest.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.119",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
+          "version": "0.2.0-draft",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
@@ -1774,17 +2905,76 @@
           "max_single": "NEEDS_MANUAL_ENTRY",
           "max_cumulative": "NEEDS_MANUAL_ENTRY",
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypercalcaemia",
+            "Documented hypersensitivity",
+            "Sarcoidosis",
+            "Life-threatening cardiac arrhythmias may occur in known or suspected severe hypokalaemia"
           ],
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO indexes calcium gluconate for hydrofluoric acid burns, calcium channel blocker overdose and hyperkalaemia in arrest. It gives no dose for post-transfusion hypocalcaemia, which is the indication the discovery traffic actually asked about ('calcium dose after the transfusion', 'calcium dose after 4 units').",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
+        },
+        {
+          "indication": "hyperkalaemia — membrane stabilisation",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 100.0,
+            "max": 100.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypercalcaemia",
+            "Documented hypersensitivity",
+            "Sarcoidosis",
+            "Life-threatening cardiac arrhythmias may occur in known or suspected severe hypokalaemia"
+          ],
+          "cautions": [
+            "NASEMSO warns: risk of digitalis toxicity.",
+            "Give as an IV bolus over 2 minutes.",
+            "10% solution. NASEMSO notes 100 mg/kg is 1 mL/kg of the 10% solution.",
+            "May repeat the dose if there is no response.",
+            "NASEMSO states no absolute mg ceiling for the paediatric dose.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.119",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
         }
       ],
       "notes": "'calcium' is the alias; calcium chloride is a DIFFERENT salt at a different elemental-calcium content and is deliberately NOT folded into this entry. It needs its own contract before the bare word 'calcium' can safely serve anything."
@@ -1823,82 +3013,178 @@
           "indication": "opioid-induced respiratory depression",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.4,
+            "max": 2.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: administration can cause sudden onset of opiate withdrawal — agitation, tachycardia, pulmonary oedema, nausea, vomiting, and in neonates, seizures.",
+            "Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone.",
+            "Titrate the initial and subsequent doses incrementally until respiratory depression is reversed.",
+            "Naloxone has no benefit in cardiac arrest.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives 0.4-2 mg as the typical INITIAL adult dose for IV and IM, and states no maximum for those routes (it caps IN at 4 mg and ETT at 5 mg)."
         },
         {
           "indication": "opioid-induced respiratory depression",
           "population": "adult",
           "route": "IM",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.4,
+            "max": 2.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: administration can cause sudden onset of opiate withdrawal — agitation, tachycardia, pulmonary oedema, nausea, vomiting, and in neonates, seizures.",
+            "Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone.",
+            "Titrate the initial and subsequent doses incrementally until respiratory depression is reversed.",
+            "Naloxone has no benefit in cardiac arrest.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
+          "version": "0.2.0-draft",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
         {
           "indication": "opioid-induced respiratory depression",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 2.0,
+            "units": "mg",
+            "rule": "maximum 2 mg IV, IM or ETT"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            "NASEMSO warns: administration can cause sudden onset of opiate withdrawal — agitation, tachycardia, pulmonary oedema, nausea, vomiting, and in neonates, seizures.",
+            "Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone.",
+            "Titrate the initial and subsequent doses incrementally until respiratory depression is reversed.",
+            "Naloxone has no benefit in cardiac arrest.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "version": "0.2.0-draft",
+          "extraction_notes": "NASEMSO gives 0.1 mg/kg for IV, IM, IN and ETT, with different ceilings by route: 2 mg IV/IM/ETT, 4 mg IN."
+        },
+        {
+          "indication": "opioid-induced respiratory depression",
+          "population": "adult|peds",
+          "route": "IN",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": {
+            "value": 4.0,
+            "units": "mg",
+            "rule": "up to 4 mg IN"
+          },
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "cautions": [
+            "NASEMSO warns: administration can cause sudden onset of opiate withdrawal — agitation, tachycardia, pulmonary oedema, nausea, vomiting, and in neonates, seizures.",
+            "Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone.",
+            "Titrate the initial and subsequent doses incrementally until respiratory depression is reversed.",
+            "Naloxone has no benefit in cardiac arrest.",
+            "Nasal spray is manufactured as a single-use bottle containing 4 mg/0.1 mL.",
+            "Auto-injectors contain 0.4 mg/0.4 mL or 2 mg/0.4 mL."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft",
+          "flags": [
+            "AMBIGUOUS_IN_SOURCE"
+          ],
+          "extraction_notes": "NASEMSO states 'up to a dose of 4 mg IN' for adults and a 4 mg IN ceiling for paediatrics on a 0.1 mg/kg base, but gives no starting IN dose for adults. A ceiling is not a dose, so dose_range stays NEEDS_MANUAL_ENTRY."
         }
       ]
     },
@@ -1946,19 +3232,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         },
         {
           "indication": "haemorrhagic disease of the newborn — prophylaxis",
@@ -1973,19 +3255,15 @@
           "cautions": [
             "NEEDS_MANUAL_ENTRY"
           ],
-          "sources": [
-            {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24"
-            }
-          ],
+          "sources": [],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "flags": [
+            "NOT_IN_SOURCE"
+          ]
         }
       ],
       "notes": "THIS IS THE COLLISION DRUG. 'vitamin k' was mapped to ketamine as a dictation-mangling alias, so 'vitamin K dose for warfarin reversal' built a ketamine contract. Vitamin K is a real drug with its own indication; giving it its own contract is what makes the alias lint able to refuse the shadow. Fifth specimen of the collision class."
@@ -2043,16 +3321,33 @@
           "max_single": {
             "value": 4.0,
             "units": "mg",
-            "rule": "4 mg absolute cap"
+            "rule": "maximum 4 mg"
           },
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Documented hypersensitivity",
+            "Acute narrow angle glaucoma",
+            "Severe respiratory depression",
+            "Sleep apnea"
           ],
           "cautions": [
-            "Monitor respiratory depression."
+            "Monitor respiratory depression.",
+            "This is the dose when vascular access (IV or IO) is present. NASEMSO prefers IN/IM routes for seizures and notes IM midazolam is at least as safe and effective as IV lorazepam for prehospital seizure cessation.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
           ],
           "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
             {
               "citation": "EdgeCDSS pre-contract hardcoded calculator: lorazepam_seizure_0.1mgkg_max4mg",
               "tier": 0,
@@ -2063,11 +3358,53 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Migrated verbatim, including the 4 mg cap. WHO corroborates the 2 mg/mL concentration (p.10) — no mismatch here.",
+          "version": "0.2.0-draft",
+          "extraction_notes": "THE MIGRATION IS CONFIRMED BY TIER 1. NASEMSO Seizures p.102 gives lorazepam 0.1 mg/kg IV or IO, maximum 4 mg — exactly the hardcoded calculator's rule, and WHO corroborates the 2 mg/mL concentration. This entry now carries a tier 1 citation, so unlike the other three migrated drugs it is eligible to be signed.",
           "flags": [
-            "MIGRATED_UNSOURCED"
+            "MIGRATION_CORROBORATED"
           ]
+        },
+        {
+          "indication": "agitated or violent patient / behavioural emergency",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Documented hypersensitivity",
+            "Acute narrow angle glaucoma",
+            "Severe respiratory depression",
+            "Sleep apnea"
+          ],
+          "cautions": [
+            "Onset of action 2-5 minutes by this route.",
+            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
+            "The cited guideline states no maximum single dose for this drug and indication."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.60",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "tier": 1,
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft"
         }
       ],
       "notes": "Has a contract but drew ZERO dose queries in the discovery run. The seizure traffic asked for midazolam (6) and levetiracetam (4) instead. Flagged so the owner can decide whether re-signing lorazepam is worth the review slot ahead of those two."
@@ -2136,7 +3473,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "severe malaria",
@@ -2163,7 +3500,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "severe malaria — pre-referral only",
@@ -2190,7 +3527,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "WHO restricts the rectal form to PRE-REFERRAL treatment of severe malaria only — that scope statement is a Tier 2 fact and is recorded here. The dose itself is not in the EML."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ],
       "notes": "The discovery run's tropical probe (A3-GEN-001, 'how do I treat severe malaria here') served general-medicine prose naming artesunate with an empty contract, and the validator returned NEEDS_HUMAN_REVIEW. 18 general:tropical queries in round 3."
@@ -2245,7 +3582,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2301,7 +3638,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. WHO states P. falciparum must be treated with COMBINATION therapy — that is a Tier 2 fact and is recorded."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "uncomplicated P. falciparum malaria",
@@ -2328,7 +3665,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2383,7 +3720,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "severe malaria",
@@ -2410,7 +3747,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2467,7 +3804,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "WHO lists antivenom immunoglobulin with the explicit note 'Exact type to be defined locally'. That is a Tier 2 fact and it means NO dose is transferable between deployments — this entry can only ever be filled from the local product insert, which is outside both approved sources."
+          "extraction_notes": "NASEMSO mentions antivenom in the Bites and Envenomations guideline (p.292) but states no dose and defers to the specific product. WHO states 'exact type to be defined locally'. NEITHER approved source can ever fill this entry — it can only come from the local product insert."
         }
       ],
       "notes": "Structurally un-fillable from the two approved sources. Surfaced anyway so the gap is visible rather than silent."
@@ -2526,7 +3863,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "The COMPOSITION is a genuine Tier 2 value and is recorded in full under forms. The VOLUME to give per kg per stool is a dosing decision the EML does not make — that is what this entry still needs."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ],
       "notes": "WHO also notes that trisodium citrate dihydrate may be replaced by sodium bicarbonate 2.5 g/L, but that its stability is very poor under tropical conditions and it is recommended only when manufactured for immediate use. That caveat matters for this deployment specifically and is recorded here rather than dropped."
@@ -2583,7 +3920,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "WHO states zinc sulfate is an ADJUNCT to oral rehydration salts in acute diarrhoea — scope fact recorded. Dose regimen not in the EML."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2637,7 +3974,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "drug-susceptible tuberculosis — first-line",
@@ -2664,7 +4001,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2718,7 +4055,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "drug-susceptible tuberculosis — first-line",
@@ -2745,7 +4082,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2799,7 +4136,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "drug-susceptible tuberculosis — first-line",
@@ -2826,7 +4163,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2880,7 +4217,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         },
         {
           "indication": "drug-susceptible tuberculosis — first-line",
@@ -2907,7 +4244,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     },
@@ -2964,7 +4301,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. WHO recommends and endorses fixed-dose combinations for TB — scope fact recorded. Tablets-per-weight-band is not in the EML."
+          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
         }
       ]
     }

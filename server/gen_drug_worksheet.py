@@ -53,15 +53,41 @@ def entry_block(L, drug_name, e, n):
     if flags:
         L.append(f"- **flags:** {', '.join(f'`{f}`' for f in flags)}")
     if "SOURCE_CONFLICT" in flags:
+        grp = e.get("conflict_group")
+        others = [f"{n2} · {e2['indication']} · {e2['route']}"
+                  for n2, d2 in dc.DRUGS.items() for e2 in d2["dose_entries"]
+                  if e2 is not e and e2.get("conflict_group") == grp]
         L.append("  - ⚠️ **SOURCE CONFLICT — both entries are kept and neither "
                  "was picked.** Sign the one you adjudicate to and write why "
                  "in `adjudication`; the engine refuses a signed conflict that "
                  "has no adjudication note.")
+        if others:
+            L.append(f"  - **conflicts with:** {'; '.join(others)} "
+                     f"(group `{grp}`)")
     if "CONCENTRATION_MISMATCH" in flags:
         L.append("  - ⚠️ **CONCENTRATION MISMATCH** between the migrated "
                  "calculator and the WHO-listed strength. A wrong "
                  "concentration is a wrong volume at the syringe — resolve "
                  "before signing.")
+    if "MIGRATION_CORROBORATED" in flags:
+        L.append("  - ✅ **MIGRATION CORROBORATED.** An approved source gives "
+                 "exactly the value the pre-contract calculator has been "
+                 "using. This entry is eligible to sign.")
+    if "SUSPECTED_SOURCE_ERROR" in flags:
+        L.append("  - 🛑 **SUSPECTED ERROR IN THE SOURCE — not transcribed.** "
+                 "The guideline's printed number looks wrong by an order of "
+                 "magnitude. Copying it faithfully would author the error, so "
+                 "it was left empty. Read the note and adjudicate against the "
+                 "page.")
+    if "NO_DOSE_IN_SOURCE" in flags:
+        L.append("  - **Named but not dosed.** The guideline recommends this "
+                 "drug for this indication and states no number.")
+    if "NOT_IN_SOURCE" in flags:
+        L.append("  - **Absent.** The drug or the indication does not appear "
+                 "in the source that was searched.")
+    if "AMBIGUOUS_IN_SOURCE" in flags:
+        L.append("  - **Ambiguous.** A number is present but its units, "
+                 "population or route cannot be pinned down safely.")
     if "MIGRATED_UNSOURCED" in flags:
         L.append("  - ⚠️ **MIGRATED, UNSOURCED.** Value carried over verbatim "
                  "from the pre-contract hardcode. The engine will NOT let this "
@@ -108,6 +134,19 @@ def entry_block(L, drug_name, e, n):
     L.append("")
 
 
+def ready_count(drug):
+    """Entries that would go live the moment they are signed."""
+    import copy as _copy
+    n = 0
+    for e in drug.get("dose_entries", []):
+        f = _copy.deepcopy(e)
+        f.update({"signoff": True, "reviewed_by": dc.SIGNOFF_AUTHORS[0],
+                  "review_date": "2026-01-01"})
+        if dc.entry_is_servable(f)[0]:
+            n += 1
+    return n
+
+
 def drug_block(L, name, drug):
     entries = drug.get("dose_entries", [])
     live = sum(1 for e in entries if dc.entry_is_servable(e)[0])
@@ -121,8 +160,8 @@ def drug_block(L, name, drug):
         head += "  — tropical/austere subset"
     L.append(head)
     L.append("")
-    L.append(f"**{live} of {len(entries)} entries live.** "
-             f"class: {drug.get('drug_class')} · "
+    L.append(f"**{live} of {len(entries)} entries live, {ready_count(drug)} "
+             f"ready to sign.** class: {drug.get('drug_class')} · "
              f"routes: {', '.join(drug.get('routes') or [])}")
     L.append("")
 
@@ -181,8 +220,19 @@ def main():
              "from what the engine actually requires. Re-run it after every "
              "authoring pass.")
     L.append("")
-    L.append(f"**{live_entries} of {total_entries} dose entries live, across "
-             f"{len(drugs)} drugs.**")
+    import copy as _copy
+    signable = 0
+    for d in drugs.values():
+        for e in d["dose_entries"]:
+            f = _copy.deepcopy(e)
+            f.update({"signoff": True, "reviewed_by": dc.SIGNOFF_AUTHORS[0],
+                      "review_date": "2026-01-01"})
+            if dc.entry_is_servable(f)[0]:
+                signable += 1
+    L.append(f"**{live_entries} of {total_entries} dose entries live.** "
+             f"{signable} are complete and waiting only on a signature; "
+             f"{total_entries - signable} still need content. "
+             f"{len(drugs)} drugs.")
     L.append("")
 
     L.append("## Read this before signing anything")
@@ -220,25 +270,61 @@ def main():
 
     L.append("## Signing order")
     L.append("")
-    L.append("| # | drug | dose queries | live / total | group |")
-    L.append("|---|---|---|---|---|")
+    L.append("| # | drug | dose queries | live / total | ready to sign | group |")
+    L.append("|---|---|---|---|---|---|")
     for d in ranked:
         n = d["generic_name"]
         live = sum(1 for e in d["dose_entries"] if dc.entry_is_servable(e)[0])
         group = "traffic" + (" + tropical" if d.get("tropical_priority") else "")
         L.append(f"| {d['discovery_rank']} | {n} | "
                  f"{d['discovery_query_count']} | {live} / "
-                 f"{len(d['dose_entries'])} | {group} |")
+                 f"{len(d['dose_entries'])} | {ready_count(d)} | {group} |")
     for d in tropical:
         n = d["generic_name"]
         live = sum(1 for e in d["dose_entries"] if dc.entry_is_servable(e)[0])
         L.append(f"| — | {n} | 0 | {live} / {len(d['dose_entries'])} | "
-                 f"tropical |")
+                 f"{ready_count(d)} | tropical |")
     for d in rest:
         n = d["generic_name"]
         live = sum(1 for e in d["dose_entries"] if dc.entry_is_servable(e)[0])
-        L.append(f"| — | {n} | 0 | {live} / {len(d['dose_entries'])} | other |")
+        L.append(f"| — | {n} | 0 | {live} / {len(d['dose_entries'])} | "
+                 f"{ready_count(d)} | other |")
     L.append("")
+
+    conflicted = [(n, e) for n, d in drugs.items() for e in d["dose_entries"]
+                  if "SOURCE_CONFLICT" in (e.get("flags") or [])]
+    suspect = [(n, e) for n, d in drugs.items() for e in d["dose_entries"]
+               if "SUSPECTED_SOURCE_ERROR" in (e.get("flags") or [])]
+    if conflicted or suspect:
+        L.append("## Adjudicate these first")
+        L.append("")
+        if conflicted:
+            L.append("**Source conflicts.** Both sides are kept; nothing was "
+                     "picked for you. Sign one and record `adjudication`.")
+            L.append("")
+            by_group = {}
+            for n, e in conflicted:
+                by_group.setdefault(e.get("conflict_group"), []).append((n, e))
+            for grp, members in by_group.items():
+                L.append(f"- group `{grp}`")
+                for n, e in members:
+                    dr_ = e["dose_range"]
+                    val = (f"{dr_['min']} {dr_['units']}"
+                           if isinstance(dr_, dict) else "no value")
+                    cap = e.get("max_single")
+                    cap = f", {cap.get('rule')}" if isinstance(cap, dict) else ""
+                    tiers = "/".join(str(s["tier"]) for s in e["sources"])
+                    L.append(f"  - **{n} · {e['indication']} · {e['route']}** "
+                             f"— {val}{cap} (tier {tiers})")
+            L.append("")
+        if suspect:
+            L.append("**Suspected errors in the source.** Not transcribed — "
+                     "the printed value looks wrong by an order of magnitude.")
+            L.append("")
+            for n, e in suspect:
+                L.append(f"- **{n} · {e['indication']} · {e['population']}** — "
+                         f"{e.get('extraction_notes','')[:400]}")
+            L.append("")
 
     L.append("---")
     L.append("")

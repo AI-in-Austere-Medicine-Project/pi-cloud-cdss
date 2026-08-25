@@ -23,8 +23,10 @@ matching PLUS a lint that forbids an alias from shadowing a real drug, because
 the previous four specimens were each fixed as instances and the class kept
 coming back.
 """
+import collections
 import copy
 import json
+import re
 
 import pytest
 
@@ -243,21 +245,65 @@ def test_either_approved_tier_is_enough(tier):
     assert ok, why
 
 
-def test_every_migrated_entry_is_flagged_and_unsignable_as_shipped():
-    """All four migrated drugs carry tier-0-only sources, so the rule above
-    means none of them can be signed until a real citation is attached."""
-    for name in dc.LEGACY_CALCULATOR_DRUGS:
-        drug = dc.DRUGS[name]
-        migrated = [e for e in drug["dose_entries"]
-                    if "MIGRATED_UNSOURCED" in (e.get("flags") or [])]
-        assert migrated, f"{name} has no migrated entry"
-        for e in migrated:
-            assert {s["tier"] for s in e["sources"]} == {0}
-            forced = copy.deepcopy(e)
-            forced.update({"signoff": True, "reviewed_by": "clinician",
-                           "review_date": "2026-08-24"})
-            ok, why = dc.entry_is_servable(forced)
-            assert not ok, f"{name} migrated entry became servable: {e}"
+# Migrated drugs whose value NO approved source corroborates. Lorazepam left
+# this set when the NASEMSO extraction landed: Seizures p.102 gives exactly the
+# hardcoded rule, so it is corroborated rather than unsourced. Expected to keep
+# shrinking as sources are found — that is the point of the migration.
+UNSOURCED_MIGRATED = ("ketamine", "rocuronium", "succinylcholine")
+
+
+@pytest.mark.parametrize("name", UNSOURCED_MIGRATED)
+def test_an_unsourced_migrated_entry_cannot_be_signed(name):
+    """A migrated value no approved source corroborates stays unsignable.
+
+    Not "is unsigned" — UNSIGNABLE. Forcing signoff true on it must still be
+    refused, because the only citation is tier 0 and tier 0 is the migration
+    carrier, not evidence.
+    """
+    drug = dc.DRUGS[name]
+    migrated = [e for e in drug["dose_entries"]
+                if "MIGRATED_UNSOURCED" in (e.get("flags") or [])]
+    assert migrated, f"{name} has no migrated entry"
+    for e in migrated:
+        assert {s["tier"] for s in e["sources"]} == {0}
+        forced = copy.deepcopy(e)
+        forced.update({"signoff": True, "reviewed_by": "clinician",
+                       "review_date": "2026-08-24"})
+        ok, why = dc.entry_is_servable(forced)
+        assert not ok, f"{name} migrated entry became servable: {e}"
+
+
+def test_the_corroborated_migration_became_signable():
+    """Lorazepam's migrated value is the one NASEMSO confirmed exactly.
+
+    NASEMSO Seizures p.102: lorazepam 0.1 mg/kg IV or IO, maximum 4 mg —
+    identical to lorazepam_seizure_0.1mgkg_max4mg. So this entry carries a
+    tier 1 citation alongside the tier 0 one, and the tier rule no longer
+    blocks it. It is still UNSIGNED; what changed is that it is now signable.
+    """
+    entry = next(e for e in dc.DRUGS["lorazepam"]["dose_entries"]
+                 if e["indication"] == "active seizure")
+    assert entry["signoff"] is False, "nothing may ship signed"
+    assert "MIGRATION_CORROBORATED" in entry["flags"]
+    tiers = {s["tier"] for s in entry["sources"]}
+    assert 1 in tiers and 0 in tiers, tiers
+
+    forced = copy.deepcopy(entry)
+    forced.update({"signoff": True, "reviewed_by": "clinician",
+                   "review_date": "2026-08-24"})
+    ok, why = dc.entry_is_servable(forced)
+    assert ok, f"the corroborated migration is still unsignable: {why}"
+
+
+def test_the_corroborated_value_still_equals_the_calculator():
+    """The whole point of corroboration: the number NASEMSO gives and the
+    number the code has produced all along are the same number."""
+    entry = next(e for e in dc.DRUGS["lorazepam"]["dose_entries"]
+                 if e["indication"] == "active seizure")
+    for w in (20.0, 45.0, 80.0):
+        expected = min(entry["dose_range"]["min"] * w,
+                       entry["max_single"]["value"])
+        assert round(expected, 1) == oc.lorazepam_seizure(w).dose_mg
 
 
 def test_every_source_record_is_shaped_like_a_citation():
@@ -552,3 +598,143 @@ def test_the_contract_file_is_valid_json_and_reloads():
     raw = json.loads((dc._DIR / "drug_contracts.json").read_text())
     assert raw["schema_version"]
     assert len(raw["drugs"]) == len(dc.DRUGS)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE NASEMSO EXTRACTION
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_tier_1_actually_landed():
+    """Before the NASEMSO extraction no entry had an approved-source dose.
+    This asserts the extraction is real, not that a file was touched."""
+    with_t1 = [(n, e["indication"]) for n, d in dc.DRUGS.items()
+               for e in d["dose_entries"]
+               if isinstance(e["dose_range"], dict)
+               and any(s["tier"] == 1 for s in e["sources"])]
+    assert len(with_t1) >= 25, f"only {len(with_t1)} tier-1 dosed entries"
+
+
+def test_every_tier_1_citation_names_a_guideline_and_page():
+    """A citation that cannot be checked is not a citation.
+
+    NASEMSO's printed page number equals its PDF page number and every page
+    footer carries its guideline name, so there is no excuse for a vague cite.
+    """
+    for name, drug in dc.DRUGS.items():
+        for e in drug["dose_entries"]:
+            for src in e["sources"]:
+                if src["tier"] != 1:
+                    continue
+                c = src["citation"]
+                assert "NASEMSO" in c and "v3.0" in c, c
+                assert re.search(r"p\.\d+", c), f"{name}: no page in {c!r}"
+
+
+def test_nothing_became_signed_during_the_extraction():
+    """The extraction fills values. It does not sign them. Ever."""
+    assert dc.servable_entries() == {}
+    for name, drug in dc.DRUGS.items():
+        for e in drug["dose_entries"]:
+            assert e["signoff"] is False, f"{name}/{e['indication']}"
+            assert e["reviewed_by"] == dc.PENDING
+            assert e["review_date"] == dc.PENDING
+
+
+def test_the_extraction_made_entries_signABLE():
+    """The fence must have moved from 'nothing can be signed' to 'these can'.
+
+    Otherwise the extraction achieved nothing the owner can act on.
+    """
+    signable = 0
+    for name, drug in dc.DRUGS.items():
+        for e in drug["dose_entries"]:
+            forced = copy.deepcopy(e)
+            forced.update({"signoff": True, "reviewed_by": "clinician",
+                           "review_date": "2026-08-24"})
+            if dc.entry_is_servable(forced)[0]:
+                signable += 1
+    assert signable >= 25, f"only {signable} entries are signable"
+
+
+def test_both_sides_of_a_source_conflict_are_kept():
+    """CONFLICTING doses are never silently resolved.
+
+    NASEMSO gives ketamine 0.25 mg/kg for analgesia capped at 25 mg; the
+    migrated hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped. Both stay,
+    tied by conflict_group, for the owner to adjudicate.
+    """
+    conflicted = [e for d in dc.DRUGS.values() for e in d["dose_entries"]
+                  if "SOURCE_CONFLICT" in (e.get("flags") or [])]
+    assert len(conflicted) >= 2, "a conflict needs at least two sides"
+    groups = collections.Counter(e.get("conflict_group") for e in conflicted)
+    assert None not in groups, "a SOURCE_CONFLICT entry has no conflict_group"
+    for group, n in groups.items():
+        assert n >= 2, f"conflict group {group!r} has only {n} side(s)"
+
+
+def test_a_conflicted_entry_cannot_be_signed_without_adjudicating():
+    """Already covered generically; asserted here on the REAL conflict."""
+    # the NASEMSO side — the migrated side is refused earlier, for tier 0
+    entry = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
+                 if "SOURCE_CONFLICT" in (e.get("flags") or [])
+                 and any(src["tier"] in (1, 2) for src in e["sources"]))
+    forced = copy.deepcopy(entry)
+    forced.update({"signoff": True, "reviewed_by": "clinician",
+                   "review_date": "2026-08-24"})
+    forced.pop("adjudication", None)
+    ok, why = dc.entry_is_servable(forced)
+    assert not ok and "adjudication" in why
+
+
+def test_the_suspected_source_error_was_not_transcribed():
+    """NASEMSO p.121 says paediatric arrest epinephrine 0.1 mg/kg — ten times
+    the conventional 0.01 mg/kg. Copying a source faithfully is not the job
+    when copying it authors a 10x overdose."""
+    entry = next(e for e in dc.DRUGS["epinephrine"]["dose_entries"]
+                 if e["indication"] == "cardiac arrest"
+                 and e["population"] == "peds")
+    assert entry["dose_range"] == dc.NEEDS_MANUAL
+    assert "SUSPECTED_SOURCE_ERROR" in entry["flags"]
+    assert "0.1 mg/kg" in entry["extraction_notes"]
+
+
+def test_drugs_absent_from_both_sources_say_so():
+    """A refusal must name which source was searched and came up empty."""
+    for name in ("rocuronium", "succinylcholine", "propofol", "levetiracetam"):
+        for e in dc.DRUGS[name]["dose_entries"]:
+            if e["dose_range"] != dc.NEEDS_MANUAL:
+                continue
+            notes = e.get("extraction_notes", "")
+            assert "NASEMSO" in notes, f"{name}: {notes!r}"
+
+
+def test_no_dose_was_invented_for_a_drug_neither_source_covers():
+    """The strongest form of 'never guess a dose'."""
+    for name in ("rocuronium", "succinylcholine", "artesunate", "quinine",
+                 "antivenom immunoglobulin"):
+        for e in dc.DRUGS[name]["dose_entries"]:
+            if not isinstance(e["dose_range"], dict):
+                continue
+            # A MIGRATED value is a number with no approved source by
+            # definition — that is what makes it migrated, and the tier rule
+            # already makes it unsignable. Anything else with a number and no
+            # approved source would be invented.
+            if "MIGRATED_UNSOURCED" in (e.get("flags") or []):
+                continue
+            assert any(s["tier"] in (1, 2) for s in e["sources"]), \
+                f"{name}/{e['indication']} has a number with no approved source"
+
+
+def test_a_meaningful_null_maximum_carries_the_sentence_that_says_so():
+    """null max means 'the source states none'. An entry that just dropped the
+    sentinel without saying why would be indistinguishable from a value nobody
+    looked for."""
+    for name, drug in dc.DRUGS.items():
+        for e in drug["dose_entries"]:
+            if not isinstance(e["dose_range"], dict):
+                continue
+            if e["max_cumulative"] is None:
+                joined = " ".join(e.get("cautions") or [])
+                assert "no cumulative maximum" in joined or \
+                       "states no maximum" in joined, \
+                    f"{name}/{e['indication']}: null max with no explanation"
