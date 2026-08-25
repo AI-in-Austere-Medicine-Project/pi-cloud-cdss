@@ -26,6 +26,35 @@ A signed entry carrying `PENDING_CLINICAL_SIGNOFF` or `NEEDS_MANUAL_ENTRY` **any
   - retrieved 2026-08-24, 74 pages, text layer intact
   - ⚠️ The EML is a MEDICINES LIST, not a dosing guideline. It supplies dosage forms, strengths and indication-scope statements. It states essentially no mg/kg regimens, so almost every dose_range sourced only to Tier 2 is NEEDS_MANUAL_ENTRY by necessity.
 
+## Concentrations — sign these too, and separately
+
+A dose entry gives **milligrams**. A millilitre volume needs the concentration of the vial in the bag, which no guideline knows — that lives in `drug_concentrations.json` and is signed on its own. **Until a drug's concentration is signed, its dose is served in mg with no volume at all.**
+
+Kit: `austere-deployment-default`
+
+| drug | declared vial | mg/mL | corroboration | signed |
+|---|---|---|---|---|
+| calcium gluconate | 1000 mg / 10 mL ampoule | 100 | SOURCE_MATCHED | ⬜ |
+| epinephrine | 1 mg / 1 mL ampoule | 1 | SOURCE_MATCHED | ⬜ |
+| ketamine *(always asks)* | 500 mg / 10 mL vial | 50 | SOURCE_MATCHED | ⬜ |
+| ketamine *(always asks)* | 200 mg / 20 mL vial | 10 | SOURCE_MATCHED | ⬜ |
+| lorazepam | 4 mg / 2 mL ampoule | 2 | SOURCE_MATCHED | ⬜ |
+| midazolam *(always asks)* | 5 mg / 1 mL vial | 5 | SOURCE_MATCHED | ⬜ |
+| midazolam *(always asks)* | 5 mg / 5 mL vial | 1 | SOURCE_MATCHED | ⬜ |
+| morphine *(always asks)* | 10 mg / 1 mL ampoule | 10 | SOURCE_MATCHED | ⬜ |
+| morphine *(always asks)* | 2 mg / 1 mL ampoule | 2 | SOURCE_MATCHED | ⬜ |
+| morphine *(always asks)* | 1 mg / 1 mL ampoule | 1 | SOURCE_MATCHED | ⬜ |
+| naloxone | 0.4 mg / 1 mL ampoule | 0.4 | SOURCE_MATCHED | ⬜ |
+| rocuronium | 100 mg / 10 mL vial | 10 | NO_SOURCED_STRENGTH | ⬜ |
+| succinylcholine | 100 mg / 2 mL ampoule | 50 | SOURCE_MATCHED | ⬜ |
+| tranexamic acid | 1000 mg / 10 mL ampoule | 100 | SOURCE_MATCHED | ⬜ |
+
+- `SOURCE_MATCHED` — an approved source cites this exact strength.
+- `OFF_SOURCE` — plausible but uncited; needs a written `justification` before it can be signed.
+- `NO_SOURCED_STRENGTH` — **neither approved source lists this drug at all**, so the order-of-magnitude guardrail cannot protect it. Rocuronium is the one that matters here.
+
+Sign with `python3 set_concentration.py --drug X --sign "<label>" --by clinician --date YYYY-MM-DD`. Revoking needs no signature — pulling a concentration degrades to mg-only, which is always safe, so it must never be harder than declaring one.
+
 ## Signing order
 
 | # | drug | dose queries | live / total | ready to sign | group |
