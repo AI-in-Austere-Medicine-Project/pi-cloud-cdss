@@ -1,0 +1,2972 @@
+{
+  "schema_version": "1.0.0",
+  "generated": "2026-08-24",
+  "generated_note": "DRAFT. Nothing in this file is signed and nothing in it is served. Every dose_entry carries signoff:false and awaits a credentialed clinician. Build order follows measured query traffic from the v4.3 discovery run, then the tropical/austere priority subset.",
+  "approved_sources": {
+    "tier_1": {
+      "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
+      "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+      "retrieval_status": "UNREACHABLE at build time — HTTP 403 from the origin and from every mirror tried on 2026-08-24. NO value in this file is sourced to Tier 1."
+    },
+    "tier_2": {
+      "citation": "WHO — The selection and use of essential medicines 2025: WHO Model List of Essential Medicines, 24th list",
+      "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+      "retrieval_status": "retrieved 2026-08-24, 74 pages, text layer intact",
+      "scope_warning": "The EML is a MEDICINES LIST, not a dosing guideline. It supplies dosage forms, strengths and indication-scope statements. It states essentially no mg/kg regimens, so almost every dose_range sourced only to Tier 2 is NEEDS_MANUAL_ENTRY by necessity."
+    },
+    "tier_0_migration": {
+      "citation": "EdgeCDSS pre-contract hardcoded calculators",
+      "note": "Not an approved clinical source. Present only to carry the four migrated contracts. The fence REFUSES to sign an entry whose only source is tier 0."
+    }
+  },
+  "copyright_note": "Values here are extracted FACTS — a strength, a form, a scope statement — restructured into this project's own schema. No source table, figure or layout is reproduced. WHO's third-party-materials notice puts the risk of reusing ITS third-party tables on the reuser, which is the reason this file is authored rather than transcribed.",
+  "drugs": [
+    {
+      "generic_name": "ketamine",
+      "aliases": [
+        "ket",
+        "ketalar"
+      ],
+      "drug_class": "dissociative anaesthetic / analgesic",
+      "forms": [
+        {
+          "description": "Injection 100 mg/mL — the concentration the pre-contract calculator assumed",
+          "concentration_mg_ml": 100.0,
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_* calculators",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        },
+        {
+          "description": "Injection 10 mg/mL; 50 mg/mL (as hydrochloride) in vial",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.1.2 Injectable medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 1,
+      "discovery_query_count": 23,
+      "dose_entries": [
+        {
+          "indication": "subdissociative analgesia",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.3,
+            "max": 0.3,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "Monitor airway and respirations. Subdissociative range."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_analgesia_iv_0.3mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim from the hardcoded calculator, value unchanged. Needs a Tier 1/2 citation before it can be signed. CONCENTRATION_MISMATCH: the calculator assumes 100 mg/mL; WHO EML lists ketamine injection at 10 mg/mL and 50 mg/mL only.",
+          "flags": [
+            "MIGRATED_UNSOURCED",
+            "CONCENTRATION_MISMATCH"
+          ]
+        },
+        {
+          "indication": "dissociative analgesia (IM — no IV access)",
+          "population": "adult|peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "IM dose is higher than the IV analgesia dose — this is expected and correct. Monitor airway."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_analgesia_im_2mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim. See IV entry for the concentration mismatch.",
+          "flags": [
+            "MIGRATED_UNSOURCED",
+            "CONCENTRATION_MISMATCH"
+          ]
+        },
+        {
+          "indication": "RSI induction",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.5,
+            "max": 1.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 200.0,
+            "units": "mg",
+            "rule": "lesser of 2 mg/kg and 200 mg"
+          },
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "Give BEFORE the paralytic. Confirm weight and route."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_induction_iv_1.5mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim, including the adult 200 mg absolute cap.",
+          "flags": [
+            "MIGRATED_UNSOURCED"
+          ]
+        },
+        {
+          "indication": "RSI induction",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.5,
+            "max": 1.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": null,
+            "units": "mg/kg",
+            "rule": "2 mg/kg, no absolute cap"
+          },
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "Give BEFORE the paralytic. Confirm weight and route."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_induction_iv_1.5mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim. The paediatric path has no absolute mg cap in the current code — preserved as-is, flagged for review.",
+          "flags": [
+            "MIGRATED_UNSOURCED"
+          ]
+        },
+        {
+          "indication": "post-intubation sedation q20-30min",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.5,
+            "max": 0.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "After tube confirmed only. Not the induction dose."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: ketamine_post_intubation_0.5mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim.",
+          "flags": [
+            "MIGRATED_UNSOURCED"
+          ]
+        },
+        {
+          "indication": "prolonged sedation infusion",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ],
+      "proposed_aliases": [
+        "keta mean"
+      ]
+    },
+    {
+      "generic_name": "epinephrine",
+      "aliases": [
+        "epi",
+        "adrenaline"
+      ],
+      "drug_class": "catecholamine vasopressor/inotrope",
+      "forms": [
+        {
+          "description": "Injection 1 mg/mL (as hydrochloride or hydrogen tartrate) in 1 mL ampoule",
+          "concentration_mg_ml": 1.0,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (3. Antiallergics and medicines used in anaphylaxis)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 2,
+      "discovery_query_count": 19,
+      "dose_entries": [
+        {
+          "indication": "anaphylaxis",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (3. Antiallergics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "anaphylaxis",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (3. Antiallergics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "cardiac arrest",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        },
+        {
+          "indication": "cardiac arrest",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        },
+        {
+          "indication": "push-dose vasopressor for hypotension",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        },
+        {
+          "indication": "infusion for refractory shock",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ],
+      "notes": "Highest-traffic UNCONTRACTED drug in the discovery run. Also the drug behind the look-alike concentration probe (1:1000 vs 1:10000) and the norepi-vs-epi collision probe — 5 of its 19 queries were collision probes."
+    },
+    {
+      "generic_name": "rocuronium",
+      "aliases": [
+        "roc"
+      ],
+      "drug_class": "non-depolarising neuromuscular blocker",
+      "forms": [
+        {
+          "description": "Injection 10 mg/mL — the concentration the pre-contract calculator assumed",
+          "concentration_mg_ml": 10.0,
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: rocuronium_rsi_1mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 3,
+      "discovery_query_count": 17,
+      "dose_entries": [
+        {
+          "indication": "RSI paralytic",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 1.2,
+            "units": "mg/kg",
+            "rule": "1.2 mg/kg"
+          },
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "Give AFTER the induction agent. Max 1.2 mg/kg."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: rocuronium_rsi_1mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim. Rocuronium is NOT on the WHO EML 24th list (vecuronium and atracurium are), so Tier 2 cannot corroborate any part of this entry — it needs Tier 1.",
+          "flags": [
+            "MIGRATED_UNSOURCED",
+            "NOT_ON_WHO_EML"
+          ]
+        },
+        {
+          "indication": "redose interval",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ]
+    },
+    {
+      "generic_name": "succinylcholine",
+      "aliases": [
+        "sux",
+        "succs",
+        "suxamethonium"
+      ],
+      "drug_class": "depolarising neuromuscular blocker",
+      "forms": [
+        {
+          "description": "Injection 20 mg/mL — the concentration the pre-contract calculator assumed",
+          "concentration_mg_ml": 20.0,
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        },
+        {
+          "description": "Injection 50 mg/mL (chloride) in 2 mL ampoule",
+          "concentration_mg_ml": 50.0,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.57 (20. Muscle relaxants (peripherally-acting))",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 4,
+      "discovery_query_count": 16,
+      "dose_entries": [
+        {
+          "indication": "RSI paralytic",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.5,
+            "max": 1.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "Hyperkalemia",
+            "Burns >24hr",
+            "Crush injury",
+            "Denervation"
+          ],
+          "cautions": [
+            "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi_1.5mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim. CONCENTRATION_MISMATCH: the calculator assumes 20 mg/mL; WHO EML lists suxamethonium injection at 50 mg/mL. A 2.5x concentration error is a volume error at the syringe — resolve before signing.",
+          "flags": [
+            "MIGRATED_UNSOURCED",
+            "CONCENTRATION_MISMATCH"
+          ]
+        },
+        {
+          "indication": "RSI paralytic",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "Hyperkalemia",
+            "Burns >24hr",
+            "Crush injury",
+            "Denervation"
+          ],
+          "cautions": [
+            "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: succinylcholine_rsi_2.0mgkg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim. See adult entry for the concentration mismatch.",
+          "flags": [
+            "MIGRATED_UNSOURCED",
+            "CONCENTRATION_MISMATCH"
+          ]
+        }
+      ]
+    },
+    {
+      "generic_name": "fentanyl",
+      "aliases": [
+        "fent"
+      ],
+      "drug_class": "synthetic opioid analgesic",
+      "forms": [
+        {
+          "description": "Transdermal patch 12/25/50/75/100 micrograms/hr — WHO lists fentanyl for cancer pain management only; the injectable form this deployment uses is NOT on the EML",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM",
+        "IN"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 5,
+      "discovery_query_count": 10,
+      "dose_entries": [
+        {
+          "indication": "acute pain / analgesia",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+        },
+        {
+          "indication": "acute pain / analgesia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+        },
+        {
+          "indication": "acute pain / analgesia",
+          "population": "adult|peds",
+          "route": "IN",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+        },
+        {
+          "indication": "analgesia infusion",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+        }
+      ],
+      "proposed_aliases": [
+        "fentanil",
+        "fentanel"
+      ],
+      "notes": "WHO lists ONLY the transdermal patch, scoped to cancer pain. Neither approved source supports a field IV/IN fentanyl dose. This is the drug the discovery run served an unsourced 50mcg/25mcg on (A1-WT-001) with an empty contract."
+    },
+    {
+      "generic_name": "norepinephrine",
+      "aliases": [
+        "norepi",
+        "levophed",
+        "noradrenaline"
+      ],
+      "drug_class": "catecholamine vasopressor",
+      "forms": [
+        {
+          "description": "NEEDS_MANUAL_ENTRY",
+          "concentration_mg_ml": null,
+          "sources": []
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 6,
+      "discovery_query_count": 10,
+      "dose_entries": [
+        {
+          "indication": "vasodilatory/haemorrhagic shock infusion",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+        },
+        {
+          "indication": "vasodilatory shock infusion",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
+        }
+      ],
+      "notes": "Not on the WHO EML 24th list (dopamine is, at 40 mg/mL — p.47). Neither approved source supports a norepinephrine value. 3 of its 10 queries were norepi-vs-epi collision probes."
+    },
+    {
+      "generic_name": "cefazolin",
+      "aliases": [],
+      "drug_class": "first-generation cephalosporin",
+      "forms": [
+        {
+          "description": "NEEDS_MANUAL_ENTRY",
+          "concentration_mg_ml": null,
+          "sources": []
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 7,
+      "discovery_query_count": 7,
+      "dose_entries": [
+        {
+          "indication": "open fracture / wound prophylaxis",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        },
+        {
+          "indication": "open fracture / wound prophylaxis",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ],
+      "notes": "Part of the rank-7 'antibiotics' probe group (7 queries total, shared across cefazolin, ertapenem, moxifloxacin and ceftriaxone)."
+    },
+    {
+      "generic_name": "ertapenem",
+      "aliases": [],
+      "drug_class": "carbapenem",
+      "forms": [
+        {
+          "description": "NEEDS_MANUAL_ENTRY",
+          "concentration_mg_ml": null,
+          "sources": []
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 7,
+      "discovery_query_count": 7,
+      "dose_entries": [
+        {
+          "indication": "penetrating abdominal injury",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ],
+      "notes": "Part of the rank-7 'antibiotics' probe group."
+    },
+    {
+      "generic_name": "moxifloxacin",
+      "aliases": [],
+      "drug_class": "fluoroquinolone",
+      "forms": [
+        {
+          "description": "Tablet 400 mg; tablet (dispersible) 100 mg — oral forms only on the EML, listed under antituberculosis medicines",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO",
+        "IV"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 7,
+      "discovery_query_count": 7,
+      "dose_entries": [
+        {
+          "indication": "combat wound prophylaxis (oral)",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ],
+      "notes": "Part of the rank-7 'antibiotics' probe group."
+    },
+    {
+      "generic_name": "ceftriaxone",
+      "aliases": [
+        "rocephin"
+      ],
+      "drug_class": "third-generation cephalosporin",
+      "forms": [
+        {
+          "description": "Powder for injection 250 mg; 1 g (as sodium salt) in vial",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.21 (6.2.1 Access group antibiotics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": 7,
+      "discovery_query_count": 7,
+      "dose_entries": [
+        {
+          "indication": "severe bacterial infection / sepsis",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.21 (6.2.1 Access group antibiotics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "severe bacterial infection / sepsis",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.21 (6.2.1 Access group antibiotics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ],
+      "notes": "Two hats: rank-7 antibiotic AND the WHO-listed agent for severe bacterial infection in the tropical/austere subset. Its alias 'rocephin' is the one the discovery run probed against 'roc' (A1-COL-009) — see the alias lint."
+    },
+    {
+      "generic_name": "tranexamic acid",
+      "aliases": [
+        "txa",
+        "tranexamic"
+      ],
+      "drug_class": "antifibrinolytic",
+      "forms": [
+        {
+          "description": "Injection 100 mg/mL in 10 mL ampoule",
+          "concentration_mg_ml": 100.0,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 8,
+      "discovery_query_count": 7,
+      "dose_entries": [
+        {
+          "indication": "traumatic haemorrhage — loading dose",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "traumatic haemorrhage — maintenance infusion",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "traumatic haemorrhage",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "midazolam",
+      "aliases": [
+        "midaz",
+        "versed"
+      ],
+      "drug_class": "benzodiazepine",
+      "forms": [
+        {
+          "description": "Injection 1 mg/mL in 5 mL vial; 5 mg/mL in 1 mL or 3 mL vial",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.3 Preoperative medication and sedation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM",
+        "IN"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 9,
+      "discovery_query_count": 6,
+      "dose_entries": [
+        {
+          "indication": "active seizure",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "active seizure",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "procedural sedation",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.3 Preoperative medication and sedation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "sedation infusion for the ventilated patient",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ],
+      "notes": "WHO lists midazolam injection as a therapeutic alternative to lorazepam for seizures (p.10). Midazolam drew 6 dose queries in the discovery run; lorazepam — which HAS a contract — drew none."
+    },
+    {
+      "generic_name": "morphine",
+      "aliases": [
+        "morphia"
+      ],
+      "drug_class": "opioid analgesic",
+      "forms": [
+        {
+          "description": "Injection 1 mg/mL; 2 mg/mL; 10 mg/mL (morphine hydrochloride or sulfate) in 1 mL ampoule",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 10,
+      "discovery_query_count": 6,
+      "dose_entries": [
+        {
+          "indication": "acute pain / analgesia",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "acute pain / analgesia",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "acute pain / analgesia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.7 (2.2 Opioid analgesics)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "dextrose",
+      "aliases": [
+        "d50",
+        "d10",
+        "d25",
+        "glucose"
+      ],
+      "drug_class": "carbohydrate / antihypoglycaemic",
+      "forms": [
+        {
+          "description": "Injectable solution 5% isotonic; 10% hypertonic; 50% hypertonic",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.65 (26.2 Parenteral solutions)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 11,
+      "discovery_query_count": 6,
+      "dose_entries": [
+        {
+          "indication": "symptomatic hypoglycaemia",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.65 (26.2 Parenteral solutions)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "symptomatic hypoglycaemia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.65 (26.2 Parenteral solutions)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "neonatal hypoglycaemia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ],
+      "notes": "'glucose' is carried as an alias here AND is a component name in the ORS entry — the alias lint checks that pairing."
+    },
+    {
+      "generic_name": "propofol",
+      "aliases": [
+        "diprivan"
+      ],
+      "drug_class": "non-barbiturate general anaesthetic",
+      "forms": [
+        {
+          "description": "Injection 10 mg/mL; 20 mg/mL",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.1.2 Injectable medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 12,
+      "discovery_query_count": 5,
+      "dose_entries": [
+        {
+          "indication": "induction of anaesthesia",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.1.2 Injectable medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "sedation infusion",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.6 (1.1.2 Injectable medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "levetiracetam",
+      "aliases": [
+        "keppra"
+      ],
+      "drug_class": "antiseizure medicine",
+      "forms": [
+        {
+          "description": "Oral liquid 100 mg/mL; tablet 250/500/750/1000 mg — the EML lists no injectable form",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "PO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 13,
+      "discovery_query_count": 4,
+      "dose_entries": [
+        {
+          "indication": "seizure — loading dose",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. Note the EML lists oral forms only; the IV loading dose the traffic asks for has no Tier 2 support at all."
+        },
+        {
+          "indication": "seizure — loading dose",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ]
+    },
+    {
+      "generic_name": "calcium gluconate",
+      "aliases": [
+        "calcium"
+      ],
+      "drug_class": "electrolyte / cation",
+      "forms": [
+        {
+          "description": "Injection 100 mg/mL (10%) in 10 mL ampoule or vial",
+          "concentration_mg_ml": 100.0,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 14,
+      "discovery_query_count": 4,
+      "dose_entries": [
+        {
+          "indication": "hyperkalaemia — membrane stabilisation",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "hypocalcaemia after massive transfusion",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+        }
+      ],
+      "notes": "'calcium' is the alias; calcium chloride is a DIFFERENT salt at a different elemental-calcium content and is deliberately NOT folded into this entry. It needs its own contract before the bare word 'calcium' can safely serve anything."
+    },
+    {
+      "generic_name": "naloxone",
+      "aliases": [
+        "narcan"
+      ],
+      "drug_class": "opioid antagonist",
+      "forms": [
+        {
+          "description": "Injection 400 micrograms (hydrochloride) in 1 mL ampoule",
+          "concentration_mg_ml": 0.4,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO",
+        "IM",
+        "IN"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 15,
+      "discovery_query_count": 4,
+      "dose_entries": [
+        {
+          "indication": "opioid-induced respiratory depression",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "opioid-induced respiratory depression",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "opioid-induced respiratory depression",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.9 (4.2 Specific antidotes)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "phytomenadione",
+      "aliases": [
+        "vitamin k",
+        "vitamin k1",
+        "phytonadione"
+      ],
+      "drug_class": "vitamin K / coagulation factor synthesis",
+      "forms": [
+        {
+          "description": "Injection 1 mg/0.5 mL; 1 mg/mL; 10 mg/mL in ampoule. Injection (mixed micelle solution) 2 mg/0.2 mL; 10 mg/mL in ampoule. Tablet 5 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IM",
+        "PO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": 16,
+      "discovery_query_count": 2,
+      "dose_entries": [
+        {
+          "indication": "warfarin reversal",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "haemorrhagic disease of the newborn — prophylaxis",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ],
+      "notes": "THIS IS THE COLLISION DRUG. 'vitamin k' was mapped to ketamine as a dictation-mangling alias, so 'vitamin K dose for warfarin reversal' built a ketamine contract. Vitamin K is a real drug with its own indication; giving it its own contract is what makes the alias lint able to refuse the shadow. Fifth specimen of the collision class."
+    },
+    {
+      "generic_name": "lorazepam",
+      "aliases": [
+        "ativan"
+      ],
+      "drug_class": "benzodiazepine",
+      "forms": [
+        {
+          "description": "Injection 2 mg/mL — the concentration the pre-contract calculator assumed",
+          "concentration_mg_ml": 2.0,
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: lorazepam_seizure_0.1mgkg_max4mg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        },
+        {
+          "description": "Injection 2 mg/mL in 1 mL ampoule; 4 mg/mL in 1 mL ampoule",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.10 (5.1.1 Antiseizure medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "active seizure",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 4.0,
+            "units": "mg",
+            "rule": "4 mg absolute cap"
+          },
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "Monitor respiratory depression."
+          ],
+          "sources": [
+            {
+              "citation": "EdgeCDSS pre-contract hardcoded calculator: lorazepam_seizure_0.1mgkg_max4mg",
+              "tier": 0,
+              "url": "internal:openai_client.py",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Migrated verbatim, including the 4 mg cap. WHO corroborates the 2 mg/mL concentration (p.10) — no mismatch here.",
+          "flags": [
+            "MIGRATED_UNSOURCED"
+          ]
+        }
+      ],
+      "notes": "Has a contract but drew ZERO dose queries in the discovery run. The seizure traffic asked for midazolam (6) and levetiracetam (4) instead. Flagged so the owner can decide whether re-signing lorazepam is worth the review slot ahead of those two."
+    },
+    {
+      "generic_name": "artesunate",
+      "aliases": [],
+      "drug_class": "artemisinin antimalarial",
+      "forms": [
+        {
+          "description": "Powder for injection 30 mg; 60 mg; 120 mg in vial — for use in the management of severe malaria",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        },
+        {
+          "description": "Rectal dosage form 100 mg — for PRE-REFERRAL treatment of severe malaria only",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IM",
+        "PR"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "severe malaria",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "severe malaria",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "severe malaria — pre-referral only",
+          "population": "adult|peds",
+          "route": "PR",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "WHO restricts the rectal form to PRE-REFERRAL treatment of severe malaria only — that scope statement is a Tier 2 fact and is recorded here. The dose itself is not in the EML."
+        }
+      ],
+      "notes": "The discovery run's tropical probe (A3-GEN-001, 'how do I treat severe malaria here') served general-medicine prose naming artesunate with an empty contract, and the validator returned NEEDS_HUMAN_REVIEW. 18 general:tropical queries in round 3."
+    },
+    {
+      "generic_name": "artemether",
+      "aliases": [],
+      "drug_class": "artemisinin antimalarial",
+      "forms": [
+        {
+          "description": "Oily injection 20 mg/mL; 40 mg/mL in 1 mL ampoule — for use in the management of severe malaria",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IM"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "severe malaria",
+          "population": "adult|peds",
+          "route": "IM",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "artemether + lumefantrine",
+      "aliases": [
+        "coartem"
+      ],
+      "drug_class": "artemisinin combination therapy (ACT)",
+      "forms": [
+        {
+          "description": "Tablet 20 mg + 120 mg; tablet (dispersible) 20 mg + 120 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "uncomplicated P. falciparum malaria",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. WHO states P. falciparum must be treated with COMBINATION therapy — that is a Tier 2 fact and is recorded."
+        },
+        {
+          "indication": "uncomplicated P. falciparum malaria",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "quinine",
+      "aliases": [],
+      "drug_class": "cinchona alkaloid antimalarial",
+      "forms": [
+        {
+          "description": "Solution for infusion 60 mg/mL; 300 mg/mL (hydrochloride) in 2 mL ampoule — for use in the management of severe malaria",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IM"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "severe malaria",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "severe malaria",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "antivenom immunoglobulin",
+      "aliases": [
+        "antivenom",
+        "antivenin"
+      ],
+      "drug_class": "immunoglobulin / antivenom",
+      "forms": [
+        {
+          "description": "Injection — WHO states the exact type is to be defined LOCALLY, so no strength is specifiable from Tier 2",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.55 (19.2 Sera, immunoglobulins and monoclonal antibodies)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "envenoming",
+          "population": "adult|peds",
+          "route": "IV",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.55 (19.2 Sera, immunoglobulins)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "WHO lists antivenom immunoglobulin with the explicit note 'Exact type to be defined locally'. That is a Tier 2 fact and it means NO dose is transferable between deployments — this entry can only ever be filled from the local product insert, which is outside both approved sources."
+        }
+      ],
+      "notes": "Structurally un-fillable from the two approved sources. Surfaced anyway so the gap is visible rather than silent."
+    },
+    {
+      "generic_name": "oral rehydration salts",
+      "aliases": [
+        "ors",
+        "oral rehydration solution"
+      ],
+      "drug_class": "oral rehydration / electrolyte replacement",
+      "forms": [
+        {
+          "description": "Powder for dilution in 200 mL; 500 mL; 1 L. Reduced-osmolarity formulation, per litre of prepared solution: glucose 75 mmol/L, sodium 75 mmol/L, chloride 65 mmol/L, potassium 20 mmol/L, citrate 10 mmol/L, total osmolarity 245 mOsm/L; by mass, glucose 13.5 g/L, sodium chloride 2.6 g/L, potassium chloride 1.5 g/L, trisodium citrate dihydrate 2.9 g/L",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.1 Oral rehydration)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO",
+        "NG"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "cholera / acute watery diarrhoea — rehydration",
+          "population": "adult|peds",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.1 Oral rehydration)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "The COMPOSITION is a genuine Tier 2 value and is recorded in full under forms. The VOLUME to give per kg per stool is a dosing decision the EML does not make — that is what this entry still needs."
+        }
+      ],
+      "notes": "WHO also notes that trisodium citrate dihydrate may be replaced by sodium bicarbonate 2.5 g/L, but that its stability is very poor under tropical conditions and it is recommended only when manufactured for immediate use. That caveat matters for this deployment specifically and is recorded here rather than dropped."
+    },
+    {
+      "generic_name": "zinc sulfate",
+      "aliases": [
+        "zinc"
+      ],
+      "drug_class": "trace element / diarrhoea adjunct",
+      "forms": [
+        {
+          "description": "Tablet (dispersible, scored) 20 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.2 Medicines for diarrhoea)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "acute diarrhoea — adjunct to ORS",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.2 Medicines for diarrhoea)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "WHO states zinc sulfate is an ADJUNCT to oral rehydration salts in acute diarrhoea — scope fact recorded. Dose regimen not in the EML."
+        }
+      ]
+    },
+    {
+      "generic_name": "isoniazid",
+      "aliases": [],
+      "drug_class": "first-line antituberculosis medicine",
+      "forms": [
+        {
+          "description": "Tablet 100 mg; 300 mg. Tablet (dispersible, scored) 100 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "rifampicin",
+      "aliases": [],
+      "drug_class": "first-line antituberculosis medicine",
+      "forms": [
+        {
+          "description": "Oral liquid 20 mg/mL. Solid oral dosage form 150 mg; 300 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "pyrazinamide",
+      "aliases": [],
+      "drug_class": "first-line antituberculosis medicine",
+      "forms": [
+        {
+          "description": "Tablet 400 mg; 500 mg. Tablet (dispersible) 150 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "ethambutol",
+      "aliases": [],
+      "drug_class": "first-line antituberculosis medicine",
+      "forms": [
+        {
+          "description": "Tablet 100 mg; 400 mg (hydrochloride). Tablet (dispersible) 100 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        },
+        {
+          "indication": "drug-susceptible tuberculosis — first-line",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+        }
+      ]
+    },
+    {
+      "generic_name": "ethambutol + isoniazid + pyrazinamide + rifampicin",
+      "aliases": [
+        "rhze",
+        "4fdc"
+      ],
+      "drug_class": "first-line antituberculosis fixed-dose combination",
+      "forms": [
+        {
+          "description": "Tablet 275 mg + 75 mg + 400 mg + 150 mg",
+          "concentration_mg_ml": null,
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "PO"
+      ],
+      "tropical_priority": true,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "drug-susceptible tuberculosis — intensive phase",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "cautions": [
+            "NEEDS_MANUAL_ENTRY"
+          ],
+          "sources": [
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. WHO recommends and endorses fixed-dose combinations for TB — scope fact recorded. Tablets-per-weight-band is not in the EML."
+        }
+      ]
+    }
+  ]
+}

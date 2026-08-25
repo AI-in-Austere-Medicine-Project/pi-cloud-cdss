@@ -79,12 +79,25 @@ F2_ROWS = [
 # Aliases that must still resolve when typed as standalone words.
 # Unambiguous keys: typed as words, they resolve on their own. This is why
 # short keys were word-anchored in v4.1 rather than deleted.
+# NOTE: ("vitamin k for pain", "vitamin k", "ketamine") used to live here. It
+# was removed with the alias itself: vitamin K (phytomenadione) is a real drug
+# with its own indication, so mapping it onto ketamine as a dictation mangling
+# shadowed it, and "vitamin K dose for warfarin reversal" resolved to ketamine.
+# See ALIAS_SHADOWS_A_REAL_DRUG below and test_drug_contracts.py.
 ALIAS_STANDALONE_CASES = [
     ("need to make push dose epi", "push dose epi", "epinephrine 10mcg/mL bolus preparation"),
     ("rocky onium please",    "rocky onium",   "rocuronium"),
-    ("vitamin k for pain",    "vitamin k",     "ketamine"),
     ("start a norepi drip",   "norepi drip",   "norepinephrine infusion"),
     ("apply a tq",            "tq",            "tourniquet"),
+]
+
+# An alias may never be another real drug's name. Fifth specimen of the
+# substring/shadow collision class: "vitamin k" -> ketamine meant discovery
+# scenario A1-COL-004, "vitamin K dose for warfarin reversal", resolved to
+# ketamine and enhanced retrieval with it. Each row is (query, forbidden_key).
+ALIAS_SHADOWS_A_REAL_DRUG = [
+    ("vitamin K dose for warfarin reversal", "vitamin k"),
+    ("does he need vitamin K here",          "vitamin k"),
 ]
 
 # F-6: keys whose collision IS the whole word, so word anchoring cannot help.

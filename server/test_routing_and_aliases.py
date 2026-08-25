@@ -25,6 +25,7 @@ from openai_client import (  # noqa: E402
 )
 from test_fixtures import (  # noqa: E402
     ALIAS_CONTEXT_DEPENDENT_CASES,
+    ALIAS_SHADOWS_A_REAL_DRUG,
     ALIAS_STANDALONE_CASES, F2_ROWS, S4_VENT_QUERY, S4_VENT_REFUSED,
 )
 
@@ -134,9 +135,39 @@ def test_every_context_dependent_key_is_corroborable():
 
 def test_multiword_aliases_resolve():
     for query, key in [("rocky onium please", "rocky onium"),
-                       ("vitamin k for pain", "vitamin k"),
                        ("start a norepi drip", "norepi drip")]:
         assert key in _resolved_keys(query)
+
+
+def test_no_alias_shadows_a_real_drug():
+    """An alias may never be another real drug's name.
+
+    Word anchoring cannot help here — "vitamin k" IS the whole phrase, and it
+    was anchored correctly the whole time. The collision was that the phrase
+    belongs to a different drug, so the fix is that vitamin K resolves to
+    nothing here and has its own contract in drug_contracts.json instead.
+    """
+    for query, forbidden in ALIAS_SHADOWS_A_REAL_DRUG:
+        assert forbidden not in _resolved_keys(query), (
+            f"{forbidden!r} still resolves in {query!r} — it is a real drug's "
+            f"name, not an alias")
+        _, resolved = _ROUTER.resolve_aliases(query)
+        assert not any("ketamine" in r for r in resolved), (
+            f"{query!r} still enhances retrieval with ketamine: {resolved}")
+
+
+def test_every_alias_key_is_not_another_drugs_name():
+    """The class, as a property over the whole alias table.
+
+    drug_contracts.lint_alias_collisions() enforces this inside the contract
+    file; this asserts it across the router's table too, so the two cannot
+    drift into disagreeing about what a drug name is.
+    """
+    import drug_contracts as dc
+    for alias in _ROUTER.query_aliases:
+        assert alias.lower() not in dc.DRUGS, (
+            f"alias {alias!r} is the generic name of a contracted drug — an "
+            f"alias may never shadow a real drug")
 
 
 def test_no_alias_matches_inside_a_word():
