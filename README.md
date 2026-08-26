@@ -5,13 +5,13 @@ Open source. Edge deployed. Safety findings published.
 
 > ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
-**Current release: 4.3.0** — [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/TECH_NOTES_v4.3.md) — both also cover 4.2, which shipped without either · [Changelog](CHANGELOG.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Current release: 4.3.0** — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [changelog entry](CHANGELOG.md#430--2026-08-26) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/TECH_NOTES_v4.3.md) — both also cover 4.2, which shipped without either · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
 ---
 
 ## What this is
 
-EdgeCDSS is a self-hosted clinical decision support system for austere, remote, and resource-limited environments. A provider describes a casualty in plain field language — by text or voice — and receives structured, guideline-cited guidance in seconds, with every medication dose resolved to a final mL draw. Zero math for the field provider.
+EdgeCDSS is a self-hosted clinical decision support system for austere, remote, and resource-limited environments. A provider describes a casualty in plain field language — by text or voice — and receives structured, guideline-cited guidance in seconds. Every medication dose comes from a signed, sourced contract, and resolves to a final mL draw once the kit's vial concentration is confirmed — mg-only until then, because a wrong millilitre is worse than an unconverted milligram.
 
 The entire system — knowledge base, retrieval engine, safety gates, web interface, feedback system, and audit logs — runs on a single **NVIDIA Jetson Orin Nano** at the point of care. Public access flows through an outbound-only Cloudflare Tunnel. The deployment is network agnostic: satellite, broadband, Wi-Fi, Ethernet, or LTE/5G.
 
@@ -19,21 +19,76 @@ The entire system — knowledge base, retrieval engine, safety gates, web interf
 
 ## What's new in 4.3
 
-The ventilator module. Until 4.3 a response had two possible sources: a JTS guideline
-passage, or a general medical reference fallback labelled as such — both of them retrieval
-over text somebody else wrote. 4.3 adds a third: a **clinician-authored card**, served
-verbatim with its own references and a dated signing role.
+Until 4.3 a response had two possible sources: a JTS guideline passage, or a general
+medical reference fallback labelled as such — both of them retrieval over text somebody
+else wrote. 4.3 adds a third kind: **authored content**, served verbatim, that a clinician
+wrote and signed. It arrives as ventilator cards and as drug dose contracts, and both sit
+behind the same fence.
+
+### The authorship fence, once
+
+The same mechanism covers all three authored layers — **vent cards**, **dose contracts**,
+and **vial concentrations**:
+
+> Content is served only when it is signed. Signed means: no `PENDING_CLINICAL_SIGNOFF`
+> sentinel in any field, `signoff` true, a signer on the allowlist, and sources that
+> support the clinical claim itself. Unsigned content is not a weaker answer — **it is
+> treated as absent**, and the query falls through to whatever answered it before.
+
+**There is no override.** `EDGECDSS_DEBUG_WARN_ONLY` downgrades safety holds elsewhere in
+this system and does not reach this gate. The allowlist of signers is a constant in code,
+not an environment variable, because when it was overridable a signing shell widened it,
+the service did not carry the same export, and every signature written that day was
+refused at read time — silently, as an absence.
+
+Fail-closed is what makes signing cheap: an unsigned entry degrades to a correct, less
+specific answer rather than a wrong one, so signoff always gates an enhancement and never
+the core response.
+
+### Drug dose contracts
+
+- **46 signed dose entries across 12 drugs**, from a bank of 32 drugs and 95 authored
+  entries. Every signed entry cites a named guideline page — **NASEMSO National Model EMS
+  Clinical Guidelines v3.0 (2022)** and **JTS CPGs ID39, ID40, ID61** — with the tier, the
+  URL and the retrieval date attached.
+- **The fence is per entry, not per drug.** Signing ketamine's RSI induction dose does not
+  authorise its analgesia dose.
+- **A third basis: `OWNER_DECLARED`.** Some numbers the field needs are stated by no
+  guideline. Rather than let one in as an unmarked citation, a dose may serve on an
+  explicit owner declaration that names its own value, cannot be implicit, keeps the
+  supporting doctrine separate from the declared number, and **says so at the point of
+  care**. One entry serves on this basis today.
+- **Every deterministic path serves from the bank.** The pre-gate templates that answer
+  dosing questions used to compute their own numbers and return before the supersede rule
+  was ever reached. They are routed, and a registry-based structural test over ten dose
+  surfaces fails the build if a served number traces to neither a contract nor an
+  explicitly declared fallback.
+
+### Vial concentrations are a confirmed input, like weight
+
+- **No dose without a confirmed weight; no volume without a confirmed concentration.**
+  A milligram dose is a claim about a guideline. A millilitre is a claim about the vial in
+  the bag, and no guideline knows what is in the bag.
+- A presentation is declared **as the label reads** — `500 mg / 10 mL` — and the mg/mL is
+  derived and checked against it, so a declaration that contradicts its own label is caught
+  when the file loads.
+- Where a drug has more than one signed presentation — ketamine's 500 mg/10 mL and
+  200 mg/20 mL differ five-fold — the system **asks which vial**, the same way it asks IV
+  or IM. It chooses between declared, signed presentations and never accepts a free-typed
+  concentration.
+- This closes a real hazard: the dose calculators used to divide by hardcoded strengths, so
+  a deployment stocking a different vial would have drawn the right number of millilitres
+  of the wrong concentration.
+
+### The ventilator module
 
 - **A DKA ventilator question now returns ventilator settings.** The round-1 eval measured
   **0 of 4 DKA vent phrasings returning any of VT / RR / PEEP / FiO2**, against 4 of 4 for
   TBI, 100% reproducible. DKA is now 4 of 4 and TBI holds at 4 of 4 — the control that
   proves the module did not buy one physiology at another's expense.
-- **The authorship fence.** The engine refuses to serve a card whose clinical fields still
-  hold `PENDING_CLINICAL_SIGNOFF`, whose `signoff` is not true, whose `reviewed_by` is not an
-  authorised signature, or whose `references` are empty. **There is no override** —
-  `EDGECDSS_DEBUG_WARN_ONLY` does not reach this gate, and a test asserts the flag's name
-  does not appear in `vent_module.py`. Cards go live one at a time: **5 of 13 are signed and
-  live**; 4 troubleshooting and 4 device cards are dark and invisible to the pipeline.
+- **Cards go live one at a time.** **5 of 13 are signed and live**; 4 troubleshooting and
+  4 device cards are dark and invisible to the pipeline. Partial deployment is the normal
+  state, not a migration step.
 - **One SBP target, not three.** Three TBI answers gave three different systolic targets. The
   `tbi` card carries one: SBP >= 110 mmHg.
 - **Tidal volume is dosed on Devine IBW**, not actual weight — 439 mL, not 450, for a 75 kg
@@ -46,9 +101,8 @@ verbatim with its own references and a dated signing role.
   one, and the menu lists only cards that are live.
 
 4.2 shipped vitals and derived MAP in patient context, the age band stated to the validator on
-every response, the multi-provider model grid, an emergency security patch closing four
-exploitable findings, and the 160-scenario evaluation harness that produced the vent finding
-above. The [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html)
+every response, the multi-provider model grid, an emergency security patch, and the
+160-scenario evaluation harness that produced the vent finding above. The [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html)
 cover both releases.
 
 Full detail in [`CHANGELOG.md`](CHANGELOG.md); what each release knowingly deferred, and the
@@ -61,7 +115,7 @@ Pipeline principle: **never ask an AI a question that code can answer.**
 ```
 Query (text or voice)
       ↓
-13 deterministic pre-gates ── weight, route, pediatric limits, contraindications
+16 deterministic pre-gates ── weight, route, pediatric limits, contraindications
       ↓                       (many queries resolve here in milliseconds, no AI)
 Patient context ───────────── rebuilt deterministically each turn; cleared and
       ↓                       announced at a patient boundary
@@ -69,6 +123,10 @@ Clinical router ───────────── protocol index aims retr
       ↓
 Vent card engine ──────────── clinician-authored, served verbatim; a card with no
       ↓                       signature is treated as absent, with no override
+Dose contract bank ────────── 46 signed, sourced dose entries; an unsigned entry
+      ↓                       is not served, and no path computes its own number
+Concentration list ────────── the only place a mL is derived, and only from a
+      ↓                       signed vial presentation; mg-only otherwise
 On-device RAG ─────────────── 89 JTS CPGs / 8,559 chunks, local embeddings
       ↓
 LLM generation ────────────── receives an ALLOWED_DOSES contract computed in
@@ -98,7 +156,7 @@ pi-cloud-cdss/
 │   ├── build_protocol_index.py  Builds the router index from the knowledge base
 │   ├── static/index.html        Web portal (served at the API root)
 │   ├── run_tests.sh             24-case live-endpoint clinical suite
-│   ├── run_unit_tests.sh        Offline regression suite (859 tests, ~8s)
+│   ├── run_unit_tests.sh        Offline regression suite (1,150 tests, ~11s)
 │   └── test_*.py                Offline suites: deterministic parsers/gates,
 │                                safety gate, patient boundary, routing and
 │                                aliases, log contract, env config
@@ -142,7 +200,7 @@ On a Jetson, `jetson_cdss_setup_v2.sh` performs the full deployment (packages, v
 **Test it:**
 
 ```bash
-cd server && ./run_unit_tests.sh   # 859 offline tests, ~8s — no network, no API key, no ChromaDB
+cd server && ./run_unit_tests.sh   # 1,150 offline tests, ~11s — no network, no API key, no ChromaDB
 bash server/run_tests.sh           # 24 clinical cases against the live endpoint
 ```
 
@@ -162,7 +220,13 @@ Every answer says where it came from, on screen and in the session log.
 | Source | When | Label |
 |---|---|---|
 | **JTS** | A JTS protocol was retrieved, or a deterministic protocol card fired | none — this is the default |
+| **Vent card** | A signed ventilator card owns the question | `VENT_CARD`, with the card's own references and `reviewed by clinician, <date>` |
+| **Dose contract** | A dose was served from a signed contract entry | the entry's citation, or an `OWNER-DECLARED` banner where the number is a declaration rather than a guideline's |
 | **General reference** | Retrieval found nothing usable, and the query is not a dosing question | `GENERAL MEDICAL REFERENCE — not from JTS protocols`, plus a spoken disclosure |
+
+A response that mixes a contract dose with a calculated fallback says so, and names
+which is which — the source line follows what was actually served rather than being
+asserted by the template that served it.
 
 General reference covers lab values, toxicology, envenomation and plant/snake
 identification, preparation recipes, and basic clinical reference — the tier a
@@ -263,7 +327,7 @@ measured.
 
 ## Validation status
 
-- Offline regression suite: **859 tests, ~8s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it
+- Offline regression suite: **1,150 tests, ~11s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it
 - Automated clinical suite: **24 cases** against the live public endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
 - Convention for safety-relevant fixes: **one fix, one commit, one regression test**, plus a mutation check — revert the fix, confirm the named test fails, restore — recorded in the commit message
 - Active field beta with structured clinical feedback: severity triage, issue categories, protocol-cited corrections — reported failures are reproduced from audit logs and fixed with regression tests
@@ -273,9 +337,11 @@ measured.
 
 | Document | What it is |
 |---|---|
-| [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 4.1 entry |
-| [`TODO.md`](TODO.md) | Roadmap, and every audit finding 4.1 knowingly deferred with its residual risk |
-| [`docs/TECH_NOTES_v4.1.md`](docs/TECH_NOTES_v4.1.md) | **Current** technical notes — architecture, changes in 4.1, testing, known limitations |
+| [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 4.3 entry |
+| [`FINDINGS.md`](FINDINGS.md) | The finding-identifier legend — what `F-`, `S-`, `AE-` and `DP-` mean, where each canonical list lives, and what states a finding can be in |
+| [`TODO.md`](TODO.md) | Roadmap, and every audit finding a release knowingly deferred with its residual risk |
+| [`docs/TECH_NOTES_v4.3.md`](docs/TECH_NOTES_v4.3.md) | **Current** technical notes — architecture, changes in 4.3, testing, known limitations |
+| [`docs/TECH_NOTES_v4.1.md`](docs/TECH_NOTES_v4.1.md) | 4.1 technical notes (superseded; kept as the record of what 4.1 claimed) |
 | [`docs/TECH_NOTES_v4.0.md`](docs/TECH_NOTES_v4.0.md) | 4.0 technical notes (superseded; kept as the record of what 4.0 claimed) |
 | [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | Research positioning, design principles, references |
 | [`docs/EdgeCDSS_v4_Technology.pdf`](docs/EdgeCDSS_v4_Technology.pdf) | Technology explainer |

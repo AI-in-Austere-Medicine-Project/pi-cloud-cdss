@@ -2,17 +2,174 @@
 
 ## [Unreleased]
 
-## [4.3.0] — 2026-08-22
+## [4.3.0] — 2026-08-26
 
-The ventilator module: a card engine, thirteen cards, and the first five signed
-and carrying traffic. A card answer is neither retrieved nor generated — a
-clinician wrote it, dated it, and the engine refuses to serve it until they
-have.
+Two authored layers, built on the same fence. The **ventilator module** — a card
+engine, thirteen cards, the first five signed and carrying traffic — and the
+**drug dose contract bank**: 46 signed dose entries, every one of them sourced
+to a named guideline page or an explicit owner declaration, and a serving path
+that will not emit a number without one. Neither a card nor a dose contract is
+retrieved or generated. A clinician wrote it, dated it, and the engine refuses
+to serve it until they have.
+
+Alongside them, the **concentration master list**, which applies the same rule to
+millilitres: a milligram dose is a claim about a guideline, a millilitre volume
+is a claim about the vial in the bag, and no guideline knows what is in the bag.
 
 The release also carries the round-1 evaluation fixes — eight findings closed
 against a 160-scenario harness — the five-provider model grid, and an emergency
-security patch. All of it is below. Three findings the harness raised are
-deliberately still open and are named as such.
+security patch. All of it is below. Three evaluation findings are deliberately
+still open and are named as such. Open security findings are tracked in the
+project's private audit and are deliberately not enumerated here.
+
+### Drug dose contracts — 46 signed entries, each one sourced
+- **The data model.** `drug_contracts.json` holds **32 drugs and 95 authored dose
+  entries**; **46 entries across 12 drugs are signed and servable** as of this
+  release. The rest are drafts and are invisible to the serving path — an
+  unsigned entry is not a weaker answer, it is not an answer.
+- **Per-entry authorship fence.** `entry_is_servable()` refuses an entry holding
+  a `PENDING_CLINICAL_SIGNOFF` or `NEEDS_MANUAL_ENTRY` sentinel in any field,
+  whose `signoff` is not true, whose signer is not in `SIGNOFF_AUTHORS`, or whose
+  `sources` do not support the DOSE itself. The fence is per entry, not per drug:
+  signing ketamine's RSI induction does not authorise its analgesia entry.
+- **Sourced to named pages.** The signed set cites **NASEMSO National Model EMS
+  Clinical Guidelines v3.0 (March 2022)** and three **JTS Clinical Practice
+  Guidelines** — **ID39** Airway Management of Traumatic Injuries, **ID40**
+  Anesthesia for Trauma Patients, **ID61** Analgesia and Sedation Management
+  during Prolonged Field Care. Each source carries its tier, its URL and the date
+  it was retrieved, and the citation names the page.
+- **`set_contract.py`** signs, unsigns and lists entries, refusing anything the
+  fence would refuse and writing every action to an append-only audit log with
+  the signer, the date and the reason. `--list` splits signature-ready entries
+  from blocked ones and names what blocks each.
+
+### OWNER_DECLARED — a third basis a dose may serve on
+Some numbers the field needs are not stated by any guideline. Rather than let one
+enter as an unmarked citation, a dose may serve on an explicit **owner
+declaration**, alongside tier-1 and tier-2 citation. Five properties are enforced:
+- it is declared **per entry**, never per drug;
+- the declaration **names the value it is declaring**, and a value that later
+  drifts from it is refused;
+- it **cannot be implicit** — an entry whose sources do not support its dose and
+  which carries no declaration is blocked, not quietly served;
+- the **shape citation is separated from the declared value**: the doctrine that
+  supports the approach is cited as doctrine, and the number is recorded as the
+  declaration it is;
+- it is **visible at serve** — an `OWNER-DECLARED` banner ahead of the cautions
+  for the medic, and a `:owner_declared` suffix on the provenance string for the
+  log. **One** signed entry serves on this basis today.
+
+### Concentration master list — no volume from an unconfirmed concentration
+- **The hazard this closes.** The dose calculators used to divide by literal
+  concentrations — ketamine `/100.0`, succinylcholine `/20.0`, rocuronium
+  `/10.0`, lorazepam `/2.0` — and printed "Draw 7.1 mL of 20mg/mL
+  succinylcholine". A deployment stocking the austere 50 mg/mL strength would
+  have drawn 7.1 mL of *that*: 355 mg instead of 142 mg of a depolarising
+  paralytic, during RSI. **Those literals are gone.** `resolve_dose_volume()` is
+  the only place a millilitre is derived in the system.
+- **Concentration is a confirmed input, like weight.** No dose without a
+  confirmed weight; no volume without a confirmed concentration. Both degrade the
+  same way — less specific, never less correct. A milligram-only line is a useful
+  answer; a wrong millilitre is not.
+- **Declared as the vial is labelled.** A presentation is declared as `mass_mg`
+  and `volume_ml` — "500 mg / 10 mL", what the medic reads off the label — and
+  `concentration_mg_ml` is derived and checked against them, so a declaration
+  that disagrees with its own label is caught at load.
+- **Asking is disambiguation, not an input channel.** Where a drug has more than
+  one signed presentation, or is marked `confirm_required` as ketamine is because
+  500 mg/10 mL and 200 mg/20 mL are both common and differ five-fold, the system
+  **asks which vial** — between declared, signed presentations. It never accepts
+  a free-typed concentration.
+- **Signoff is asymmetric.** Declaring or changing a concentration requires
+  signoff; **revoking one does not**. Fail-closed makes signoff cheap, so it
+  gates an enhancement and never the core answer.
+- **`set_concentration.py`** signs presentations and lists the kit, with the same
+  audit log. The kit file itself is deployment state and is not tracked in this
+  repository.
+
+### Unit conversion — explicit, or refused
+- `classify_units()` resolves a dose to **MASS**, **MASS_PER_KG**, **RATE** or
+  **UNKNOWN**, and **UNKNOWN fails closed** rather than defaulting to milligrams.
+  The serving path used to compute `base * weight if per_kg else base` and call
+  the result milligrams whatever the entry said, so "25 g" became 25 mg and
+  "10 mcg" became 10 mg. Nothing downstream could catch it: the volume audit
+  checks a volume against the *stated* milligrams, and a wrongly-parsed dose that
+  is internally consistent passes every check.
+- A **RATE is not a bolus**. An infusion rate resolves to no single volume at
+  all, so "0.05 mcg/kg/min" can never become a 0.05 mL push.
+- **`lint_dose_magnitude()`** refuses a bolus that is **1000x out of family for
+  its own drug**, checked at 70 kg. The unit-error signature is a factor of
+  exactly 1000, and the widest legitimate spread between two doses of one drug in
+  the real bank is epinephrine's 500x — 10 mcg push against 5 mg nebulised — so
+  the threshold separates the error class from real clinical variation with a
+  margin of two. This is a guard the volume audit **structurally cannot**
+  provide, because that audit compares a volume against the milligrams as stated.
+
+### Dose provenance — every deterministic path routed through the bank
+Signing the contracts changed nothing on the paths that mattered most, because
+the pre-gate templates that answered dosing questions returned **before**
+`build_allowed_doses()`, where the supersede rule lives. The class was enumerated
+before any of it was fixed: **three live templates, one unreachable one, and a
+hole in the path that was already supposed to be contract-aware.**
+- **The RSI bundle** filled its roles from signed contracts, with the calculators
+  backfilling only drugs with no signed entry; role narrowing selects induction
+  on haemodynamic state and defaults sedation to the no-pump bolus.
+- **The ketamine analgesia card** served 0.3 mg/kg — **18 mg at 60 kg** — from the
+  retired hardcode under a "deterministic calculator" source line, after the
+  NASEMSO 0.25 mg/kg entry was signed at **15 mg**. Routed. IM still backfills
+  from the calculator, because the bank has no IM analgesia entry, and the source
+  line says so: the signed IM entries are dissociative sedation at 3-4 mg/kg,
+  twelve to sixteen times the pain dose, and are barred from filling the gap.
+- **The fixed-preparation cards** served push-dose epinephrine at 5-20 mcg against
+  a signed 10-20 mcg, and an infusion rate that is in the bank in no form at all.
+  They fire at the **earliest pre-gate, ahead of the weight and route gates**, so
+  whatever they said won over everything downstream. The recipe stays — a dilution
+  is a fact about the syringe — and the dose now comes from the bank, narrowed by
+  indication. Where the query names an indication the bank does not cover, the
+  card **refuses and says so** rather than reaching for a neighbouring entry.
+- **An unreachable fourth copy** of the analgesia card, dispatched from nowhere
+  since the v4.0 baseline, was **deleted**. Dead code cannot be wrong today, which
+  is what made it the dangerous one.
+- **The seizure branch** read `if has_loraz or is_seizure`, and only the first
+  half carried the supersede check — so any query containing the word "seizure"
+  appended the legacy calculator whether or not lorazepam was signed. Two
+  benzodiazepines for one seizure. Filled by indication now, one anticonvulsant.
+- **The SOURCE line follows what was served**, computed from the provenance of
+  the doses in hand rather than asserted by each card: all-contract, mixed, or a
+  named legacy label that says which calculator answered and why the bank could
+  not.
+
+### The structural test, which is the actual fix
+`test_drug_contracts.py` carries a **registry of every surface that can state a
+dose** — ten of them — each declaring the contract lookup it serves from and the
+calculators it is permitted to back-fill from. Four assertions:
+- a number traceable to neither a contract nor a declared backfill **fails**;
+- a SOURCE line claiming a provenance it does not have **fails**;
+- a drug the bank covers, served from a calculator anyway, **fails**;
+- a response builder in none of the three classification lists **fails for not
+  being classified at all**.
+
+Mutation-verified four ways: restoring the hardcode, inventing a number, landing
+an unregistered fourth card, and flipping the append order so a calculator wins
+the dedupe are each caught by a different assertion.
+
+**The guard's exact edge, stated because it matters:** it protects **provenance,
+not numeric coincidence**. Reinstating the seizure bypass exactly as it was is
+not caught, because the legacy calculator and the signed contract both say 4 mg
+at 60 kg and two doses with the same number are indistinguishable in rendered
+text. That is precisely why the third assertion tests where a dose came from
+rather than what it says.
+
+### The signer allowlist is a constant
+- **`SIGNOFF_AUTHORS` is a constant in both modules**, not an environment
+  override. It was read from `CDSS_CARD_AUTHORS`; a signing shell widened it, the
+  service carried no such export, and the service therefore refused at read time
+  every signature the tool had accepted at write time. The signatures were real
+  and the values correct, and **every volume in the system degraded silently to
+  milligram-only.**
+- **`unhonoured_signatures()`** surfaces exactly that state in `--list` — signed,
+  but by a signer this deployment will not honour — instead of leaving it to be
+  discovered as an absence.
 
 ### F-12 closed — a DKA vent question now returns vent settings
 - The round-1 eval measured **0 of 4 DKA vent phrasings returning any of
