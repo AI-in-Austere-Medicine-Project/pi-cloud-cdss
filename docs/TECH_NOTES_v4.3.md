@@ -193,7 +193,7 @@ Unchanged in shape from 4.0 — see [TECH_NOTES_v4.0.md](TECH_NOTES_v4.0.md#cost
 
 ## Testing
 
-- **Offline regression suite: 859 tests, ~8s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Runs on a clean checkout. This is the gate for every change to the deterministic layer. `test_vent_module.py` contributes 65 of them
+- **Offline regression suite: 1,186 tests, ~12s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Runs on a clean checkout. This is the gate for every change to the deterministic layer. `test_vent_module.py` contributes 143 of them
 - **Evaluation harness: 160 scenarios** replayed against a pinned server snapshot — 62 real queries extracted from session logs, the v4.1 audit's safety cases replayed with their turn sequences, a sample of the gate-log invariant matrix, and 75 authored scenarios. Before/after is published with the fix
 - 24-case automated clinical suite against the live public endpoint
 - Convention for safety-relevant fixes: **one fix, one commit, one regression test**, plus a mutation check — revert the fix, confirm the named test fails, restore — recorded in the commit message
