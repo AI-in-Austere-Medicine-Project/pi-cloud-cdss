@@ -743,7 +743,7 @@ def test_signing_through_the_tool_does_not_report_a_phantom_edit(tmp_path, monke
 def test_the_tool_records_a_snapshot_on_every_change():
     """Enforced at the source, so the bug above cannot come back by someone
     adding a fourth command that forgets."""
-    src = (dcn._DIR / "set_concentration.py").read_text()
+    src = (dcn._DIR / "tools" / "set_concentration.py").read_text()
     assert src.count("snapshot_from_file()") == src.count("dcn.append_log("), \
         "a set_concentration command logs without a snapshot"
 

@@ -14,11 +14,11 @@ import re
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import version  # noqa: E402
 
-HERE = pathlib.Path(__file__).parent
+HERE = pathlib.Path(__file__).parent.parent
 _SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 # A version-shaped literal. Bare "4.2" is not one: it appears in prose and in
 # protocol text, and a test that fails on it stops being run.

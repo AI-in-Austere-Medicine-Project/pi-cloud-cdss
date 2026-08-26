@@ -34,9 +34,12 @@ import subprocess
 
 import pytest
 
+# HERE is the tests directory: the harness is a test fixture and moved with
+# the suite. SERVER is where the thing under test lives.
 HERE = pathlib.Path(__file__).parent
+SERVER = HERE.parent
 HARNESS = HERE / "client_render_harness.js"
-CLIENT = HERE / "static" / "index.html"
+CLIENT = SERVER / "static" / "index.html"
 
 pytestmark = pytest.mark.skipif(shutil.which("node") is None,
                                 reason="node is not installed; client render harness cannot run")

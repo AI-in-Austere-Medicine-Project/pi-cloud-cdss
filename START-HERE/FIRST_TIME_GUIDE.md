@@ -90,8 +90,8 @@ Open http://localhost:8000 in a browser — that's your own portal.
 Your server starts with an **empty knowledge base** ("documents: 0" on the health check). Load it with any PDF protocol library:
 
 ```bash
-python ingest_jts.py --pdf-dir ./data/your_protocols
-python build_protocol_index.py     # builds the clinical router index
+python tools/ingest_jts.py --pdf-dir ./data/your_protocols
+python tools/build_protocol_index.py     # builds the clinical router index
 ```
 
 **Getting an OpenAI API key:** create an account at [platform.openai.com](https://platform.openai.com), add a payment method, then API Keys → Create. Copy it immediately — it's shown once. Cost is roughly $0.001 per query at the model tier this project uses; $5 lasts a long evaluation.
@@ -120,7 +120,7 @@ No — and this matters. Research prototype, for training, simulation, and evalu
 Path 1: nothing. Path 2: API costs of roughly $1–5 across an entire evaluation; there is no cloud server to rent. The reference hardware (Jetson Orin Nano) is ~$249 one-time.
 
 **Can I use my own agency's protocols?**
-Yes — that's a core design goal. Point `ingest_jts.py` at a folder of your protocol PDFs and the system builds its knowledge base from them. Works with any PDF-based library.
+Yes — that's a core design goal. Point `server/tools/ingest_jts.py` at a folder of your protocol PDFs and the system builds its knowledge base from them. Works with any PDF-based library.
 
 **Why did it refuse to answer / ask me for more information?**
 By design. The system will not dose a pediatric patient without a confirmed weight, will not calculate from estimated weights, and blocks contraindicated requests outright. If a refusal seems clinically wrong, flag it — wrongful blocks are treated as bugs and fixed.

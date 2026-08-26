@@ -2,11 +2,11 @@
 """
 Edit the concentration master list. The sanctioned path.
 
-    python3 set_concentration.py --list
-    python3 set_concentration.py --drug ketamine --sign "500 mg / 10 mL vial" \
+    python3 tools/set_concentration.py --list
+    python3 tools/set_concentration.py --drug ketamine --sign "500 mg / 10 mL vial" \
             --by clinician --date 2026-08-25
-    python3 set_concentration.py --drug ketamine --revoke "500 mg / 10 mL vial"
-    python3 set_concentration.py --drug rocuronium --declare "100 mg / 10 mL vial" \
+    python3 tools/set_concentration.py --drug ketamine --revoke "500 mg / 10 mL vial"
+    python3 tools/set_concentration.py --drug rocuronium --declare "100 mg / 10 mL vial" \
             --mass-mg 100 --volume-ml 10 --justification "standard stocked vial"
 
 Hand-editing drug_concentrations.json works too, and the loader will detect and
@@ -27,6 +27,15 @@ dangerous claim would be the failure mode this whole module exists to prevent.
 import argparse
 import json
 import sys
+
+# tools/ sits one level below the application modules it drives. Put the
+# server directory on the path so `import drug_contracts` means what it meant
+# when this file lived beside it.
+import pathlib as _pathlib
+import sys as _sys
+_SERVER = _pathlib.Path(__file__).resolve().parent.parent
+if str(_SERVER) not in _sys.path:
+    _sys.path.insert(0, str(_SERVER))
 
 import drug_concentrations as dcn
 

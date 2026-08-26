@@ -16,11 +16,11 @@ import pathlib
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import general_reference as gr  # noqa: E402
 
-CLIENT = pathlib.Path(__file__).parent / "static" / "index.html"
+CLIENT = pathlib.Path(__file__).parent.parent / "static" / "index.html"
 HTML = CLIENT.read_text()
 
 
@@ -132,7 +132,7 @@ def test_the_client_and_the_caution_table_agree_on_the_map_threshold():
     import json
 
     assert "const MAP_LOW = 65;" in HTML
-    rules = json.loads((pathlib.Path(__file__).parent / "vitals_rules.json").read_text())
+    rules = json.loads((pathlib.Path(__file__).parent.parent / "vitals_rules.json").read_text())
     armed = [r for r in rules["cautions"] if "map" in (r.get("when") or {})]
     assert armed, "no rule arms on MAP; the strip's threshold now pins nothing"
     assert all(r["when"]["map"] == {"lt": 65} for r in armed), \
@@ -174,7 +174,7 @@ def test_the_answer_survives_a_failure_in_the_furniture_around_it():
 
 import ast  # noqa: E402
 
-MAIN = pathlib.Path(__file__).parent / "main.py"
+MAIN = pathlib.Path(__file__).parent.parent / "main.py"
 
 # Read from source rather than imported: importing main constructs a ChromaDB
 # client at module scope, which is not a unit test's business.

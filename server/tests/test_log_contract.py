@@ -14,7 +14,7 @@ import tempfile
 import time
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pathlib  # noqa: E402
 
@@ -236,7 +236,7 @@ def test_run_tests_sends_the_synthetic_header():
     audit-corpus entries came from two such runs, indistinguishable from real
     traffic.
     """
-    here = pathlib.Path(__file__).parent
+    here = pathlib.Path(__file__).parent.parent
     script = (here / "run_tests.sh").read_text()
     assert "X-Test-Run: 1" in script
     assert script.count("X-Test-Run: 1") == script.count("X-Access-Token: $TOKEN"), \

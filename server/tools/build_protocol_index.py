@@ -11,7 +11,7 @@ per JTS protocol using GPT-4o-mini, validates with Pydantic, and writes:
 Run once on arcaneone:
   cd ~/cdss-cloud/app
   source ~/cdss-cloud/venv/bin/activate
-  python3 build_protocol_index.py
+  python3 tools/build_protocol_index.py
 
 Requirements: chromadb, openai, pydantic, python-dotenv already installed in venv.
 """
@@ -501,7 +501,8 @@ def main():
     query_aliases = build_query_aliases()
 
     # Write files
-    output_dir = Path(os.getenv("CDSS_APP_DIR", Path(__file__).parent))
+    output_dir = Path(os.getenv("CDSS_APP_DIR",
+                                Path(__file__).resolve().parent.parent))
 
     with open(output_dir / "protocol_index.json", "w") as f:
         json.dump(protocol_index, f, indent=2)

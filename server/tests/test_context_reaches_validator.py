@@ -39,7 +39,7 @@ import os
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest  # noqa: E402
 

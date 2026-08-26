@@ -15,11 +15,11 @@ import subprocess
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from openai_client import _env_number  # noqa: E402
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Every numeric knob, with the default it must fall back to.
 NUMERIC_ENV_KNOBS = {

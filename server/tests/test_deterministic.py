@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from openai_client import (  # noqa: E402
     PatientContext, build_allowed_actions, extract_patient_context,
@@ -32,7 +32,7 @@ def test_import_is_offline_safe():
     get_client(), not at module scope.
     """
     env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
-    here = os.path.dirname(os.path.abspath(__file__))
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     proc = subprocess.run(
         [sys.executable, "-c", "import sys; sys.path.insert(0, %r); import openai_client" % here],
         env=env, capture_output=True, text=True,

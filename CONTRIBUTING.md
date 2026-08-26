@@ -32,7 +32,7 @@ cd pi-cloud-cdss
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -r client/requirements.txt
-cp .env.example .env
+cp .env.example server/.env   # the server reads server/.env, not the repo root
 ```
 
 ## Running Tests

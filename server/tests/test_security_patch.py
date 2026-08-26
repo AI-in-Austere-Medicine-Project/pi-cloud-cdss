@@ -46,7 +46,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-offline")
 # .env beside it — these tests must never authenticate with the deployed token,
 # and must never pass merely because the demo token is the default.
 os.environ["CDSS_ACCESS_TOKEN"] = "test-token-not-the-demo-one"
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # main.py builds a ChromaDB PersistentClient at import. Stubbed so this stays
 # offline and touches no corpus; main is the only module importing embeddings.

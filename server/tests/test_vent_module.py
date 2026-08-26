@@ -824,7 +824,7 @@ def test_the_fill_in_sheet_does_not_offer_a_live_card_for_authoring():
     invites someone to author over content that already shipped.
     """
     root = pathlib.Path(vm.__file__).resolve().parent.parent
-    sheet = (root / "CARD_FILL_IN.txt").read_text()
+    sheet = (root / "docs" / "authoring" / "CARD_FILL_IN.txt").read_text()
     offered = {line.split()[1] for line in sheet.splitlines()
                if line.startswith("CARD: ")}
     live = {c for family in vm.servable_cards().values() for c in family}

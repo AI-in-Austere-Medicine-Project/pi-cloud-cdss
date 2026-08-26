@@ -18,7 +18,7 @@ import pathlib
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from openai_client import (  # noqa: E402
     PatientContext, detect_patient_boundary,
@@ -278,7 +278,7 @@ def test_notice_text_names_what_was_cleared():
 # ── The client half (SC-1 part c) ──────────────────────────────────────────
 
 def client_source():
-    return (pathlib.Path(__file__).parent / "static" / "index.html").read_text()
+    return (pathlib.Path(__file__).parent.parent / "static" / "index.html").read_text()
 
 
 def test_client_new_patient_button_exists():

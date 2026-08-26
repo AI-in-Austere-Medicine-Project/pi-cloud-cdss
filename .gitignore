@@ -3,6 +3,10 @@
 *.env
 .env.*
 .env.local
+# ...except the template. README, CONTRIBUTING and the first-time guide all
+# say `cp .env.example`, and `.env.*` above was quietly matching it, so the
+# quickstart referred to a file that could never be committed.
+!.env.example
 
 # Python
 __pycache__/
@@ -50,7 +54,11 @@ manuals/
 # Local working files (review docs, drafts, old versions)
 EdgeCDSS_openai_*
 *.docx
-tests/
+# NOT `tests/`. That rule was here until 2026-08-26 and it matched ANY
+# directory of that name at any depth — so the day anyone moved the suite into
+# server/tests/, the entire offline regression suite would have become
+# untracked, silently, while still passing locally. It was harmless only for
+# as long as the tests sat flat beside the code.
 
 # Runtime logs
 logs/

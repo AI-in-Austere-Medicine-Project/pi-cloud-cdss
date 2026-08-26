@@ -20,7 +20,7 @@ Compatibility (matches embeddings.py / classify_retrieval expectations):
 
 Usage (on the Jetson, inside the venv):
   cd ~/pi-cloud-cdss/server
-  ../.venv/bin/python3 ingest_jts.py --pdf-dir ./data/jts_protocols
+  ../.venv/bin/python3 tools/ingest_jts.py --pdf-dir ./data/jts_protocols
   # options: --db ./cache/chromadb   --reset   --dry-run
 """
 

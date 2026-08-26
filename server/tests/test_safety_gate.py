@@ -14,7 +14,7 @@ import re
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from openai_client import (  # noqa: E402
     CANONICAL_GIVE_RE, SAFETY_OVERRIDES, DeterministicCheck, DoseCandidate,

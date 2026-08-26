@@ -55,7 +55,7 @@ class ClinicalRouter:
     def _load_json(self, filename: str) -> dict:
         path = self.app_dir / filename
         if not path.exists():
-            print(f"⚠️  {filename} not found. Run build_protocol_index.py first.")
+            print(f"⚠️  {filename} not found. Run tools/build_protocol_index.py first.")
             return {}
         with open(path) as f:
             return json.load(f)

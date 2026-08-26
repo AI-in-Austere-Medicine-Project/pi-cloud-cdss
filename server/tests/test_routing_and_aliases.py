@@ -14,7 +14,7 @@ import os
 import sys
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest  # noqa: E402
 
@@ -200,7 +200,7 @@ def test_kg_does_not_resolve_ketamine():
 
 _CORPUS = os.getenv(
     "CDSS_AUDIT_SESSIONS",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "sessions"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "..", "data", "sessions"),
 )
 
 # Measured on the 135-entry corpus at the time of the v4.1 audit:

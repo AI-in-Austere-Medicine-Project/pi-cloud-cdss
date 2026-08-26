@@ -10,7 +10,7 @@
 # Then rebuild the vector DB:
 #
 #   pip install -r requirements-server.txt
-#   python server/ingest_jts.py
+#   python server/tools/ingest_jts.py
 #
 # NOTE: jts.health.mil updates CPGs over time. A fresh download may differ from
 # the knowledge base a given release was tested against. For the exact certified
@@ -147,4 +147,4 @@ if [ ${#FAILED_URLS[@]} -gt 0 ]; then
   printf '  %s\n' "${FAILED_URLS[@]}"
 fi
 echo
-echo "Next: pip install -r requirements-server.txt && python server/ingest_jts.py"
+echo "Next: pip install -r requirements-server.txt && python server/tools/ingest_jts.py"

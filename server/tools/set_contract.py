@@ -2,11 +2,11 @@
 """
 Sign a dose entry in the drug contract file. The sanctioned path.
 
-    python3 set_contract.py --list
-    python3 set_contract.py --list --drug ketamine
-    python3 set_contract.py --drug ketamine --indication "RSI induction" \
+    python3 tools/set_contract.py --list
+    python3 tools/set_contract.py --list --drug ketamine
+    python3 tools/set_contract.py --drug ketamine --indication "RSI induction" \
             --population adult --route IV --sign --by clinician --date 2026-08-25
-    python3 set_contract.py --drug ketamine --indication "RSI induction" \
+    python3 tools/set_contract.py --drug ketamine --indication "RSI induction" \
             --population adult --route IV --unsign
 
 Sibling to set_concentration.py, same doctrine, same asymmetry. Hand-editing
@@ -86,6 +86,15 @@ import json
 import os
 import pathlib
 import sys
+
+# tools/ sits one level below the application modules it drives. Put the
+# server directory on the path so `import drug_contracts` means what it meant
+# when this file lived beside it.
+import pathlib as _pathlib
+import sys as _sys
+_SERVER = _pathlib.Path(__file__).resolve().parent.parent
+if str(_SERVER) not in _sys.path:
+    _sys.path.insert(0, str(_SERVER))
 
 import drug_contracts as dc
 
