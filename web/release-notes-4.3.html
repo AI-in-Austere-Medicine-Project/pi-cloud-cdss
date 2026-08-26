@@ -48,6 +48,9 @@ td strong { color: #fff; font-weight: 500; }
 .btn { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 22px; border: 1px solid var(--blue); color: var(--blue); }
 .btn:hover { background: var(--blue); color: var(--dark); text-decoration: none; }
 .disclaimer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+figure { margin: 26px 0; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--border); }
+figcaption { font-family: var(--mono); font-size: 11px; line-height: 1.7; color: var(--muted); margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -56,7 +59,7 @@ td strong { color: #fff; font-weight: 500; }
 
   <div class="kicker">Release Notes · August 2026</div>
   <h1>EdgeCDSS<br>Version 4.3</h1>
-  <p class="sub">The ventilator module. A card answer is neither retrieved nor generated — a clinician wrote it, dated it, and the engine refuses to serve it until they have.</p>
+  <p class="sub">The ventilator module. A card answer is neither retrieved nor generated — a clinician wrote it, dated it, and the engine refuses to serve it until they have. With four screenshots of 4.3 answering real questions in the field.</p>
   <div class="meta">Layer 01 · Active · MIT License · Released 22 August 2026</div>
 
   <div class="statgrid">
@@ -73,6 +76,48 @@ td strong { color: #fff; font-weight: 500; }
   <div class="pipeline">
     <div class="flow">Retrieved → Generated → <em>Authored</em></div>
     <p>A card is not a better prompt and it is not a bigger corpus. It is a small, dated, referenced clinical statement with a named signing role attached, served verbatim. The engineering that matters is not the card format — it is the fence that refuses to serve one nobody has signed.</p>
+  </div>
+
+  <h2 id="in-practice">Four answers, and where each came from</h2>
+  <p>Everything above this line describes a mechanism. This section is the mechanism running. Below are four real responses from EdgeCDSS 4.3 on a Jetson in Tanzania, unedited. Each shows a different part of how the system decides what it may tell a clinician — and, in two of them, how it says so when it cannot properly source an answer.</p>
+
+  <h3>1. A drug bundle, and why you can check it</h3>
+  <p>A medic types one line: an 80 kg patient, rapid sequence intubation, ketamine and rocuronium. What comes back is not the language model doing arithmetic. The model reads the question and works out what is being asked. The doses themselves come out of a bank of entries that a clinician reviewed and signed, and each entry carries the guideline it came from — the cautions on this screen cite JTS ID39, the military rapid sequence intubation pathway.</p>
+  <p>The volumes work the same way, with one addition. Rocuronium is stocked at a single strength, so the system prints <strong>9.6 mL of 10 mg/mL</strong> — the volume and the concentration it assumed, together, so the medic can hold the ampoule up and check that the two agree. Ketamine ships in several strengths. Rather than pick one and hope, the system withholds the volume and asks which vial is in hand. The milligram dose is stated either way: 160 mg is 160 mg whether or not anyone confirms the vial, and the screen says so in as many words.</p>
+  <figure>
+    <img src="img/v43/RSI.png" alt="EdgeCDSS response to the query &quot;need to RSI, 80kg, ketamine and roc&quot;. A GIVE section lists ketamine IV 160 mg with the note &quot;NO VOLUME — confirm concentration to compute volume&quot;, and rocuronium as &quot;Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg)&quot;. A CONFIRM VIAL section asks which ketamine vial is available and states that the milligram doses above stand either way. Cautions cite JTS ID39. The source line reads &quot;Signed dose contracts — each dose carries its own citation or owner declaration&quot;, and the response is badged DETERMINISTIC_CHECKED, 41 ms.">
+    <figcaption>The 160 mg is settled; the millilitres wait for the vial. Rocuronium prints its volume next to the concentration that produced it, so the number can be checked against the ampoule in hand. The badge reads DETERMINISTIC_CHECKED — this answer was assembled by ordinary software in 41 milliseconds, not written by the model.</figcaption>
+  </figure>
+
+  <h3>2. The dose it will not give</h3>
+  <p>The same system, asked for push-dose epinephrine in a patient who is shocked but undifferentiated. The signed epinephrine entry covers one indication: symptomatic bradycardia. It does not cover shock.</p>
+  <p>So the system does not produce a number. It says why — that the entries it holds are for a different indication at different doses — and it points to local protocol, or to an infusion if that is what the patient actually needs. It still explains how to mix the 10 mcg/mL preparation, because that is a mixing instruction rather than a dose. What it will not do is take a figure that was signed off for bradycardia and quietly serve it for shock.</p>
+  <p>This is the part worth sitting with. A number the system cannot source is not a weaker answer that arrives with a caveat attached. It is not an answer, and it is left out. Most clinical AI will produce something here. This behaviour is deliberate.</p>
+  <figure>
+    <img src="img/v43/push-epi.png" alt="EdgeCDSS response to the query &quot;push dose epi, BP 70/40 shocky&quot;. A preparation section explains how to mix 10 mcg/mL epinephrine. The GIVE section states there is no signed entry for shock in an adult patient at this preparation, warns against extrapolating from the signed symptomatic bradycardia entries because they are different indications at different numbers, and directs the user to local protocol or an infusion. The contraindications line reads &quot;None recorded on these entries. That is a gap in the record, not a clearance.&quot; The source line reads &quot;General Evidence-Based Medicine / deterministic preparation card — no signed contract covered this request.&quot;">
+    <figcaption>Asked for a dose it has no signed entry for, the system declines and names the indication its entries do cover. Note the contraindications line: nothing recorded is reported as a gap in the record, not as a clearance.</figcaption>
+  </figure>
+
+  <h3>3. Ventilator settings, written by a clinician</h3>
+  <p>This is the module the rest of these notes are about, seen from the medic's side. Ventilator guidance does not come from the guideline corpus at all. It comes from cards a clinician wrote, dated and signed, and the system serves the card as written. It is not searching for the answer and it is not composing one.</p>
+  <p>The cards are filed by physiology rather than by diagnosis, and the heading on this one says so: metabolic acidosis, compensation preserved. That distinction is the whole point. The diagnosis is not what sets the rate. A patient in diabetic ketoacidosis is breathing fast to hold their pH up, and the card's instruction is to match that — start at 20 to 30 and titrate — because a normal rate halves their minute ventilation and the pH falls. A patient with ARDS-pattern lungs needs the opposite handling, and rather than stretch to cover both, this card states plainly that it does not apply to them and names the card that does.</p>
+  <p>If nobody has signed a card, the system treats it as though it does not exist. There is no override. Before 4.3, this exact question — intubated DKA patient, what do I set — returned no settings at all. That gap is why the module was built.</p>
+  <figure>
+    <img src="img/v43/dka-vent.png" alt="EdgeCDSS response to the query &quot;intubated DKA patient, 80kg, 178cm, vent settings&quot;. The card is headed METABOLIC ACIDOSIS — COMPENSATION PRESERVED and gives settings: volume control, tidal volume 6 mL/kg = 480 mL, rate matched to compensatory minute ventilation starting at 20 to 30, PEEP 5, FiO2 titrated to SpO2 at or above 94%. An ASSUMES section states the card applies to metabolic acidosis with preserved respiratory compensation and does not apply to respiratory or mixed acidosis or ARDS-pattern lungs, directing the user to the lung-protective card instead. The source line reads &quot;EdgeCDSS clinical card — reviewed by clinician, 2026-08-22&quot; followed by its references.">
+    <figcaption>A signed card, served as written. The source line names the clinician review and its date, and lists the references behind it. The card also states what it does not cover — and flags that this tidal volume came off actual body weight, because no height was on file.</figcaption>
+  </figure>
+
+  <h3>4. A question the guidelines do not answer</h3>
+  <p>EdgeCDSS was built for trauma. Its guideline corpus is the Joint Trauma System's practice guidelines, and tropical medicine is not in it. Severe malaria is an entirely reasonable thing to ask in Tanzania, and the corpus has no chapter on it.</p>
+  <p>The answer it gives is sound enough. What matters is how it is presented. The system prints the passages it actually matched and how closely they matched: sepsis in prolonged field care at 43 per cent, a chapter on biological casualties at 33 per cent. Those are the nearest things the trauma corpus holds and they are visibly not malaria guidance. The response is marked NEEDS_HUMAN_REVIEW and carries a note to use local protocol and medical control where available.</p>
+  <p>The timing says the same thing. The drug bundle took 41 milliseconds and the ventilator card took 4, because both were assembled by ordinary software out of signed material. This one took 5.7 seconds and is attributed to the language model, because that is what had to answer it.</p>
+  <figure>
+    <img src="img/v43/malaria.png" alt="EdgeCDSS response to the query &quot;what's the treatment for severe malaria&quot;. It describes severe malaria and gives a treatment sequence: IV artesunate 2.4 mg/kg at 0, 12, 24 and 48 hours, followed by three days of Malarone or Coartem, and teleconsultation or medevac if artesunate is unavailable. A clinical safety note states the response requires human review and directs the user to local protocol and medical control. The response is badged NEEDS_HUMAN_REVIEW at 5660 milliseconds and lists the passages it matched with their match strengths: Sepsis Management in prolonged field care at 43% and 20%, and CBRN Part 4 General Approach to Biological Casualties at 33%. It is attributed to openai/gpt-4o-mini.">
+    <figcaption>Outside its own corpus, the system shows its working: the passages it matched, how weakly it matched them, and a human-review flag. Nearly six seconds and a model attribution, against 4 and 41 milliseconds for the two answers that came from signed material.</figcaption>
+  </figure>
+
+  <div class="callout">
+    <strong>Three sources answered these four screens.</strong> Signed dose entries, a clinician-authored card, and — as on the epinephrine screen, whose source line reads <em>General Evidence-Based Medicine</em> — general reference from outside the corpus. The claim is not that one of them is better. It is that the answer always tells you which one it was, and declines when it cannot say.
   </div>
 
   <h2>What's new in 4.3</h2>
@@ -184,9 +229,14 @@ td strong { color: #fff; font-weight: 500; }
   <h2>The lesson</h2>
   <p>Retrieval can only return what somebody already wrote down. When the corpus is silent, a language model will still produce fluent prose — and prose that never reaches a number is the most dangerous kind of answer, because it looks like help. The fix was not a better prompt. It was a clinician writing the answer down, dating it, and a gate that refuses to serve it until they have.</p>
 
+  <h2>If you are a clinician, we want you to break it</h2>
+  <p>The people this is built for work in prehospital, retrieval, tactical and austere medicine. If that is you, the failures you find are worth considerably more to us than the successes. A wrong dose, a confident answer to a question it should have declined, a card that reads well and is clinically wrong in the field — those are the findings we need, and they are the ones that are hardest to generate from a desk.</p>
+  <p>Open an issue on GitHub with what you asked and what came back. The live portal is the quickest way to try it, with the standing caveat that it runs on one machine in the field and may be offline.</p>
+
   <div class="links">
     <a class="btn" href="https://cdss.arcanekg.com" target="_blank" rel="noopener">Launch Web Portal</a>
-    <a class="btn" href="v4.3-showcase.html">v4.3 in Practice</a>
+    <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0" target="_blank" rel="noopener">v4.3.0 GitHub Release</a>
+    <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/issues" target="_blank" rel="noopener">Report What You Find</a>
     <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss" target="_blank" rel="noopener">View on GitHub</a>
     <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/docs/TECH_NOTES_v4.3.md" target="_blank" rel="noopener">Technical Notes (GitHub)</a>
     <a class="btn" href="https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Full Changelog (GitHub)</a>
