@@ -92,9 +92,21 @@ and publishing it would hand a reader the exploit alongside the fix.
 **What may be said publicly:** a finding that is **closed** may be described in
 `CHANGELOG.md`, with its mechanism, because the description of a closed hole is
 a description of a fix. AE-1, AE-3, AE-4 and H-1 are recorded that way in the
-4.3.0 entry. **Findings that are still open are not enumerated in this
-repository**, by prefix, number or mechanism. Work on them appears in `TODO.md`
-described as the hardening it is, without the finding identifier.
+4.3.0 entry.
+
+**An open finding is named here and described nowhere.** The identifier and its
+state are the whole public record; the mechanism, the evidence and the
+reproduction stay in the private audit. A repository that says nothing at all
+reads as a repository with nothing outstanding, and that is a worse lie than
+the small amount an identifier gives away.
+
+| ID | State | Where it lives |
+|---|---|---|
+| **AE-2** | **open** | Private audit. Remediation appears in `TODO.md` as the hardening it is, without the identifier. |
+
+No other open security finding is currently tracked here. Adding one means
+adding a row to that table and nothing else — no summary, no severity note
+beyond the prefix, no hint at the surface involved.
 
 ---
 

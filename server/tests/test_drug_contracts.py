@@ -1682,3 +1682,39 @@ def test_a_calculator_never_serves_what_a_contract_covers(case):
             f"{case['name']}: {drug} '{indication}' is covered by a signed "
             f"contract, but what got served came from {s.source!r}. A "
             "calculator backfills only where the bank is silent.")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# THE LINTS ACTUALLY RUN
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_the_generic_name_overlap_lint_runs_at_import():
+    """It was defined and never called, from the day it was written until
+    2026-08-26.
+
+    That is the vitamin-K class waiting to recur: a substring alias quietly
+    eating a real drug, in a file that reads as though the class were covered.
+    Asserting the RESULT exists at module level is what makes "wired up"
+    testable — a lint whose output nothing holds is a lint nobody ran.
+    """
+    assert hasattr(dc, "GENERIC_NAME_OVERLAPS")
+    assert dc.GENERIC_NAME_OVERLAPS == dc.lint_generic_name_overlaps()
+
+
+def test_every_reported_overlap_is_a_combination_product():
+    """The lint is informational because a combination product legitimately
+    contains its components' names. If an overlap ever appears that is NOT one,
+    resolve_drugs() has two names that could match the same span and the
+    longest-match rule is deciding a clinical question silently."""
+    unexpected = [p for p in dc.GENERIC_NAME_OVERLAPS
+                  if " + " not in p.split(" contains ")[0]]
+    assert unexpected == [], (
+        f"generic names shadow each other without being combinations: {unexpected}")
+
+
+def test_the_alias_lint_still_refuses_rather_than_reports():
+    """The two lints are deliberately different: an alias collision is a
+    refusal, a generic-name overlap is a note. Conflating them would either
+    fail the build on a legal combination or teach the team to ignore the one
+    that catches real shadows."""
+    assert dc.ALIAS_COLLISIONS == [], f"alias collisions present: {dc.ALIAS_COLLISIONS}"

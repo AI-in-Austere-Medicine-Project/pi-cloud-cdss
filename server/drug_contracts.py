@@ -535,7 +535,17 @@ def servable_entries() -> dict:
 
 
 def contract_status() -> dict:
-    """{generic_name: {"live": n, "total": n, "reasons": [...]}} for reporting."""
+    """{generic_name: {"live": n, "total": n, "reasons": [...]}} for reporting.
+
+    INTENTIONALLY UNCALLED. Owner ruling 2026-08-26: kept as the reporting
+    surface for /status and for anything that needs to describe the bank
+    without reimplementing the fence. A dead-code sweep will find it — this
+    note is the answer, so it is not deleted and then rebuilt.
+
+    Unlike the two functions deleted the same day, this one is safe to leave
+    dormant: it READS state and serves nothing. Those returned doses while
+    bypassing a gate, which is why they went.
+    """
     out = {}
     for name, drug in DRUGS.items():
         entries = drug.get("dose_entries", [])
@@ -659,6 +669,46 @@ def lint_generic_name_overlaps() -> list:
             if a != b and _has_word(a.lower(), b.lower()):
                 out.append(f"{a!r} contains the generic name {b!r}")
     return out
+
+
+# Run at import, the same as the alias lint above.
+#
+# This was DEFINED and never CALLED — from the day it was written until
+# 2026-08-26. A collision lint nobody runs is the vitamin-K class waiting to
+# recur: that bug was a substring alias quietly eating a real drug, and it was
+# found by a person reading code, not by the lint that exists to find it. An
+# unrun lint is worse than no lint, because the file reads as though the class
+# were covered.
+#
+# INFORMATIONAL, and deliberately not fatal — unlike ALIAS_COLLISIONS, which
+# refuses. A combination product legitimately contains its components' names,
+# so failing on one would either block a legal entry or teach everyone to
+# ignore the warning, and the second is how the alias lint would stop working
+# too. resolve_drugs() handles these by longest-match-wins; the lint's job is
+# to make sure a human knows which names overlap.
+GENERIC_NAME_OVERLAPS = lint_generic_name_overlaps()
+
+
+def _overlap_is_expected(line: str) -> bool:
+    """A combination product containing its own components' names.
+
+    Five of these exist in the bank today — 'artemether + lumefantrine' and the
+    four-drug TB regimen. Printing them on every import would put five lines of
+    known-fine warning in front of every server start and every test run, and a
+    warning that is always there is a warning nobody reads. That is the failure
+    this lint is trying to prevent, so it must not be the failure the lint
+    causes. The full list stays in GENERIC_NAME_OVERLAPS for anything that
+    wants it; only the unexplained ones get printed.
+    """
+    return " + " in line.split(" contains ")[0]
+
+
+_UNEXPECTED = [p for p in GENERIC_NAME_OVERLAPS if not _overlap_is_expected(p)]
+if _UNEXPECTED:
+    for _p in _UNEXPECTED:
+        print(f"⚠️  drug_contracts generic-name overlap: {_p}")
+    print(f"⚠️  {len(_UNEXPECTED)} overlap(s) are NOT combination products — "
+          "check that resolve_drugs() picks the one you mean")
 
 
 def resolve_drugs(query: str) -> list:

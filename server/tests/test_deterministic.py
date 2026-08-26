@@ -266,3 +266,28 @@ def test_fixed_prep_terms_cover_every_phrasing_the_builder_answers():
         assert oc.build_fixed_prep_response(query) is not None, query
         assert oc.is_fixed_prep_request(query) is True, query
         assert oc.wants_medication_dose(query) is False, query
+
+
+def test_the_pipeline_docstrings_agree_with_the_pipeline():
+    """Three numbers described this file's own shape and none of them matched.
+
+    The module docstring said 13 deterministic pre-gates, _finalise said
+    fourteen early returns, and there were sixteen. Nothing broke — which is
+    the point: a comment that is wrong about the file it sits in is wrong
+    quietly, and this file now owns dose routing. Counted from the source_mode
+    literals, the only definition that cannot drift from the code.
+    """
+    import pathlib
+    import re
+
+    src = (pathlib.Path(__file__).parent.parent / "openai_client.py").read_text()
+    body = src[src.index("def _run_pipeline("):src.index("def query_with_rag(")]
+    before_rag = body[:body.index("# Step 3: RAG retrieval")]
+    actual = len(re.findall(r'"source_mode":\s*"[A-Z_]+"', before_rag))
+
+    words = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen",
+             17: "seventeen", 18: "eighteen"}
+    assert f"{actual} deterministic pre-gates" in src, (
+        f"the module docstring does not say {actual} deterministic pre-gates")
+    assert f"{words[actual]} early returns" in src, (
+        f"_finalise does not say {words[actual]} early returns")
