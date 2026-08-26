@@ -92,20 +92,83 @@ def live(monkeypatch):
 # THE SHIPPED STATE
 # ═══════════════════════════════════════════════════════════════════════════
 
-def test_the_shipped_contract_file_is_entirely_unsigned():
-    """The state this module ships in, asserted rather than assumed.
+def pending_entry(drug="ketamine", **overrides):
+    """A shipped entry wound back to the sentinel in every clinical field.
 
-    If this ever fails, someone signed clinical content in a code change rather
-    than in a review, and that is the one thing this layer must make loud.
+    The state every entry was in before the owner signed anything, and the
+    state 49 of them are still in. The fence tests assert against THIS rather
+    than against the file, so signing an entry is never what makes them fail —
+    the same reason test_vent_module.py installs a pending card instead of
+    asserting that no card is live.
+
+    Entries go live one at a time. "How many are signed" is a moving fact and
+    no test may depend on it.
     """
-    signed = [(name, e.get("indication"), e.get("route"))
-              for name, d in dc.DRUGS.items()
-              for e in d.get("dose_entries", []) if e.get("signoff") is not False]
-    assert signed == [], f"entries are signed in the shipped file: {signed}"
+    entry = copy.deepcopy(dc.DRUGS[drug]["dose_entries"][0])
+    entry.update({
+        "indication": "SYNTHETIC TEST INDICATION", "population": "adult",
+        "route": "IV",
+        "dose_range": {"min": dc.PENDING, "max": dc.PENDING,
+                       "units": dc.PENDING, "per_kg": False},
+        "sources": [], "cautions": [dc.PENDING], "contraindications": [dc.PENDING],
+        "signoff": False, "reviewed_by": dc.PENDING, "review_date": dc.PENDING,
+        "version": "0.1.0-draft",
+    })
+    entry.update(overrides)
+    return entry
 
 
-def test_nothing_is_servable_today():
-    assert dc.servable_entries() == {}
+def test_an_unsigned_entry_is_never_servable():
+    """The fence, proven on an entry that is unsigned by construction.
+
+    This replaces test_the_shipped_contract_file_is_entirely_unsigned and
+    test_nothing_is_servable_today, which asserted `servable_entries() == {}`
+    and were correct until the owner signed 46 entries on 2026-08-25. A test
+    that fails the moment the system is used as designed is not a fence test —
+    it is a clock. What the fence actually promises is this, and it stays true
+    at any number of signatures.
+    """
+    ok, why = dc.entry_is_servable(pending_entry(), dc.DRUGS["ketamine"])
+    assert ok is False
+    assert why, "an entry was refused with no reason given"
+
+
+@pytest.mark.parametrize("field,value", [
+    ("signoff", False),
+    ("reviewed_by", dc.PENDING),
+    ("review_date", dc.PENDING),
+    ("sources", []),
+    ("cautions", [dc.PENDING]),
+])
+def test_each_half_authored_field_alone_is_enough_to_refuse(field, value):
+    """One sentinel is enough. An entry that is complete except for its
+    cautions is still half-authored, and the medic reads the cautions."""
+    entry = pending_entry(**{
+        "dose_range": {"min": 1.0, "max": 1.0, "units": "mg/kg", "per_kg": True},
+        "sources": [{"citation": "SYNTHETIC", "tier": 1, "url": "http://example",
+                     "retrieved_date": "2026-08-25"}],
+        "cautions": [], "contraindications": [],
+        "signoff": True, "reviewed_by": dc.SIGNOFF_AUTHORS[0],
+        "review_date": "2026-08-25",
+    })
+    entry[field] = value
+    ok, _ = dc.entry_is_servable(entry, dc.DRUGS["ketamine"])
+    assert ok is False, f"{field}={value!r} was served"
+
+
+def test_every_servable_entry_passed_the_fence_it_claims_to_have_passed():
+    """The other half of the same promise, over the REAL file: whatever is
+    signed today is signed properly. This one scales with the bank instead of
+    contradicting it."""
+    for name, entries in dc.servable_entries().items():
+        for e in entries:
+            assert e.get("signoff") is True, f"{name}/{e['indication']}"
+            assert e.get("reviewed_by") in dc.SIGNOFF_AUTHORS, \
+                f"{name}/{e['indication']} signed by {e.get('reviewed_by')!r}"
+            assert e.get("review_date") not in dc.SENTINELS, \
+                f"{name}/{e['indication']} has no real review date"
+            ok, why = dc.entry_is_servable(e, dc.DRUGS[name])
+            assert ok, f"{name}/{e['indication']} is served but fails the fence: {why}"
 
 
 def test_no_signed_contract_kept_a_sentinel_anywhere():
@@ -289,13 +352,23 @@ def test_every_tier_1_citation_names_a_guideline_and_page():
 
 
 def test_nothing_became_signed_during_the_extraction():
-    """The extraction fills values. It does not sign them. Ever."""
-    assert dc.servable_entries() == {}
+    """The extraction fills values. It does not sign them. Ever.
+
+    Asserted as "no signature names a script" rather than as "nothing is
+    signed": the owner signs entries, and the extraction must never be able to
+    produce one. An entry signed by anything other than an authorised human
+    role is an entry a tool signed for itself.
+    """
     for name, drug in dc.DRUGS.items():
         for e in drug["dose_entries"]:
-            assert e["signoff"] is False, f"{name}/{e['indication']}"
-            assert e["reviewed_by"] == dc.PENDING
-            assert e["review_date"] == dc.PENDING
+            if e["signoff"] is False:
+                assert e["reviewed_by"] == dc.PENDING, \
+                    f"{name}/{e['indication']} is unsigned but names a reviewer"
+                assert e["review_date"] == dc.PENDING
+            else:
+                assert e["reviewed_by"] in dc.SIGNOFF_AUTHORS, \
+                    f"{name}/{e['indication']} signed by {e['reviewed_by']!r} — " \
+                    "a signature must name an authorised role, never a script"
 
 
 def test_the_extraction_made_entries_signABLE():
@@ -465,7 +538,15 @@ def test_txa_finally_has_a_dose():
 
 
 def test_nothing_was_signed_by_the_jts_extraction():
-    assert dc.servable_entries() == {}
+    """Same promise as above, scoped to the JTS pass: an extraction may fill a
+    dose_range and a citation, and may never fill a signature."""
+    for name, drug in dc.DRUGS.items():
+        for e in drug["dose_entries"]:
+            cites_jts = any("JTS" in str(src.get("citation", ""))
+                            for src in e.get("sources", []) or [])
+            if cites_jts and e["signoff"] is True:
+                assert e["reviewed_by"] in dc.SIGNOFF_AUTHORS, \
+                    f"{name}/{e['indication']} carries a non-role signature"
 
 
 

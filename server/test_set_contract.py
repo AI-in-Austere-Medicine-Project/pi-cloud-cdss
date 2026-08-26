@@ -15,8 +15,9 @@ _would_not_serve walks every entry in the shipped file and checks that the tool
 refuses whatever the engine refuses. The tool is allowed to be STRICTER; it is
 never allowed to be looser.
 """
+import hashlib
 import json
-import shutil
+import re
 
 import pytest
 
@@ -28,11 +29,46 @@ SIGNER = dc.SIGNOFF_AUTHORS[0]
 DATE = "2026-08-25"
 
 
+def _digest_real_file() -> str:
+    return hashlib.sha256(
+        (dc._DIR / "drug_contracts.json").read_bytes()).hexdigest()
+
+
+# Taken at import, compared at the end of the module. See
+# test_this_module_never_touched_the_real_contract_file.
+_REAL_FILE_AT_IMPORT = _digest_real_file()
+
+
 @pytest.fixture
 def sandbox(tmp_path, monkeypatch):
-    """A private copy of the contract file plus its log."""
+    """A private copy of the contract file, wound back to fully unsigned.
+
+    The copy used to be taken as-is, which was fine while the shipped file was
+    fully unsigned and stopped being fine the moment the owner signed 46
+    entries: every test below picks an entry, asks the tool to sign it, and
+    asserts what happened. Against an already-signed entry the tool correctly
+    no-ops, so nineteen tests failed for the same reason and none of them was
+    about the thing it was testing. Two of them then failed at `read_text()`
+    on a log the no-op never wrote.
+
+    Winding back is what makes the refusals testable at all: a refusal is a
+    thing that happens on the way from unsigned to signed. This fixture owns
+    the starting state so no test depends on how much of the real bank is
+    signed today.
+    """
+    doc = json.loads((dc._DIR / "drug_contracts.json").read_text())
+    for drug in doc["drugs"]:
+        for e in drug["dose_entries"]:
+            e["signoff"] = False
+            e["reviewed_by"] = dc.PENDING
+            e["review_date"] = dc.PENDING
+            # Exactly what cmd_unsign does, including the suffix: signing drops
+            # "-draft" from the version, so a copy left on a signed version has
+            # nothing for test_signing_drops_the_draft_suffix to observe.
+            v = e.get("version", "0.1.0")
+            e["version"] = v if v.endswith("-draft") else v + "-draft"
     cfg = tmp_path / "drug_contracts.json"
-    shutil.copy(dc._DIR / "drug_contracts.json", cfg)
+    cfg.write_text(json.dumps(doc, indent=2, ensure_ascii=False))
     monkeypatch.setattr(sc, "CONFIG", cfg)
     monkeypatch.setattr(sc, "CHANGE_LOG", tmp_path / "contracts.log.jsonl")
     return cfg
@@ -335,11 +371,25 @@ def test_an_unsigned_entry_stops_serving(sandbox, monkeypatch):
 
 # ── --list ──────────────────────────────────────────────────────────────────
 
-def test_list_splits_ready_from_blocked(sandbox, capsys):
+def test_list_splits_ready_from_blocked(capsys):
+    """Three states, not two — the thing cmd_list exists to show.
+
+    cmd_list reads the LIVE bank (dc.DRUGS), not the sandbox, so the counts are
+    a moving fact: this asserted "0 signed" and was true only until the first
+    signature. It now asserts the split itself and that the three numbers
+    account for every entry, which is the invariant and holds at any number of
+    signatures.
+    """
     assert sc.cmd_list() == 0
     out = capsys.readouterr().out
-    assert "ready to sign" in out and "blocked on work" in out
-    assert "0 signed" in out
+    m = re.search(r"(\d+) signed, (\d+) ready to sign, (\d+) blocked on work", out)
+    assert m, f"the three-way split is missing from the summary line: {out[-200:]}"
+    signed, ready, blocked = (int(g) for g in m.groups())
+
+    total = sum(len(d.get("dose_entries", [])) for d in dc.DRUGS.values())
+    assert signed + ready + blocked == total, (
+        f"{signed}+{ready}+{blocked} does not account for {total} entries — "
+        "an entry is in none of the three states, or in two")
 
 
 def test_list_names_the_blocking_reason(sandbox, capsys):
@@ -445,12 +495,19 @@ def test_list_marks_the_declared_entry(sandbox, capsys):
 
 # ── the shipped file ────────────────────────────────────────────────────────
 
-def test_the_real_contract_file_is_still_entirely_unsigned():
-    """Last line of defence. Nothing in this module may touch the real file."""
-    raw = json.loads((dc._DIR / "drug_contracts.json").read_text())
-    for d in raw["drugs"]:
-        for e in d["dose_entries"]:
-            assert e["signoff"] is False, f"{d['generic_name']}/{e['indication']}"
+def test_this_module_never_touched_the_real_contract_file():
+    """Last line of defence. Nothing in this module may touch the real file.
+
+    Was `assert every entry is unsigned`, which said the same thing while
+    nothing was signed and became false when the owner signed 46 entries. What
+    it was actually defending is that the SUITE does not mutate the bank — so
+    it now compares the file against the digest taken when this module was
+    imported. Signing an entry in a review is expected; signing one by running
+    the tests is the accident, and only the second is detectable this way.
+    """
+    assert _digest_real_file() == _REAL_FILE_AT_IMPORT, (
+        "the real drug_contracts.json changed while the suite ran — a test "
+        "wrote to the shipped file instead of its tmp_path copy")
 
 
 def test_the_tool_points_at_the_file_the_engine_reads():

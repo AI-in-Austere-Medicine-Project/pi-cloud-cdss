@@ -177,13 +177,31 @@ def test_the_confirmation_ask_is_a_registered_gate_response():
 
 
 def test_confirming_the_weight_releases_the_gate():
-    """The ask has to be answerable, or it is a dead end rather than a gate."""
+    """The ask has to be answerable, or it is a dead end rather than a gate.
+
+    Asserts that the WEIGHT gate releases, not that the pipeline continues.
+    Those were the same statement until the kit's ketamine was signed at two
+    strengths, at which point answering the weight correctly hands over to the
+    NEXT question — which vial — and this test read that as a failure to
+    release. It was not: it is the gate behind it, doing its job. A test that
+    cannot tell "still stuck on my question" from "moved on to the next one"
+    fails every time the system gains a question.
+    """
     ctx = extract_patient_context("he weighs about 80kg I think")
-    assert pre_gate("give ketamine IV for pain", ctx)[0] == "ASK"
+    action, asked = pre_gate("give ketamine IV for pain", ctx)
+    assert (action, asked) == ("ASK", WEIGHT_CONFIRM_ASK)
+
     ctx = extract_patient_context("80 kg", prior_ctx=ctx)
     assert ctx.confirmed_weight_kg == 80.0
     ctx.route_preference = "IV"
-    assert pre_gate("give ketamine IV for pain", ctx)[0] == "CONTINUE"
+
+    action, asked = pre_gate("give ketamine IV for pain", ctx)
+    assert asked != WEIGHT_CONFIRM_ASK, "the weight ask repeats after being answered"
+    assert action in ("CONTINUE", "ASK")
+    if action == "ASK":
+        # Whatever else the pipeline asks for must be a DIFFERENT input, and it
+        # must be answerable in its own right — the vial question, here.
+        assert "weigh" not in asked.lower() and "kg" not in asked.lower(), asked
 
 
 def test_a_hedged_weight_does_not_overwrite_a_confirmed_one():

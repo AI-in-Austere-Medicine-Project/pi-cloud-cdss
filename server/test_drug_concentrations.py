@@ -31,6 +31,26 @@ def _sign(pres, by="clinician", date="2026-08-25"):
 
 
 @pytest.fixture
+def unsigned_kit(monkeypatch):
+    """Every presentation wound back to unsigned, for one test.
+
+    The deployment's kit file is signed now, and it is also gitignored — it is
+    this Jetson's inventory, not source. Four tests below asserted the shipped
+    state was unsigned, which stopped being true when the owner signed the kit
+    and would read differently again on a clean checkout with no kit file at
+    all. They assert against THIS instead: the fence, proven on presentations
+    that are unsigned by construction, true at any kit state including none.
+    """
+    entries = copy.deepcopy(dcn.ENTRIES)
+    for entry in entries.values():
+        for pres in entry.get("presentations", []):
+            pres.update({"signoff": False, "reviewed_by": dcn.PENDING,
+                         "review_date": dcn.PENDING})
+    monkeypatch.setattr(dcn, "ENTRIES", entries)
+    return entries
+
+
+@pytest.fixture
 def signed_ketamine(monkeypatch):
     """Ketamine at 50 mg/mL only — one signed vial, no ambiguity."""
     entries = copy.deepcopy(dcn.ENTRIES)
@@ -56,18 +76,25 @@ def ambiguous_ketamine(monkeypatch):
 # THE CORE RULE: NO VOLUME WITHOUT A CONFIRMED CONCENTRATION
 # ═══════════════════════════════════════════════════════════════════════════
 
-def test_the_shipped_list_is_entirely_unsigned():
-    """Merging this must stop the volumes, not wait for a signature."""
-    signed = [(n, p.get("label_text"))
-              for n, e in dcn.ENTRIES.items()
-              for p in e.get("presentations", [])
-              if p.get("signoff") is not False]
-    assert signed == [], f"presentations ship signed: {signed}"
-
-
-def test_no_drug_serves_a_volume_as_shipped():
+def test_an_unsigned_presentation_is_never_served(unsigned_kit):
+    """Merging a declaration must stop the volumes, not start them."""
     for name in dcn.ENTRIES:
-        assert dcn.volume_ml(name, 100.0) == (None, None)
+        assert dcn.signed_presentations(name) == [], name
+        assert dcn.volume_ml(name, 100.0) == (None, None), name
+
+
+def test_every_signed_presentation_in_this_kit_was_signed_properly():
+    """The other half, over whatever this deployment has actually signed. A
+    signature this deployment will not honour is worse than none: the tool
+    said SIGNED and the volume simply is not there."""
+    assert dcn.unhonoured_signatures() == [], (
+        "presentations are signed by someone this deployment will not honour: "
+        f"{dcn.unhonoured_signatures()}")
+    for name, entry in dcn.ENTRIES.items():
+        for pres in entry.get("presentations", []):
+            if pres.get("signoff") is True:
+                assert pres.get("reviewed_by") in dcn.SIGNOFF_AUTHORS, name
+                assert pres.get("review_date") != dcn.PENDING, name
 
 
 def test_the_calculators_no_longer_carry_a_concentration():
@@ -96,13 +123,29 @@ def test_no_concentration_literal_survives_in_the_source():
         assert literal not in src, f"{literal!r} is back in openai_client.py"
 
 
-def test_an_unconfirmed_drug_gives_milligrams_and_says_why():
+def _analgesia(doses):
+    """The analgesia candidate, named rather than taken by position.
+
+    These tests used to read `next(d for d in doses if d.drug == "ketamine")`
+    and assert 24 mg — 0.3 mg/kg at 80 kg, the RETIRED calculator's answer,
+    hardcoded into a test about concentrations. The bank now serves eight
+    ketamine indications for this query and the first is post-intubation
+    sedation, so position picked a different dose and the number was wrong
+    twice over. The dose belongs to drug_contracts; what these tests are about
+    is the millilitre.
+    """
+    return next(d for d in doses
+                if d.drug == "ketamine" and "analgesia" in d.indication
+                and "background" not in d.indication)
+
+
+def test_an_unconfirmed_drug_gives_milligrams_and_says_why(unsigned_kit):
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     doses = oc.build_allowed_doses("ketamine dose for analgesia IV", ctx)
     assert doses and all(d.volume_ml is None for d in doses)
     block = oc.build_allowed_dose_block(doses)
-    assert "24 mg" in block
+    assert f"{_analgesia(doses).dose_mg:g} mg" in block
     assert oc.CONFIRM_CONCENTRATION_LINE in block
     assert "mL" not in block.split("NO VOLUME")[0].split("\n")[-1]
 
@@ -112,11 +155,14 @@ def test_a_signed_concentration_produces_a_volume(signed_ketamine):
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     doses = oc.build_allowed_doses("ketamine dose for analgesia IV", ctx)
-    d = next(x for x in doses if x.drug == "ketamine")
-    assert d.dose_mg == 24.0
+    d = _analgesia(doses)
     assert d.concentration_mg_ml == 50.0
-    assert d.volume_ml == 0.48                      # 24 mg / 50 mg/mL
-    assert "Draw 0.48 mL of 50mg/mL" in oc.render_give_line(d)
+    # The volume follows the dose and the vial, whatever the bank says the
+    # dose is. Asserting a literal here would pin a clinical number in a test
+    # about arithmetic, in the file least likely to be reviewed when it moves.
+    expected = round(d.dose_mg / 50.0, 2)
+    assert d.volume_ml == expected
+    assert f"Draw {expected:g} mL of 50mg/mL" in oc.render_give_line(d)
 
 
 def test_the_volume_moves_with_the_declared_concentration(monkeypatch):
@@ -262,9 +308,9 @@ def test_the_ask_fires_only_when_it_can_change_the_answer(ambiguous_ketamine):
     assert action == "ASK" and "500 mg / 10 mL vial" in question
 
 
-def test_the_ask_is_silent_while_nothing_is_signed():
-    """Shipped state: there is nothing to choose between, so asking would be
-    noise — the answer is milligrams either way."""
+def test_the_ask_is_silent_while_nothing_is_signed(unsigned_kit):
+    """With nothing signed there is nothing to choose between, so asking would
+    be noise — the answer is milligrams either way."""
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     assert oc.pre_gate("ketamine dose for analgesia IV", ctx) == ("CONTINUE", None)
@@ -474,8 +520,14 @@ def test_the_tldr_degrades_with_the_give_line():
     ("naloxone", 0.4),
     ("calcium gluconate", 100.0),
 ])
-def test_the_deployment_defaults_are_declared_but_unsigned(drug, conc):
-    """Declared as a draft the owner signs, not as another hardcode."""
+def test_the_deployment_defaults_are_declared_not_hardcoded(drug, conc, unsigned_kit):
+    """Declared as a draft the owner signs, not as another hardcode.
+
+    The second assertion used to read `signed_presentations(drug) == []`
+    against the live kit, which made it a test of whether the owner had got
+    round to signing yet. What it means is that the declaration alone does not
+    serve — asserted here on a wound-back kit, so it survives the signature.
+    """
     concs = [p["concentration_mg_ml"]
              for p in dcn.ENTRIES[drug]["presentations"]]
     assert conc in concs, f"{drug} does not declare {conc} mg/mL"
