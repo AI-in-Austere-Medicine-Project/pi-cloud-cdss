@@ -115,7 +115,7 @@ Pipeline principle: **never ask an AI a question that code can answer.**
 ```
 Query (text or voice)
       ↓
-16 deterministic pre-gates ── weight, route, pediatric limits, contraindications
+17 deterministic pre-gates ── weight, route, pediatric limits, contraindications
       ↓                       (many queries resolve here in milliseconds, no AI)
 Patient context ───────────── rebuilt deterministically each turn; cleared and
       ↓                       announced at a patient boundary

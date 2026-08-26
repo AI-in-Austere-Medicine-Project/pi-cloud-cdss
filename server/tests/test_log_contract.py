@@ -339,7 +339,7 @@ def test_finalise_can_never_produce_an_unsafe_verdict():
                  "Need weight in kg before dosing.", "Reassess the patient."]
     verdicts = ["SAFE", "SKIPPED_SAFE_GATE", "NEEDS_HUMAN_REVIEW", "UNSAFE"]
     modes = ["DETERMINISTIC_PRE_GATE", "PRE_GATE", "FIXED_PREP",
-             "NON_MEDICAL_PRE_GATE", "ERROR", "JTS_GROUNDED"]
+             "NON_MEDICAL_PRE_GATE", "DOSE_PROVENANCE", "ERROR", "JTS_GROUNDED"]
 
     for response in responses:
         for verdict in verdicts:

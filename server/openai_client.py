@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 16 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 17 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -372,6 +372,13 @@ class DoseCandidate:
     # cuts them in half mid-sentence. Empty for the legacy calculators, which
     # carry a single `warning` and nothing structured.
     cautions: List[str] = field(default_factory=list)
+    # The entry's "do not give" list. Owner ruling 12, 2026-08-26: these are
+    # rendered at every serve. They travel ON the candidate rather than being
+    # looked up at render time for the same reason the cautions do — the dose
+    # and everything qualifying it are one object, so no render path can show
+    # the number and drop the qualification. Empty for the legacy calculators,
+    # which have no contract entry behind them.
+    contraindications: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -398,6 +405,7 @@ class ServedEntry:
     range_text: str
     source: str
     cautions: List[str] = field(default_factory=list)
+    contraindications: List[str] = field(default_factory=list)
     warning: Optional[str] = None
     # What this range works out to for THIS patient, when the entry is
     # weight-based and the weight is confirmed. A note, not a substitute: the
@@ -994,14 +1002,16 @@ def _contract_source(name: str, entry: dict) -> str:
             f"{entry['route']}:v{entry.get('version')}{tail}")
 
 
-def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
-    """The signed RSI bundle, looked up by INDICATION rather than by name.
+def _contract_rsi_entries(query: str, ctx: PatientContext) -> list:
+    """The (name, entry) pairs the RSI bundle would serve — role selection only.
 
-    Mirrors the legacy bundle's shape — induction, one paralytic, post-tube
-    sedation — because that is the clinical unit, and serving two paralytics
-    because both are signed would be a worse failure than serving none.
+    Split out from _contract_rsi_candidates() so that "why this dose?" explains
+    the entries the bundle ACTUALLY chose rather than every entry that matched
+    the indication. The role rulings below pick one induction agent, one
+    paralytic and one sedation shape; a provenance answer that listed both
+    paralytics would be describing a bundle nobody was given.
     """
-    if drug_contracts is None or ctx.dosing_weight_kg is None:
+    if drug_contracts is None:
         return []
     q = query.lower()
     age = ctx.age_years
@@ -1059,9 +1069,21 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
     # contraindications rocuronium does not. An unfilled role falls through to
     # the legacy calculator for the preferred drug instead.
     chosen += [(n, e) for n, e in paralytics if n == preferred][:1]
+    return chosen
+
+
+def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+    """The signed RSI bundle, looked up by INDICATION rather than by name.
+
+    Mirrors the legacy bundle's shape — induction, one paralytic, post-tube
+    sedation — because that is the clinical unit, and serving two paralytics
+    because both are signed would be a worse failure than serving none.
+    """
+    if drug_contracts is None or ctx.dosing_weight_kg is None:
+        return []
 
     out = []
-    for name, entry in chosen:
+    for name, entry in _contract_rsi_entries(query, ctx):
         r = drug_contracts.resolve_dose(entry, ctx.dosing_weight_kg)
         if r["dose_mg"] is None:
             continue
@@ -1071,6 +1093,7 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
             display_units=r["display_units"],
             source=_contract_source(name, entry),
             cautions=list(drug_contracts.serve_cautions(entry)),
+            contraindications=list(drug_contracts.serve_contraindications(entry)),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
     return out
 
@@ -1120,6 +1143,7 @@ def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate
             display_units=r["display_units"],
             source=_contract_source(name, entry),
             cautions=list(drug_contracts.serve_cautions(entry)),
+            contraindications=list(drug_contracts.serve_contraindications(entry)),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None)
     return None
 
@@ -1161,6 +1185,7 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
             display_units=resolved["display_units"],
             source=_contract_source(name, entry),
             cautions=list(drug_contracts.serve_cautions(entry)),
+            contraindications=list(drug_contracts.serve_contraindications(entry)),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
         ))
     return out
@@ -1329,6 +1354,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
                 display_units=r["display_units"],
                 source=_contract_source(name, entry),
                 cautions=list(drug_contracts.serve_cautions(entry)),
+                contraindications=list(drug_contracts.serve_contraindications(entry)),
                 warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
         if not chosen and "lorazepam" not in superseded:
             doses.append(lorazepam_seizure(w))
@@ -1404,6 +1430,13 @@ def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
         lines.append(render_give_line(d))
         if d.warning:
             lines.append(f"  Note: {d.warning}")
+        # The generator's channel for owner ruling 12. The deterministic cards
+        # render their own CONTRAINDICATIONS block; a query that reaches the
+        # generator instead used to get the dose with the "do not give" list
+        # stripped off it, which is the same hole in the other path.
+        cis = getattr(d, "contraindications", None)
+        if cis:
+            lines.append(f"  Contraindications: {'; '.join(cis)}")
     if any(d.volume_ml is None for d in doses):
         lines.append(
             "  A line with NO VOLUME has no confirmed concentration for that "
@@ -1466,25 +1499,233 @@ def served_source_line(served: List[DoseCandidate], legacy_label: str) -> str:
     return legacy_label
 
 
+# The one-line pointer to the detail tier. A serve tier that silently held
+# things back would be worse than the wall it replaced: the medic has to know
+# there is more and how to ask for it, or "detail tier" just means "deleted
+# where nobody can see it".
+DETAIL_TIER_HINT = ('- Ask **"why this dose?"** for the citations, the maxima, '
+                    'and anything held back from this list.')
+
+
+def _grouped_unique(served: list, items_for, scope=None) -> list:
+    """[(candidate, [items])] with each distinct string kept ONCE, on the first
+    entry that carries it.
+
+    `scope` decides how wide "once" is. Cautions dedup across the whole
+    bundle — owner ruling 10 collapsed a repeated instruction to one line, and
+    the same argument holds for a line repeated by two entries of one drug. A
+    CONTRAINDICATION dedups only within its own drug: two drugs that share a
+    contraindication both have it, and shortening the second drug's do-not-give
+    list because another drug said it first is how a medic reads "no
+    contraindications recorded" off a drug that has three.
+
+    The RSI bundle serves three entries and two of them are the same drug, so
+    the same NASEMSO paragraph and the same JTS line arrived two and three
+    times each. A caution read twice is a screen that has taught the reader
+    that this screen repeats itself, which is the same failure as the wall.
+
+    Dedup is by exact text and nothing cleverer. Two strings that mean the same
+    thing in different words are a content problem for the owner to rule on —
+    ruling 10 collapsed exactly such a pair by hand — and a renderer that
+    started guessing at equivalence would eventually drop a line that differed
+    in the way that mattered.
+    """
+    seen = set()
+    out = []
+    for d in served:
+        key = scope(d) if scope else None
+        keep = []
+        for c in items_for(d):
+            c = (c or "").strip()
+            if not c or (key, c) in seen:
+                continue
+            seen.add((key, c))
+            keep.append(c)
+        if keep:
+            out.append((d, keep))
+    return out
+
+
+def served_contraindications_block(served: List[DoseCandidate]) -> str:
+    """The CONTRAINDICATIONS block. Owner ruling 12, 2026-08-26.
+
+    Until this existed, `contraindications` was a field that was authored,
+    reviewed, signed and then read by nothing at all: the doses served, the
+    cautions served, and the "do not give" list was in the file and on no
+    screen. That is a hole in the tier that matters most, and it stays a hole
+    for as long as the field is invisible — which is why this renders whatever
+    is there, including the thin ones. lint_thin_contraindications() is what
+    makes the thinness visible; hiding the field would have made it invisible
+    again.
+
+    The empty case says what it means. "None recorded" alone would read as a
+    clearance, and an absent contraindication list is a gap in the record.
+    """
+    groups = _grouped_unique(served, lambda d: getattr(d, "contraindications", []),
+                             scope=lambda d: d.drug)
+    if not groups:
+        return ("- None recorded on these entries. That is a gap in the record, "
+                "not a clearance.")
+    return "\n".join(f"- {d.drug} — {d.indication}: {'; '.join(items)}"
+                      for d, items in groups)
+
+
 def served_cautions_block(served: List[DoseCandidate]) -> str:
     """The CAUTIONS block: one bullet per caution, grouped by drug/indication.
 
-    Not decoration. serve_cautions() puts the OWNER-DECLARED banner at the top
+    Not decoration. serve_cautions() puts the owner-declared label at the top
     of a declared entry, and a card that dropped it would serve the owner's
     number as though a guideline stated it. One bullet per caution rather than
     a semicolon-joined paragraph: these strings were written for the
     ALLOWED_DOSES block a generator reads, and a wall of prose in front of a
     medic under load is read as no prose at all.
+
+    Three things keep this block a screen rather than a document, and none of
+    them deletes anything: serve_cautions() returns the serve tier only,
+    _grouped_unique() shows a repeated line once, and the last bullet says
+    where the rest is.
     """
+    groups = _grouped_unique(
+        served, lambda d: d.cautions or ([d.warning] if d.warning else []))
     lines = []
-    for d in served:
-        items = d.cautions or ([d.warning] if d.warning else [])
-        items = [c.strip() for c in items if c and c.strip()]
-        if not items:
-            continue
+    for d, items in groups:
         lines.append(f"- {d.drug} — {d.indication}:")
         lines += [f"  - {c}" for c in items]
+    if any(dose_is_from_contract(d) for d in served):
+        lines.append(DETAIL_TIER_HINT)
     return "\n".join(lines) or "- None recorded for these entries."
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# "WHY THIS DOSE?" — THE DETAIL TIER, ON REQUEST
+#
+# The other half of owner rulings 9-12. Tiering the cautions only works if the
+# tier that is held back is REACHABLE: "detail" has to mean "one question
+# away", or it means "deleted somewhere the medic cannot look".
+#
+# So this is the mechanism, and it is deterministic for the same reason the
+# doses are. A provenance answer assembled by a generator is a provenance
+# answer that can be invented, and "where did this number come from" is the
+# one question where an invented answer does specific harm: it would launder
+# an owner declaration into a citation, which is the exact failure the whole
+# declaration mechanism was built to prevent.
+#
+# It reads the SAME entries the serve path chose — via _contract_rsi_entries()
+# for a bundle, signed_entries_for() otherwise — so it cannot describe a dose
+# that was not given.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_WHY_CUES = ("why", "where did", "where does", "source for", "sources for",
+             "what is the source", "what's the source", "justify",
+             "how do you know")
+_SUBJECT_CUES = ("this dose", "that dose", "these doses", "those doses",
+                 "the dose", "the doses", "this number", "that number",
+                 "the number", "this value", "that value", "these numbers")
+# A question that is really a dose request must not be answered with
+# provenance. "how much ketamine and why" needs the milligrams first.
+_DOSE_REQUEST_CUES = ("how much", "how many", "dose for", "dosing for",
+                      "what dose", "give me", "calculate")
+
+
+def is_why_this_dose_query(query: str) -> bool:
+    """A follow-up asking where the number that was just served came from.
+
+    Kept narrow on purpose: a why-cue AND a subject-cue AND no dose request,
+    in a short turn. This gate returns provenance instead of a dose, so a
+    false positive costs a medic the thing they actually asked for.
+    """
+    q = (query or "").lower().strip()
+    if not q or len(q.split()) > 12:
+        return False
+    if any(c in q for c in _DOSE_REQUEST_CUES):
+        return False
+    return (any(c in q for c in _WHY_CUES)
+            and any(c in q for c in _SUBJECT_CUES))
+
+
+def _source_line_for(src: dict) -> str:
+    who = src.get("source_class") or ""
+    tier = src.get("tier")
+    label = f"tier {tier}" + (f" ({who})" if who else "")
+    return f"  - {label} — {src.get('citation')}"
+
+
+def why_this_dose_entries(query: str, history: str,
+                          ctx: PatientContext) -> list:
+    """The (name, entry) pairs a provenance answer should describe.
+
+    The RSI branch first, because a bundle's roles are chosen and a plain
+    name lookup would list both paralytics — describing a bundle nobody got.
+    """
+    if drug_contracts is None:
+        return []
+    text = history or query
+    if is_rsi_or_post_intubation_context(text):
+        pairs = _contract_rsi_entries(text, ctx)
+        if pairs:
+            return pairs
+    return drug_contracts.signed_entries_for(
+        text, route=None, is_pediatric=ctx.is_pediatric)
+
+
+def build_why_this_dose_response(query: str, history: str,
+                                 ctx: PatientContext) -> Optional[str]:
+    """The record behind the doses just served, or None if none can be found.
+
+    None rather than an apology: a question this gate cannot match is a
+    question the rest of the pipeline should get a turn at.
+    """
+    pairs = why_this_dose_entries(query, history, ctx)
+    if not pairs:
+        return None
+
+    blocks = []
+    for name, entry in pairs:
+        L = [f"**{name} · {entry.get('indication')} · {entry.get('route')}**"]
+        rng = drug_contracts.range_text(entry)
+        if rng:
+            L.append(f"- Dose as the source writes it: {rng} "
+                     f"({entry.get('population')})")
+
+        banner = drug_contracts.provenance_label(entry)
+        if banner:
+            d = entry["owner_declaration"]
+            L.append(f"- {banner}")
+            L.append(f"  - Declared by {d['declared_by']} on {d['declared_on']}.")
+            L.append(f"  - Why: {d['justification']}")
+            L.append("  - Doctrine supporting the SHAPE — not the number:")
+            L += [f"    - {doc.get('citation')} — {doc.get('supports')}"
+                  for doc in d.get("supporting_doctrine") or []]
+            L.append("- Cited for other fields on this entry:")
+        else:
+            L.append("- Sources:")
+        L += [_source_line_for(src) for src in entry.get("sources") or []]
+
+        for field_name, label in (("max_single", "Maximum single dose"),
+                                  ("max_cumulative", "Maximum cumulative dose")):
+            v = entry.get(field_name)
+            if isinstance(v, dict) and v.get("value") is not None:
+                L.append(f"- {label}: {v['value']:g} {v.get('units')}")
+
+        detail = drug_contracts.detail_cautions(entry)
+        if detail:
+            L.append("- Also recorded, and held back from the dose screen:")
+            L += [f"  - {c}" for c in detail]
+
+        adj = entry.get("adjudication")
+        if adj:
+            L.append(f"- How the conflict was settled: {adj}")
+
+        L.append(f"- Signed by {entry.get('reviewed_by')} on "
+                 f"{entry.get('review_date')} (entry version "
+                 f"{entry.get('version')}).")
+        blocks.append("\n".join(L))
+
+    return ("**WHY THIS DOSE**\n\n" + "\n\n".join(blocks) + "\n\n"
+            "This is the record behind the numbers already given. It changes "
+            "none of them.\n\n"
+            "Guideline-based support only. Not a substitute for clinical "
+            "judgment.")
 
 
 def served_confirm_vial_block(served: List[DoseCandidate],
@@ -1868,6 +2109,7 @@ def _epi_entries(patterns, query: str,
             drug=name, indication=entry["indication"], route=entry["route"],
             range_text=text, source=_contract_source(name, entry),
             cautions=list(drug_contracts.serve_cautions(entry)),
+            contraindications=list(drug_contracts.serve_contraindications(entry)),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
             resolved_note=resolved_note))
     return out, note
@@ -1934,6 +2176,8 @@ def build_fixed_prep_response(query: str,
             "- Final concentration: 10 mcg/mL.\n\n"
             "**GIVE**\n"
             f"{give}\n\n"
+            "**CONTRAINDICATIONS**\n"
+            f"{served_contraindications_block(served)}\n\n"
             "**CAUTIONS**\n"
             f"{served_cautions_block(served)}\n\n"
             "**WATCH**\n"
@@ -1956,6 +2200,8 @@ def build_fixed_prep_response(query: str,
             "- Mix 1 mg epinephrine (1:10,000, 10 mL) in 250 mL NS = 4 mcg/mL.\n\n"
             "**RATE**\n"
             f"{give}\n\n"
+            "**CONTRAINDICATIONS**\n"
+            f"{served_contraindications_block(served)}\n\n"
             "**CAUTIONS**\n"
             f"{served_cautions_block(served)}\n\n"
             "**WATCH**\n"
@@ -2130,6 +2376,9 @@ compute, estimate or supply a mL volume that is not in ALLOWED_DOSES — the vol
 depends on which vial is in the bag, and you do not know that.
 For RSI: name induction agent AND paralytic AND post-intubation sedation explicitly.
 If ALLOWED_DOSES is empty — do not provide medication doses. Give protocol actions only.
+A line followed by "Contraindications:" carries that drug's signed do-not-give list.
+Put those in DON'T, in the entry's own words. Do not add contraindications of your
+own to a drug the block names, and do not drop the ones it gives you.
 
 MORPHINE RESTRICTION: Never first-line. Default analgesic: ketamine subdissociative.
 
@@ -3531,6 +3780,9 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
 **GIVE**
 {render_give_line(d)}
 
+**CONTRAINDICATIONS**
+{served_contraindications_block(served)}
+
 **CAUTIONS**
 {served_cautions_block(served)}
 {confirm_block}
@@ -3696,6 +3948,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
     # point, so this bundle cannot describe its own sourcing differently from
     # the way the analgesia and prep cards describe theirs.
     cautions_block = served_cautions_block(served)
+    contraindications_block = served_contraindications_block(served)
 
     # rsi_bundle_should_resume() brings this bundle back with its volumes
     # filled in once the medic answers.
@@ -3723,6 +3976,9 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 **POST-INTUBATION SEDATION**
 {_give(ket_post, "post-intubation sedation")}
 {confirm_block}
+**CONTRAINDICATIONS**
+{contraindications_block}
+
 **CAUTIONS**
 {cautions_block}
 
@@ -3998,7 +4254,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    sixteen early returns before retrieval — count them with the source_mode
+    seventeen early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -4123,6 +4379,25 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
+
+        # Step 2a-i: "why this dose?" — the detail tier, on request.
+        # Ahead of every dose card because it is a question ABOUT an answer
+        # already given, and behind the non-medical gate because it is not a
+        # clinical question on its own. Returns None whenever it cannot name
+        # the entries the previous turns served, and the pipeline carries on.
+        if is_why_this_dose_query(query):
+            why = build_why_this_dose_response(query, full_query_history,
+                                               patient_ctx)
+            if why:
+                print("📎 WHY-THIS-DOSE PRE-GATE")
+                return {
+                    "response": why,
+                    "sources": [],
+                    "source_mode": "DOSE_PROVENANCE",
+                    "validator_result": "DETERMINISTIC_CHECKED",
+                    "validator_issues": [],
+                    "patient_context": patient_ctx.to_dict()
+                }
 
         # Step 2a: Fixed prep check — before medication gates
         # The patient rides along now: a paediatric push dose is weight-based

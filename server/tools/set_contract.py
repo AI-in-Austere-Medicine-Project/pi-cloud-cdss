@@ -119,6 +119,14 @@ def _load_raw() -> dict:
 
 
 def _save_raw(doc: dict) -> None:
+    # `generated_note` describes the state of the bank, and signing an entry IS
+    # a change to that state — so it is recomputed here rather than trusted.
+    # It read "Nothing in this file is signed and nothing in it is served"
+    # through 46 signatures, at the top of the file, where it was the first
+    # thing any reader was told. A prose claim about a file, stored inside that
+    # file, drifts the moment the file changes. Every write through this tool
+    # now refreshes it; a hand-edit that does not is caught by the suite.
+    doc["generated_note"] = dc.state_note(doc)
     CONFIG.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
 
 

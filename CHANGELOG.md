@@ -2,6 +2,80 @@
 
 ## [Unreleased]
 
+### What a medic reads now, and what the record keeps — owner rulings 9-12, 2026-08-26
+
+The RSI bundle served **eighteen caution bullets**, several of them paragraphs
+about what a guideline does *not* state, to a medic holding a laryngoscope — and
+served the `contraindications` field to nobody at all, because nothing rendered
+it. Prose read under load is not read, so the four lines that change what the
+medic does were being hidden by the fourteen that do not. The same bundle now
+serves eight, and every line that left is one question away.
+
+- **Cautions carry a tier.** A `cautions[]` item is a bare string or
+  `{"text", "tier"}`. The tier says *when* a line is read, never whether it is
+  true. **Default is serve**: only `"detail"`, written deliberately, takes a line
+  off the dose screen, so an untiered caution — a new one, a hurried one, one
+  written by an author who never heard of tiers — is safe rather than hidden. A
+  tier value the schema does not know is refused at the fence and *served*
+  anyway by `caution_tier()`: loud, and harmless in the meantime.
+- **The detail tier is reachable in one question.** `"why this dose?"` is a new
+  deterministic pre-gate (17 now, not 16) that renders the record behind the
+  doses already served: the citations, the maxima, the full owner-declaration
+  banner with its justification and its shape-only doctrine, and every caution
+  held back from the screen. Deterministic for the same reason the doses are —
+  "where did this number come from" is the one question where an invented answer
+  would launder a declaration into a citation. It reads the same entries the
+  serve path chose, so it cannot describe a bundle nobody was given.
+- **Contraindications render, at both serve channels** (ruling 12). The field had
+  been authored, reviewed and signed since the module existed and read by
+  nothing: the deterministic cards now carry a `**CONTRAINDICATIONS**` block and
+  the generator's `ALLOWED_DOSES` block carries the list per dose. Several of
+  them are thin — `lint_thin_contraindications()` counts the 17 servable entries
+  whose list is empty or says only "hypersensitivity", because thinness is a
+  content problem and invisibility was the safety problem.
+- **A repeated line is shown once.** Cautions dedup across the whole bundle;
+  contraindications dedup only within their own drug, because shortening drug
+  B's do-not-give list on the grounds that drug A said it first is how a medic
+  reads "nothing recorded" off a drug that has three.
+- **The owner-declared label has two forms** (ruling 11). `OWNER-DECLARED dose —
+  not a guideline value.` serves; the full banner naming the declarer and the
+  date is kept by the worksheet and by "why this dose?". Both are generated from
+  `owner_declaration`, so neither can drift from it — and the hand-written copy
+  of the banner that sat in the ketamine entry's own cautions is deleted, since
+  the same claim written twice is how the two come to disagree.
+- **Two entries were re-authored and re-signed.** Ruling 9: ketamine
+  post-intubation sedation's single caution carrying the repeat interval *and* a
+  cross-reference *and* a citation became two — `Repeat q20-30min. Preferred
+  where there is no pump.` serves, the cross-reference is detail — and the
+  declaration was re-made on the same value and the same reasoning, dated
+  2026-08-26. Ruling 10: rocuronium's `Give AFTER the induction agent` and
+  succinylcholine's `JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING` are one
+  instruction written twice; the JTS line carries the instruction *and* the
+  guideline's emphasis *and* a citation, so it is the one that stays — on
+  **every** paralytic entry, including the two paediatric succinylcholine bands
+  that had never carried it. The bundle hid that gap, because the induction
+  entry beside them supplied the line; a solo paediatric succinylcholine query
+  has no induction entry beside it and was serving a paralytic without it.
+- **The file's note about itself is derived from the file** (owner ruling,
+  2026-08-26). `generated_note` — the first thing a reader of
+  `drug_contracts.json` is told — read "Nothing in this file is signed and
+  nothing in it is served" through 46 signatures. It is now computed by
+  `drug_contracts.state_note()` from the bank's actual contents, refreshed by
+  every write through `tools/set_contract.py`, and asserted by a test that puts
+  the correct sentence in its own failure message. It counts *servable* rather
+  than signed, because a signature the allowlist will not honour carries no
+  traffic.
+- **Three lints and a budget, all visible, none of them fatal.** Untiered
+  cautions (141 on servable entries — a backlog, not a defect, because they
+  serve), thin contraindications, and a serve-tier budget of 5 bullets or 500
+  characters per entry, pinned by a test rather than enforced at serve: a dose
+  withheld because its cautions are long would be the worse failure. A registry
+  test pins the nine families that are hidden from the dose screen, so tiering a
+  new string to `detail` has to be a deliberate edit.
+
+`drug_contracts.json` schema 1.4.0. 1186 passed, 4 skipped, 0 regressions.
+
+
 ## [4.3.0] — 2026-08-26
 
 Two authored layers, built on the same fence. The **ventilator module** — a card

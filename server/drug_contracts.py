@@ -45,6 +45,20 @@ A null `max_single` / `max_cumulative` is NOT a sentinel. It means the cited
 source states no maximum for that entry, which is a fact about the source and
 is allowed to be signed.
 
+WHAT A MEDIC READS NOW, AND WHAT THE RECORD KEEPS
+────────────────────────────────────────────────
+Owner rulings 9-12, 2026-08-26. A cautions[] item may be a bare string or
+{"text", "tier"}, and the tier says WHEN the line is read, never whether it is
+true. DEFAULT IS SERVE: only "detail" written deliberately takes a line off the
+dose screen, so a caution nobody has tiered is safe rather than hidden. The
+detail tier is reachable in one question — openai_client's "why this dose?"
+gate — and in the worksheet.
+
+Contraindications are NOT tierable. They render at every serve, which is new:
+the field had been authored, reviewed and signed since this module existed and
+read by nothing at all. Several are thin; lint_thin_contraindications() makes
+that visible rather than the field invisible.
+
 ALIASES ARE WORD-ANCHORED, AND MAY NOT SHADOW A REAL DRUG
 ─────────────────────────────────────────────────────────
 `vitamin k` was mapped to ketamine as a dictation-mangling alias. Vitamin K is
@@ -166,6 +180,117 @@ _DECLARATION_KEYS =("basis", "declared_by", "declared_on", "justification",
                      "declared_value", "supporting_doctrine")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# CAUTION TIERS — WHAT A MEDIC READS NOW, AND WHAT THE RECORD KEEPS
+#
+# A cautions[] item is either a plain string or {"text": ..., "tier": ...}:
+#
+#     "..."                     UNCLASSIFIED — it serves
+#     {"tier": "serve", ...}    it serves
+#     {"tier": "detail", ...}   held for the record and for "why this dose?"
+#
+# DEFAULT IS SERVE, and that is the whole safety argument for the mechanism.
+# The only way to take a line off the screen is to write "detail" on it
+# deliberately. Every other state — a newly added string, an author who never
+# heard of tiers, a tier key with a typo in it — shows the text. A tiering
+# scheme whose default hides is one forgotten annotation away from a caution
+# nobody reads, and the entries most likely to be edited in a hurry are the
+# ones that matter most.
+#
+# WHY TIERS AT ALL. The RSI bundle served eighteen caution bullets, several of
+# them paragraphs about what a guideline does NOT state, to a medic holding a
+# laryngoscope. Prose read under load is not read, so the four lines that
+# change what the medic does were being hidden by the fourteen that do not.
+# Nothing is deleted: detail-tier text is in the worksheet and in the "why this
+# dose?" answer, which is where "the cited guideline states no cumulative
+# maximum" was always the right answer to a question nobody asks mid-airway.
+#
+# The tier is a claim about WHEN a line is read, never about whether it is
+# true. A contraindication is not tierable at all — see serve_contraindications.
+CAUTION_SERVE = "serve"
+CAUTION_DETAIL = "detail"
+CAUTION_TIERS = (CAUTION_SERVE, CAUTION_DETAIL)
+
+
+def caution_text(caution) -> str:
+    """The words, whether the item is a bare string or a tiered object."""
+    if isinstance(caution, dict):
+        return str(caution.get("text") or "").strip()
+    return str(caution or "").strip()
+
+
+def caution_tier(caution) -> str:
+    """CAUTION_DETAIL only when the item says so exactly. Everything serves.
+
+    Deliberately permissive in one direction and one direction only: an
+    unreadable tier, a missing tier and a misspelled tier all resolve to serve,
+    so no caller can hide a line by accident. _cautions_ok() refuses the
+    misspelling at the fence, so the mistake is loud as well as harmless.
+    """
+    if isinstance(caution, dict):
+        if str(caution.get("tier") or "").strip().lower() == CAUTION_DETAIL:
+            return CAUTION_DETAIL
+    return CAUTION_SERVE
+
+
+def caution_texts(entry: dict) -> list:
+    """Every caution on the entry, both tiers, in file order — the record."""
+    return [t for t in (caution_text(c) for c in (entry.get("cautions") or []))
+            if t]
+
+
+def detail_cautions(entry: dict) -> list:
+    """The lines held back from the serve tier. What "why this dose?" answers."""
+    return [caution_text(c) for c in (entry.get("cautions") or [])
+            if caution_tier(c) == CAUTION_DETAIL and caution_text(c)]
+
+
+def is_unclassified_caution(caution) -> bool:
+    """A bare string: nobody has said which tier it belongs in. It serves."""
+    return not isinstance(caution, dict)
+
+
+def _cautions_ok(entry: dict) -> tuple:
+    """(ok, reason). A cautions[] that would render as junk or vanish.
+
+    Refuses a tier value the schema does not know, for the same reason
+    classify_units() refuses an unrecognised unit rather than assuming mg: the
+    author of `{"tier": "detials"}` meant something, and a mechanism that
+    silently ignored the typo would leave nobody to notice. The ABSENCE of a
+    tier is a defined state and passes — that is what unclassified means.
+    """
+    cautions = entry.get("cautions")
+    if cautions is None:
+        return True, ""
+    if not isinstance(cautions, list):
+        return False, "cautions is not a list"
+    for c in cautions:
+        if isinstance(c, dict):
+            if not str(c.get("text") or "").strip():
+                return False, "a caution object carries no text"
+            tier = c.get("tier")
+            if tier is not None and str(tier).strip().lower() not in CAUTION_TIERS:
+                return False, (f"caution tier {tier!r} is not one of "
+                               f"{', '.join(CAUTION_TIERS)}")
+        elif not str(c or "").strip():
+            return False, "a caution is empty"
+    return True, ""
+
+
+def serve_contraindications(entry: dict) -> list:
+    """The 'do not give' list, as it should reach a medic.
+
+    NOT TIERABLE, and that is owner ruling 12 (2026-08-26). These had never
+    been rendered anywhere — the field was authored, signed and then read by
+    nothing — which is a hole in the tier that matters most. Several of them
+    are thin ("Hypersensitivity" and nothing else); thinness is a content
+    problem for lint_thin_contraindications() to make visible, not a reason to
+    keep the field invisible.
+    """
+    return [str(c).strip() for c in (entry.get("contraindications") or [])
+            if str(c or "").strip()]
+
+
 def _load(filename: str = "drug_contracts.json") -> dict:
     path = _DIR / filename
     try:
@@ -186,6 +311,46 @@ def _load(filename: str = "drug_contracts.json") -> dict:
 
 
 DRUGS = _load()
+
+
+def state_note(doc: Optional[dict] = None) -> str:
+    """The file's `generated_note`, COMPUTED from what the file contains.
+
+    It used to be a sentence somebody typed: "Nothing in this file is signed and
+    nothing in it is served. Every dose_entry carries signoff:false and awaits a
+    credentialed clinician." That was true the day it was written and false from
+    the first signature onwards — and it sat at the top of the file, so it was
+    the first thing any reader was told about the state of the bank. A prose
+    claim about a file, stored inside that file, drifts the moment the file
+    changes and nothing anywhere notices.
+
+    So the sentence is derived and the stored copy is checked against it.
+    tools/set_contract.py refreshes it on every write, and a test asserts the
+    two agree — which is what turns "somebody must remember" into "the suite
+    says so, with the correct string in the failure message".
+
+    Counts SERVABLE rather than merely signed, deliberately: what a reader
+    needs from this line is how much of the bank is carrying traffic, and a
+    signature the allowlist will not honour carries none.
+    """
+    drugs = ({d["generic_name"]: d for d in doc.get("drugs", [])
+              if isinstance(d, dict) and d.get("generic_name")}
+             if doc is not None else DRUGS)
+    entries = [(n, e) for n, d in drugs.items()
+               for e in d.get("dose_entries", [])]
+    live = [(n, e) for n, e in entries if entry_is_servable(e, drugs[n])[0]]
+    declared = [1 for _, e in live if is_owner_declared(e)]
+    return (
+        f"{len(live)} of {len(entries)} dose entries across "
+        f"{len({n for n, _ in live})} of {len(drugs)} drugs are signed and "
+        f"servable; {len(declared)} of those "
+        f"{'serves' if len(declared) == 1 else 'serve'} on an explicit owner "
+        f"declaration rather than a citation. Every other entry carries "
+        f"signoff:false or fails the fence, and is invisible to the serving "
+        f"path — an unsigned entry is not a weaker answer, it is not an "
+        f"answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by "
+        f"drug_contracts.state_note(); do not hand-edit it."
+    )
 
 
 def tropical_priority_drugs() -> list:
@@ -359,12 +524,24 @@ def is_owner_declared(entry: dict) -> bool:
             and _declaration_ok(entry)[0])
 
 
+# TWO FORMS OF ONE CLAIM — owner ruling 11, 2026-08-26.
+#
+# The banner and the short label say the same thing to two different readers.
+# The medic mid-airway needs to know the number is a declaration and not a
+# guideline value; they do not need to read a name and a date to act, and a
+# four-line paragraph at the top of the cautions pushed the clinical lines off
+# the screen. The record needs the name and the date, because a declaration
+# whose signer is not written down is an anonymous number.
+#
+# So: the short form serves, the full banner is kept by the worksheet and by
+# the "why this dose?" answer. Both are generated from the declaration itself,
+# so neither can drift from it and neither can be hand-copied wrongly onto an
+# entry that carries no declaration at all.
 def provenance_label(entry: dict) -> str:
-    """The one line that says what the dose rests on, or "" for a cited one.
+    """The FULL banner — for the record, not for the screen mid-procedure.
 
-    Deliberately shouty and deliberately short: it is prepended to the cautions
-    a medic reads at the moment of giving the drug, where a paragraph would be
-    skipped.
+    Names the declarer and the date. Rendered by the worksheet and by
+    build_why_this_dose_response(); serve paths take provenance_label_short().
     """
     if not is_owner_declared(entry):
         return ""
@@ -375,15 +552,29 @@ def provenance_label(entry: dict) -> str:
             f"doctrine; the number is a declaration.")
 
 
+def provenance_label_short(entry: dict) -> str:
+    """The serve-tier form: the fact, in one clause, at the top of the cautions.
+
+    Carries no name and no date on purpose. What changes what a medic does is
+    that the number is a declaration; who declared it changes nothing at the
+    bedside and costs a line of screen at the worst possible moment.
+    """
+    if not is_owner_declared(entry):
+        return ""
+    return "OWNER-DECLARED dose — not a guideline value."
+
+
 def serve_cautions(entry: dict) -> list:
-    """The cautions as they should reach a medic, provenance first.
+    """The cautions as they should reach a medic: provenance first, serve tier.
 
     Every serve path goes through this rather than reading entry["cautions"]
     directly, so an owner-declared dose cannot reach a screen looking like a
-    cited one just because a new call site forgot.
+    cited one just because a new call site forgot — and so a detail-tier line
+    cannot reach one just because a new call site did not know about tiers.
     """
-    cautions = list(entry.get("cautions") or [])
-    label = provenance_label(entry)
+    cautions = [caution_text(c) for c in (entry.get("cautions") or [])
+                if caution_tier(c) == CAUTION_SERVE and caution_text(c)]
+    label = provenance_label_short(entry)
     return [label] + cautions if label else cautions
 
 
@@ -430,6 +621,12 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
         return False, why
 
     ok, why = _sources_ok(entry.get("sources"))
+    if not ok:
+        return False, why
+
+    # A cautions[] whose shape is wrong is text a medic would be shown as a
+    # dict repr, or a line that silently vanishes from the serve tier.
+    ok, why = _cautions_ok(entry)
     if not ok:
         return False, why
 
@@ -1076,7 +1273,140 @@ def signed_entries_for(query: str, route: Optional[str] = None,
     return out
 
 
-# Run last: the lint needs resolve_dose(), which needs the unit tables above.
+# ─────────────────────────────────────────────────────────────────────────────
+# VISIBILITY LINTS — the ones that report rather than refuse
+#
+# Three things below are content problems, not structural ones: a caution
+# nobody has tiered, a contraindication list that says nothing, and a serve
+# tier that has grown back into a wall. None of them can be a refusal — taking
+# a signed dose off the wire because its contraindications are thin would
+# remove the dose and leave the thinness — so each one is counted, held on the
+# module, and summarised in ONE line at import.
+#
+# One line each, deliberately. The generic-name overlap lint above prints only
+# its unexplained cases for exactly this reason: five known-fine warnings on
+# every server start is a warning nobody reads, which is the failure the lint
+# exists to prevent.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# A contraindication that names nothing a medic could act on. Every drug in
+# the bank is contraindicated in hypersensitivity to itself; a field
+# containing only that has the shape of an answer and the content of a shrug.
+TRIVIAL_CONTRAINDICATIONS = frozenset({
+    "hypersensitivity", "known hypersensitivity", "hypersensitivity to the drug",
+    "allergy", "known allergy", "allergy to the drug", "none", "none known",
+    "none stated", "n/a", "na",
+})
+
+# The serve tier is a screen a medic reads while doing something else. These
+# are the ceilings that keep it one, and they are pinned by a test rather than
+# enforced at serve: a dose withheld because its cautions are long is a worse
+# failure than a long screen.
+SERVE_CAUTION_BUDGET = 5
+SERVE_CAUTION_CHAR_BUDGET = 500
+
+
+def _entry_id(name: str, entry: dict) -> tuple:
+    return (name, entry.get("indication"), entry.get("route"),
+            entry.get("population"))
+
+
+def _is_trivial_contraindication(text: str) -> bool:
+    t = re.sub(r"[^a-z ]", " ", str(text).lower())
+    return " ".join(t.split()) in TRIVIAL_CONTRAINDICATIONS
+
+
+def lint_thin_contraindications() -> list:
+    """Entries whose 'do not give' list is empty or says only 'hypersensitivity'.
+
+    OWNER RULING 12, 2026-08-26. Contraindications now render at every serve,
+    which turns their thinness from a private fact about the file into
+    something a medic sees. The ruling was to render them anyway and make the
+    thinness visible here, rather than to keep the field invisible because
+    parts of it are weak: never having rendered them at all is the bigger hole,
+    and a lint is how the content gets fixed instead of forgotten.
+
+    Returns (drug, indication, route, population, reason, servable).
+    """
+    live = servable_entries()
+    out = []
+    for name, drug in DRUGS.items():
+        live_ids = {id(e) for e in live.get(name, [])}
+        for e in drug.get("dose_entries", []):
+            cis = serve_contraindications(e)
+            if has_sentinel(cis):
+                continue        # unauthored, and the fence already refuses it
+            if not cis:
+                reason = "no contraindications recorded"
+            elif all(_is_trivial_contraindication(c) for c in cis):
+                reason = f"only trivial: {'; '.join(cis)}"
+            else:
+                continue
+            out.append(_entry_id(name, e) + (reason, id(e) in live_ids))
+    return out
+
+
+def lint_unclassified_cautions() -> list:
+    """Cautions nobody has tiered. They serve — that is the default — and this
+    is the backlog of lines that have never been read with 'does a medic need
+    this now?' in mind.
+
+    Not an error. Default-is-serve means an unclassified caution is SAFE; it
+    just is not finished. The distinction matters because a lint that treats
+    unfinished as broken is a lint that gets silenced.
+
+    Returns (drug, indication, route, population, text, servable).
+    """
+    live = servable_entries()
+    out = []
+    for name, drug in DRUGS.items():
+        live_ids = {id(e) for e in live.get(name, [])}
+        for e in drug.get("dose_entries", []):
+            for c in e.get("cautions") or []:
+                if is_unclassified_caution(c) and caution_text(c):
+                    out.append(_entry_id(name, e)
+                               + (caution_text(c), id(e) in live_ids))
+    return out
+
+
+def serve_caution_overruns() -> list:
+    """Servable entries whose serve tier is over budget — too many lines, or
+    too many characters of them.
+
+    Both ceilings, because they fail differently: six short bullets and one
+    500-word paragraph are both unreadable at the moment of giving a drug, and
+    a count on its own would pass the paragraph.
+
+    Returns (drug, indication, route, population, count, chars).
+    """
+    out = []
+    for name, entries in servable_entries().items():
+        for e in entries:
+            served = serve_cautions(e)
+            chars = sum(len(c) for c in served)
+            if len(served) > SERVE_CAUTION_BUDGET or chars > SERVE_CAUTION_CHAR_BUDGET:
+                out.append(_entry_id(name, e) + (len(served), chars))
+    return out
+
+
+# Run last: these need resolve_dose(), which needs the unit tables above.
 refresh_dose_magnitude_lint()
 for _p in DOSE_MAGNITUDE_PROBLEMS:
     print(f"⚠️  drug_contracts dose-magnitude lint: {_p}")
+
+THIN_CONTRAINDICATIONS = lint_thin_contraindications()
+_THIN_LIVE = [r for r in THIN_CONTRAINDICATIONS if r[-1]]
+if _THIN_LIVE:
+    print(f"⚠️  drug_contracts contraindication lint: {len(_THIN_LIVE)} servable "
+          f"entr{'y' if len(_THIN_LIVE) == 1 else 'ies'} carry empty or trivial "
+          f"contraindications and render them anyway "
+          f"({len(THIN_CONTRAINDICATIONS)} across the whole bank) — see "
+          f"drug_contracts.THIN_CONTRAINDICATIONS")
+
+UNCLASSIFIED_CAUTIONS = lint_unclassified_cautions()
+_UNCLASSIFIED_LIVE = [r for r in UNCLASSIFIED_CAUTIONS if r[-1]]
+if _UNCLASSIFIED_LIVE:
+    print(f"⚠️  drug_contracts caution-tier lint: {len(_UNCLASSIFIED_LIVE)} "
+          f"caution(s) on servable entries are untiered and therefore SERVE "
+          f"({len(UNCLASSIFIED_CAUTIONS)} across the whole bank) — see "
+          f"drug_contracts.UNCLASSIFIED_CAUTIONS")
