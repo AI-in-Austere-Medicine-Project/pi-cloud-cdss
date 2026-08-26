@@ -1128,3 +1128,476 @@ def test_the_bundle_resumes_on_a_vial_answer_and_not_on_anything_else():
         assert _oc.rsi_bundle_should_resume(other, rsi, ctx) is False, other
     # No RSI in flight at all.
     assert _oc.rsi_bundle_should_resume("500 in 10", "tylenol dose", ctx) is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE STRUCTURAL GUARD — NO DOSE WITHOUT A PROVENANCE
+#
+# The individual routings in this file are today's instances. This section is
+# the actual fix.
+#
+# Three implementations of "what dose" had been found by 2026-08-25:
+# build_rsi_response, build_ketamine_analgesia_response, and
+# build_fixed_prep_response — each computing a number without consulting the
+# bank, each returning from a pre-gate before build_allowed_doses (where the
+# supersede rule lives) was ever reached, and each asserting a SOURCE line that
+# was true when it was written and false the moment a contract was signed
+# underneath it. A fourth was sitting in the file unreferenced.
+#
+# Fixing them one at a time does not stop the fifth. What stops the fifth is
+# this: every number a deterministic path puts in front of a medic must be
+# traceable to a signed contract entry, or to a calculator this registry
+# explicitly declares as a backfill, or to the preparation-recipe registry. A
+# number that is none of those fails the suite, and a new card that is in
+# neither list fails the suite for not being classified at all.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# A number followed by a MASS or RATE unit. Deliberately NOT mL and NOT
+# anything ending /mL: a millilitre is a claim about a vial, guarded by
+# resolve_dose_volume and audit_volume_lines, and a concentration is the
+# product of a recipe rather than a quantity given to a patient. This regex is
+# about the quantity that goes INTO the patient, which is the thing contracts
+# own.
+_DOSE_TOKEN = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(mcg/kg/min|mg/kg/min|mcg/kg|mg/kg|mcg/min|mg/min|"
+    r"mcg|mg|g|units)(?![\w/])",
+    re.IGNORECASE)
+
+
+# A PRESENTATION — "500 mg / 10 mL vial", "0.1mg/mL", "1:10,000" — is a
+# statement about what is in the ampoule, which is drug_concentrations' job and
+# not a quantity given to anybody. Removed before tokenising rather than
+# excluded afterwards, so the milligrams in "500 mg / 10 mL" cannot be read as
+# a 500 mg dose.
+_PRESENTATION = re.compile(
+    r"\d+(?:\.\d+)?\s*(?:mg|mcg|g)\s*/\s*\d+(?:\.\d+)?\s*m[lL]"
+    r"|\d+(?:\.\d+)?\s*(?:mg|mcg)\s*/\s*m[lL]"
+    r"|1:\d[\d,]*")
+
+
+def _tokens(text: str) -> list:
+    """(value, units, line) for every dose-shaped number in a response."""
+    out = []
+    for line in text.splitlines():
+        scannable = _PRESENTATION.sub(" ", line)
+        for m in _DOSE_TOKEN.finditer(scannable):
+            out.append((float(m.group(1)), m.group(2).lower(), line.strip()))
+    return out
+
+
+def _is_contract_text(line: str, cautions: list) -> bool:
+    """Whether this line is text a CONTRACT wrote.
+
+    Cautions carry their own numbers — "10-20 mcg equals 1-2 mL of that
+    dilution", the cumulative maxima quoted from the guideline, the second-line
+    agent a JTS note names — and quoting them faithfully is the opposite of the
+    failure this guards. Matched after stripping the renderers' furniture,
+    because the ALLOWED_DOSES block prints the cautions joined behind a "Note:"
+    and the cards print them one to a bullet.
+    """
+    stripped = line.strip().lstrip("-").strip()
+    if stripped.lower().startswith("note:"):
+        stripped = stripped[5:].strip()
+    if not stripped:
+        return False
+    return any(stripped in c or c in stripped for c in cautions)
+
+
+def _values_of(served) -> set:
+    """Every number a served object legitimately authorises.
+
+    A DoseCandidate authorises the milligrams it resolved to and the figure it
+    displays in the source's own unit. A ServedEntry authorises the endpoints
+    of the range it prints, plus whatever its per-patient note worked out to —
+    all of which came out of drug_contracts, which is the point.
+    """
+    vals = set()
+    for s in served:
+        for attr in ("dose_mg", "display_value"):
+            v = getattr(s, attr, None)
+            if isinstance(v, (int, float)):
+                vals.add(round(float(v), 4))
+        for field_text in (getattr(s, "range_text", None),
+                           getattr(s, "resolved_note", None)):
+            if field_text:
+                vals |= {round(float(v), 4) for v, _, _ in _tokens(field_text)}
+    return vals
+
+
+def _caution_lines(served) -> list:
+    out = []
+    for s in served:
+        out += [c.strip() for c in (getattr(s, "cautions", None) or []) if c]
+        if getattr(s, "warning", None):
+            out.append(str(s.warning).strip())
+    return out
+
+
+def _rsi_case_ctx():
+    return _PC(confirmed_weight_kg=80.0, weight_source="stated", route_preference="IV")
+
+
+def _analgesia_ctx(route="IV", weight=60.0, ped=False):
+    return _PC(confirmed_weight_kg=weight, weight_source="stated",
+               route_preference=route, is_pediatric=ped,
+               age_years=6.0 if ped else None)
+
+
+def _render_allowed_doses(query, ctx):
+    """The ALLOWED_DOSES block is a served surface too — it is the only dose
+    text the generator is allowed to copy, so a wrong number there is a wrong
+    number on screen one step later."""
+    return _oc.build_allowed_dose_block(_oc.build_allowed_doses(query, ctx))
+
+
+# Each case: how to render the card, what the contract engine authorises for
+# it, and which legacy calculators it is ALLOWED to fall back to. That last
+# list is the "explicitly-flagged backfill" — adding to it is a deliberate,
+# reviewable act, and every entry in it is a drug/route the bank does not yet
+# cover.
+DOSE_TEMPLATE_CASES = [
+    {
+        "name": "rsi_bundle",
+        "render": lambda: _oc.build_rsi_response(
+            _rsi_case_ctx(), "need to RSI with ketamine and roc, 80kg IV"),
+        "contract": lambda: _oc._contract_rsi_candidates(
+            "need to RSI with ketamine and roc, 80kg IV", _rsi_case_ctx()),
+        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
+                     lambda w: _oc.ketamine_post_intubation_iv(w),
+                     lambda w: _oc.rocuronium_rsi(w, False),
+                     lambda w: _oc.succinylcholine_rsi(w, False)],
+        "weight": 80.0,
+    },
+    {
+        "name": "rsi_bundle_shock",
+        "render": lambda: _oc.build_rsi_response(
+            _rsi_case_ctx(), "RSI now, BP 78/40, shocky"),
+        "contract": lambda: _oc._contract_rsi_candidates(
+            "RSI now, BP 78/40, shocky", _rsi_case_ctx()),
+        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
+                     lambda w: _oc.ketamine_post_intubation_iv(w),
+                     lambda w: _oc.rocuronium_rsi(w, False)],
+        "weight": 80.0,
+    },
+    {
+        "name": "ketamine_analgesia_iv",
+        "render": lambda: _oc.build_ketamine_analgesia_response(_analgesia_ctx("IV")),
+        "contract": lambda: [c for c in
+                             [_oc._contract_analgesia_candidate(_analgesia_ctx("IV"))]
+                             if c],
+        "backfill": [lambda w: _oc.ketamine_analgesia_iv(w)],
+        "weight": 60.0,
+    },
+    {
+        # The bank has no IM analgesia entry. This case exists to pin that the
+        # backfill is ALLOWED here and that the card says so — and that the
+        # signed IM dissociative-sedation entry never leaks in to fill it.
+        "name": "ketamine_analgesia_im_backfill",
+        "render": lambda: _oc.build_ketamine_analgesia_response(_analgesia_ctx("IM")),
+        "contract": lambda: [c for c in
+                             [_oc._contract_analgesia_candidate(_analgesia_ctx("IM"))]
+                             if c],
+        "backfill": [lambda w: _oc.ketamine_analgesia_im(w)],
+        "weight": 60.0,
+    },
+    {
+        "name": "push_dose_epi_unstated_indication",
+        "render": lambda: _oc.build_fixed_prep_response("how do I mix push dose epi"),
+        "contract": lambda: _oc._epi_entries(
+            _oc.EPI_PUSH_DOSE_INDICATIONS, "how do I mix push dose epi", None)[0],
+        "backfill": [],
+        "weight": None,
+    },
+    {
+        "name": "push_dose_epi_bradycardia",
+        "render": lambda: _oc.build_fixed_prep_response("push dose epi for bradycardia HR 38"),
+        "contract": lambda: _oc._epi_entries(
+            _oc.EPI_PUSH_DOSE_INDICATIONS, "push dose epi for bradycardia HR 38", None)[0],
+        "backfill": [],
+        "weight": None,
+    },
+    {
+        "name": "push_dose_epi_peds_shock",
+        "render": lambda: _oc.build_fixed_prep_response(
+            "push dose epi for the kid, shocky", _analgesia_ctx("IV", 20.0, True)),
+        "contract": lambda: _oc._epi_entries(
+            _oc.EPI_PUSH_DOSE_INDICATIONS, "push dose epi for the kid, shocky",
+            _analgesia_ctx("IV", 20.0, True))[0],
+        "backfill": [],
+        "weight": 20.0,
+    },
+    {
+        "name": "epi_infusion_shock",
+        "render": lambda: _oc.build_fixed_prep_response("how do i make an epi drip for shock"),
+        "contract": lambda: _oc._epi_entries(
+            _oc.EPI_INFUSION_INDICATIONS, "how do i make an epi drip for shock", None)[0],
+        "backfill": [],
+        "weight": None,
+    },
+    {
+        "name": "allowed_doses_seizure",
+        "render": lambda: _render_allowed_doses("she is seizing, 60kg",
+                                                _analgesia_ctx("IV")),
+        "contract": lambda: _oc.build_allowed_doses("she is seizing, 60kg",
+                                                    _analgesia_ctx("IV")),
+        "backfill": [lambda w: _oc.lorazepam_seizure(w)],
+        "weight": 60.0,
+    },
+    {
+        "name": "allowed_doses_rsi",
+        "render": lambda: _render_allowed_doses("60kg RSI now", _analgesia_ctx("IV")),
+        "contract": lambda: _oc.build_allowed_doses("60kg RSI now", _analgesia_ctx("IV")),
+        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
+                     lambda w: _oc.ketamine_post_intubation_iv(w),
+                     lambda w: _oc.rocuronium_rsi(w, False)],
+        "weight": 60.0,
+    },
+]
+
+
+@pytest.mark.parametrize("case", DOSE_TEMPLATE_CASES, ids=lambda c: c["name"])
+def test_every_served_dose_traces_to_a_contract_or_a_declared_backfill(case):
+    """No number reaches a medic that nobody signed and nobody declared.
+
+    This is the test that makes a fourth implementation impossible to land
+    quietly: write a new card that multiplies a weight by a number of its own,
+    register it here, and it fails on the first number it invents. Do not
+    register it, and the coverage test below fails instead.
+    """
+    text = case["render"]()
+    assert text, f"{case['name']}: rendered nothing"
+
+    served = case["contract"]()
+    authorised = _values_of(served)
+    cautions = _caution_lines(served)
+
+    # Declared backfills are authorised too — and named, so the reader of a
+    # failure can see exactly which unsourced calculator is still in play.
+    backfilled = set()
+    if case["weight"] is not None:
+        for f in case["backfill"]:
+            d = f(case["weight"])
+            backfilled |= {round(float(v), 4) for v in
+                           (d.dose_mg, d.display_value) if isinstance(v, (int, float))}
+
+    prep_numbers = {round(float(v), 4)
+                    for group in _oc.PREP_RECIPE_NUMBERS.values()
+                    for entry in group
+                    for v, _, _ in _tokens(entry)}
+
+    # The inline vial question names presentations, which _tokens already
+    # strips; what remains of that block is a question, not a dose.
+    for value, units, line in _tokens(text):
+        # Text the CONTRACT wrote is contract-sourced by definition — the
+        # cautions carry their own numbers ("10-20 mcg equals 1-2 mL of that
+        # dilution", cumulative maxima quoted from the guideline) and quoting
+        # them faithfully is the opposite of the failure this guards.
+        if _is_contract_text(line, cautions):
+            continue
+        v = round(value, 4)
+        assert v in authorised or v in backfilled or v in prep_numbers, (
+            f"{case['name']}: served '{value:g} {units}' with no provenance.\n"
+            f"  line: {line}\n"
+            f"  contract authorises: {sorted(authorised)}\n"
+            f"  declared backfills:  {sorted(backfilled)}\n"
+            f"  prep recipe numbers: {sorted(prep_numbers)}\n"
+            "A dose must come from a signed contract entry, from a calculator "
+            "this case declares as a backfill, or from PREP_RECIPE_NUMBERS.")
+
+
+@pytest.mark.parametrize("case", DOSE_TEMPLATE_CASES, ids=lambda c: c["name"])
+def test_the_source_line_follows_what_was_actually_served(case):
+    """The SOURCE line is a claim about provenance, and a false one is worse
+    than none: it is what told the owner the RSI bundle was contract-served
+    while it was serving 1.5 mg/kg from a hardcode."""
+    text = case["render"]()
+    if "**SOURCE**" not in text:
+        pytest.skip("no SOURCE line on this surface")
+    source = text.split("**SOURCE**:")[1].strip().splitlines()[0]
+
+    served = case["contract"]()
+    from_contract = [_oc.dose_is_from_contract(s) for s in served]
+
+    if served and all(from_contract):
+        assert source == _oc.SOURCE_ALL_CONTRACT, (
+            f"{case['name']}: every dose came from a contract, and the SOURCE "
+            f"line says something else: {source!r}")
+    elif any(from_contract):
+        assert source == _oc.SOURCE_MIXED, (
+            f"{case['name']}: contracts and calculators both served, and the "
+            f"SOURCE line does not say so: {source!r}")
+    else:
+        assert source not in (_oc.SOURCE_ALL_CONTRACT, _oc.SOURCE_MIXED), (
+            f"{case['name']}: nothing came from a contract and the SOURCE line "
+            f"claims one did: {source!r}")
+        assert "calculator" in source.lower() or "preparation" in source.lower(), (
+            f"{case['name']}: an unsourced number must SAY it is unsourced: "
+            f"{source!r}")
+
+
+def test_a_signed_indication_is_never_substituted_for_a_different_one():
+    """The IM analgesia case, pinned as its own assertion because it is the one
+    the owner called out: ketamine's signed IM entries are dissociative
+    sedation at 3-4 mg/kg, twelve to sixteen times the IV analgesia dose. A
+    pain request on the IM route must reach the calculator, never them."""
+    ctx = _analgesia_ctx("IM")
+    assert _oc._contract_analgesia_candidate(ctx) is None, \
+        "an IM entry matched an analgesia request — check the route/indication scoping"
+
+    text = _oc.build_ketamine_analgesia_response(ctx)
+    give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
+    assert "dissociative sedation" not in give, \
+        "an agitation indication is being served as analgesia"
+    assert "120 mg" in text, "the declared IM backfill is not what got served"
+    # 3 and 4 mg/kg on a 60 kg patient.
+    for smuggled in ("180 mg", "240 mg"):
+        assert smuggled not in text, f"an agitation dose reached a pain card: {smuggled}"
+
+
+def test_the_push_dose_card_refuses_rather_than_reaching_for_the_wrong_entry():
+    """An adult shock push-dose request has no signed entry. The card must say
+    so — not answer with the bradycardia window, and not fall back to the
+    unsourced 5 mcg floor it used to print."""
+    text = _oc.build_fixed_prep_response("need push dose epi, BP 70/40 shocky")
+    give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
+    assert "No signed entry for shock" in give
+    assert "10-20 mcg" not in give, "the bradycardia window was substituted"
+    assert "5-20 mcg" not in give, "the retired unsourced floor is back"
+
+
+def test_the_retired_analgesia_hardcode_is_gone_from_the_iv_path():
+    """The reported bug, pinned: 0.3 mg/kg served 18 mg at 60 kg while the
+    signed NASEMSO entry says 0.25 mg/kg = 15 mg."""
+    text = _oc.build_ketamine_analgesia_response(_analgesia_ctx("IV"))
+    assert "15 mg" in text
+    assert "18 mg" not in text, "the retired 0.3 mg/kg hardcode is back"
+    assert "deterministic calculator" not in text.split("**SOURCE**:")[1]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COVERAGE — a new card cannot avoid the guard by not being in the registry.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Cards that state NO dose. Listed by name rather than detected, because
+# "this card has no numbers in it" is a claim worth making explicitly: several
+# of these name a drug whose dose IS signed and deliberately leave the number
+# to the protocol.
+DOSELESS_CARDS = {
+    "build_cico_response", "build_hemorrhagic_shock_dcr_response",
+    "build_sepsis_management_response", "build_anaphylaxis_response",
+    "build_seizure_response", "build_hypothermic_arrest_response",
+    "build_tbi_management_response", "build_mascal_response",
+    "build_ketamine_drip_response", "build_cholera_response",
+    "build_snake_bite_response", "build_vtach_response",
+    "build_txa_sepsis_block", "build_wpw_drug_block",
+}
+
+# Plumbing: prompt blocks, gate text and the dose machinery itself. These do
+# not author doses — they carry or format what the machinery produced.
+NOT_A_DOSE_CARD = {
+    "build_allowed_doses", "build_allowed_dose_block", "build_allowed_actions",
+    "build_patient_block", "build_source_block", "build_system_prompt",
+    "build_safety_hold", "build_full_query_history", "build_general_case_response",
+    "build_fixed_prep_response", "build_ketamine_analgesia_response",
+    "build_rsi_response",
+}
+
+# The three above are in NOT_A_DOSE_CARD because they are covered by name in
+# DOSE_TEMPLATE_CASES instead; this set exists so the classification is total.
+_REGISTERED_BUILDERS = {"build_fixed_prep_response",
+                        "build_ketamine_analgesia_response",
+                        "build_rsi_response"}
+
+
+def test_every_response_builder_is_classified():
+    """Add a build_*_response to openai_client and this test tells you to say
+    which kind it is. That is the whole point: the registry cannot silently
+    fall behind the code, because the code cannot grow a new card without the
+    registry noticing."""
+    builders = {n for n in dir(_oc)
+                if n.startswith("build_") and callable(getattr(_oc, n))}
+    unclassified = builders - DOSELESS_CARDS - NOT_A_DOSE_CARD
+    assert not unclassified, (
+        f"unclassified response builders: {sorted(unclassified)}. Add each to "
+        "DOSE_TEMPLATE_CASES (with the contract lookup it serves from and any "
+        "calculator it is allowed to backfill from), or to DOSELESS_CARDS if it "
+        "states no dose, or to NOT_A_DOSE_CARD if it is plumbing.")
+
+
+def test_the_registered_cards_are_actually_registered():
+    """DOSE_TEMPLATE_CASES must cover every card claimed to be covered by it."""
+    covered = " ".join(c["name"] for c in DOSE_TEMPLATE_CASES)
+    for name, token in (("build_rsi_response", "rsi_bundle"),
+                        ("build_ketamine_analgesia_response", "ketamine_analgesia"),
+                        ("build_fixed_prep_response", "epi")):
+        assert name in _REGISTERED_BUILDERS
+        assert token in covered, f"{name} has no case in DOSE_TEMPLATE_CASES"
+
+
+@pytest.mark.parametrize("name", sorted(DOSELESS_CARDS))
+def test_a_doseless_card_states_no_dose(name):
+    """If one of these ever grows a number, it becomes a dose surface and has
+    to be registered like the rest."""
+    text = getattr(_oc, name)()
+    offenders = [(v, u, l) for v, u, l in _tokens(text)]
+    assert not offenders, (
+        f"{name} now states a dose: {offenders}. Either take the number out, or "
+        "move it into DOSE_TEMPLATE_CASES with a contract lookup behind it.")
+
+
+@pytest.mark.parametrize("case", DOSE_TEMPLATE_CASES, ids=lambda c: c["name"])
+def test_no_surface_states_the_same_dose_twice(case):
+    """One drug, one indication, one line.
+
+    The trace test above cannot catch a duplicate: both copies have honest
+    provenance. But two identical GIVE lines read as two doses under load, and
+    the way duplicates arrive is exactly the way the seizure bypass arrived —
+    a second lookup added beside the first, both correct, neither aware of the
+    other. This is the assertion that would have failed on `or is_seizure`
+    even though the calculator and the contract agree on 4 mg today.
+    """
+    served = case["contract"]()
+    keys = [(getattr(s, "drug", None), getattr(s, "indication", None),
+             getattr(s, "route", None)) for s in served]
+    dupes = [k for k in set(keys) if keys.count(k) > 1]
+    assert not dupes, f"{case['name']}: served twice: {dupes}"
+
+    # And no two benzodiazepines for one seizure, no two paralytics for one
+    # intubation: the role-collision shape, asserted on the roles that have
+    # actually collided.
+    drugs = {getattr(s, "drug", None) for s in served}
+    assert len({"lorazepam", "midazolam"} & drugs) <= 1, \
+        f"{case['name']}: two benzodiazepines served together: {sorted(drugs)}"
+    assert len({"rocuronium", "succinylcholine"} & drugs) <= 1, \
+        f"{case['name']}: two paralytics served together: {sorted(drugs)}"
+
+
+@pytest.mark.parametrize("case", DOSE_TEMPLATE_CASES, ids=lambda c: c["name"])
+def test_a_calculator_never_serves_what_a_contract_covers(case):
+    """The supersede rule, asserted on the OUTPUT instead of trusted to the one
+    function that implements it.
+
+    Worth being precise about what this catches and what it cannot. Two doses
+    with the SAME NUMBER are indistinguishable in rendered text — the seizure
+    bypass survived unseen for exactly that reason, because the retired
+    calculator and the signed entry both say 4 mg at 60 kg. No test that reads
+    numbers off a screen can see that.
+
+    Provenance is not invisible. If the bank covers this drug for this
+    indication, the thing that got served has to be the contract's — not a
+    calculator that happens to agree with it today, and not a calculator that
+    won because it was appended first and the dedupe keeps the first. That is
+    the regression this pins: correctness here currently depends on append
+    order, and append order is not a thing anyone remembers.
+    """
+    for s in case["contract"]():
+        indication = (getattr(s, "indication", "") or "").lower()
+        drug = getattr(s, "drug", None)
+        covered = [e for e in dc.servable_entries().get(drug, [])
+                   if (e.get("indication") or "").lower() == indication]
+        if not covered:
+            continue
+        assert _oc.dose_is_from_contract(s), (
+            f"{case['name']}: {drug} '{indication}' is covered by a signed "
+            f"contract, but what got served came from {s.source!r}. A "
+            "calculator backfills only where the bank is silent.")
