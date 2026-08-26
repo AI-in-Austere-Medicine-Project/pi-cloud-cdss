@@ -997,13 +997,12 @@ def _age_band(entry: dict):
     return None
 
 
-def age_banded_entries(patterns, is_pediatric: bool = True) -> list:
-    """Signed entries that WOULD apply but need an age to choose between."""
-    return [(n, e) for n, es in servable_entries().items() for e in es
-            if _age_band(e) is not None
-            and any(p.lower() in (e.get("indication") or "").lower()
-                    for p in patterns)
-            and (e.get("population") != "adult" if is_pediatric else True)]
+# age_banded_entries() was DELETED on 2026-08-26 — no call site anywhere,
+# including tests. It returned age-banded entries WITHOUT the age that
+# distinguishes them, for a "ask which band" flow that was never built.
+# signed_entries_by_indication() already refuses to guess a band when the age
+# is unknown; this returned the candidates anyway, so serving from it would
+# have undone that refusal. Same A2 shape as the template deleted last week.
 
 
 def signed_entries_for(query: str, route: Optional[str] = None,

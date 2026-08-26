@@ -151,15 +151,15 @@ pi-cloud-cdss/
 │   ├── main.py                  FastAPI app: /query /speak /feedback + web portal
 │   ├── openai_client.py         Deterministic-first pipeline, gates, validator
 │   ├── embeddings.py            ChromaDB client (local embeddings)
-│   ├── ingest_jts.py            Guideline ingestion (PDF → chunks)
 │   ├── clinical_router.py       Query → protocol routing
-│   ├── build_protocol_index.py  Builds the router index from the knowledge base
 │   ├── static/index.html        Web portal (served at the API root)
+│   ├── tools/                   CLIs, not imported by the server:
+│   │                            set_contract.py / set_concentration.py (signing),
+│   │                            gen_*.py (authoring worksheets), ingest_jts.py
+│   │                            (PDF → chunks), build_protocol_index.py
+│   ├── tests/                   Offline regression suite (1,150 tests, ~11s)
 │   ├── run_tests.sh             24-case live-endpoint clinical suite
-│   ├── run_unit_tests.sh        Offline regression suite (1,150 tests, ~11s)
-│   └── test_*.py                Offline suites: deterministic parsers/gates,
-│                                safety gate, patient boundary, routing and
-│                                aliases, log contract, env config
+│   └── run_unit_tests.sh        Runs the offline suite
 ├── client/
 │   ├── cdss_client.py           Voice client for edge devices
 │   └── requirements.txt         Voice client dependencies
@@ -191,8 +191,8 @@ curl localhost:8000/health         # {"status":"healthy", ...}
 Ingest your guideline library (PDFs → searchable knowledge base):
 
 ```bash
-python ingest_jts.py --pdf-dir ./data/your_protocols
-python build_protocol_index.py     # builds the clinical router index
+python tools/ingest_jts.py --pdf-dir ./data/your_protocols
+python tools/build_protocol_index.py     # builds the clinical router index
 ```
 
 On a Jetson, `jetson_cdss_setup_v2.sh` performs the full deployment (packages, venv, systemd service) in one run.
@@ -211,7 +211,7 @@ no key and no vector database, so it runs on a clean checkout in CI or on a lapt
 
 - **Primary:** Joint Trauma System (JTS) Clinical Practice Guidelines — 89 protocols ingested into 8,559 passages with page-accurate citations
 - **Embeddings:** computed on-device (all-MiniLM via ChromaDB) — zero per-query API cost, works with degraded connectivity
-- **Ingestion:** sentence-aware chunking, header/footer stripping, idempotent re-runs (`server/ingest_jts.py`) — works with any PDF-based protocol library
+- **Ingestion:** sentence-aware chunking, header/footer stripping, idempotent re-runs (`server/tools/ingest_jts.py`) — works with any PDF-based protocol library
 
 ### Answer sources
 
@@ -344,6 +344,7 @@ measured.
 | [`docs/TECH_NOTES_v4.1.md`](docs/TECH_NOTES_v4.1.md) | 4.1 technical notes (superseded; kept as the record of what 4.1 claimed) |
 | [`docs/TECH_NOTES_v4.0.md`](docs/TECH_NOTES_v4.0.md) | 4.0 technical notes (superseded; kept as the record of what 4.0 claimed) |
 | [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | Research positioning, design principles, references |
+| [`docs/authoring/`](docs/authoring/) | Generated authoring worksheets for the clinician signing dose contracts and vent cards — re-run `server/tools/gen_*.py`, never hand-edit |
 | [`docs/EdgeCDSS_v4_Technology.pdf`](docs/EdgeCDSS_v4_Technology.pdf) | Technology explainer |
 | [`publications/`](publications/) | Articles and papers written by the project |
 | [Ethics & Governance](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/ethics-governance.html) | Data privacy, responsible AI, governance |

@@ -444,13 +444,13 @@ def volume_refusal(generic_name: str, dose_mg: float,
     return None if ok else why
 
 
-def declared_concentration(generic_name: str) -> Optional[float]:
-    """The single signed strength, for the gate's cross-check. None if the drug
-    has none, or more than one and no confirmation to pick between them."""
-    signed = signed_presentations(generic_name)
-    if len(signed) == 1:
-        return signed[0]["concentration_mg_ml"]
-    return None
+# declared_concentration() was DELETED on 2026-08-26 — no call site anywhere,
+# including tests. It returned the single signed strength and IGNORED
+# confirm_required, so wiring it up would have served a volume for ketamine
+# without asking which of the two stocked vials the medic was holding — the
+# exact question resolve() exists to force. Dead code that bypasses a gate is
+# the A2 shape: harmless today, and indistinguishable from the house pattern
+# to whoever needs something like it next. Use resolve().
 
 
 def all_signed_strengths(generic_name: str) -> list:

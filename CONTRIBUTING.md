@@ -32,10 +32,28 @@ cd pi-cloud-cdss
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -r client/requirements.txt
-cp .env.example .env
+cp .env.example server/.env   # the server reads server/.env, not the repo root
 ```
 
 ## Running Tests
+
+**The offline suite is expected to be green. A red suite blocks merge** — including
+a failure you did not cause. A suite that is permanently red cannot tell anyone when
+something real breaks, because a new failure is indistinguishable from the standing
+noise. If a test is red for a reason you cannot fix, mark it `xfail` with a reason
+string naming what it is waiting on, so the count stays honest and the wait is visible.
+
+```bash
+cd server && ./run_unit_tests.sh   # offline: no network, no API key, no ChromaDB
+```
+
+A test must not assert a moment in the project's history — how many dose contracts
+are signed, how many vent cards are live, what is in this deployment's kit. Those are
+moving facts, and a test pinned to one goes red the day the system is used as designed.
+Assert the invariant instead: prove a fence with a synthetic pending entry, the way
+`test_vent_module.py` and `test_drug_contracts.py` do.
+
+The live clinical suite needs a running server and a token:
 
 ```bash
 export CDSS_SERVER_URL=https://your-server

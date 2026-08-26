@@ -10,7 +10,7 @@ assume nothing but this repo, an internet connection, and your API keys.
 |---|---|---|
 | All code, router index, safety rules, test suites | ✅ yes | `git clone` |
 | JTS CPG PDFs (~89 files, `data/jts/`) | ❌ gitignored | `scripts/fetch_jts_cpgs.sh` (public JTS site), or the data pack on the [Releases page](../../releases) |
-| ChromaDB vector database (`cache/chromadb/`) | ❌ gitignored | Rebuild with `server/ingest_jts.py`, or the snapshot on the [Releases page](../../releases) |
+| ChromaDB vector database (`cache/chromadb/`) | ❌ gitignored | Rebuild with `server/tools/ingest_jts.py`, or the snapshot on the [Releases page](../../releases) |
 | API keys (`.env`) | ❌ never committed | Your password manager / provider dashboards |
 | Cloudflare tunnel credentials | ❌ never committed | Cloudflare dashboard — create a new tunnel (step 6) |
 
@@ -30,7 +30,7 @@ bash scripts/fetch_jts_cpgs.sh
 pip install -r requirements-server.txt
 
 # 4. Vector DB — EITHER rebuild (~20 min on CPU)...
-python server/ingest_jts.py
+python server/tools/ingest_jts.py
 # ...OR restore the certified snapshot from the Releases page:
 #   wget <release-url>/chromadb_snapshot.tar.gz && tar xzf chromadb_snapshot.tar.gz
 
@@ -69,7 +69,7 @@ tunnel is simply abandoned. Public site is back with no DNS wait.
   differ from the KB a release was tested against. The Releases snapshot is the
   certified KB; the script is the always-works fallback.
 - `server/protocol_index.json` contains hand-tuned router search terms.
-  Do **not** regenerate it with `build_protocol_index.py` unless you re-apply the tuning
+  Do **not** regenerate it with `server/tools/build_protocol_index.py` unless you re-apply the tuning
   (see comments in the file's TBI entries).
 - Rebuild order matters: PDFs → ingest → run. The server starts with an empty KB
   but answers will be ungrounded — always verify with the KB check in step 6.
