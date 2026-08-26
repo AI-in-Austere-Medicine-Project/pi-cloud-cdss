@@ -427,17 +427,27 @@ def test_a_block_stays_blocked():
     assert out["validator_result"] == "UNSAFE"
 
 
-def test_the_rsi_template_emits_no_volume_while_unsigned():
-    """160 mg, not 120: the RSI pre-gate no longer calls the retired 1.5 mg/kg
-    calculator. The volume half of this test is unchanged — a signed DOSE and a
+def test_the_rsi_template_refuses_a_volume_until_the_vial_is_confirmed():
+    """Was test_the_rsi_template_emits_no_volume_while_unsigned. Two things
+    moved under it: the dose is now the signed 2 mg/kg (160 mg, not the retired
+    1.5 mg/kg hardcode's 120), and the concentrations have since been signed —
+    so "no volume anywhere" is no longer the right claim.
+
+    What still holds, and is the thing worth pinning: a signed DOSE and a
     signed CONCENTRATION are separate gates, and ketamine is confirm_required
-    besides, so the mg is contract-sourced and the mL is still refused."""
+    on top of that. So ketamine serves milligrams and names the vial it needs,
+    while a drug whose single strength is signed serves a volume outright."""
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     text = oc.build_rsi_response(ctx, "rsi now")
-    give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
-    assert "mL of" not in give
-    assert "160 mg" in give and oc.CONFIRM_CONCENTRATION_LINE in give
+    give = text.split("**GIVE**")[1].split("**POST-INTUBATION")[0]
+
+    ket = [l for l in give.splitlines() if "ketamine" in l][0]
+    assert "160 mg" in ket
+    if dcn.resolve("ketamine", {})[0] == dcn.NEEDS_CONFIRMATION:
+        assert oc.CONFIRM_CONCENTRATION_LINE in ket
+        assert "mL of" not in ket
+        assert "**CONFIRM VIAL**" in text
 
 
 def test_the_tldr_degrades_with_the_give_line():

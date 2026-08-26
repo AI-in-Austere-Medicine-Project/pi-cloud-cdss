@@ -375,6 +375,37 @@ class DoseCandidate:
 
 
 @dataclass
+class ServedEntry:
+    """A signed contract entry served AS THE RANGE THE GUIDELINE WROTE.
+
+    Not every signed entry becomes one drawn-up bolus. Epinephrine push dose is
+    "10-20 mcg titrated to MAP", and an infusion is a rate that has no single
+    volume at all. DoseCandidate exists for the bolus case — it carries a
+    dose_mg precisely so a millilitre can be derived from it — and forcing a
+    range or a rate through it would mean either inventing a single number the
+    source did not state or inventing a volume for something that is not a
+    push.
+
+    So this is the other shape. It carries no dose_mg and no volume, and it
+    renders the range verbatim. It deliberately shares attribute names with
+    DoseCandidate (`drug`, `indication`, `source`, `cautions`, `warning`) so the
+    served-dose choke point treats both the same way: provenance, cautions and
+    the SOURCE line do not care which shape a dose arrived in.
+    """
+    drug: str
+    indication: str
+    route: str
+    range_text: str
+    source: str
+    cautions: List[str] = field(default_factory=list)
+    warning: Optional[str] = None
+    # What this range works out to for THIS patient, when the entry is
+    # weight-based and the weight is confirmed. A note, not a substitute: the
+    # range above stays on screen, because the guideline wrote the range.
+    resolved_note: Optional[str] = None
+
+
+@dataclass
 class DeterministicCheck:
     passed: bool
     issues: list = field(default_factory=list)
@@ -945,6 +976,7 @@ def _rsi_role(indication: str) -> Optional[str]:
 RSI_INDUCTION_INDICATIONS = ("RSI induction",)
 RSI_PARALYTIC_INDICATIONS = ("RSI paralytic",)
 RSI_SEDATION_INDICATIONS = ("post-intubation sedation", "ongoing sedation")
+SEIZURE_INDICATIONS = ("active seizure",)
 
 
 def _contract_source(name: str, entry: dict) -> str:
@@ -1043,6 +1075,55 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
     return out
 
 
+ANALGESIA_INDICATIONS = ("moderate to severe pain",)
+
+
+def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate]:
+    """The signed ketamine ANALGESIA entry for this patient's route, or None.
+
+    Scoped hard, twice over, because both of the entries next door would be a
+    different drug dose served under the word "pain":
+
+      INDICATION — "moderate to severe pain / analgesia" only. The bank also
+      holds "background pain — low-dose analgesia (prolonged field care)" at
+      0.1-0.2 mg/kg, which is a different clinical situation (a casualty held
+      for hours, titrated low) and not what a medic asking for pain control on
+      a fracture is asking for.
+
+      ROUTE — the entry's route must be the route the medic has. The bank's
+      only signed IM ketamine entries are "agitated or violent patient —
+      dissociative sedation" at 3-4 mg/kg. That is TWELVE TO SIXTEEN TIMES the
+      IV analgesia dose, for sedating a combative patient, and matching it to
+      a pain request because both say "ketamine" and "IM" is precisely the
+      substitution this whole layer exists to prevent. Owner instruction,
+      2026-08-25: it must not stand in for analgesia.
+
+    Returns None when nothing is signed for that route — the caller backfills
+    from the legacy calculator and SAYS SO in the SOURCE line.
+    """
+    if drug_contracts is None or ctx.dosing_weight_kg is None:
+        return None
+    route = ctx.route_preference
+    if route not in ("IV", "IM"):
+        return None
+
+    for name, entry in drug_contracts.signed_entries_by_indication(
+            ANALGESIA_INDICATIONS, ctx.is_pediatric, ctx.age_years):
+        if name != "ketamine" or entry.get("route") != route:
+            continue
+        r = drug_contracts.resolve_dose(entry, ctx.dosing_weight_kg)
+        if r["dose_mg"] is None:
+            continue
+        return DoseCandidate(
+            drug=name, indication=entry["indication"], route=entry["route"],
+            dose_mg=round(r["dose_mg"], 4), display_value=r["display_value"],
+            display_units=r["display_units"],
+            source=_contract_source(name, entry),
+            cautions=list(drug_contracts.serve_cautions(entry)),
+            warning="; ".join(drug_contracts.serve_cautions(entry)) or None)
+    return None
+
+
 def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     """DoseCandidates from SIGNED drug_contracts.json entries only.
 
@@ -1083,6 +1164,26 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
         ))
     return out
+
+
+def _finish_doses(doses: List[DoseCandidate],
+                  ctx: PatientContext) -> List[DoseCandidate]:
+    """Dedupe by (drug, indication, route), then resolve volumes.
+
+    The dedupe used to live inside the RSI branch only, which was fine while
+    that was the one branch where two lookups could reach the same entry. It
+    is not fine now: the seizure role is looked up by INDICATION and the same
+    entry is looked up again by DRUG NAME whenever the medic names the drug, so
+    "active seizure 60kg give lorazepam" listed the identical contract line
+    twice. Two identical GIVE lines read as two doses.
+    """
+    seen, unique = set(), []
+    for d in doses:
+        k = (d.drug, d.indication, d.route)
+        if k not in seen:
+            seen.add(k)
+            unique.append(d)
+    return [resolve_dose_volume(d, ctx) for d in unique]
 
 
 def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
@@ -1173,12 +1274,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
 
         doses.extend(contract)
         doses.extend(_contract_dose_candidates(query, ctx))
-        seen, unique = set(), []
-        for d in doses:
-            k = (d.drug, d.indication, d.route)
-            if k not in seen:
-                seen.add(k); unique.append(d)
-        return [resolve_dose_volume(d, ctx) for d in unique]
+        return _finish_doses(doses, ctx)
 
     if has_ketamine:
         if is_analg or (not is_seizure):
@@ -1191,11 +1287,54 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
                 doses.append(ketamine_analgesia_iv(w))
                 doses.append(ketamine_analgesia_im(w))
 
+    # SEIZURE IS A ROLE, filled the way the RSI bundle's roles are filled.
+    #
+    # This branch used to read `if has_loraz or is_seizure`. has_loraz carries
+    # the supersede check; `or is_seizure` did not, so any query with the word
+    # "seizure" in it appended the legacy calculator whether or not lorazepam
+    # had a signed contract — the calculator and the contract entry both, for
+    # one seizure. That is the two-paralytics failure with different drugs, and
+    # it was invisible only because 0.1 mg/kg capped at 4 mg is what both of
+    # them happen to say today. The first time the owner re-signs that entry at
+    # a different number, it stops being invisible.
+    #
+    # A seizure query names no drug — "she's seizing, 60kg" is the whole
+    # request — so a drug-named lookup finds nothing and suppressing the
+    # calculator alone would have left the response with no anticonvulsant at
+    # all. Same problem the RSI bundle had, same solution: look the role up by
+    # INDICATION, and let the calculator backfill only if the bank is silent.
     if has_loraz or is_seizure:
-        doses.append(lorazepam_seizure(w))
+        seizure = [(n, e) for n, e in drug_contracts.signed_entries_by_indication(
+            SEIZURE_INDICATIONS, ctx.is_pediatric, ctx.age_years)] \
+            if drug_contracts is not None else []
+        # ONE anticonvulsant. Lorazepam and midazolam are both signed for
+        # active seizure, and serving both is two benzodiazepines for one
+        # patient. Lorazepam is first-line unless the query names midazolam —
+        # which is not new policy: build_allowed_actions and the seizure card
+        # both already say "lorazepam is first-line", and the legacy calculator
+        # this replaces was lorazepam. Owner: this is the seizure equivalent of
+        # the 2026-08-25 ruling that the RSI sedation slot is ketamine, applied
+        # by extension rather than by a ruling of its own.
+        named = set(drug_contracts.resolve_drugs(q)) if drug_contracts else set()
+        preferred = "midazolam" if "midazolam" in named else "lorazepam"
+        chosen = [x for x in seizure if x[0] == preferred][:1] or seizure[:1]
+
+        for name, entry in chosen:
+            r = drug_contracts.resolve_dose(entry, w)
+            if r["dose_mg"] is None:
+                continue
+            doses.append(DoseCandidate(
+                drug=name, indication=entry["indication"], route=entry["route"],
+                dose_mg=round(r["dose_mg"], 4), display_value=r["display_value"],
+                display_units=r["display_units"],
+                source=_contract_source(name, entry),
+                cautions=list(drug_contracts.serve_cautions(entry)),
+                warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
+        if not chosen and "lorazepam" not in superseded:
+            doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
-    return [resolve_dose_volume(d, ctx) for d in doses]
+    return _finish_doses(doses, ctx)
 
 
 CONFIRM_CONCENTRATION_LINE = "confirm concentration to compute volume"
@@ -1272,6 +1411,110 @@ def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
             "sentence exactly as written. Do NOT compute or invent a mL "
             "volume for it.")
     return "\n".join(lines)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SERVED-DOSE CHOKE POINT
+#
+# Every deterministic template that puts a dose in front of a medic answers the
+# same three questions afterwards: what were the cautions, which vial, and
+# where did these numbers come from. build_rsi_response answered them inline,
+# and A1/A3 answered the third one with a hardcoded string that was true when
+# it was written and false the moment a contract was signed underneath it.
+#
+# So they are functions now, and the templates call them. The point is not
+# brevity — it is that "the SOURCE line follows what was actually served" has
+# ONE implementation, and a fourth template cannot restate it wrongly. The
+# structural test in test_drug_contracts.py enforces that every template routes
+# through here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+CONTRACT_SOURCE_PREFIX = "drug_contract:"
+CALCULATOR_SOURCE_PREFIX = "deterministic_calculator:"
+
+SOURCE_ALL_CONTRACT = ("Signed dose contracts — each dose carries its own citation "
+                       "or owner declaration under CAUTIONS")
+SOURCE_MIXED = ("Mixed — signed dose contracts where one exists, deterministic "
+                "calculator otherwise; see CAUTIONS per drug")
+
+
+def dose_is_from_contract(d: DoseCandidate) -> bool:
+    """Whether this candidate's number came from a signed contract entry.
+
+    The provenance is the `source` string the candidate was built with, not a
+    flag a caller can set: a dose and the claim about where it came from travel
+    as one object, so there is no way to serve one and label it as the other.
+    """
+    return str(getattr(d, "source", "") or "").startswith(CONTRACT_SOURCE_PREFIX)
+
+
+def served_source_line(served: List[DoseCandidate], legacy_label: str) -> str:
+    """The SOURCE line for what was ACTUALLY served, not for what the template
+    used to serve. `legacy_label` is what this card says when no contract
+    reached it — the only part that is the template's own business.
+
+    Deliberately names no guideline: an owner-declared entry can be in `served`
+    and a blanket citation would relabel it as sourced (ruling 8).
+    """
+    if not served:
+        return legacy_label
+    from_contract = [dose_is_from_contract(d) for d in served]
+    if all(from_contract):
+        return SOURCE_ALL_CONTRACT
+    if any(from_contract):
+        return SOURCE_MIXED
+    return legacy_label
+
+
+def served_cautions_block(served: List[DoseCandidate]) -> str:
+    """The CAUTIONS block: one bullet per caution, grouped by drug/indication.
+
+    Not decoration. serve_cautions() puts the OWNER-DECLARED banner at the top
+    of a declared entry, and a card that dropped it would serve the owner's
+    number as though a guideline stated it. One bullet per caution rather than
+    a semicolon-joined paragraph: these strings were written for the
+    ALLOWED_DOSES block a generator reads, and a wall of prose in front of a
+    medic under load is read as no prose at all.
+    """
+    lines = []
+    for d in served:
+        items = d.cautions or ([d.warning] if d.warning else [])
+        items = [c.strip() for c in items if c and c.strip()]
+        if not items:
+            continue
+        lines.append(f"- {d.drug} — {d.indication}:")
+        lines += [f"  - {c}" for c in items]
+    return "\n".join(lines) or "- None recorded for these entries."
+
+
+def served_confirm_vial_block(served: List[DoseCandidate],
+                              ctx: PatientContext) -> str:
+    """The inline WHICH VIAL question, or "" when every vial is already known.
+
+    pre_gate() asks this too, but pre_gate runs at step 2l and every
+    deterministic card returns before it — so for the cards, the question was
+    structurally unreachable. Asked INLINE rather than as a blocking gate: the
+    milligram doses are correct and actionable, and withholding them to ask
+    about a vial would be the worse failure. The answer is picked up by
+    extract_patient_context() on the next turn.
+    """
+    if drug_concentrations is None:
+        return ""
+    asks, seen_drugs = [], set()
+    for d in served:
+        if d.drug in seen_drugs or getattr(d, "volume_ml", None) is not None:
+            continue
+        seen_drugs.add(d.drug)
+        status, _, _ = drug_concentrations.resolve(
+            d.drug, ctx.confirmed_concentrations)
+        if status == drug_concentrations.NEEDS_CONFIRMATION:
+            ask = drug_concentrations.confirmation_question(d.drug)
+            if ask:
+                asks.append(f"- {ask}")
+    if not asks:
+        return ""
+    return ("\n**CONFIRM VIAL** (answer to get volumes; the mg doses "
+            "above stand either way)\n" + "\n".join(asks) + "\n")
 
 
 
@@ -1498,10 +1741,191 @@ def is_fixed_prep_request(query: str) -> bool:
     return _prep_term_present(query, FIXED_PREP_TERMS)
 
 
-def build_fixed_prep_response(query: str) -> Optional[str]:
+# ─────────────────────────────────────────────────────────────────────────────
+# PREPARATION RECIPES THAT NO CONTRACT COVERS
+#
+# The owner's ruling of 2026-08-21 (general_reference.py) draws the line: a
+# standardised preparation recipe is reference knowledge — the concentration you
+# get when you dilute 1 mg of epinephrine into 250 mL of saline is a fixed fact
+# about the syringe, not a decision about a patient. A DOSE is not.
+#
+# These are the mass figures that appear in the prep cards WITHOUT a contract
+# behind them. Every one of them is a quantity going into a bag or a syringe to
+# construct a concentration, never a quantity going into a patient. The registry
+# is explicit and this comment is the flag: the structural test reads it, so a
+# future card cannot smuggle an unsourced patient dose in as "prep arithmetic"
+# without someone adding it here and being asked why.
+# ─────────────────────────────────────────────────────────────────────────────
+
+PREP_RECIPE_NUMBERS = {
+    # 1 mg of epinephrine into a 250 mL bag. The bag is the product; the
+    # patient gets a RATE off it, and that rate comes from a signed contract.
+    "epi_infusion_prep": ("1 mg",),
+}
+
+# What the push-dose card said before it was routed through the contract
+# engine, kept for the case where the contract engine has nothing to say —
+# an unsigned bank, or drug_contracts failing to import. It is a LEGACY
+# BACKFILL and the SOURCE line says so when it is what got served.
+#
+# It is not the signed number. NASEMSO Bradycardia p.36 puts the push-dose
+# window at 10-20 mcg; this card's 5 mcg floor is the widely-taught
+# push-dose-pressor start and has no citation in the bank. Where a signed entry
+# applies, the signed entry wins and this string is never reached.
+LEGACY_PUSH_DOSE_EPI_GIVE = "- Administer 0.5-2 mL (5-20 mcg) IV push q2-5min. Titrate to effect."
+LEGACY_EPI_INFUSION_GIVE = "- Start at 2-10 mcg/min (30-150 mL/hr). Titrate to MAP target."
+
+LEGACY_PREP_SOURCE = ("General Evidence-Based Medicine / deterministic preparation "
+                      "card — no signed contract covered this request")
+
+EPI_PUSH_DOSE_INDICATIONS = ("push dose",)
+EPI_INFUSION_INDICATIONS = ("infusion",)
+
+
+def _stated_epi_indication(query: str) -> Optional[str]:
+    """The indication the QUERY named, or None if it named none.
+
+    Only two are separable from a prep request's wording, and they are the two
+    the bank actually splits on.
+    """
+    q = (query or "").lower()
+    if _has_any_word(q, ["bradycardia", "brady", "bradycardic"]):
+        return "bradycardia"
+    if has_hypotension_or_shock(q):
+        return "shock"
+    return None
+
+
+def _epi_entries(patterns, query: str,
+                 ctx: Optional[PatientContext]) -> tuple:
+    """(entries, note) — signed EPINEPHRINE entries for this request.
+
+    Narrowed, never substituted. The bank holds a bradycardia push dose and a
+    paediatric shock push dose at different numbers under different citations,
+    and the one thing this function must never do is answer a question about
+    one with the number for the other. So when the query names an indication
+    the bank does not cover for this patient, it returns NOTHING and a note
+    saying which question went unanswered — the same refusal shape as the IM
+    analgesia case, where a signed dissociative-sedation entry is not allowed
+    to stand in for a pain dose.
+
+    When the query names no indication, every applicable entry is listed with
+    its indication attached rather than one being promoted: the vent
+    physiology gate's rule (step 2k-iii), ask rather than default. A push-dose
+    request that never said why is not evidence for bradycardia.
+    """
+    if drug_contracts is None:
+        return [], None
+    ped = bool(ctx and ctx.is_pediatric)
+    age = ctx.age_years if ctx else None
+    pairs = [(n, e) for n, e in drug_contracts.signed_entries_by_indication(
+        patterns, ped, age) if n == "epinephrine"]
+
+    note = None
+    stated = _stated_epi_indication(query)
+    if stated:
+        narrowed = [x for x in pairs if stated in x[1]["indication"].lower()]
+        if not narrowed:
+            who = "a paediatric patient" if ped else "an adult patient"
+            other = ", ".join(sorted({x[1]["indication"] for x in pairs}))
+            note = (f"- No signed entry for {stated} in {who} at this "
+                    f"preparation. Do NOT extrapolate from the entries that "
+                    f"are signed" + (f" ({other})" if other else "") +
+                    " — they are different indications at different numbers. "
+                    "Use local protocol, or ask for the infusion if that is "
+                    "what this patient needs.")
+        pairs = narrowed
+
+    out = []
+    for name, entry in pairs:
+        text = drug_contracts.range_text(entry)
+        if text is None:
+            # Units this module will not vouch for. Fail closed: say nothing
+            # rather than print a number with a unit nobody checked.
+            continue
+        resolved_note = None
+        rng = entry.get("dose_range") or {}
+        if rng.get("per_kg") and ctx is not None and ctx.dosing_weight_kg:
+            w = ctx.dosing_weight_kg
+            r = drug_contracts.resolve_dose(entry, w)
+            if r["dose_mg"] is not None and r["display_value"] is not None:
+                resolved_note = (f"{r['display_value']:g} {r['display_units']} "
+                                 f"for this {w:g}kg patient")
+                # Say when the CEILING is what produced that number, not the
+                # multiplication. Paediatric push-dose epi is 0.01 mg/kg capped
+                # at 10 mcg, and above 1 kg the cap is always what binds — so
+                # the served figure and the per-kg figure print as the same
+                # digits for different reasons, which reads like an arithmetic
+                # error unless the cap is named.
+                cap = entry.get("max_single") or {}
+                uncapped = drug_contracts.to_mg(
+                    rng["min"] * w, drug_contracts.classify_units(
+                        rng.get("units"), True)[1])
+                if uncapped > r["dose_mg"] + 1e-9 and cap.get("value") is not None:
+                    resolved_note += (f" — capped at the entry's maximum single "
+                                      f"dose of {cap['value']:g} {cap.get('units')}")
+        out.append(ServedEntry(
+            drug=name, indication=entry["indication"], route=entry["route"],
+            range_text=text, source=_contract_source(name, entry),
+            cautions=list(drug_contracts.serve_cautions(entry)),
+            warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
+            resolved_note=resolved_note))
+    return out, note
+
+
+def render_range_line(s: ServedEntry, prefix: str = "- ") -> str:
+    """A titration window or an infusion rate, as the guideline wrote it.
+
+    No millilitres. resolve_dose_volume() is the only place a volume is
+    derived and it derives from the SIGNED VIAL — which for a push dose is the
+    wrong vial entirely: the medic is holding the dilution this card just told
+    them to make, not the ampoule. The mL equivalence a medic needs is stated
+    in the entry's own cautions, which print directly underneath.
+    """
+    tail = f" ({s.resolved_note})" if s.resolved_note else ""
+    return (f"{prefix}{s.drug} {s.route}: {s.range_text}{tail}. "
+            f"Indication: {s.indication}.")
+
+
+def _prep_give_block(served: List[ServedEntry], note: Optional[str],
+                     legacy_line: str) -> str:
+    """What goes under GIVE: contracts, or a refusal, or the legacy line.
+
+    The legacy line is reached ONLY when the contract engine had nothing to say
+    at all — an unsigned bank or a failed import. It is never reached because a
+    signed entry for a DIFFERENT indication existed and was declined: that case
+    produces the note, because "the bank does not cover your question" and
+    "here is an unsourced number" are different answers and the medic is owed
+    the first one.
+    """
+    if served:
+        lines = [render_range_line(s) for s in served]
+        if note:
+            lines.append(note)
+        return "\n".join(lines)
+    if note:
+        return note
+    return legacy_line
+
+
+def build_fixed_prep_response(query: str,
+                              ctx: Optional[PatientContext] = None) -> Optional[str]:
+    """Preparation cards. The RECIPE is authored here; the DOSE is not.
+
+    This card fires at step 2a — earlier than any other pre-gate, ahead of the
+    weight and route gates — because a preparation question does not need a
+    patient. That position is also why its numbers matter more than their size
+    suggests: whatever this card says wins over every contract, gate and
+    validator downstream, because none of them ever run. It said 5-20 mcg while
+    the signed entry said 10-20 mcg, and being first meant being the answer.
+
+    So the recipe stays and the dose comes from the bank.
+    """
     q = query.lower()
     if _prep_term_present(q, ["push dose epi", "push-dose epi",
                               "push dose epinephrine", "dirty epi"]):
+        served, note = _epi_entries(EPI_PUSH_DOSE_INDICATIONS, q, ctx)
+        give = _prep_give_block(served, note, LEGACY_PUSH_DOSE_EPI_GIVE)
         return (
             "**PUSH-DOSE EPINEPHRINE PREP**\n"
             "- Make 10 mcg/mL epinephrine.\n"
@@ -1509,22 +1933,36 @@ def build_fixed_prep_response(query: str) -> Optional[str]:
             "- Add 9 mL normal saline. Total 10 mL.\n"
             "- Final concentration: 10 mcg/mL.\n\n"
             "**GIVE**\n"
-            "- Administer 0.5-2 mL (5-20 mcg) IV push q2-5min. Titrate to effect.\n\n"
+            f"{give}\n\n"
+            "**CAUTIONS**\n"
+            f"{served_cautions_block(served)}\n\n"
             "**WATCH**\n"
             "- Continuous cardiac monitoring required. Use only with local protocol.\n\n"
             "**TLDR**\n"
             "- 1 mL of 1:10,000 epi plus 9 mL NS = 10 mcg/mL push-dose epi.\n\n"
+            f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
         )
     if _prep_term_present(q, ["epi drip", "epinephrine drip"]):
+        served, note = _epi_entries(EPI_INFUSION_INDICATIONS, q, ctx)
+        # The flat 2-10 mcg/min the card used to print is not in the bank in
+        # any form. Where a signed rate applies it is served in the guideline's
+        # own mcg/kg/min, and the mL/hr is NOT computed from the bag above:
+        # that would be a volume derived from a concentration nobody signed,
+        # which is the rule resolve_dose_volume exists to hold.
+        give = _prep_give_block(served, note, LEGACY_EPI_INFUSION_GIVE)
         return (
             "**EPINEPHRINE INFUSION PREP (Dirty Epi Drip)**\n"
-            "- Mix 1 mg epinephrine (1:10,000, 10 mL) in 250 mL NS = 4 mcg/mL.\n"
-            "- Start at 2-10 mcg/min (30-150 mL/hr). Titrate to MAP target.\n\n"
+            "- Mix 1 mg epinephrine (1:10,000, 10 mL) in 250 mL NS = 4 mcg/mL.\n\n"
+            "**RATE**\n"
+            f"{give}\n\n"
+            "**CAUTIONS**\n"
+            f"{served_cautions_block(served)}\n\n"
             "**WATCH**\n"
             "- Cardiac monitoring required. Peripheral line — monitor for extravasation.\n\n"
             "**TLDR**\n"
-            "- 1mg epi in 250mL NS = 4 mcg/mL. Start 2-10 mcg/min.\n\n"
+            "- 1mg epi in 250mL NS = 4 mcg/mL. Titrate to MAP target.\n\n"
+            f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
         )
     return None
@@ -3041,18 +3479,49 @@ def is_ketamine_analgesia_context(text: str) -> bool:
     return has_ketamine and has_pain
 
 
+# "Mixed" is for a card where SOME doses came from the bank — the RSI bundle,
+# with three roles and three provenances. This card serves exactly one dose, so
+# it is never mixed: it is contract, or it is not. When it is not, the medic is
+# owed the specific reason, because "this system has no contracts" and "the
+# contract bank is silent on THIS route" are different facts and only the second
+# one is true here.
+LEGACY_ANALGESIA_SOURCE = (
+    "Deterministic calculator — the signed contract bank holds no IM analgesia "
+    "entry for ketamine, and the signed IM entries are for dissociative "
+    "sedation at a much higher dose and were NOT used")
+
+
 def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
-    """Deterministic ketamine analgesia response for confirmed weight + known route."""
+    """Ketamine analgesia for a confirmed weight and a known route.
+
+    Contract first, calculator only where the bank is silent. This card used to
+    call ketamine_analgesia_iv() directly and print "deterministic calculator"
+    underneath it, which is how it went on serving 0.3 mg/kg — 18 mg at 60 kg —
+    after the owner signed NASEMSO's 0.25 mg/kg at 15 mg. It returns at step 2j,
+    ahead of build_allowed_doses() where the supersede rule lives, so signing
+    the contract changed nothing here. Same failure as the RSI bundle, one card
+    over; the fix is the same fix, and the SOURCE line is now computed from what
+    was actually served rather than asserted.
+
+    IM is the honest split: the bank has no signed IM analgesia entry, so IM
+    still comes from the calculator and the SOURCE line says "Mixed". What it
+    must NEVER do is reach for the signed IM dissociative-sedation entry to fill
+    the gap — see _contract_analgesia_candidate.
+    """
     if not ctx.confirmed_weight_kg or ctx.route_preference not in ["IV", "IM"]:
         return None
 
-    if ctx.route_preference == "IV":
-        d = ketamine_analgesia_iv(ctx.confirmed_weight_kg)
-    else:
-        d = ketamine_analgesia_im(ctx.confirmed_weight_kg)
+    d = _contract_analgesia_candidate(ctx)
+    if d is None:
+        # No signed entry for this route. Backfill, flagged.
+        d = (ketamine_analgesia_iv(ctx.confirmed_weight_kg)
+             if ctx.route_preference == "IV"
+             else ketamine_analgesia_im(ctx.confirmed_weight_kg))
     d = resolve_dose_volume(d, ctx)
+    served = [d]
 
     label = "PEDIATRIC PATIENT" if ctx.is_pediatric else f"{ctx.confirmed_weight_kg:g}kg patient"
+    confirm_block = served_confirm_vial_block(served, ctx)
 
     return f"""**DO THIS**
 1. Confirm monitoring and airway equipment ready.
@@ -3062,6 +3531,9 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
 **GIVE**
 {render_give_line(d)}
 
+**CAUTIONS**
+{served_cautions_block(served)}
+{confirm_block}
 **WATCH**
 - Airway, respirations, SpO2, mental status, and emergence reaction.
 
@@ -3071,43 +3543,25 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
 **TLDR**
 {render_dose_summary(d, label)}
 
-**SOURCE**: General Evidence-Based Medicine / deterministic calculator
+**SOURCE**: {served_source_line(served, LEGACY_ANALGESIA_SOURCE)}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_pediatric_ketamine_route_response(ctx: PatientContext) -> Optional[str]:
-    if not ctx.is_pediatric or not ctx.confirmed_weight_kg:
-        return None
-
-    if ctx.route_preference == "IV":
-        d = ketamine_analgesia_iv(ctx.confirmed_weight_kg)
-    elif ctx.route_preference == "IM":
-        d = ketamine_analgesia_im(ctx.confirmed_weight_kg)
-    else:
-        return None
-    d = resolve_dose_volume(d, ctx)
-
-    return f"""**DO THIS**
-1. Confirm monitoring and airway equipment ready.
-2. Give ketamine by the requested {d.route} route.
-3. Reassess pain, airway, respirations, and perfusion.
-
-**GIVE**
-{render_give_line(d)}
-
-**WATCH**
-- Monitor airway, respirations, SpO2, mental status, and emergence reaction.
-
-**DON'T**
-- Do not redose without reassessment and local protocol.
-
-**TLDR**
-{render_dose_summary(d, f"{ctx.confirmed_weight_kg:g}kg pediatric patient")}
-
-**SOURCE**: General Evidence-Based Medicine / deterministic calculator
-
-Guideline-based support only. Not a substitute for clinical judgment."""
+# build_pediatric_ketamine_route_response() was DELETED on 2026-08-25.
+#
+# It was a third copy of the two lines above — same two calculators, same
+# hardcoded "deterministic calculator" SOURCE — and nothing had dispatched to it
+# since the v4.0 baseline. Dead code cannot be wrong today, which is exactly why
+# it was the most dangerous of the three: a future turn wiring up a paediatric
+# route card would have found a ready-made function that bypasses the contract
+# engine, and it would have looked like the established pattern.
+#
+# The paediatric case is already handled: build_ketamine_analgesia_response
+# reads ctx.is_pediatric for its label, signed_entries_by_indication filters the
+# bank by population, and the analgesia entry is signed adult|peds. If a
+# paediatric-specific card is ever wanted, it goes through
+# _contract_analgesia_candidate like everything else.
 
 
 def is_vent_settings_query(text: str) -> bool:
@@ -3143,6 +3597,28 @@ def should_use_rsi_pregate(text: str) -> bool:
     regression tests assert the real condition rather than a copy of it.
     """
     return is_rsi_or_post_intubation_context(text) and not is_vent_settings_query(text)
+
+
+def rsi_bundle_should_resume(query: str, prior_queries: str,
+                             ctx: PatientContext) -> bool:
+    """Whether this turn is a vial answer to an RSI bundle already in flight.
+
+    The RSI dispatch reads the CURRENT query, and "500 in 10" contains no RSI
+    words. Without this the medic answers the vial question and the bundle they
+    were part-way through never comes back — the volumes they asked the
+    question for arrive nowhere. Deliberately narrow: the previous turns must
+    have been an RSI request, this turn must not be one itself (the normal path
+    already owns that), and this turn has to actually match a declared
+    presentation for a drug already under discussion for THIS patient.
+    """
+    if drug_concentrations is None or drug_contracts is None:
+        return False
+    if should_use_rsi_pregate(query):
+        return False
+    if not should_use_rsi_pregate(prior_queries or ""):
+        return False
+    return any(drug_concentrations.match_confirmation(drug, query) is not None
+               for drug in (ctx.drugs_named or []))
 
 
 def build_rsi_response(ctx: PatientContext, text: str) -> Optional[str]:
@@ -3216,39 +3692,20 @@ Guideline-based support only. Not a substitute for clinical judgment."""
             return f"- No signed contract and no calculator for the {role}. Use local protocol."
         return render_give_line(d)
 
-    # The cautions are not decoration. serve_cautions() puts the OWNER-DECLARED
-    # banner at the top of the declared sedation entry, and a bundle that
-    # dropped it would serve the owner's number as though a guideline stated
-    # it — the laundering ruling 8 exists to prevent. They sit in their own
-    # block rather than inside GIVE so the GIVE lines stay the thing a medic
-    # can read under load.
-    # One bullet per caution rather than one semicolon-joined paragraph per
-    # drug. These strings were written for the ALLOWED_DOSES block the
-    # generator reads; this pre-gate puts them in front of a medic mid-airway,
-    # and a wall of prose there is read as no prose at all.
-    caution_lines = []
-    for d in served:
-        items = d.cautions or ([d.warning] if d.warning else [])
-        if not items:
-            continue
-        caution_lines.append(f"- {d.drug} — {d.indication}:")
-        caution_lines += [f"  - {c.strip()}" for c in items if c and c.strip()]
-    cautions_block = "\n".join(caution_lines) or "- None recorded for these entries."
+    # Cautions, vial question and provenance all come from the shared choke
+    # point, so this bundle cannot describe its own sourcing differently from
+    # the way the analgesia and prep cards describe theirs.
+    cautions_block = served_cautions_block(served)
+
+    # rsi_bundle_should_resume() brings this bundle back with its volumes
+    # filled in once the medic answers.
+    confirm_block = served_confirm_vial_block(served, ctx)
 
     # Provenance follows what was actually served. The old fixed string read
     # "deterministic RSI calculator" underneath doses that had come from signed
-    # JTS-cited contracts. It deliberately does NOT name a guideline: one of
-    # these entries is owner-declared, and a blanket citation would relabel it
-    # as sourced.
-    from_contract = [str(d.source or "").startswith("drug_contract:") for d in served]
-    if all(from_contract):
-        source_line = ("Signed dose contracts — each dose carries its own citation "
-                       "or owner declaration under CAUTIONS")
-    elif any(from_contract):
-        source_line = ("Mixed — signed dose contracts where one exists, deterministic "
-                       "calculator otherwise; see CAUTIONS per drug")
-    else:
-        source_line = "General Evidence-Based Medicine / deterministic RSI calculator"
+    # JTS-cited contracts.
+    source_line = served_source_line(
+        served, "General Evidence-Based Medicine / deterministic RSI calculator")
 
     ind_name = ket_ind.drug if ket_ind else "induction agent"
     sed_name = ket_post.drug if ket_post else "sedation"
@@ -3265,7 +3722,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 
 **POST-INTUBATION SEDATION**
 {_give(ket_post, "post-intubation sedation")}
-
+{confirm_block}
 **CAUTIONS**
 {cautions_block}
 
@@ -3667,7 +4124,12 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2a: Fixed prep check — before medication gates
-        fixed_prep = build_fixed_prep_response(query)
+        # The patient rides along now: a paediatric push dose is weight-based
+        # and the bank splits the entry by population. The card still does not
+        # REQUIRE a patient — a prep question asked with an empty context still
+        # gets its recipe, which is why this gate is still ahead of the weight
+        # gate.
+        fixed_prep = build_fixed_prep_response(query, patient_ctx)
         if fixed_prep:
             print(f"🔧 FIXED_PREP: {query[:40]}")
             return {
@@ -3840,8 +4302,15 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
 
         # Step 2k: RSI / post-intubation deterministic response — before standard pre-gate.
         # should_use_rsi_pregate() diverts vent-settings queries out of this path (S-4).
-        if should_use_rsi_pregate(query):
-            rsi_response = build_rsi_response(patient_ctx, query)
+        rsi_resume = rsi_bundle_should_resume(query, prior_queries, patient_ctx)
+        if should_use_rsi_pregate(query) or rsi_resume:
+            # On a resume the current turn is just the vial answer — "500 in
+            # 10" — and the bundle's SHAPE (which paralytic, pump or no pump)
+            # lives in the turn that asked for it. So the history is what gets
+            # read, and only on a resume: passing it unconditionally would let
+            # a "sux" from three turns ago steer a fresh RSI request.
+            rsi_text = full_query_history if rsi_resume else query
+            rsi_response = build_rsi_response(patient_ctx, rsi_text)
             if rsi_response:
                 print("💉 RSI PRE-GATE")
                 return {

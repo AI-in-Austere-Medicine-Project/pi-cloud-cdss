@@ -827,6 +827,42 @@ def resolve_dose(entry: dict, weight_kg: Optional[float]) -> dict:
     return out
 
 
+def range_values(entry: dict) -> list:
+    """The numbers this entry's dose_range actually authorises, min first.
+
+    resolve_dose() serves the MINIMUM, which is right for a bolus that has to
+    become one volume. It is wrong as the whole story for an entry the
+    guideline wrote as a RANGE: epinephrine push dose is 10-20 mcg titrated to
+    MAP, and serving "10 mcg" alone silently retires the top half of the
+    guideline's own window. Callers that show a range to a human use this;
+    callers that draw up a syringe still use resolve_dose().
+    """
+    rng = entry.get("dose_range")
+    if not isinstance(rng, dict):
+        return []
+    return [v for v in (rng.get("min"), rng.get("max"))
+            if isinstance(v, (int, float))]
+
+
+def range_text(entry: dict) -> Optional[str]:
+    """The dose_range as the source wrote it: "10-20 mcg", "0.25 mg/kg".
+
+    None when the units are unservable, for the same reason resolve_dose fails
+    closed there: a number whose unit this module will not vouch for is not a
+    dose, and prose is not the place to start guessing.
+    """
+    vals = range_values(entry)
+    rng = entry.get("dose_range") or {}
+    units = rng.get("units")
+    kind, _, _ = classify_units(units, bool(rng.get("per_kg")))
+    if not vals or kind == UNKNOWN:
+        return None
+    lo = vals[0]
+    hi = vals[-1]
+    head = f"{lo:g}" if lo == hi else f"{lo:g}-{hi:g}"
+    return f"{head} {units}"
+
+
 # The unit-error signature is a factor of exactly 1000 — g read as mg, mcg read
 # as mg. Measured against the real file, the widest LEGITIMATE spread between
 # two doses of one drug is epinephrine's 500x: 10 mcg push against 5 mg
