@@ -59,14 +59,18 @@ figcaption { font-family: var(--mono); font-size: 11px; line-height: 1.7; color:
 
   <div class="kicker">Release Notes · August 2026</div>
   <h1>EdgeCDSS<br>Version 4.3</h1>
-  <p class="sub">The ventilator module. A card answer is neither retrieved nor generated — a clinician wrote it, dated it, and the engine refuses to serve it until they have. With four screenshots of 4.3 answering real questions in the field.</p>
-  <div class="meta">Layer 01 · Active · MIT License · Released 22 August 2026</div>
+  <p class="sub">Signed drug contracts and the ventilator module. Every dose and every ventilator setting now carries a named source and a review date, and the engine refuses to serve either until a clinician has signed it.</p>
+  <div class="meta">Active · MIT License · Released 22 August 2026</div>
 
   <div class="statgrid">
-    <div class="stat"><b>13</b><small>Ventilator Cards Authored</small></div>
-    <div class="stat"><b>5</b><small>Clinician-Signed and Live</small></div>
+    <div class="stat"><b>46<span>/</span>95</b><small>Dose Entries Signed / Authored</small></div>
+    <div class="stat"><b>32</b><small>Drugs Under Contract</small></div>
+    <div class="stat"><b>50</b><small>Distinct Guideline Citations</small></div>
+    <div class="stat"><b>89</b><small>JTS CPGs Indexed</small></div>
+    <div class="stat"><b>5<span>/</span>13</b><small>Vent Cards Signed / Authored</small></div>
     <div class="stat"><b>0<span>→</span>4</b><small>DKA Vent Phrasings Answered</small></div>
-    <div class="stat"><b>859</b><small>Offline Regression Tests</small></div>
+    <div class="stat"><b>1<span>→</span>0</b><small>Hard Safety Failures</small></div>
+    <div class="stat"><b>1,186</b><small>Offline Tests · 12 Seconds</small></div>
   </div>
 
   <h2>Overview</h2>
@@ -213,7 +217,7 @@ figcaption { font-family: var(--mono); font-size: 11px; line-height: 1.7; color:
 
   <h2>How this was found</h2>
   <p>Version 4.1's lesson was <em>audit your logs, not your test results</em>. Version 4.3's is the next one along: <strong>build the harness that turns an anecdote into a number.</strong> “The vent answers feel thin” is an opinion nobody can act on. “0 of 4 DKA phrasings return any of four settings, 100% reproducible, against 4 of 4 for TBI” is a defect with a name, a control group, and a definition of done.</p>
-  <p>The working rule from 4.1 still holds — one fix, one commit, one regression test. The offline suite is now <strong>859 tests, running in about eight seconds</strong> with no network, no API key, and no vector database.</p>
+  <p>The working rule from 4.1 still holds — one fix, one commit, one regression test. The offline suite is now <strong>1,186 tests, running in about twelve seconds</strong> with no network, no API key, and no vector database.</p>
 
   <h2>Known boundaries</h2>
   <div class="callout">
