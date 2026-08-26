@@ -1,7 +1,7 @@
 {
-  "schema_version": "1.3.0",
+  "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "DRAFT. Nothing in this file is signed and nothing in it is served. Every dose_entry carries signoff:false and awaits a credentialed clinician. Build order follows measured query traffic from the v4.3 discovery run, then the tropical/austere priority subset.",
+  "generated_note": "46 of 95 dose entries across 12 of 32 drugs are signed and servable; 1 of those serves on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -96,11 +96,23 @@
           ],
           "cautions": [
             "After tube confirmed only. Not the induction dose.",
-            "PREFERRED SHAPE WHERE THERE IS NO PUMP. Repeat q20-30min. If an infusion pump IS available, see ketamine · ongoing sedation — loading dose · IV: JTS ID61 gives 1 mg/kg IV over 60 seconds followed by an infusion.",
-            "THE 0.5 mg/kg FIGURE IS AN OWNER DECLARATION, NOT A GUIDELINE VALUE. OWNER DECLARATION 2026-08-25, Andrew Azelton - AI-AIM: no CPG states a ketamine-alone post-intubation repeat-bolus sedation dose. The SHAPE (intermittent IV push, no pump) is JTS doctrine — ID61 App A, ID80 p.9, ID29 App A. The NUMBER is clinical judgement, placed between the analgesia band (0.1-0.5 mg/kg) and the induction band (1-2 mg/kg). Treat it as the owner's dose, not the guideline's.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            "Repeat q20-30min. Preferred where there is no pump.",
+            {
+              "tier": "detail",
+              "text": "If an infusion pump IS available, see ketamine · ongoing sedation — loading dose · IV: JTS ID61 gives 1 mg/kg IV over 60 seconds followed by an infusion."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -120,9 +132,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.3.0",
-          "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 (ruling 7) selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. A full search of ID61 plus ID91, ID29, ID80, ID39, ID40, ID57, ID63, ID70 and ID73 then found the shape well sourced and the VALUE stated nowhere. OWNER DECLARATION 2026-08-25 (ruling 8) therefore replaces MIGRATED_UNSOURCED: the number is declared on the owner's clinical judgement under OWNER_DECLARED, recorded in owner_declaration, and shown as owner-declared everywhere the dose is served. It is no longer a migrated hardcode awaiting corroboration — it is a value someone signed for by name.",
+          "review_date": "2026-08-26",
+          "version": "0.3.1",
+          "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 (ruling 7) selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. A full search of ID61 plus ID91, ID29, ID80, ID39, ID40, ID57, ID63, ID70 and ID73 then found the shape well sourced and the VALUE stated nowhere. OWNER DECLARATION 2026-08-25 (ruling 8) therefore replaces MIGRATED_UNSOURCED: the number is declared on the owner's clinical judgement under OWNER_DECLARED, recorded in owner_declaration, and shown as owner-declared everywhere the dose is served. It is no longer a migrated hardcode awaiting corroboration — it is a value someone signed for by name. OWNER RULINGS 9 and 11, 2026-08-26: the single caution carrying both the repeat interval and the cross-reference was re-authored into two — the interval serves, the cross-reference is detail — and the hand-written declaration banner was deleted as a duplicate of the one serve_cautions() generates from owner_declaration itself. The declaration is re-made on the same value and the same reasoning, dated 2026-08-26.",
           "flags": [
             "OWNER_DECLARED"
           ],
@@ -131,7 +143,7 @@
           "owner_declaration": {
             "basis": "owner clinical declaration",
             "declared_by": "Andrew Azelton - AI-AIM",
-            "declared_on": "2026-08-25",
+            "declared_on": "2026-08-26",
             "justification": "PFC doctrine explicitly prescribes intermittent ketamine push as the no-pump sedation approach for a ventilated patient (JTS ID61 Appendix A Minimum/Better rows, ID80 p.9, ID29 Appendix A) — the SHAPE is sourced. No CPG states a ketamine-alone post-intubation sedation repeat-bolus dose: the cited numbers are either analgesia-labelled (ID61 fn.1 0.1-0.2 mg/kg; ID29 App H 0.1-0.5 mg/kg), a different phase (ID61 App B pre-intubation procedural maintenance), or route-mismatched (ID91 IM/IN). 0.5 mg/kg q20-30min IV is declared on clinical judgement as the practical austere dose, sitting between the analgesia band and the induction band.",
             "declared_value": {
               "min": 0.5,
@@ -229,7 +241,10 @@
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -276,9 +291,18 @@
             "Onset of action about 1 minute by this route.",
             "NASEMSO offers ketamine here as an option for high violence risk.",
             "NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour ONLY — not analgesia, and not RSI.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -322,9 +346,18 @@
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "Onset of action 3-5 minutes by this route.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -367,9 +400,18 @@
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -412,9 +454,18 @@
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -459,9 +510,18 @@
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "JTS ID39: unstable patients require a reduced dosage of induction agent.",
             "Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3 mg/kg IV/IO is listed second line.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -508,10 +568,22 @@
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "JTS ID39: unstable patients require a reduced dosage of induction agent.",
             "JTS ID40 selects ketamine here because it does not drop systemic vascular resistance to the same extent as other sedative hypnotics.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "No approved source states a reduced PAEDIATRIC induction dose. JTS ID40 has no paediatric section, so this entry is adult only and the gap is deliberate rather than an omission.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "No approved source states a reduced PAEDIATRIC induction dose. JTS ID40 has no paediatric section, so this entry is adult only and the gap is deliberate rather than an omission."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -557,9 +629,18 @@
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "JTS ID39: unstable patients require a reduced dosage of induction agent.",
             "JTS ID39 paediatric column: pre-dose atropine IV/IO 0.02 mg/kg (minimum 0.1 mg, maximum 0.5 mg) in all under 1 year, those under 5 receiving succinylcholine, and all who receive a 2nd dose of succinylcholine.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -602,12 +683,24 @@
           "cautions": [
             "Give as an IV push over 60 SECONDS. JTS ID61 warns of respiratory depression at doses above 1 mg/kg, especially with fast IV/IO administration.",
             "Followed by an infusion for continuous sedation — this is a loading dose, not a standalone one.",
-            "ALTERNATE SHAPE, AND THE ONLY ONE WITH A CITED DOSE. Use where an infusion pump is available. Where it is not, the owner's preferred shape is ketamine · post-intubation sedation — repeated bolus · IV at 0.5 mg/kg q20-30min — which carries no guideline citation for its value and serves as an OWNER-DECLARED dose (Andrew Azelton - AI-AIM, 2026-08-25).",
+            {
+              "tier": "detail",
+              "text": "ALTERNATE SHAPE, AND THE ONLY ONE WITH A CITED DOSE. Use where an infusion pump is available. Where it is not, the owner's preferred shape is ketamine · post-intubation sedation — repeated bolus · IV at 0.5 mg/kg q20-30min — which carries no guideline citation for its value and serves as an OWNER-DECLARED dose (Andrew Azelton - AI-AIM, 2026-08-26)."
+            },
             "JTS ID61: ketamine is safe for use in TBI and/or eye injury.",
             "Sialorrhea (hypersalivation) can be problematic in an austere setting.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-26: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -658,9 +751,18 @@
             "JTS ID61 typical dose 20 mg, range 0.1-0.2 mg/kg IV/IO, every 10-30 minutes PRN.",
             "If no IV/IO is available, JTS ID61 says QUADRUPLE the dose for the IM route.",
             "JTS ID61: avoid oversedation; respiratory depression appears above 1 mg/kg, especially with fast IV/IO administration.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
           ],
           "sources": [
             {
@@ -755,7 +857,10 @@
             "Use the 1 mg/mL concentration for the IM route.",
             "May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose.",
             "NASEMSO lists 'concentration of epinephrine in relation to route' as an explicit patient-safety consideration.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -804,7 +909,10 @@
             "Give in the anterolateral thigh.",
             "Use the 1 mg/mL concentration for the IM route.",
             "May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -967,8 +1075,14 @@
           ],
           "cautions": [
             "Titrate to a MAP greater than 65 mmHg.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1012,8 +1126,14 @@
             "This is a DILUTED preparation, not the ampoule. NASEMSO's example: prepare 10 mcg/mL by adding 1 mL of 0.1 mg/mL epinephrine to 9 mL of normal saline.",
             "10-20 mcg equals 1-2 mL of that 10 mcg/mL dilution.",
             "Repeat every 2 minutes, titrated to MAP greater than 65 mmHg.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1056,8 +1176,14 @@
           "cautions": [
             "Titrate to physiologic targets.",
             "NASEMSO prefers norepinephrine in neurogenic and septic distributive shock.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1105,7 +1231,10 @@
             "DILUTED preparation: prepare 10 mcg/mL by diluting 1 mL of epinephrine 0.1 mg/mL (1:10 000) in 9 mL of normal saline.",
             "0.01 mg/kg equals 0.1 mL/kg of that dilution.",
             "Repeat every 3-5 minutes, titrated to goal MAP.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -1149,8 +1278,14 @@
             "Use the 0.1 mg/mL concentration.",
             "IV/IO preferred if access obtained. If unable to obtain access, NASEMSO gives 0.1 mg/kg via the ETT — a different, TEN-FOLD HIGHER number for a different route. Do not interchange them.",
             "Repeat every 3-5 minutes while heart rate remains below 60.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1194,8 +1329,14 @@
             "5 mg is 5 mL of the 1 mg/mL solution.",
             "May repeat in 20 minutes as needed; NASEMSO states these may be repeated at this dose with unlimited frequency for ongoing respiratory distress.",
             "Patients who receive inhaled epinephrine should be transported to definitive care.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1239,8 +1380,14 @@
             "5 mg is 5 mL of the 1 mg/mL solution.",
             "Indicated only if suctioning and oxygen have failed to produce clinical improvement.",
             "If immediate reassessment after treatment shows no clinical improvement, escalate airway management.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1329,11 +1476,23 @@
           "contraindications": [],
           "cautions": [
             "JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1 mg/kg IV/IO or succinylcholine 1.5 mg/kg IV/IO.",
-            "Give AFTER the induction agent.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated.",
-            "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band."
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
+            },
+            {
+              "tier": "detail",
+              "text": "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band."
+            }
           ],
           "sources": [
             {
@@ -1353,8 +1512,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.3.0",
+          "review_date": "2026-08-26",
+          "version": "0.3.1",
           "adjudication": "OWNER RULING 2026-08-25: split by age per JTS ID39 — 1.2 mg/kg adult, 1.0 mg/kg paediatric. JTS ID40's 1-1.2 mg/kg band corroborates.",
           "adjudicated_on": "2026-08-25"
         },
@@ -1373,11 +1532,23 @@
           "contraindications": [],
           "cautions": [
             "JTS ID39 paediatric column, offered as the alternative to succinylcholine.",
-            "Give AFTER the induction agent.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated.",
-            "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band."
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "Neither JTS CPG states a contraindication for rocuronium; it is the agent they name FOR the cases where succinylcholine is contraindicated."
+            },
+            {
+              "tier": "detail",
+              "text": "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gives rocuronium 1-1.2 mg/kg, producing intubating conditions similar to succinylcholine in about 60 seconds. This value sits inside that band."
+            }
           ],
           "sources": [
             {
@@ -1397,8 +1568,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.3.0",
+          "review_date": "2026-08-26",
+          "version": "0.3.1",
           "adjudication": "OWNER RULING 2026-08-25: split by age per JTS ID39 — 1.2 mg/kg adult, 1.0 mg/kg paediatric. JTS ID40's 1-1.2 mg/kg band corroborates.",
           "adjudicated_on": "2026-08-25"
         }
@@ -1467,9 +1638,18 @@
             "Contraindicated in hyperkalemia, burns >24hr, crush injury, denervation.",
             "JTS ID40: succinylcholine 1 mg/kg produces intubating conditions in approximately 45 SECONDS.",
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
-            "ALTERNATE, recorded not served: JTS ID40 (05 Apr 2021) p.3 gives succinylcholine 1 mg/kg as the standard RSI dose, producing intubating conditions in about 45 seconds. The owner ruled for ID39's 1.5 mg/kg."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "ALTERNATE, recorded not served: JTS ID40 (05 Apr 2021) p.3 gives succinylcholine 1 mg/kg as the standard RSI dose, producing intubating conditions in about 45 seconds. The owner ruled for ID39's 1.5 mg/kg."
+            }
           ],
           "sources": [
             {
@@ -1524,10 +1704,17 @@
             "Hyperkalemia"
           ],
           "cautions": [
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "JTS ID39 gives this higher dose specifically for patients UNDER 5 YEARS; 1.5 mg/kg applies to paediatric patients above that age.",
             "Pre-dose atropine IV/IO 0.02 mg/kg (min 0.1 mg, max 0.5 mg).",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1540,8 +1727,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.3.0",
+          "review_date": "2026-08-26",
+          "version": "0.3.1",
           "adjudication": "OWNER RULING 2026-08-25: age-banded per JTS ID39. Under 5 years only.",
           "adjudicated_on": "2026-08-25"
         },
@@ -1563,9 +1750,16 @@
             "Hyperkalemia"
           ],
           "cautions": [
+            "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "JTS ID39 paediatric dose for patients 5 YEARS AND OVER; under 5 years the CPG gives 2 mg/kg.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
             "AGE BAND. Under 5 years takes 2 mg/kg — a separate entry. Confirm age before choosing between them."
           ],
           "sources": [
@@ -1579,8 +1773,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.3.0",
+          "review_date": "2026-08-26",
+          "version": "0.3.1",
           "adjudication": "OWNER RULING 2026-08-25: age-banded per JTS ID39. 5 years and above; under 5 uses 2 mg/kg.",
           "adjudicated_on": "2026-08-25"
         }
@@ -1639,7 +1833,10 @@
             "NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -1686,7 +1883,10 @@
             "NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -1733,7 +1933,10 @@
             "NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -1833,8 +2036,14 @@
             "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
             "Titrate to physiologic targets.",
             "NASEMSO states a preference for norepinephrine in both neurogenic and infectious (sepsis) causes of distributive shock.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1880,8 +2089,14 @@
             "NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs.",
             "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
             "Titrate to physiologic targets.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1928,8 +2143,14 @@
             "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
             "Titrate to physiologic targets.",
             "Titrate to a MAP greater than 65 mmHg.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -1975,8 +2196,14 @@
             "NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs.",
             "Do not use in the same IV line as alkaline solutions — they may deactivate it.",
             "Titrate to physiologic targets.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -2300,7 +2527,10 @@
             "JTS ID40: give ASAP, or within 3 HOURS of injury.",
             "JTS ID40 states the 2 g bolus is now FAVOURED over the traditional 1 g prehospital bolus followed by an infusion.",
             "UNITS ARE GRAMS. The dose builder currently treats every dose_range value as milligrams with no conversion — see the unit note on the calcium and epinephrine entries.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -2443,7 +2673,10 @@
           "cautions": [
             "NASEMSO warns: may cause respiratory depression, arrest, or apnea.",
             "This is the dose when vascular access (IV or IO) is already present. NASEMSO prefers IN/IM over IV or IO for seizures and states IV placement is not necessary for treatment.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -2493,7 +2726,10 @@
             "This is the NO-VASCULAR-ACCESS dose and it is TWICE the IV/IO dose with a different ceiling — 0.2 mg/kg max 10 mg IM/IN versus 0.1 mg/kg max 4 mg IV/IO. Do not interchange them.",
             "IM is preferred over IN.",
             "NASEMSO: recent evidence supports IM midazolam as at least as safe and effective as IV lorazepam for prehospital seizure cessation.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -2598,8 +2834,14 @@
             "NASEMSO warns: may cause respiratory depression, arrest, or apnea.",
             "Onset of action 3-5 minutes by this route.",
             "NASEMSO states the numbering of medications in this guideline is not a hierarchy or preference.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -2641,8 +2883,14 @@
           ],
           "cautions": [
             "JTS ID61 typical dose 1 mg, range 0.5-2 mg IV/IO, every 1-6 hours PRN, for sedation and amnesia.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -2734,7 +2982,10 @@
           "cautions": [
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -2790,7 +3041,10 @@
           "cautions": [
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -2846,7 +3100,10 @@
           "cautions": [
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -2934,7 +3191,10 @@
             "NASEMSO: 10% dextrose is as effective and safer than stronger concentrations, and agencies may consider carrying no more than 25% for adults.",
             "50% dextrose can cause local tissue damage on extravasation and carries risk for little clinical gain.",
             "Avoid overshoot hyperglycaemia when correcting.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -3002,7 +3262,10 @@
             "Concentration is age-limited: for children under 8 years, no more than 25%.",
             "As volume: 2-4 mL/kg of 25% dextrose for those over 8 years old, or 5-10 mL/kg of 10% dextrose.",
             "Avoid overshoot hyperglycaemia when correcting.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -3139,8 +3402,14 @@
             "JTS ID40 gives this as the REDUCED dose for HYPOTENSIVE patients — propofol decreases systemic vascular resistance significantly, and this band is the mitigation, not the standard induction dose.",
             "JTS ID40: ongoing volume resuscitation is vital to prevent vascular collapse.",
             "JTS ID39 does not list propofol as an RSI induction agent at all — ketamine first line, etomidate 0.3 mg/kg second.",
-            "The cited guideline states no maximum single dose for this drug and indication.",
-            "The cited guideline states no cumulative maximum for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -3317,7 +3586,10 @@
             "10% solution.",
             "May repeat the dose if there is no response.",
             "NASEMSO gives this for the dialysis / known hyperkalaemic patient as a reversible cause of cardiac arrest.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -3399,8 +3671,14 @@
             "10% solution. NASEMSO notes 100 mg/kg is 1 mL/kg of the 10% solution.",
             "May repeat the dose if there is no response.",
             "NASEMSO states no absolute mg ceiling for the paediatric dose.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -3476,8 +3754,14 @@
             "Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone.",
             "Titrate the initial and subsequent doses incrementally until respiratory depression is reversed.",
             "Naloxone has no benefit in cardiac arrest.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -3521,8 +3805,14 @@
             "Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone.",
             "Titrate the initial and subsequent doses incrementally until respiratory depression is reversed.",
             "Naloxone has no benefit in cardiac arrest.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {
@@ -3570,7 +3860,10 @@
             "Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone.",
             "Titrate the initial and subsequent doses incrementally until respiratory depression is reversed.",
             "Naloxone has no benefit in cardiac arrest.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -3796,7 +4089,10 @@
           "cautions": [
             "Monitor respiratory depression.",
             "This is the dose when vascular access (IV or IO) is present. NASEMSO prefers IN/IM routes for seizures and notes IM midazolam is at least as safe and effective as IV lorazepam for prehospital seizure cessation.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            }
           ],
           "sources": [
             {
@@ -3850,8 +4146,14 @@
           ],
           "cautions": [
             "Onset of action 2-5 minutes by this route.",
-            "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94).",
-            "The cited guideline states no maximum single dose for this drug and indication."
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
           "sources": [
             {

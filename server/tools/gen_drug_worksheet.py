@@ -32,8 +32,12 @@ FIELD_HELP = {
     "dose_range": "min/max, units, per_kg — the numbers the medic acts on",
     "max_single": "ceiling for one administration; null = source states none",
     "max_cumulative": "ceiling across the encounter; null = source states none",
-    "contraindications": "absolute 'do not give' list",
-    "cautions": "shown with the dose on every serve",
+    "contraindications": ("absolute 'do not give' list — rendered at every "
+                          "serve, so an empty or trivial one is visible to a "
+                          "medic"),
+    "cautions": ("serve tier shows with the dose; detail tier is held for "
+                 "\u201cwhy this dose?\u201d and for this worksheet. An "
+                 "untiered caution SERVES"),
     "sources": "one {citation, tier, url, retrieved_date} per source",
 }
 
@@ -164,13 +168,31 @@ def entry_block(L, drug_name, e, n):
         elif isinstance(v, dict):
             L.append(f"- **{f}:** `{v.get('rule') or v}`")
 
-    for f in ("contraindications", "cautions"):
-        v = e.get(f) or []
-        if any(x in dc.SENTINELS for x in v if isinstance(x, str)):
-            L.append(f"- **{f}:** ❌ `NEEDS_MANUAL_ENTRY`")
-        else:
-            for x in v:
-                L.append(f"- **{f}:** {x}")
+    cis = e.get("contraindications") or []
+    if any(x in dc.SENTINELS for x in cis if isinstance(x, str)):
+        L.append("- **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`")
+    elif not cis:
+        L.append("- **contraindications:** ⚠️ none recorded — this entry "
+                 "renders an empty do-not-give list at every serve")
+    else:
+        thin = all(dc._is_trivial_contraindication(c) for c in cis)
+        for x in cis:
+            L.append(f"- **contraindications:** {x}"
+                     + ("  ⚠️ nothing a medic could act on" if thin else ""))
+
+    # The tier is what a reader of this worksheet most needs to know about a
+    # caution: "detail" means the line is HERE and not on the dose screen, and
+    # the owner is the only person who should be deciding that.
+    cautions = e.get("cautions") or []
+    if any(x in dc.SENTINELS for x in cautions if isinstance(x, str)):
+        L.append("- **cautions:** ❌ `NEEDS_MANUAL_ENTRY`")
+    else:
+        for x in cautions:
+            mark = {dc.CAUTION_DETAIL: " · _detail tier — shown on “why this "
+                                       "dose?”, not with the dose_"}.get(
+                dc.caution_tier(x), "" if isinstance(x, dict)
+                else " · _untiered, so it serves_")
+            L.append(f"- **cautions:** {dc.caution_text(x)}{mark}")
 
     srcs = e.get("sources") or []
     if not srcs:
