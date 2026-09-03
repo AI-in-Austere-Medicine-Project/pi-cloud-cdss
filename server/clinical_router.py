@@ -21,6 +21,97 @@ from dataclasses import dataclass
 from typing import Optional
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# POISONING / TOXIDROME DETECTION
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Why this lives in the router module and not beside looks_like_sepsis() in
+# openai_client: both the deterministic pre-gates and route() need it, and
+# clinical_router is the lower module in the import graph — openai_client
+# imports this one, and the reverse would be a cycle. It is vocabulary, which
+# is what this module already holds (CONTEXT_DEPENDENT_ALIASES,
+# GENERIC_ROUTING_TERMS).
+#
+# What it is for (2026-09-03 feedback review, entry 44): "I have a patient who
+# overdosed on beta blockers. HR 30, BP 50/20" was answered as SEPSIS. A named
+# toxidrome is an out-of-corpus question — the JTS bank is 89 trauma CPGs and
+# holds no beta-blocker, CCB, TCA, opioid or organophosphate protocol — so the
+# honest answer is the general-reference banner, not the nearest in-corpus
+# shock card served with full confidence.
+#
+# INTENT fires on its own. An AGENT NAME never does: "give fentanyl 50 mcg" is
+# a prescription and "opioid overdose" is a poisoning, and the word that
+# separates them is the intent, not the drug. Agent names widen the detector
+# only where an exposure cue supplies the same meaning that intent would
+# ("organophosphate exposure from a farm sprayer" names no overdose).
+_POISONING_INTENT = (
+    # Inflections are listed rather than matched by prefix, for the reason
+    # _SHOCK_WORDS gives: a loose right-hand boundary is how "ams" came to
+    # match "milligrams". Every hit here changes how a casualty is routed.
+    "overdose", "overdosed", "overdosing", "overdoses",
+    "od on", "od'd", "od'ed",
+    "ingested", "ingestion", "swallowed",
+    "poisoning", "poisoned", "self-poisoning",
+    "took too much", "toxidrome", "toxicity", "intoxication",
+    "tox screen", "poison control",
+)
+
+_EXPOSURE_CUES = (
+    "exposure", "exposed", "contaminated", "contamination",
+    "inhaled", "huffed", "drank",
+)
+
+_POISONING_AGENTS = (
+    # Cardiac — the three whose antidotes the corpus does not carry
+    # (glucagon, calcium/high-dose insulin, bicarbonate).
+    "beta blocker", "beta blockers", "beta-blocker", "beta-blockers",
+    "metoprolol", "propranolol", "atenolol", "labetalol",
+    "calcium channel blocker", "calcium channel blockers",
+    "calcium-channel blocker", "calcium-channel blockers",
+    "ccb", "diltiazem", "verapamil", "amlodipine", "nifedipine",
+    "digoxin", "digitalis",
+    "tca", "tcas", "tricyclic", "tricyclics",
+    "amitriptyline", "nortriptyline", "imipramine",
+    # Opioid and sedative.
+    "opioid", "opioids", "opiate", "opiates", "heroin",
+    "oxycodone", "oxycontin", "methadone", "fentanyl patch",
+    "benzodiazepine", "benzodiazepines", "barbiturate", "barbiturates",
+    # Cholinergic / chemical agents.
+    "organophosphate", "organophosphates", "nerve agent", "nerve agents",
+    "sarin", "soman", "tabun", "vx", "carbamate",
+    "insecticide", "pesticide", "cyanide", "carbon monoxide", "chlorine gas",
+    # Common civilian ingestions.
+    "acetaminophen", "paracetamol", "tylenol", "salicylate", "salicylates",
+    "sulfonylurea", "glyburide", "glipizide",
+    "methanol", "ethylene glycol", "antifreeze",
+    "lithium", "hydrocarbon", "hydrocarbons",
+)
+
+
+def _anchored(terms) -> "re.Pattern":
+    """One word-anchored alternation over a term group.
+
+    Longest-first so "beta blockers" is tried before "beta blocker" — with
+    both ends anchored the shorter would not match the plural anyway, and
+    ordering makes that independent of the tuple's order.
+    """
+    body = "|".join(re.escape(t) for t in sorted(terms, key=len, reverse=True))
+    return re.compile(r"(?<!\w)(?:" + body + r")(?!\w)")
+
+
+_POISONING_INTENT_RE = _anchored(_POISONING_INTENT)
+_EXPOSURE_CUES_RE = _anchored(_EXPOSURE_CUES)
+_POISONING_AGENTS_RE = _anchored(_POISONING_AGENTS)
+
+
+def looks_like_poisoning(query: str) -> bool:
+    """Whether the query presents a poisoning, overdose or toxidrome."""
+    q = (query or "").lower()
+    if _POISONING_INTENT_RE.search(q):
+        return True
+    return bool(_POISONING_AGENTS_RE.search(q) and _EXPOSURE_CUES_RE.search(q))
+
+
 @dataclass
 class RoutingResult:
     """Output of the clinical router."""

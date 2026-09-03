@@ -254,6 +254,13 @@ def log_query(query: str, result: dict, conversation_history: list = None,
     except Exception as e:
         print(f"Logger error (non-fatal): {e}")
 
+# Imported outside the try below on purpose. The try tolerates a router that
+# fails to CONSTRUCT — a missing protocol_index.json degrades retrieval, which
+# is survivable. looks_like_poisoning is a safety guard on three deterministic
+# pre-gates, and a safety guard that silently becomes undefined is worse than
+# an import error, so this one fails loudly.
+from clinical_router import looks_like_poisoning  # noqa: E402
+
 try:
     from clinical_router import ClinicalRouter
     _router = ClinicalRouter()
@@ -4559,10 +4566,14 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2e: Sepsis-DCR deterministic refusal
+        # `not looks_like_poisoning` guards this and 2g/2h alike — see the note
+        # at Step 2h for why a toxidrome must not be answered by any of the
+        # three cards that assert a diagnosis.
         if (
             looks_like_sepsis(query)
             and asks_for_dcr_or_hemostatic_resus(query)
             and not has_clear_hemorrhage(query)
+            and not looks_like_poisoning(query)
         ):
             print("🛑 SEPSIS-DCR PRE-GATE")
             return {
@@ -4591,6 +4602,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         if (
             looks_like_hemorrhagic_shock(query)
             and not looks_like_sepsis(query)
+            and not looks_like_poisoning(query)
         ):
             print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
             return {
@@ -4603,7 +4615,30 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2h: Sepsis management deterministic response
-        if looks_like_sepsis(query) and not has_clear_hemorrhage(query):
+        #
+        # The poisoning guard (2026-09-03 feedback review, entry 44). "I have a
+        # patient who overdosed on beta blockers. HR 30, BP 50/20, SpO2 91%"
+        # was answered with this card: a different diagnosis, a different
+        # treatment, and no mention of glucagon, calcium, high-dose insulin,
+        # atropine or pacing.
+        #
+        # These three gates (2e, 2g, 2h) are the ones that ASSERT A DIAGNOSIS
+        # from a shock pattern — "treat as suspected sepsis", "treat as
+        # hemorrhagic shock" — so a named toxidrome reaching any of them gets
+        # told it has a condition it does not have. The JTS bank is 89 trauma
+        # CPGs and holds no beta-blocker, CCB, TCA, opioid or organophosphate
+        # protocol, so the honest answer is the general-reference banner, which
+        # is what falling through to retrieval now produces.
+        #
+        # Additive, and only here: no existing gate condition is modified and
+        # no other pre-gate is guarded. 2d/2d-ii (TXA contraindications), 2c
+        # (WPW) and 2f (requested overdose) are hard safety blocks that get
+        # SAFER, not less accurate, on a poisoned patient, and they keep firing.
+        if (
+            looks_like_sepsis(query)
+            and not has_clear_hemorrhage(query)
+            and not looks_like_poisoning(query)
+        ):
             print("🧫 SEPSIS MANAGEMENT PRE-GATE")
             return {
                 "response": build_sepsis_management_response(),
