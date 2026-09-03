@@ -19,15 +19,19 @@
 #   server/drug_concentrations.json        the signed concentration master list
 #   server/drug_concentrations.log.jsonl   the signoff audit trail
 #   ~/.cloudflared/                        tunnel credentials + config
-#   /etc/systemd/system/edgecdss.service.d/override.conf   restart policy
+#   /etc/systemd/system/edgecdss.service                  the unit file
+#   /etc/systemd/system/edgecdss.service.d/override.conf  restart policy
 #
 # Anything missing is skipped with a warning rather than failing the run — a
 # box that never had a tunnel should still get a usable backup of the rest.
 #
-# NOT captured, because the repo or a public source already recovers it:
-# the unit file itself (jetson_cdss_setup_v2.sh phase 6 writes it), the JTS
-# PDFs (scripts/fetch_jts_cpgs.sh), the ChromaDB (server/tools/ingest_jts.py).
-# See docs/RECOVERY.md.
+# The unit file is captured even though jetson_cdss_setup_v2.sh phase 6
+# regenerates it: a backup that needs a second tool to restore is a weaker
+# backup, and it is 1 KB.
+#
+# NOT captured, because a public source already recovers it and it is large:
+# the JTS PDFs (scripts/fetch_jts_cpgs.sh) and the ChromaDB
+# (server/tools/ingest_jts.py). See docs/RECOVERY.md.
 #
 # RESTORE
 # ───────
@@ -51,10 +55,15 @@
 #   mkdir -p ~/.cloudflared && cp -a cloudflared/. ~/.cloudflared/
 #   chmod 700 ~/.cloudflared && chmod 600 ~/.cloudflared/*
 #
-#   # 4. systemd restart policy  ->  the override directory (needs root)
+#   # 4. systemd unit and restart policy (needs root)
+#   #    Check the paths inside edgecdss.service first — WorkingDirectory and
+#   #    ExecStart are absolute, and a rebuild on a different user or path
+#   #    needs them edited before the unit will start.
+#   sudo cp systemd/edgecdss.service /etc/systemd/system/
 #   sudo mkdir -p /etc/systemd/system/edgecdss.service.d
 #   sudo cp systemd/override.conf /etc/systemd/system/edgecdss.service.d/
-#   sudo systemctl daemon-reload && sudo systemctl restart edgecdss
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now edgecdss
 #
 # Then verify: `python3 -c "import drug_concentrations as d; print(d.kit_id())"`
 # from server/ should name the kit you expect, and the loader should report no
@@ -129,6 +138,7 @@ else
   MISSING=$((MISSING + 1))
 fi
 
+take "/etc/systemd/system/edgecdss.service" "systemd" "systemd unit file"
 take "/etc/systemd/system/edgecdss.service.d/override.conf" "systemd" "systemd restart-policy override"
 
 if [ "$FOUND" -eq 0 ]; then
