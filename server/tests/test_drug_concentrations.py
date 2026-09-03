@@ -12,9 +12,19 @@ millilitre.
 
 Every test below is a piece of that failure made impossible.
 
-NOTHING IN drug_concentrations.json IS SIGNED, so the shipped state is: no
-volume is served for any drug. The tests that need a volume sign a synthetic
-presentation locally.
+WHAT IS SIGNED DEPENDS ON WHERE YOU ARE, AND THESE TESTS DO NOT DEPEND ON IT.
+
+The SHIPPED state is drug_concentrations.example.json — every presentation
+signoff:false, so no volume is served for any drug. A DEPLOYED state is
+drug_concentrations.json, which is gitignored and carries whatever that kit's
+clinician has actually signed; on a deployed box some presentations are signed
+and volumes are served for those.
+
+So no test below may assert anything about the signed/unsigned state of the
+file on disk: it is deployment state, and a test that reads it passes or fails
+by which machine it runs on. The tests that need a volume sign a synthetic
+presentation locally, which is what keeps this suite identical in CI and on a
+deployed device.
 """
 import copy
 import json
