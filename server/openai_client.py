@@ -1937,24 +1937,59 @@ _SHOCK_PHRASES = ["hypotension", "hypotensive", "poor perfusion", "septic shock"
 # Inflections are kept explicitly rather than by dropping the right-hand
 # boundary: \bshock would also swallow "shockwave", and this list decides
 # whether a casualty is treated as being in shock.
-_SHOCK_WORDS = ["shock", "shocks", "shocked", "altered", "ams", "map"]
+_SHOCK_WORDS = ["shock", "shocks", "shocked", "map"]
+
+# "altered" and "ams" USED TO SIT IN THE LIST ABOVE, and that is entry 16 of
+# the 2026-09-03 feedback review: "6 year old, fever and altered" was answered
+# with the sepsis card and tagged "Contradicts current CPG". Fever supplied the
+# infection, the bare word "altered" supplied the shock, and looks_like_sepsis
+# needs nothing else.
+#
+# Altered mental status is not a hemodynamic finding. In a febrile child it is
+# a DIFFERENTIAL — hypoglycaemia, meningitis, a post-ictal state, sepsis — and
+# naming one of those four as the diagnosis on the strength of the word
+# "altered" is the failure, not the missing card. The AMS signal itself is not
+# discarded: extract_patient_context still records ctx.ams_stated via
+# has_ams_descriptor(), which is where mental status belongs.
+_AMS_WORDS = ["altered", "ams"]
+
+_BP_READING_RE = re.compile(r"\bbp\s*(\d{2,3})\s*/\s*(\d{2,3})\b")
+
+
+def _bp_readings(q: str) -> list:
+    """Every stated BP in the text, as (systolic, diastolic) pairs."""
+    out = []
+    for m in _BP_READING_RE.finditer(q):
+        try:
+            out.append((int(m.group(1)), int(m.group(2))))
+        except ValueError:
+            pass
+    return out
 
 
 def has_hypotension_or_shock(q: str) -> bool:
-    """Detect hypotension/shock text, including BP values like 92/46."""
-    q = (q or "").lower()
-    if any(x in q for x in _SHOCK_PHRASES) or _has_any_word(q, _SHOCK_WORDS):
-        return True
+    """Detect hypotension/shock text, including BP values like 92/46.
 
-    for m in re.finditer(r"\bbp\s*(\d{2,3})\s*/\s*(\d{2,3})\b", q):
-        try:
-            sbp = int(m.group(1))
-            dbp = int(m.group(2))
-            if sbp < 100 or dbp < 60:
-                return True
-        except ValueError:
-            pass
-    return False
+    A STATED NUMBER OUTRANKS A WORD, in both directions. The order below is
+    the whole content of this function:
+
+      1. Any documented BP below 100/60 is shock, whatever the prose says.
+      2. Otherwise, if a BP was documented AT ALL and every reading is normal,
+         that is the answer — a measured 110/70 is not a shock state because
+         the sentence also contains a shock word. This is the same rule the
+         vitals module applies to stale readings, in the other direction: the
+         medic measured something, so the measurement is what the system uses.
+      3. Only with no documented BP does word evidence decide.
+    """
+    q = (q or "").lower()
+
+    readings = _bp_readings(q)
+    if any(sbp < 100 or dbp < 60 for sbp, dbp in readings):
+        return True
+    if readings:
+        return False
+
+    return any(x in q for x in _SHOCK_PHRASES) or _has_any_word(q, _SHOCK_WORDS)
 
 
 def looks_like_sepsis(query: str) -> bool:
@@ -4143,6 +4178,9 @@ def build_sepsis_management_response() -> str:
 
 **TLDR**
 - Fever or pus plus hypotension = sepsis: fluids, antibiotics, urgent evacuation.
+
+**SOURCE**: JTS Clinical Practice Guideline — Sepsis Management in Prolonged \
+Field Care, CPG ID83, 28 Oct 2020
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 

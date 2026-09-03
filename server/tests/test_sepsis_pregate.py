@@ -207,3 +207,22 @@ def test_the_seizure_card_still_owns_a_seizing_patient(stub_llm):
                   stub_llm)
     assert result["source_mode"] == "DETERMINISTIC_PRE_GATE"
     assert "**ACTIVE SEIZURE**" in result["response"]
+
+
+# ── Entry 16: a febrile, altered child is a differential, not a diagnosis ───
+
+@pytest.mark.parametrize("query", [
+    "6 year old, fever and altered, BP 110/70",
+    "6 year old, fever and altered",
+])
+def test_entry_16_gets_no_sepsis_card(query, stub_llm):
+    result = _run(query, stub_llm)
+    assert "**SEPSIS**" not in result["response"], result["response"][:200]
+
+
+def test_a_febrile_child_in_documented_shock_still_gets_the_card(stub_llm):
+    """The gate is narrowed, not removed."""
+    result = _run("6 year old, fever, altered, BP 70/40, HR 140", stub_llm)
+    assert result["source_mode"] == "DETERMINISTIC_PRE_GATE"
+    assert "**SEPSIS**" in result["response"]
+    assert "**SOURCE**" in result["response"]
