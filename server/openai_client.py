@@ -1797,26 +1797,92 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
 # SEPSIS-DCR DETERMINISTIC GATE
 # ─────────────────────────────────────────────────────────────────────────────
 
+# A numeric temperature is only a fever once its SCALE is known.
+#
+# The branch this replaces captured `\d{2}` and compared it to 38.0 without
+# ever establishing a scale, so it was wrong in both directions at once
+# (2026-09-03 feedback review, entries 44 and 16):
+#
+#   "temp 98.6"  captured "98"  -> 98 >= 38.0  -> a normal oral temperature
+#                read as a fever. Beside any shock word that is
+#                looks_like_sepsis() firing on a patient who has none.
+#   "temp 101"   captured "10"  -> 10 <  38.0  -> an actual fever read as no
+#                fever. The same defect, opposite sign.
+#
+# So the capture widens to `\d{2,3}(?:\.\d+)?` and every reading is placed on
+# a scale before it is compared to anything:
+#
+#   1. An explicit unit wins. "39 C" is Celsius, "101 F" is Fahrenheit, and
+#      neither is a guess.
+#   2. A bare number is placed by magnitude, split at 50. Nothing survivable
+#      sits between 45 C and 50 F, so the gap is wide enough that this never
+#      has to choose between two readings that are both plausible.
+FEVER_C = 38.0
+FEVER_F = 100.4
+_FAHRENHEIT_FLOOR = 50.0
+
+# Fever-specific, and deliberately NOT the general negation window below.
+# That window contains "no " and "not ", and a temperature is routinely stated
+# beside an unrelated negative: "no chest pain, temp 101" is a febrile patient.
+# Suppressing that would be a false negative on the direction of this gate
+# that actually costs something. Only a cue negating the FEVER counts.
+_TEMP_NEGATIONS = (
+    "afebrile", "no fever", "denies fever", "without fever",
+    "not febrile", "no temp", "negative for fever",
+)
+
+# A labelled reading: "temp 38.5", "temperature of 101", "T 98.6", "temp: 39c".
+# The label alternatives include a bare "t", so the gap to the number is only
+# the few connectives a medic writes. An open `.{0,10}` here would let
+# "peaked T waves ... 39" become a temperature.
+_TEMP_LABELLED_RE = re.compile(
+    r"(?<!\w)(?:temp(?:erature)?|t)\s*(?:of|is|was|at|=|:|-)?\s*"
+    r"(\d{2,3}(?:\.\d+)?)\s*°?\s*([cf])?(?!\w)"
+)
+
+# A reading carrying its unit without a label: "39 C", "101.2 F". Anchored at
+# both ends so "100 mcg" and "20 fr" cannot become temperatures.
+_TEMP_UNITED_RE = re.compile(
+    r"(?<!\w)(\d{2,3}(?:\.\d+)?)\s*°?\s*([cf])(?!\w)"
+)
+
+
+def _reading_is_fever(value: float, unit) -> bool:
+    """Apply the fever threshold on the scale the reading is actually on."""
+    if unit == "c":
+        return value >= FEVER_C
+    if unit == "f":
+        return value >= FEVER_F
+    return value >= FEVER_F if value >= _FAHRENHEIT_FLOOR else value >= FEVER_C
+
+
+def _fever_is_negated(q: str, idx: int) -> bool:
+    """Whether a fever-specific negation governs the reading at `idx`."""
+    before = q[max(0, idx - 40):idx]
+    return any(n in before for n in _TEMP_NEGATIONS)
+
+
 def has_fever(q: str) -> bool:
     """Detect fever from text or numeric temperature. Negation-aware."""
-    q = q.lower()
-    if has_positive_term(q, "fever") or has_positive_term(q, "febrile"):
+    q = (q or "").lower()
+    if _has_positive_word(q, "fever") or _has_positive_word(q, "febrile"):
         return True
-    m = re.search(r"temp(?:erature)?\s*(\d{2}(?:\.\d+)?)\s*c?", q)
-    if m:
-        try:
-            if float(m.group(1)) >= 38.0:
+    for pattern in (_TEMP_LABELLED_RE, _TEMP_UNITED_RE):
+        for m in pattern.finditer(q):
+            try:
+                value = float(m.group(1))
+            except ValueError:
+                continue
+            if (_reading_is_fever(value, m.group(2))
+                    and not _fever_is_negated(q, m.start())):
                 return True
-        except ValueError:
-            pass
-    m = re.search(r"(\d{2,3}(?:\.\d+)?)\s*f\b", q)
-    if m:
-        try:
-            if float(m.group(1)) >= 100.4:
-                return True
-        except ValueError:
-            pass
     return False
+
+
+_POSITIVE_TERM_NEGATIONS = [
+    "no ", "denies ", "without ", "afebrile", "not ", "negative for ",
+    "no evidence of ", "rule out ",
+]
 
 
 def has_positive_term(q: str, term: str) -> bool:
@@ -1827,8 +1893,27 @@ def has_positive_term(q: str, term: str) -> bool:
     if idx == -1:
         return False
     before = q[max(0, idx - 40):idx]
-    negations = ["no ", "denies ", "without ", "afebrile", "not ", "negative for ", "no evidence of ", "rule out "]
-    return not any(n in before for n in negations)
+    return not any(n in before for n in _POSITIVE_TERM_NEGATIONS)
+
+
+def _has_positive_word(q: str, term: str) -> bool:
+    """has_positive_term, word-anchored, over every occurrence.
+
+    Substring matching hid a negation inside the word that carried it:
+    "afebrile" CONTAINS "febrile", so has_positive_term found the term at
+    index 1 and its 40-character window saw only "a" — "afebrile, temp 98.6"
+    reported a fever. This is the same substring failure class as the F-2
+    alias table and _SHOCK_WORDS, and the fix is the same anchoring.
+
+    Scoped to has_fever rather than swapped in underneath has_positive_term:
+    the other callers match multi-word phrases ("wound infection") whose
+    behaviour is not what this commit is about.
+    """
+    for m in re.finditer(r'(?<!\w)' + re.escape(term) + r'(?!\w)', q):
+        before = q[max(0, m.start() - 40):m.start()]
+        if not any(n in before for n in _POSITIVE_TERM_NEGATIONS):
+            return True
+    return False
 
 # Long enough that a substring match cannot land inside an unrelated word.
 _SHOCK_PHRASES = ["hypotension", "hypotensive", "poor perfusion", "septic shock"]
