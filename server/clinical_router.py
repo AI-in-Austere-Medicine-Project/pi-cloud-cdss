@@ -112,6 +112,30 @@ def looks_like_poisoning(query: str) -> bool:
     return bool(_POISONING_AGENTS_RE.search(q) and _EXPOSURE_CUES_RE.search(q))
 
 
+def poisoning_agents_in(query: str) -> set:
+    """The agent names the query mentions — the POISONS, not the antidotes.
+
+    route() needs the names and not just the boolean: "give atropine" and
+    "overdosed on beta blockers" are both poisoning queries, and only one of
+    them names its drug as the thing that harmed the patient.
+    """
+    return {m.group(0) for m in _POISONING_AGENTS_RE.finditer((query or "").lower())}
+
+
+def names_the_poison(term: str, agents) -> bool:
+    """Whether an index term IS one of the agents the query named.
+
+    Containment in both directions, word-anchored: the protocol index calls it
+    "calcium" and the medic wrote "calcium channel blockers". Anchoring is
+    what keeps "ca" out of "calcium".
+    """
+    for agent in agents:
+        for needle, haystack in ((term, agent), (agent, term)):
+            if re.search(r"(?<!\w)" + re.escape(needle) + r"(?!\w)", haystack):
+                return True
+    return False
+
+
 @dataclass
 class RoutingResult:
     """Output of the clinical router."""
@@ -154,6 +178,11 @@ class ClinicalRouter:
     def _build_lookup_index(self):
         """Build reverse lookup: term → protocol_id list."""
         self.term_to_protocols = {}
+        # Which of a protocol's terms are DRUG NAMES, kept per protocol rather
+        # than as one global set: "calcium" is a medication of Damage Control
+        # Resuscitation and could be a primary condition somewhere else, and
+        # the poisoning rule in route() asks about the protocol it is scoring.
+        self.medication_terms = {}
 
         for protocol_id, meta in self.protocol_index.items():
             all_terms = (
@@ -169,6 +198,16 @@ class ClinicalRouter:
                     self.term_to_protocols[t] = []
                 if protocol_id not in self.term_to_protocols[t]:
                     self.term_to_protocols[t].append(protocol_id)
+
+            meds = {t.lower().strip() for t in meta.get("medications", [])}
+            # A term the protocol ALSO claims as a condition, procedure or
+            # search term is not drug-name-only evidence, so it does not count
+            # as one here.
+            others = {t.lower().strip()
+                      for f in ("aliases", "primary_conditions", "procedures",
+                                "search_terms")
+                      for t in meta.get(f, [])}
+            self.medication_terms[protocol_id] = meds - others
 
         # Compile every term's matcher now, so the first clinical query of the
         # day is not the one that pays for 625 regex compilations.
@@ -413,6 +452,41 @@ class ClinicalRouter:
             # term is a real signal.
             specific = (bool(hits - self.GENERIC_ROUTING_TERMS)
                         or len(hits) >= 2)
+
+            # F-6 again, on a poisoning. Measured (entry 44, 2026-09-03
+            # feedback review):
+            #   "I have a patient who overdosed on beta blockers. HR 30,
+            #    BP 50/20"       -> Acute Coronary Syndrome [HIGH]
+            #   "patient OD on calcium channel blockers, BP 70/40"
+            #                    -> Damage Control Resuscitation [HIGH]
+            # In both, the ONLY index term that matched was a drug name the
+            # protocol lists as a medication — and in a poisoning the drug is
+            # the poison, not the treatment. That is the wrong evidence for
+            # the protocol, and at HIGH it replaces the ChromaDB search string
+            # with that protocol's search terms, which is how a beta-blocker
+            # overdose came to be answered out of the cardiac chunks.
+            #
+            # Dropped to non-specific rather than capped to MEDIUM: MEDIUM
+            # still passes the caller's `confidence in ['HIGH','MEDIUM']` test
+            # and still swaps in the protocol's search terms, and that
+            # substitution is the actual harm. Non-specific is also the
+            # smaller change — one clause in the specificity test that already
+            # exists, rather than a second confidence path.
+            #
+            # Narrow on two axes, because the first cut was too wide. The
+            # term must be a medication of this protocol AND be the drug the
+            # query names as the poison. "organophosphate exposure, give
+            # atropine" matches only the index term "atropine", which is a
+            # medication of CBRN Injury Response — but atropine is the
+            # ANTIDOTE there, not the poison, so that routing is correct and
+            # survives. Suppressing it would have cost an in-corpus protocol
+            # that is exactly the right answer.
+            if looks_like_poisoning(combined):
+                agents = poisoning_agents_in(combined)
+                meds = self.medication_terms.get(best_pid, set())
+                if hits and all(t in meds and names_the_poison(t, agents)
+                                for t in hits):
+                    specific = False
 
             if specific and best_score >= 3:
                 confidence = "HIGH"
