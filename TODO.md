@@ -214,6 +214,33 @@ deliberately did NOT touch.
       not the fix; the generator has to stop emitting doses, or the file has to
       start reading them from `drug_contracts.json`.
 
+### Deterministic cards owed
+
+- [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
+      §1, priority entry 9 — "asked for 3 times; does not exist". Entries 0, 26
+      and 38 all wanted the same thing: BP targets, sedation, vent targets,
+      EtCO2 goals for a patient whose tube is already in. Entry 0 asked for it
+      on 07-18 and got a safety block instead.
+      - Severe-TBI generation surfaces SBP target / 3% saline / levetiracetam
+        in ~1 of 5 runs despite correct JTS_GROUNDED retrieval (cos 0.71). The
+        specifics belong in a deterministic TBI management card with SOURCE
+        ID30 — same card as post-intubation TBI. Until then the harness row is
+        a known coin flip.
+      - Measured 2026-09-03 on `severe TBI patient GCS 6 BP 90/60 needs
+        management`, in-process, 5 runs at `c751fab`: 1 emitted "3% hypertonic
+        saline 250-500 mL", 4 did not. Routing is stable and correct every run
+        (`tbi_neurosurgery_deployed_environment`, HIGH), and the router's
+        enhanced query already carries "hypertonic saline / levetiracetam /
+        SBP" — so this is a generation gap, not a retrieval or routing one, and
+        no threshold should be tuned for it. Identical at `dd2ec14`: not
+        introduced by #53.
+      - Citation to confirm when the card is authored: the corpus stores
+        titles, not CPG ids, so ID30 could not be verified from the repo. Note
+        it holds two distinct adult TBI CPGs — "TBI Neurosurgery Deployed
+        Environment" (what the router matches) and "Traumatic Brain Injury
+        PFC". The card should cite whichever actually carries the SBP target,
+        3% saline and levetiracetam text.
+
 ### API hardening
 - [ ] Real rate limiting (per token/IP); remove hardcoded rate_limit_remaining
 - [x] /speak input length cap — `CDSS_SPEAK_MAX_CHARS` (default 2500), enforced in `server/tts.py` before the upstream call
