@@ -62,7 +62,13 @@ echo ""
 echo "--- PEDIATRIC GATES ---"
 run_test "Ped weight gate" "need to give ketamine to a 6yo with an arm fx" "[]" "block" "weight"
 run_test "Ped confirmed weight asks route" "need ketamine for a 6yo arm fx" "[]" "block" "IM\|IV\|access"
-run_test "Ped IV ketamine correct dose" "ketamine IV for pain" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "7.5\|0.075"
+# 6.25 mg = NASEMSO 0.25 mg/kg x 25 kg, served from the signed contract entry
+# drug_contract:ketamine:moderate to severe pain / analgesia:IV:v0.2.0 (b30016b,
+# 2026-08-25). This row previously asserted 7.5 mg — 0.3 mg/kg from the retired
+# ketamine_analgesia_iv() calculator, which build_ketamine_analgesia_response()
+# stopped calling when every deterministic dose was routed through the contract
+# engine. The assertion, not the dose, was stale.
+run_test "Ped IV ketamine correct dose" "ketamine IV for pain" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "6.25\|0.25 mg/kg"
 run_test "Ped IM ketamine correct dose" "IM" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "50\|0.5"
 run_test "Ped estimated weight blocks dose" "give ketamine" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."}]' "block" ""
 
