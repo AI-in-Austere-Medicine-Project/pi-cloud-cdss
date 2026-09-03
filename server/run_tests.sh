@@ -68,7 +68,7 @@ run_test "Ped confirmed weight asks route" "need ketamine for a 6yo arm fx" "[]"
 # ketamine_analgesia_iv() calculator, which build_ketamine_analgesia_response()
 # stopped calling when every deterministic dose was routed through the contract
 # engine. The assertion, not the dose, was stale.
-run_test "Ped IV ketamine correct dose" "ketamine IV for pain" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "6.25\|0.25 mg/kg"
+run_test "Ped IV ketamine correct dose" "ketamine IV for pain" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "6.25"
 run_test "Ped IM ketamine correct dose" "IM" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "50\|0.5"
 run_test "Ped estimated weight blocks dose" "give ketamine" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."}]' "block" ""
 
