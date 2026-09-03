@@ -254,6 +254,13 @@ def log_query(query: str, result: dict, conversation_history: list = None,
     except Exception as e:
         print(f"Logger error (non-fatal): {e}")
 
+# Imported outside the try below on purpose. The try tolerates a router that
+# fails to CONSTRUCT — a missing protocol_index.json degrades retrieval, which
+# is survivable. looks_like_poisoning is a safety guard on three deterministic
+# pre-gates, and a safety guard that silently becomes undefined is worse than
+# an import error, so this one fails loudly.
+from clinical_router import looks_like_poisoning  # noqa: E402
+
 try:
     from clinical_router import ClinicalRouter
     _router = ClinicalRouter()
@@ -1797,26 +1804,92 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
 # SEPSIS-DCR DETERMINISTIC GATE
 # ─────────────────────────────────────────────────────────────────────────────
 
+# A numeric temperature is only a fever once its SCALE is known.
+#
+# The branch this replaces captured `\d{2}` and compared it to 38.0 without
+# ever establishing a scale, so it was wrong in both directions at once
+# (2026-09-03 feedback review, entries 44 and 16):
+#
+#   "temp 98.6"  captured "98"  -> 98 >= 38.0  -> a normal oral temperature
+#                read as a fever. Beside any shock word that is
+#                looks_like_sepsis() firing on a patient who has none.
+#   "temp 101"   captured "10"  -> 10 <  38.0  -> an actual fever read as no
+#                fever. The same defect, opposite sign.
+#
+# So the capture widens to `\d{2,3}(?:\.\d+)?` and every reading is placed on
+# a scale before it is compared to anything:
+#
+#   1. An explicit unit wins. "39 C" is Celsius, "101 F" is Fahrenheit, and
+#      neither is a guess.
+#   2. A bare number is placed by magnitude, split at 50. Nothing survivable
+#      sits between 45 C and 50 F, so the gap is wide enough that this never
+#      has to choose between two readings that are both plausible.
+FEVER_C = 38.0
+FEVER_F = 100.4
+_FAHRENHEIT_FLOOR = 50.0
+
+# Fever-specific, and deliberately NOT the general negation window below.
+# That window contains "no " and "not ", and a temperature is routinely stated
+# beside an unrelated negative: "no chest pain, temp 101" is a febrile patient.
+# Suppressing that would be a false negative on the direction of this gate
+# that actually costs something. Only a cue negating the FEVER counts.
+_TEMP_NEGATIONS = (
+    "afebrile", "no fever", "denies fever", "without fever",
+    "not febrile", "no temp", "negative for fever",
+)
+
+# A labelled reading: "temp 38.5", "temperature of 101", "T 98.6", "temp: 39c".
+# The label alternatives include a bare "t", so the gap to the number is only
+# the few connectives a medic writes. An open `.{0,10}` here would let
+# "peaked T waves ... 39" become a temperature.
+_TEMP_LABELLED_RE = re.compile(
+    r"(?<!\w)(?:temp(?:erature)?|t)\s*(?:of|is|was|at|=|:|-)?\s*"
+    r"(\d{2,3}(?:\.\d+)?)\s*°?\s*([cf])?(?!\w)"
+)
+
+# A reading carrying its unit without a label: "39 C", "101.2 F". Anchored at
+# both ends so "100 mcg" and "20 fr" cannot become temperatures.
+_TEMP_UNITED_RE = re.compile(
+    r"(?<!\w)(\d{2,3}(?:\.\d+)?)\s*°?\s*([cf])(?!\w)"
+)
+
+
+def _reading_is_fever(value: float, unit) -> bool:
+    """Apply the fever threshold on the scale the reading is actually on."""
+    if unit == "c":
+        return value >= FEVER_C
+    if unit == "f":
+        return value >= FEVER_F
+    return value >= FEVER_F if value >= _FAHRENHEIT_FLOOR else value >= FEVER_C
+
+
+def _fever_is_negated(q: str, idx: int) -> bool:
+    """Whether a fever-specific negation governs the reading at `idx`."""
+    before = q[max(0, idx - 40):idx]
+    return any(n in before for n in _TEMP_NEGATIONS)
+
+
 def has_fever(q: str) -> bool:
     """Detect fever from text or numeric temperature. Negation-aware."""
-    q = q.lower()
-    if has_positive_term(q, "fever") or has_positive_term(q, "febrile"):
+    q = (q or "").lower()
+    if _has_positive_word(q, "fever") or _has_positive_word(q, "febrile"):
         return True
-    m = re.search(r"temp(?:erature)?\s*(\d{2}(?:\.\d+)?)\s*c?", q)
-    if m:
-        try:
-            if float(m.group(1)) >= 38.0:
+    for pattern in (_TEMP_LABELLED_RE, _TEMP_UNITED_RE):
+        for m in pattern.finditer(q):
+            try:
+                value = float(m.group(1))
+            except ValueError:
+                continue
+            if (_reading_is_fever(value, m.group(2))
+                    and not _fever_is_negated(q, m.start())):
                 return True
-        except ValueError:
-            pass
-    m = re.search(r"(\d{2,3}(?:\.\d+)?)\s*f\b", q)
-    if m:
-        try:
-            if float(m.group(1)) >= 100.4:
-                return True
-        except ValueError:
-            pass
     return False
+
+
+_POSITIVE_TERM_NEGATIONS = [
+    "no ", "denies ", "without ", "afebrile", "not ", "negative for ",
+    "no evidence of ", "rule out ",
+]
 
 
 def has_positive_term(q: str, term: str) -> bool:
@@ -1827,8 +1900,27 @@ def has_positive_term(q: str, term: str) -> bool:
     if idx == -1:
         return False
     before = q[max(0, idx - 40):idx]
-    negations = ["no ", "denies ", "without ", "afebrile", "not ", "negative for ", "no evidence of ", "rule out "]
-    return not any(n in before for n in negations)
+    return not any(n in before for n in _POSITIVE_TERM_NEGATIONS)
+
+
+def _has_positive_word(q: str, term: str) -> bool:
+    """has_positive_term, word-anchored, over every occurrence.
+
+    Substring matching hid a negation inside the word that carried it:
+    "afebrile" CONTAINS "febrile", so has_positive_term found the term at
+    index 1 and its 40-character window saw only "a" — "afebrile, temp 98.6"
+    reported a fever. This is the same substring failure class as the F-2
+    alias table and _SHOCK_WORDS, and the fix is the same anchoring.
+
+    Scoped to has_fever rather than swapped in underneath has_positive_term:
+    the other callers match multi-word phrases ("wound infection") whose
+    behaviour is not what this commit is about.
+    """
+    for m in re.finditer(r'(?<!\w)' + re.escape(term) + r'(?!\w)', q):
+        before = q[max(0, m.start() - 40):m.start()]
+        if not any(n in before for n in _POSITIVE_TERM_NEGATIONS):
+            return True
+    return False
 
 # Long enough that a substring match cannot land inside an unrelated word.
 _SHOCK_PHRASES = ["hypotension", "hypotensive", "poor perfusion", "septic shock"]
@@ -1845,24 +1937,59 @@ _SHOCK_PHRASES = ["hypotension", "hypotensive", "poor perfusion", "septic shock"
 # Inflections are kept explicitly rather than by dropping the right-hand
 # boundary: \bshock would also swallow "shockwave", and this list decides
 # whether a casualty is treated as being in shock.
-_SHOCK_WORDS = ["shock", "shocks", "shocked", "altered", "ams", "map"]
+_SHOCK_WORDS = ["shock", "shocks", "shocked", "map"]
+
+# "altered" and "ams" USED TO SIT IN THE LIST ABOVE, and that is entry 16 of
+# the 2026-09-03 feedback review: "6 year old, fever and altered" was answered
+# with the sepsis card and tagged "Contradicts current CPG". Fever supplied the
+# infection, the bare word "altered" supplied the shock, and looks_like_sepsis
+# needs nothing else.
+#
+# Altered mental status is not a hemodynamic finding. In a febrile child it is
+# a DIFFERENTIAL — hypoglycaemia, meningitis, a post-ictal state, sepsis — and
+# naming one of those four as the diagnosis on the strength of the word
+# "altered" is the failure, not the missing card. The AMS signal itself is not
+# discarded: extract_patient_context still records ctx.ams_stated via
+# has_ams_descriptor(), which is where mental status belongs.
+_AMS_WORDS = ["altered", "ams"]
+
+_BP_READING_RE = re.compile(r"\bbp\s*(\d{2,3})\s*/\s*(\d{2,3})\b")
+
+
+def _bp_readings(q: str) -> list:
+    """Every stated BP in the text, as (systolic, diastolic) pairs."""
+    out = []
+    for m in _BP_READING_RE.finditer(q):
+        try:
+            out.append((int(m.group(1)), int(m.group(2))))
+        except ValueError:
+            pass
+    return out
 
 
 def has_hypotension_or_shock(q: str) -> bool:
-    """Detect hypotension/shock text, including BP values like 92/46."""
-    q = (q or "").lower()
-    if any(x in q for x in _SHOCK_PHRASES) or _has_any_word(q, _SHOCK_WORDS):
-        return True
+    """Detect hypotension/shock text, including BP values like 92/46.
 
-    for m in re.finditer(r"\bbp\s*(\d{2,3})\s*/\s*(\d{2,3})\b", q):
-        try:
-            sbp = int(m.group(1))
-            dbp = int(m.group(2))
-            if sbp < 100 or dbp < 60:
-                return True
-        except ValueError:
-            pass
-    return False
+    A STATED NUMBER OUTRANKS A WORD, in both directions. The order below is
+    the whole content of this function:
+
+      1. Any documented BP below 100/60 is shock, whatever the prose says.
+      2. Otherwise, if a BP was documented AT ALL and every reading is normal,
+         that is the answer — a measured 110/70 is not a shock state because
+         the sentence also contains a shock word. This is the same rule the
+         vitals module applies to stale readings, in the other direction: the
+         medic measured something, so the measurement is what the system uses.
+      3. Only with no documented BP does word evidence decide.
+    """
+    q = (q or "").lower()
+
+    readings = _bp_readings(q)
+    if any(sbp < 100 or dbp < 60 for sbp, dbp in readings):
+        return True
+    if readings:
+        return False
+
+    return any(x in q for x in _SHOCK_PHRASES) or _has_any_word(q, _SHOCK_WORDS)
 
 
 def looks_like_sepsis(query: str) -> bool:
@@ -4052,6 +4179,9 @@ def build_sepsis_management_response() -> str:
 **TLDR**
 - Fever or pus plus hypotension = sepsis: fluids, antibiotics, urgent evacuation.
 
+**SOURCE**: JTS Clinical Practice Guideline — Sepsis Management in Prolonged \
+Field Care, CPG ID83, 28 Oct 2020
+
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
@@ -4474,10 +4604,14 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2e: Sepsis-DCR deterministic refusal
+        # `not looks_like_poisoning` guards this and 2g/2h alike — see the note
+        # at Step 2h for why a toxidrome must not be answered by any of the
+        # three cards that assert a diagnosis.
         if (
             looks_like_sepsis(query)
             and asks_for_dcr_or_hemostatic_resus(query)
             and not has_clear_hemorrhage(query)
+            and not looks_like_poisoning(query)
         ):
             print("🛑 SEPSIS-DCR PRE-GATE")
             return {
@@ -4506,6 +4640,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         if (
             looks_like_hemorrhagic_shock(query)
             and not looks_like_sepsis(query)
+            and not looks_like_poisoning(query)
         ):
             print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
             return {
@@ -4518,7 +4653,30 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2h: Sepsis management deterministic response
-        if looks_like_sepsis(query) and not has_clear_hemorrhage(query):
+        #
+        # The poisoning guard (2026-09-03 feedback review, entry 44). "I have a
+        # patient who overdosed on beta blockers. HR 30, BP 50/20, SpO2 91%"
+        # was answered with this card: a different diagnosis, a different
+        # treatment, and no mention of glucagon, calcium, high-dose insulin,
+        # atropine or pacing.
+        #
+        # These three gates (2e, 2g, 2h) are the ones that ASSERT A DIAGNOSIS
+        # from a shock pattern — "treat as suspected sepsis", "treat as
+        # hemorrhagic shock" — so a named toxidrome reaching any of them gets
+        # told it has a condition it does not have. The JTS bank is 89 trauma
+        # CPGs and holds no beta-blocker, CCB, TCA, opioid or organophosphate
+        # protocol, so the honest answer is the general-reference banner, which
+        # is what falling through to retrieval now produces.
+        #
+        # Additive, and only here: no existing gate condition is modified and
+        # no other pre-gate is guarded. 2d/2d-ii (TXA contraindications), 2c
+        # (WPW) and 2f (requested overdose) are hard safety blocks that get
+        # SAFER, not less accurate, on a poisoned patient, and they keep firing.
+        if (
+            looks_like_sepsis(query)
+            and not has_clear_hemorrhage(query)
+            and not looks_like_poisoning(query)
+        ):
             print("🧫 SEPSIS MANAGEMENT PRE-GATE")
             return {
                 "response": build_sepsis_management_response(),

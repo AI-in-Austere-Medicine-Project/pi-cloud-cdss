@@ -21,6 +21,121 @@ from dataclasses import dataclass
 from typing import Optional
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# POISONING / TOXIDROME DETECTION
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Why this lives in the router module and not beside looks_like_sepsis() in
+# openai_client: both the deterministic pre-gates and route() need it, and
+# clinical_router is the lower module in the import graph — openai_client
+# imports this one, and the reverse would be a cycle. It is vocabulary, which
+# is what this module already holds (CONTEXT_DEPENDENT_ALIASES,
+# GENERIC_ROUTING_TERMS).
+#
+# What it is for (2026-09-03 feedback review, entry 44): "I have a patient who
+# overdosed on beta blockers. HR 30, BP 50/20" was answered as SEPSIS. A named
+# toxidrome is an out-of-corpus question — the JTS bank is 89 trauma CPGs and
+# holds no beta-blocker, CCB, TCA, opioid or organophosphate protocol — so the
+# honest answer is the general-reference banner, not the nearest in-corpus
+# shock card served with full confidence.
+#
+# INTENT fires on its own. An AGENT NAME never does: "give fentanyl 50 mcg" is
+# a prescription and "opioid overdose" is a poisoning, and the word that
+# separates them is the intent, not the drug. Agent names widen the detector
+# only where an exposure cue supplies the same meaning that intent would
+# ("organophosphate exposure from a farm sprayer" names no overdose).
+_POISONING_INTENT = (
+    # Inflections are listed rather than matched by prefix, for the reason
+    # _SHOCK_WORDS gives: a loose right-hand boundary is how "ams" came to
+    # match "milligrams". Every hit here changes how a casualty is routed.
+    "overdose", "overdosed", "overdosing", "overdoses",
+    "od on", "od'd", "od'ed",
+    "ingested", "ingestion", "swallowed",
+    "poisoning", "poisoned", "self-poisoning",
+    "took too much", "toxidrome", "toxicity", "intoxication",
+    "tox screen", "poison control",
+)
+
+_EXPOSURE_CUES = (
+    "exposure", "exposed", "contaminated", "contamination",
+    "inhaled", "huffed", "drank",
+)
+
+_POISONING_AGENTS = (
+    # Cardiac — the three whose antidotes the corpus does not carry
+    # (glucagon, calcium/high-dose insulin, bicarbonate).
+    "beta blocker", "beta blockers", "beta-blocker", "beta-blockers",
+    "metoprolol", "propranolol", "atenolol", "labetalol",
+    "calcium channel blocker", "calcium channel blockers",
+    "calcium-channel blocker", "calcium-channel blockers",
+    "ccb", "diltiazem", "verapamil", "amlodipine", "nifedipine",
+    "digoxin", "digitalis",
+    "tca", "tcas", "tricyclic", "tricyclics",
+    "amitriptyline", "nortriptyline", "imipramine",
+    # Opioid and sedative.
+    "opioid", "opioids", "opiate", "opiates", "heroin",
+    "oxycodone", "oxycontin", "methadone", "fentanyl patch",
+    "benzodiazepine", "benzodiazepines", "barbiturate", "barbiturates",
+    # Cholinergic / chemical agents.
+    "organophosphate", "organophosphates", "nerve agent", "nerve agents",
+    "sarin", "soman", "tabun", "vx", "carbamate",
+    "insecticide", "pesticide", "cyanide", "carbon monoxide", "chlorine gas",
+    # Common civilian ingestions.
+    "acetaminophen", "paracetamol", "tylenol", "salicylate", "salicylates",
+    "sulfonylurea", "glyburide", "glipizide",
+    "methanol", "ethylene glycol", "antifreeze",
+    "lithium", "hydrocarbon", "hydrocarbons",
+)
+
+
+def _anchored(terms) -> "re.Pattern":
+    """One word-anchored alternation over a term group.
+
+    Longest-first so "beta blockers" is tried before "beta blocker" — with
+    both ends anchored the shorter would not match the plural anyway, and
+    ordering makes that independent of the tuple's order.
+    """
+    body = "|".join(re.escape(t) for t in sorted(terms, key=len, reverse=True))
+    return re.compile(r"(?<!\w)(?:" + body + r")(?!\w)")
+
+
+_POISONING_INTENT_RE = _anchored(_POISONING_INTENT)
+_EXPOSURE_CUES_RE = _anchored(_EXPOSURE_CUES)
+_POISONING_AGENTS_RE = _anchored(_POISONING_AGENTS)
+
+
+def looks_like_poisoning(query: str) -> bool:
+    """Whether the query presents a poisoning, overdose or toxidrome."""
+    q = (query or "").lower()
+    if _POISONING_INTENT_RE.search(q):
+        return True
+    return bool(_POISONING_AGENTS_RE.search(q) and _EXPOSURE_CUES_RE.search(q))
+
+
+def poisoning_agents_in(query: str) -> set:
+    """The agent names the query mentions — the POISONS, not the antidotes.
+
+    route() needs the names and not just the boolean: "give atropine" and
+    "overdosed on beta blockers" are both poisoning queries, and only one of
+    them names its drug as the thing that harmed the patient.
+    """
+    return {m.group(0) for m in _POISONING_AGENTS_RE.finditer((query or "").lower())}
+
+
+def names_the_poison(term: str, agents) -> bool:
+    """Whether an index term IS one of the agents the query named.
+
+    Containment in both directions, word-anchored: the protocol index calls it
+    "calcium" and the medic wrote "calcium channel blockers". Anchoring is
+    what keeps "ca" out of "calcium".
+    """
+    for agent in agents:
+        for needle, haystack in ((term, agent), (agent, term)):
+            if re.search(r"(?<!\w)" + re.escape(needle) + r"(?!\w)", haystack):
+                return True
+    return False
+
+
 @dataclass
 class RoutingResult:
     """Output of the clinical router."""
@@ -63,6 +178,11 @@ class ClinicalRouter:
     def _build_lookup_index(self):
         """Build reverse lookup: term → protocol_id list."""
         self.term_to_protocols = {}
+        # Which of a protocol's terms are DRUG NAMES, kept per protocol rather
+        # than as one global set: "calcium" is a medication of Damage Control
+        # Resuscitation and could be a primary condition somewhere else, and
+        # the poisoning rule in route() asks about the protocol it is scoring.
+        self.medication_terms = {}
 
         for protocol_id, meta in self.protocol_index.items():
             all_terms = (
@@ -78,6 +198,16 @@ class ClinicalRouter:
                     self.term_to_protocols[t] = []
                 if protocol_id not in self.term_to_protocols[t]:
                     self.term_to_protocols[t].append(protocol_id)
+
+            meds = {t.lower().strip() for t in meta.get("medications", [])}
+            # A term the protocol ALSO claims as a condition, procedure or
+            # search term is not drug-name-only evidence, so it does not count
+            # as one here.
+            others = {t.lower().strip()
+                      for f in ("aliases", "primary_conditions", "procedures",
+                                "search_terms")
+                      for t in meta.get(f, [])}
+            self.medication_terms[protocol_id] = meds - others
 
         # Compile every term's matcher now, so the first clinical query of the
         # day is not the one that pays for 625 regex compilations.
@@ -322,6 +452,41 @@ class ClinicalRouter:
             # term is a real signal.
             specific = (bool(hits - self.GENERIC_ROUTING_TERMS)
                         or len(hits) >= 2)
+
+            # F-6 again, on a poisoning. Measured (entry 44, 2026-09-03
+            # feedback review):
+            #   "I have a patient who overdosed on beta blockers. HR 30,
+            #    BP 50/20"       -> Acute Coronary Syndrome [HIGH]
+            #   "patient OD on calcium channel blockers, BP 70/40"
+            #                    -> Damage Control Resuscitation [HIGH]
+            # In both, the ONLY index term that matched was a drug name the
+            # protocol lists as a medication — and in a poisoning the drug is
+            # the poison, not the treatment. That is the wrong evidence for
+            # the protocol, and at HIGH it replaces the ChromaDB search string
+            # with that protocol's search terms, which is how a beta-blocker
+            # overdose came to be answered out of the cardiac chunks.
+            #
+            # Dropped to non-specific rather than capped to MEDIUM: MEDIUM
+            # still passes the caller's `confidence in ['HIGH','MEDIUM']` test
+            # and still swaps in the protocol's search terms, and that
+            # substitution is the actual harm. Non-specific is also the
+            # smaller change — one clause in the specificity test that already
+            # exists, rather than a second confidence path.
+            #
+            # Narrow on two axes, because the first cut was too wide. The
+            # term must be a medication of this protocol AND be the drug the
+            # query names as the poison. "organophosphate exposure, give
+            # atropine" matches only the index term "atropine", which is a
+            # medication of CBRN Injury Response — but atropine is the
+            # ANTIDOTE there, not the poison, so that routing is correct and
+            # survives. Suppressing it would have cost an in-corpus protocol
+            # that is exactly the right answer.
+            if looks_like_poisoning(combined):
+                agents = poisoning_agents_in(combined)
+                meds = self.medication_terms.get(best_pid, set())
+                if hits and all(t in meds and names_the_poison(t, agents)
+                                for t in hits):
+                    specific = False
 
             if specific and best_score >= 3:
                 confidence = "HIGH"

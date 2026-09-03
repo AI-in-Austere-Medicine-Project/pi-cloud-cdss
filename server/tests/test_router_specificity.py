@@ -175,3 +175,82 @@ def test_alias_patterns_are_cached_too():
     ClinicalRouter._alias_pattern("ketamine")
     info_after = ClinicalRouter._alias_pattern.cache_info()
     assert info_after.hits > info_before.hits
+
+
+# ── F-6 on a poisoning: the drug named is the poison, not the treatment ─────
+#
+# 2026-09-03 feedback review, entry 44. Measured at HIGH before this change:
+#
+#   "I have a patient who overdosed on beta blockers. HR 30, BP 50/20"
+#        -> Acute Coronary Syndrome        (only index term hit: "beta blockers")
+#   "patient OD on calcium channel blockers, BP 70/40, HR 40"
+#        -> Damage Control Resuscitation   (only index term hit: "calcium")
+#
+# In both, the single term carrying the routing was a drug the protocol lists
+# as a MEDICATION — and in a poisoning that drug is the poison. At HIGH the
+# router replaces the ChromaDB search string with that protocol's search
+# terms, which is how a beta-blocker overdose came to be answered out of the
+# cardiac chunks.
+
+POISONING_MUST_NOT_MATCH = [
+    ("I have a patient who overdosed on beta blockers. Vitals: HR 30, "
+     "BP 50/20, SpO2 91%, IV access obtained", "Acute Coronary"),
+    ("patient OD on calcium channel blockers, BP 70/40, HR 40",
+     "Damage Control"),
+    ("took too much metoprolol, bradycardic and hypotensive", "Acute Coronary"),
+]
+
+
+@pytest.mark.parametrize("query,forbidden", POISONING_MUST_NOT_MATCH)
+def test_a_poisoning_does_not_route_on_the_drug_that_poisoned_them(query, forbidden):
+    matched, title, _ = routed(query)
+    assert not (matched and title and forbidden.lower() in title.lower()), (
+        f"{query[:40]!r} routed to {title!r}")
+
+
+def test_entry_44_standalone_matches_no_protocol_at_all():
+    """The chosen remedy, stated: no match, not a cap to MEDIUM.
+
+    MEDIUM still passes the caller's `confidence in ['HIGH','MEDIUM']` test
+    and still swaps the protocol's search terms into the ChromaDB query, and
+    that substitution is the harm. Dropping the match is also the smaller
+    change — one clause in the specificity test that already exists.
+    """
+    result = router.route(
+        "I have a patient who overdosed on beta blockers. Vitals: HR 30, "
+        "BP 50/20, SpO2 91%, IV access obtained")
+    assert result.matched_protocol is None
+    assert result.confidence == "LOW"
+
+
+@pytest.mark.parametrize("query,expected", [
+    # The antidote, not the poison: atropine is a medication of the chemical
+    # agent protocol and that protocol is the correct answer here.
+    ("organophosphate exposure, give atropine", "Chemical"),
+    ("nerve agent exposure, give atropine and pralidoxime", "Chemical"),
+])
+def test_a_poisoning_keeps_the_routing_its_antidote_earns(query, expected):
+    matched, title, _ = routed(query)
+    assert matched and expected.lower() in (title or "").lower(), \
+        f"{query[:40]!r} -> {title!r} [{router.route(query).confidence}]"
+
+
+@pytest.mark.parametrize("query", [
+    "80kg male temp 38.2C pus draining from wound initiate DCR",
+    "need to give ketamine to a 6yo with arm fx",
+    "patient has bp 70/40 active abdominal bleeding no fever",
+    "need to RSI an 80kg trauma patient",
+    "what are the criteria for terminating resuscitation in the field",
+    "failed intubation failed igel patient desaturating",
+])
+def test_a_query_that_is_not_a_poisoning_routes_exactly_as_before(query, monkeypatch):
+    """The clause is gated on looks_like_poisoning and only ever sets
+    `specific` to False, so a non-poisoning must route identically with the
+    clause disabled. Compared against the clause switched off rather than
+    against a hardcoded expectation, so this keeps meaning what it says if
+    the index changes underneath it."""
+    import clinical_router as cr
+    assert cr.looks_like_poisoning(query) is False
+    before = router.route(query)
+    monkeypatch.setattr(cr, "looks_like_poisoning", lambda q: False)
+    assert router.route(query) == before
