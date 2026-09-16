@@ -157,7 +157,7 @@ def test_the_answer_survives_a_failure_in_the_furniture_around_it():
     them used to land in the catch that writes REQUEST FAILED over it.
     """
     assert "function decoration(" in HTML
-    body = HTML.split("async function ask()")[1]
+    body = HTML.split("async function ask(")[1]
     for what in ("context strip", "listen button", "feedback controls"):
         assert "decoration('" + what + "'" in body, what + " is not guarded"
 

@@ -172,6 +172,20 @@ async function briefScenarios(payloads) {
                       setItem() { throw new Error('SecurityError'); } };
     return ask(load(queryOnly(base(payloads.rsi)), { localStorage: storage }), 'rsi');
   });
+  await probe(out, 'chip_request', async () => {
+    // A typed turn, then a chip. The chip must go out through the same
+    // history path, carrying the turn before it, tagged as a chip.
+    const bodies = [];
+    const fetchImpl = (url, opts) => {
+      if (String(url).indexOf('/query') !== 0) return Promise.reject(new Error('offline'));
+      bodies.push(JSON.parse(opts.body));
+      return jsonResponse(base(payloads.rsi));
+    };
+    const env = load(fetchImpl);
+    await ask(env, 'RSI an 80kg male trauma patient ketamine and rocuronium');
+    await vm.runInContext("ask('Why that dose?', 'chip')", env.sandbox);
+    return { bodies, box: env.getElementById('q').value };
+  });
   await probe(out, 'pref_saved', () => {
     const storage = memoryStorage();
     const env = load(queryOnly(base(payloads.rsi)), { localStorage: storage });

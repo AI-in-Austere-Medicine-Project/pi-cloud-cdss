@@ -72,3 +72,35 @@ def test_a_result_without_a_brief_degrades_to_empty_not_500(monkeypatch):
     assert r.status_code == 200, r.text
     assert r.json()["brief"] == ""
     assert r.json()["critical_sections"] == []
+
+
+# ── input_mode ───────────────────────────────────────────────────────────────
+
+def _recording(monkeypatch):
+    calls = []
+
+    def fake(*a, **k):
+        calls.append(k)
+        return {"response": "ok", "validator_result": "SAFE"}
+    monkeypatch.setattr(main, "query_with_rag", fake)
+    return calls
+
+
+def test_the_schema_accepts_chip_and_it_reaches_the_logger(monkeypatch):
+    calls = _recording(monkeypatch)
+    r = post_query(dict(QUERY_BODY, input_mode="chip"))
+    assert r.status_code == 200, r.text
+    assert calls[-1]["input_mode"] == "chip"
+
+
+def test_input_mode_defaults_to_typed(monkeypatch):
+    calls = _recording(monkeypatch)
+    assert post_query(QUERY_BODY).status_code == 200
+    assert calls[-1]["input_mode"] == "typed"
+
+
+def test_an_unknown_input_mode_is_refused(monkeypatch):
+    calls = _recording(monkeypatch)
+    r = post_query(dict(QUERY_BODY, input_mode="autopilot"))
+    assert r.status_code == 422
+    assert not calls

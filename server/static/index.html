@@ -214,6 +214,13 @@ details.sect[open] > summary::before { content: '\25BE  '; }
 details.sect.critical > summary { color: var(--amber); }
 details.sect > .sect-body { padding: 0 2px 10px 2px; }
 .notes { margin-top: 8px; font-size: 13px; color: var(--dim); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px 0; }
+.chip {
+  cursor: pointer; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 14px; padding: 6px 12px; min-height: 32px;
+  font-family: var(--mono); font-size: 11px;
+}
+.chip:hover { border-color: var(--blue); color: var(--blue); }
 .thinking { color: var(--dim); font-family: var(--mono); font-size: 12px; }
 .thinking::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
@@ -597,11 +604,32 @@ function decoration(what, fn) {
 //   - any warning heading or line (⚠️): vitals cautions, the human-review note.
 // A server that sends no brief gets the full response, rendered as before.
 const ALWAYS_OPEN = ['CONFIRM VIAL'];
+// Follow-up chips. Each sends a fixed phrasing through the ordinary /query
+// path, conversation history and all, tagged input_mode "chip". The words are
+// chosen so they cannot move the patient: none names an age band ("pediatric"
+// would set is_pediatric), states a number (a weight or age contradiction is a
+// new patient), or opens "have a ..." (a presentational opener).
+// test_brief_chips.py reads this list and pins all three, plus the path two of
+// them take.
+const FOLLOW_UP_CHIPS = [
+  ['Why?', 'Why that dose?'],
+  ['Contraindications', 'Contraindications for that?'],
+  ['Vial math', 'Show the vial math for that dose.'],
+  ['Pediatric', 'How does that change for a smaller or younger patient?'],
+  ['What to watch', 'What should I watch for after that?'],
+  ['Full protocol', 'Show the full protocol'],
+];
 const SECTION_PREFS_KEY = 'edgecdss.sections.v1';
 const BRIEF_HEADING = 'BRIEF';
 // Mirrors brief.py's _HEADING_RE: a bold run with no lower-case letters.
 const HEADING_RE = /^\s*(⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*:?\s*(.*)$/;
 const DISCLAIMER_RE = /^Guideline-based support only\./;
+
+function chipsHtml() {
+  return '<div class="chips">' + FOLLOW_UP_CHIPS.map(c =>
+    '<button class="chip" type="button" data-q="' + esc(c[1]) + '">' + esc(c[0]) + '</button>'
+  ).join('') + '</div>';
+}
 
 // Per-viewer and optional. Private windows, blocked storage and the render
 // harness all throw or lack it; every path degrades to "no preference".
@@ -682,6 +710,9 @@ function answerHtml(d, body) {
                  String(d.brief).split('\n').map(esc).join('<br>') + '</div>'];
   const split = splitSections(body);
   const pre = trimBlank(split.pre);
+  // Under the brief. Not under a hold or a bare gate question: there is no
+  // answer yet to ask about.
+  if (!blocked && split.sections.length) parts.push(chipsHtml());
 
   if (!split.sections.length) {
     // No sections: a hold, a gate question, an ask, or reference prose. A hold
@@ -727,10 +758,14 @@ function wireSections(container) {
   });
 }
 
-async function ask() {
-  const text = q.value.trim();
+// `followUp` is a chip's fixed phrasing; typed queries come from the box.
+async function ask(followUp, inputMode) {
+  const fromChip = typeof followUp === 'string';
+  if (fromChip && send.disabled) return;           // one request at a time
+  const text = (fromChip ? followUp : q.value).trim();
   if (!text) return;
-  q.value = ''; send.disabled = true;
+  if (!fromChip) q.value = '';
+  send.disabled = true;
   addMsg('Medic', esc(text), 'user');
   const pending = addMsg('EdgeCDSS', '<span class="thinking">consulting guidelines</span>');
   const mode = document.querySelector('input[name=mode]:checked').value;
@@ -743,7 +778,8 @@ async function ask() {
         query: text, device_id: deviceId,
         timestamp: new Date().toISOString(),
         voice_mode: mode, conversation_history: history.slice(-50),
-        model: document.getElementById('model').value
+        model: document.getElementById('model').value,
+        input_mode: (fromChip && inputMode) || 'typed'
       })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -777,6 +813,11 @@ async function ask() {
     decoration('section toggles', function () {
       wireSections(pending);
     });
+    decoration('follow-up chips', function () {
+      pending.querySelectorAll('.chip').forEach(b => {
+        b.onclick = () => ask(b.dataset.q, 'chip');
+      });
+    });
     decoration('feedback controls', function () {
       wireFeedback(pending, text, d.response);
     });
@@ -790,7 +831,7 @@ async function ask() {
   send.disabled = false; q.focus();
   chat.scrollTop = chat.scrollHeight;
 }
-send.onclick = ask;
+send.onclick = () => ask();
 document.getElementById('newpatient').onclick = newPatient;
 q.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }

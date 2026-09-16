@@ -199,5 +199,33 @@ def test_the_feedback_controls_are_unchanged(rendered):
 def test_the_toggles_are_furniture(rendered):
     """Wiring the toggles is decoration: a throw there cannot unrender the answer."""
     html = CLIENT.read_text()
-    body = html.split("async function ask()")[1]
+    body = html.split("async function ask(")[1]
     assert "decoration('section toggles'" in body
+
+
+# ── follow-up chips ──────────────────────────────────────────────────────────
+
+def test_chips_sit_under_the_brief(rendered):
+    bubble = rendered["rsi"]["bubble"]
+    assert '<div class="chips">' in bubble
+    assert bubble.index('<div class="brief">') < bubble.index('<div class="chips">') \
+        < bubble.index("<details")
+    for label in ("Why?", "Contraindications", "Vial math", "Pediatric",
+                  "What to watch", "Full protocol"):
+        assert ">" + label + "</button>" in bubble
+
+
+def test_no_chips_under_a_hold(rendered):
+    assert '<div class="chips">' not in rendered["hold"]["bubble"]
+
+
+def test_a_chip_goes_out_through_the_history_path_tagged_chip(rendered):
+    bodies = rendered["chip_request"]["bodies"]
+    assert len(bodies) == 2
+    typed, chip = bodies
+    assert typed["input_mode"] == "typed"
+    assert chip["input_mode"] == "chip"
+    assert chip["query"] == "Why that dose?"
+    assert [t["query"] for t in chip["conversation_history"]] == \
+        ["RSI an 80kg male trauma patient ketamine and rocuronium"]
+    assert chip["model"] == typed["model"] and chip["voice_mode"] == typed["voice_mode"]

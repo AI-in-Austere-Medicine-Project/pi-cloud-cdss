@@ -11,7 +11,7 @@ import os
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
 from version import __version__
-from openai_client import query_with_rag
+from openai_client import INPUT_MODES, query_with_rag
 import general_reference
 import providers
 import tts
@@ -74,6 +74,17 @@ class QueryRequest(BaseModel):
     conversation_history: list = Field(default_factory=list,
                                        max_length=MAX_HISTORY_TURNS)
     model: str = Field("", max_length=128)  # "" = server default; unknown values fall back to it
+    # How the query was entered: typed, voice, or a brief-first follow-up chip.
+    # Logged, never branched on — a chip's query goes down exactly the path the
+    # same words typed would.
+    input_mode: str = Field("typed", max_length=16)
+
+    @field_validator("input_mode")
+    @classmethod
+    def _known_input_mode(cls, v):
+        if v not in INPUT_MODES:
+            raise ValueError(f"input_mode must be one of {', '.join(INPUT_MODES)}")
+        return v
 
     @field_validator("conversation_history")
     @classmethod
@@ -192,7 +203,8 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             query_with_rag, request.query, chromadb_client,
             voice_mode=(request.voice_mode == "brief"),
             conversation_history=request.conversation_history,
-            synthetic=synthetic, model=request.model or None)
+            synthetic=synthetic, model=request.model or None,
+            input_mode=request.input_mode)
         ms = int((datetime.now() - start).total_seconds() * 1000)
         return QueryResponse(
             response=result["response"],

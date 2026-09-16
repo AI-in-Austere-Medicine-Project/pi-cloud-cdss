@@ -178,7 +178,14 @@ def _get_log_file() -> pathlib.Path:
 # override_fired answers for the gate. Both are null on every non-card answer,
 # present-and-null rather than absent, because absent is indistinguishable
 # from a log written before cards existed.
-LOG_SCHEMA_VERSION = 9
+# Schema 10 adds `input_mode`: how the query was entered — "typed", "voice", or
+# "chip" for a brief-first follow-up chip. Log hygiene like `synthetic`: it is
+# client-declared, and nothing in the pipeline may branch on it.
+LOG_SCHEMA_VERSION = 10
+
+# The input modes /query accepts. Closed, so a typo in a client is a 422 rather
+# than a new category silently appearing in the audit log.
+INPUT_MODES = ("typed", "voice", "chip")
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -206,7 +213,8 @@ def knowledge_source(source_mode: str) -> str:
 
 
 def log_query(query: str, result: dict, conversation_history: list = None,
-              pipeline_ms: Optional[int] = None, synthetic: bool = False):
+              pipeline_ms: Optional[int] = None, synthetic: bool = False,
+              input_mode: str = "typed"):
     """
     Write one structured log entry per query.
     JSONL format — one JSON object per line.
@@ -218,6 +226,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "log_schema": LOG_SCHEMA_VERSION,
             "debug_warn_only": DEBUG_WARN_ONLY,
             "synthetic": bool(synthetic),
+            "input_mode": input_mode,
             "query": query,
             "response_preview": result.get("response", "")[:200],
             "source_mode": result.get("source_mode", "UNKNOWN"),
@@ -5008,7 +5017,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
                    session_ctx: Optional[PatientContext] = None,
                    synthetic: bool = False,
-                   model: Optional[str] = None) -> dict:
+                   model: Optional[str] = None,
+                   input_mode: str = "typed") -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
 
@@ -5032,5 +5042,6 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     result["source"] = knowledge_source(result.get("source_mode", "UNKNOWN"))
     pipeline_ms = int((time.perf_counter() - t0) * 1000)
     log_query(query, result, conversation_history,
-              pipeline_ms=pipeline_ms, synthetic=synthetic)
+              pipeline_ms=pipeline_ms, synthetic=synthetic,
+              input_mode=input_mode)
     return result
