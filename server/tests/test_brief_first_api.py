@@ -104,3 +104,33 @@ def test_an_unknown_input_mode_is_refused(monkeypatch):
     r = post_query(dict(QUERY_BODY, input_mode="autopilot"))
     assert r.status_code == 422
     assert not calls
+
+
+# ── voice ────────────────────────────────────────────────────────────────────
+
+def test_speak_says_the_brief_and_nothing_else(monkeypatch):
+    """The listen button sends the whole response and the brief. Only the brief
+    is synthesized — normalised for speech, and with the general-reference
+    disclosure still applied server-side."""
+    spoken = []
+
+    async def fake_synthesize(text):
+        spoken.append(text)
+        return b"mp3"
+    monkeypatch.setattr(main.tts, "synthesize", fake_synthesize)
+
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),
+                                     base_url="http://testserver") as c:
+            return await c.post("/speak", headers=TOKEN, json={
+                "text": "DO THIS 1. Pre-oxygenate. WATCH SpO2. SOURCE JTS.",
+                "brief": "Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg).",
+                "source": "general"})
+    r = asyncio.run(go())
+    assert r.status_code == 200, r.text
+    assert len(spoken) == 1
+    said = spoken[0]
+    assert "rocuronium" in said and "96" in said
+    assert said.startswith(main.general_reference.SPOKEN_DISCLOSURE)
+    for rest in ("Pre-oxygenate", "WATCH", "SOURCE"):
+        assert rest not in said, f"{rest!r} was spoken; only the brief should be"

@@ -295,10 +295,16 @@ async def speak_endpoint(http_request: Request):
         body = await http_request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Body must be JSON")
+    # Brief first, in the ear as on the screen: when the caller sends the
+    # brief, the brief is what is spoken — nothing else, whatever `text` holds.
+    # Decided here rather than trusted to the client, for the same reason the
+    # disclosure below is. There is no separate "actions" voice mode yet; this
+    # is the default mode, and a caller with no brief is spoken as before.
+    spoken = body.get("brief") or body.get("text", "")
     # The spoken disclosure is applied server-side, not by the client. A client
     # that forgot it would produce a spoken answer with no indication it did not
     # come from JTS — the one thing general reference is not allowed to do.
-    text = general_reference.for_speech(body.get("text", ""), body.get("source", ""))
+    text = general_reference.for_speech(spoken, body.get("source", ""))
     try:
         audio = await tts.synthesize(tts.normalize_for_speech(text))
     except tts.VoiceUnavailable as e:

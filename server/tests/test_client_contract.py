@@ -54,7 +54,7 @@ def test_client_sends_the_source_flag_to_speak():
     indication they did not come from JTS — silently, because the audio still
     plays.
     """
-    assert "JSON.stringify({ text, source })" in HTML
+    assert "JSON.stringify({ text, source, " in HTML or "JSON.stringify({ text, source })" in HTML
 
 
 def test_client_renders_the_attribution_footer():

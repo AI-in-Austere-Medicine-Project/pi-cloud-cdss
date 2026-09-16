@@ -475,7 +475,7 @@ function validatorBadge(v) {
   return '<span class="badge warn">' + esc(v || 'REVIEW') + '</span>';
 }
 
-async function speak(text, btn, source) {
+async function speak(text, btn, source, brief) {
   btn.textContent = '…';
   let url = null;
   try {
@@ -485,7 +485,7 @@ async function speak(text, btn, source) {
                  'X-Access-Token': document.getElementById('token').value },
       // The server prepends the spoken disclosure for source=general. Sending
       // the flag rather than the phrase keeps one definition of the wording.
-      body: JSON.stringify({ text, source })
+      body: JSON.stringify({ text, source, brief: brief || '' })
     });
     if (!r.ok) {
       // The server now says WHY. Surface it instead of a blank failure.
@@ -807,7 +807,10 @@ async function ask(followUp, inputMode) {
     });
     decoration('listen button', function () {
       pending.querySelector('.listen').onclick = function () {
-        speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source);
+        // The brief is what is heard; the server speaks it in preference to
+        // the full text whenever it is sent. An older server sends no brief.
+        speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source,
+              d.brief || '');
       };
     });
     decoration('section toggles', function () {
