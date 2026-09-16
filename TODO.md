@@ -309,6 +309,27 @@ same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/RETRIEVAL_DIA
 - [ ] Fully offline on-device LLM inference (no cloud dependency)
 - [ ] Model evaluation for Jetson-class hardware
 
+## Brief first — follow-ups
+
+- [ ] **Voice branch reads the brief.** The voice work (its "actions" mode) is
+      not on origin at the time of writing. When it lands, the actions mode must
+      speak `brief` and nothing else. `/speak` already prefers a `brief` in the
+      body over `text` (`server/main.py`, pinned by
+      `test_speak_says_the_brief_and_nothing_else`), so the voice branch should
+      send `brief` rather than build its own short form. A second summariser would
+      reintroduce the reworded-dose risk the brief is built to exclude. Voice
+      input should also send `input_mode: "voice"`, which `/query` already
+      accepts.
+- [ ] Owner review of the "critical" rule in `server/brief.py`: recorded
+      contraindications, plus DON'T lines saying "never"/"contraindicated" or
+      naming a dosed drug. It decides what the portal refuses to fold.
+- [ ] New portal screenshots for the release notes. The 4.3 set predates brief-first
+      (see the README screenshot note).
+- [ ] Measure whether the generator's `**BRIEF**` section pushes long RSI-shaped
+      answers into `max_tokens=700` truncation. A truncated tail loses SOURCE first.
+- [ ] Consider logging `brief` (log schema 11). It is now the first thing a
+      medic reads, and `response_preview` (200 chars) cannot reconstruct it.
+
 ## Client
 - [ ] cdss_client.py: send X-Access-Token and conversation_history (currently broken against v4 server)
 - [ ] Test full cdss_client.py on Android via Termux

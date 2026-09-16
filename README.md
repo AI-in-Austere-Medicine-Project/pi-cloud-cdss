@@ -239,6 +239,23 @@ validator and safety gate as every JTS answer.
 general knowledge — dosing questions stay on the ALLOWED_DOSES contract path,
 which either produces a deterministic line or holds.
 
+### Brief first
+
+Every answer leads with a **brief**: at most three lines, lifted from the answer
+itself (a dose copied verbatim from its GIVE line, the next action, and any hold or
+critical contraindication). The full card is still there, one tap below, with each
+section under its own heading. A hold, CONFIRM VIAL, anything the server marks
+critical, and every warning are never folded. Under the brief, follow-up chips
+(Why? · Contraindications · Vial math · Pediatric · What to watch · Full protocol)
+ask the obvious next question through the same conversation. The listen button
+speaks the brief.
+
+> **Screenshot note.** The four 4.3 screenshots in
+> [`web/release-notes-4.3.html`](web/release-notes-4.3.html) (`web/img/v43/`) show
+> the pre-brief portal, with every section of the card expanded. The live portal now
+> shows the brief and chips first, with the sections folded underneath. The clinical
+> content in those screenshots is unchanged. New screenshots have not been taken yet.
+
 ### Patient context and vitals
 
 The system holds what it has been told about the current patient — weight, age,

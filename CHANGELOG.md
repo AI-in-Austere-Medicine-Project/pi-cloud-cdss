@@ -2,6 +2,50 @@
 
 ## [Unreleased]
 
+### Brief first — the answer, then depth on request
+
+A medic under load reads the top of the screen and acts on it. Every response now
+starts with a **brief**: at most three short lines lifted from the response itself.
+The full card is still served, word for word, one tap below. Nothing in this change
+alters what the system decides, what doses it computes, or what the gates block.
+Pre-gates, dose contracts and validators are untouched, and no deterministic card's
+clinical text was shortened or rewritten.
+
+- **`brief` and `critical_sections` on every `/query` response**, from deterministic
+  cards and generated answers alike (`server/brief.py`). The brief is a projection,
+  not a rewrite: every line comes from a section the response already has, and the
+  only words added are joins. A **dose goes in verbatim**: each GIVE /
+  POST-INTUBATION SEDATION / DRIP dose line appears as printed, up to its
+  `Indication:` clause, so `CANONICAL_GIVE_RE` reads the same numbers off the brief
+  as off the card. A candidate line that restates a dose in other words is dropped.
+  A **safety hold, a gate question, a pre-gate refusal headline and every critical
+  contraindication are required lines**: when they overflow three lines they merge
+  onto fewer, and they are never cut. The brief is attached once, after `_finalise`,
+  so it reads exactly what is served and nothing downstream can see it.
+- **"Critical" is structural, not a judgement made at render time**: a
+  CONTRAINDICATIONS item that records something ("None recorded" is a gap, not a
+  contraindication), or a DON'T line that says "never" or "contraindicated", or
+  that names a drug the response is dosing. Owner review of this rule is invited.
+- **Generated answers** are asked for a `**BRIEF**` first section (JTS formats and
+  the general-reference acute format; not in reply to a gate question). When one is
+  written it supplies the optional lines, otherwise the TLDR does. The verbatim dose
+  and the required lines are enforced in code either way.
+- **Portal: brief first, the rest folded.** Every section renders under a one-tap
+  heading. Never folded: a hold, CONFIRM VIAL, anything in `critical_sections`,
+  and every warning (⚠️ headings and lines, notices, the disclaimer). Open/closed
+  is remembered per section in `localStorage`, inside try/catch. Feedback controls
+  are unchanged.
+- **Follow-up chips** under the brief: Why? · Contraindications · Vial math ·
+  Pediatric · What to watch · Full protocol. Each sends a fixed phrasing through the
+  normal history path, tagged `input_mode: "chip"`. The phrasings are pinned so a
+  chip cannot move the patient: "Pediatric dosing?" would have set `is_pediatric`
+  on an adult with no stated age, so the Pediatric chip asks "How does that change
+  for a smaller or younger patient?".
+- **`input_mode`** (`typed` | `voice` | `chip`) on `/query`, logged and never
+  branched on. `log_schema` 9 → **10**.
+- **Voice speaks the brief.** When `/speak` receives `brief`, it synthesizes the
+  brief and nothing else. The general-reference spoken disclosure still applies.
+
 ### What a medic reads now, and what the record keeps — owner rulings 9-12, 2026-08-26
 
 The RSI bundle served **eighteen caution bullets**, several of them paragraphs
