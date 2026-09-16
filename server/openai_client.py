@@ -48,6 +48,7 @@ import json
 import time
 from dataclasses import dataclass, field, asdict, replace as dc_replace
 from typing import Literal, Optional, List
+import brief as brief_mod
 import general_reference
 import providers
 import vent_module
@@ -2514,7 +2515,7 @@ Format: "Draw X mL of Y mg/mL [drug] [route] (Z mg). Indication: [reason]."
 Infusion: "Mix X mg in Y mL NS (Z mg/mL). Start X mL/hr. Target: [goal]."
 
 GATE QUESTION RULE: If the response is a gate question (weight, route, concentration),
-answer ONLY the gate question. Do not add clinical warnings or extra content.
+answer ONLY the gate question. Do not add clinical warnings or extra content, and no BRIEF.
 
 ────────────────────────────────
 SCOPE OF PRACTICE
@@ -2562,6 +2563,11 @@ written, including its confirm-concentration sentence.
 RESPONSE FORMAT — JTS SCOPE
 ────────────────────────────────
 
+**BRIEF** [required, always first — at most 3 short lines, spoken to the medic]
+- [If GIVE has a dose: that GIVE line's drug, dose and route, copied exactly]
+- [The next action]
+- [The one contraindication or hold that must not be missed, if there is one]
+
 **DO THIS**
 1. [Most critical action]
 2. [Second action]
@@ -2600,6 +2606,9 @@ Guideline-based support only. Not a substitute for clinical judgment.
 ────────────────────────────────
 RESPONSE FORMAT — NON-JTS SCOPE
 ────────────────────────────────
+
+**BRIEF** [required, always first — same rules as above]
+- [At most 3 short lines: dose copied exactly if any, next action, what must not be missed]
 
 **[CONDITION]**
 - What it is: [one sentence]
@@ -4457,7 +4466,20 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     state: dict = {}
     result = _run_pipeline(query, chromadb_client, voice_mode,
                            conversation_history, session_ctx, model, state)
-    return _finalise(result, state.get("patient_ctx"))
+    return attach_brief(_finalise(result, state.get("patient_ctx")))
+
+
+def attach_brief(result: dict) -> dict:
+    """Add `brief` and `critical_sections`. Reads the response; changes nothing.
+
+    Last, after _finalise, so the brief is built from exactly the text that is
+    served — stripped volumes, notices and holds included — and so no gate,
+    override or validator ever sees it. Presentation only: see brief.py.
+    """
+    out = brief_mod.build_brief(result.get("response", ""), MEDICATION_TERMS)
+    result["brief"] = out["brief"]
+    result["critical_sections"] = out["critical_sections"]
+    return result
 
 
 def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,

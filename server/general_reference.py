@@ -283,6 +283,10 @@ reference-card shape above is replaced by the action shape below. Everything
 else on this page still applies: no dose for a patient, the referral sentence
 for dosing questions, and the 150-word cap.
 
+**BRIEF** [always first — at most 3 short lines, spoken to the medic; no dose]
+- [The most critical action]
+- [What must not be missed, if anything]
+
 **DO THIS**
 1. [Most critical action]
 2. [Second action]

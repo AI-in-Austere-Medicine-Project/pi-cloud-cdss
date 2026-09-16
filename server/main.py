@@ -105,6 +105,10 @@ class QueryResponse(BaseModel):
     # is not only clearing it at a boundary but showing it the rest of the time.
     patient_context: dict = {}
     vitals_cautions: list = []
+    # Answer first. At most three lines projected from `response` — never new
+    # content, see brief.py — and the section names the client must not fold.
+    brief: str = ""
+    critical_sections: list = []
 
 class FeedbackRequest(BaseModel):
     query: str = Field(..., max_length=MAX_QUERY_CHARS)
@@ -202,7 +206,9 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             model=result.get("model") or "",
             source=result.get("source", ""),
             patient_context=result.get("patient_context") or {},
-            vitals_cautions=result.get("vitals_cautions", [])
+            vitals_cautions=result.get("vitals_cautions", []),
+            brief=result.get("brief") or "",
+            critical_sections=result.get("critical_sections") or []
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
