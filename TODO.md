@@ -369,9 +369,15 @@ same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/RETRIEVAL_DIA
       there. Sonnet/Opus/Gemini/Grok carry reserve_tokens 3000. Unmeasured:
       claude-haiku-4-5 and gpt-4o (reserve 0) — at Sonnet-length (~650-700
       tokens) plus a brief, the disclaimer/SOURCE/TLDR tail could be cut; DON'T
-      has 180-300 tokens behind it and would survive. Nothing checks
-      stop_reason / finish_reason, so a truncation would be served silently.
-- [ ] Consider logging `brief` (log schema 11). It is now the first thing a
+      has 180-300 tokens behind it and would survive.
+      **Flagged since 2026-09-17** (owner decision: flag, not hold): a
+      generator stop at the token limit now prepends a visible notice, logs
+      the issue, downgrades a clean verdict to NEEDS_HUMAN_REVIEW, and logs
+      `generation_truncated` (schema 11). **Still open:** the validator's own
+      max_tokens=300 stop is not flagged; /speak says the brief, so the notice
+      is not spoken; and the rate on haiku-4-5 / gpt-4o is still unmeasured —
+      the schema-11 field makes it countable.
+- [ ] Consider logging `brief` (log schema 12). It is now the first thing a
       medic reads, and `response_preview` (200 chars) cannot reconstruct it.
 
 ## Client
