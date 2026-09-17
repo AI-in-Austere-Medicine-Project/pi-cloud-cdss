@@ -138,14 +138,15 @@ an oversight. Ordered by what v4.1 leaves most exposed.
       pressure is marked in the strip and its age reaches the prompt, but
       nothing refuses to reason about it. Whether an old vital should stop
       arming a caution — and at what age — is a clinical call.
-- [ ] **The Celsius band excludes hypothermia. Needs an owner decision.**
-      `temp` ships with a plausible range of 35-43C and 93-110F. The Fahrenheit
-      band reaches 33.9C, the Celsius band stops at 35, so `temp 33` is rejected
-      as unreadable while `temp 93 F` — the same patient — is stored. It also
-      means `hypothermia_txa` can only arm from a Fahrenheit reading. Lowering
-      `temp.min` in `server/vitals_rules.json` fixes it with no code change; the
-      question is what the floor should be for a trauma population where
-      hypothermia is a real presentation, not a typo.
+- [x] **The Celsius band excluded hypothermia.** Fixed 2026-09-17 by owner
+      decision: `temp` now spans 25-43C and 77-110F (was 35-43C / 93-110F),
+      config only. `temp 33` is stored and arms `hypothermia_txa`. Replaying
+      the 250 distinct logged and feedback queries, none parses a
+      temperature differently.
+      **Carried forward:** the bare `t` label now stores `t 30` as 30C where
+      it used to reject it visibly — no logged query has that shape. The
+      built-in fallback in `vitals.py` still carries 35C / 93F, which only
+      applies if the config fails to load and fails in the rejecting direction.
 - [ ] **No structured vitals entry.** Capture is free-text only, which is what
       was asked for. A dedicated input would remove the parser from the path for
       medics who prefer fields.
@@ -214,6 +215,66 @@ deliberately did NOT touch.
       not the fix; the generator has to stop emitting doses, or the file has to
       start reading them from `drug_contracts.json`.
 
+### Safety gate
+
+- [ ] **Validator invents equipment preconditions and blocks contract-signed doses.**
+      An override attempt (branch `wip/equipment-precondition-override`,
+      discarded 2026-09-17) keyed on drug+route and could pass doses the
+      contract never signed for the situation. A correct fix must key on the
+      signed indication and fail closed when the indication is not signed.
+      Reproduce cases:
+      - `server/feedback.log` line 49 (entry 48, 2026-09-03, device
+        `web-0wfzq4`): query "500mg / 10ml", held with "Response recommends
+        100 mg ketamine IV for sedation without confirming the presence of an
+        infusion pump." Medic: "Strange it held on this - its a safe dose to
+        give." Not in `docs/FEEDBACK_REVIEW_2026-09-03.md` (covers 0–47); the
+        earlier turns were never captured, so the 100 mg came from the
+        generated path and can't be replayed exactly.
+      - Holes the override opened (each must stay blocked under any fix):
+        100 kg, ketamine 100 mg IV "sedation" with no pump established — the
+        bank signs 100 mg only as the pump-available loading dose (ruling 7);
+        50 kg, ketamine 100 mg **IM** — no IM entry signs 100 mg at 50 kg, but
+        the IV induction entry vouched for it because route wasn't compared;
+        50 kg, ketamine 100 mg IV labelled sedation — the signed repeated-bolus
+        sedation dose is 25 mg, the 100 mg is induction; a second dose line
+        outside the canonical "Draw X mL" form (midazolam IV 5 mg, no contract)
+        rode along unchecked.
+      - Tests: `server/tests/test_equipment_precondition.py`. Two xfail
+        (strict) false blocks — the signed no-pump 50 mg bolus at 100 kg held
+        for "no pump", and the 100 mg loading dose held with "infusion pump
+        available" in the history. The four holes above are plain tests that
+        pass today and must keep passing. Note the deterministic check passes
+        all four holes on main; the validator's verdict is the only thing
+        holding them, so the fix cannot lean on `run_deterministic_checks` as
+        it stands.
+
+### Deterministic cards owed
+
+- [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
+      §1, priority entry 9 — "asked for 3 times; does not exist". Entries 0, 26
+      and 38 all wanted the same thing: BP targets, sedation, vent targets,
+      EtCO2 goals for a patient whose tube is already in. Entry 0 asked for it
+      on 07-18 and got a safety block instead.
+      - Severe-TBI generation surfaces SBP target / 3% saline / levetiracetam
+        in ~1 of 5 runs despite correct JTS_GROUNDED retrieval (cos 0.71). The
+        specifics belong in a deterministic TBI management card with SOURCE
+        ID30 — same card as post-intubation TBI. Until then the harness row is
+        a known coin flip.
+      - Measured 2026-09-03 on `severe TBI patient GCS 6 BP 90/60 needs
+        management`, in-process, 5 runs at `c751fab`: 1 emitted "3% hypertonic
+        saline 250-500 mL", 4 did not. Routing is stable and correct every run
+        (`tbi_neurosurgery_deployed_environment`, HIGH), and the router's
+        enhanced query already carries "hypertonic saline / levetiracetam /
+        SBP" — so this is a generation gap, not a retrieval or routing one, and
+        no threshold should be tuned for it. Identical at `dd2ec14`: not
+        introduced by #53.
+      - Citation to confirm when the card is authored: the corpus stores
+        titles, not CPG ids, so ID30 could not be verified from the repo. Note
+        it holds two distinct adult TBI CPGs — "TBI Neurosurgery Deployed
+        Environment" (what the router matches) and "Traumatic Brain Injury
+        PFC". The card should cite whichever actually carries the SBP target,
+        3% saline and levetiracetam text.
+
 ### API hardening
 - [ ] Real rate limiting (per token/IP); remove hardcoded rate_limit_remaining
 - [x] /speak input length cap — `CDSS_SPEAK_MAX_CHARS` (default 2500), enforced in `server/tts.py` before the upstream call
@@ -281,6 +342,37 @@ same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/RETRIEVAL_DIA
 ## Project 02 — EdgeCDSS Offline
 - [ ] Fully offline on-device LLM inference (no cloud dependency)
 - [ ] Model evaluation for Jetson-class hardware
+
+## Brief first — follow-ups
+
+- [ ] **Voice branch reads the brief.** The voice work (its "actions" mode) is
+      not on origin at the time of writing. When it lands, the actions mode must
+      speak `brief` and nothing else. `/speak` already prefers a `brief` in the
+      body over `text` (`server/main.py`, pinned by
+      `test_speak_says_the_brief_and_nothing_else`), so the voice branch should
+      send `brief` rather than build its own short form. A second summariser would
+      reintroduce the reworded-dose risk the brief is built to exclude. Voice
+      input should also send `input_mode: "voice"`, which `/query` already
+      accepts.
+- [ ] Owner review of the "critical" rule in `server/brief.py`: recorded
+      contraindications, plus DON'T lines saying "never"/"contraindicated" or
+      naming a dosed drug. It decides which lines are required in the brief.
+      It no longer decides folding for DON'T, which never folds (owner decision
+      2026-09-17). Headings like "SUCCINYLCHOLINE — CONTRAINDICATED" on a
+      generated answer still fold; decide whether they should.
+- [ ] New portal screenshots for the release notes. The 4.3 set predates brief-first
+      (see the README screenshot note).
+- [ ] Measure whether the generator's `**BRIEF**` section pushes long RSI-shaped
+      answers into `max_tokens=700` truncation. A truncated tail loses SOURCE first.
+      Measured 2026-09-17 from the eval harness: gpt-4o-mini (the default, no
+      reserve) peaked at 311 output tokens including the validator, so no risk
+      there. Sonnet/Opus/Gemini/Grok carry reserve_tokens 3000. Unmeasured:
+      claude-haiku-4-5 and gpt-4o (reserve 0) — at Sonnet-length (~650-700
+      tokens) plus a brief, the disclaimer/SOURCE/TLDR tail could be cut; DON'T
+      has 180-300 tokens behind it and would survive. Nothing checks
+      stop_reason / finish_reason, so a truncation would be served silently.
+- [ ] Consider logging `brief` (log schema 11). It is now the first thing a
+      medic reads, and `response_preview` (200 chars) cannot reconstruct it.
 
 ## Client
 - [ ] cdss_client.py: send X-Access-Token and conversation_history (currently broken against v4 server)

@@ -254,12 +254,69 @@ def test_ordinary_words_do_not_route_as_shock(text):
     "he is in shock",
     "patient was shocked twice",                  # inflections still count
     "poor perfusion",
-    "altered mental status",
     "MAP 55",
     "BP 82/40",
 ])
 def test_real_shock_language_still_routes(text):
     assert has_hypotension_or_shock(text) is True, text
+
+
+@pytest.mark.parametrize("text", [
+    "altered mental status",
+    "patient is altered",
+    "6 year old, fever and altered",
+    "AMS, GCS 12",
+])
+def test_altered_mental_status_is_not_a_hemodynamic_finding(text):
+    """Entry 16 of the 2026-09-03 feedback review, reversed.
+
+    "altered" and "ams" were shock words, so "6 year old, fever and altered"
+    was a complete sepsis presentation to looks_like_sepsis — fever for the
+    infection, the word "altered" for the shock — and the child got the sepsis
+    card, tagged "Contradicts current CPG".
+
+    Altered mental status in a febrile child is a DIFFERENTIAL, not a
+    diagnosis: hypoglycaemia, meningitis, a post-ictal state, sepsis. The
+    signal is not lost — extract_patient_context still records ctx.ams_stated
+    through has_ams_descriptor(), which is where mental status belongs.
+    """
+    assert has_hypotension_or_shock(text) is False, text
+
+
+@pytest.mark.parametrize("text,expected", [
+    # A stated number outranks a word, in both directions.
+    ("septic shock, BP 110/70", False),
+    ("hypotensive earlier, BP 118/72 now", False),
+    ("altered, BP 110/70", False),
+    ("altered, BP 70/40, HR 140", True),
+    ("in shock, BP 88/50", True),
+    # No number stated: word evidence still decides.
+    ("patient is hypotensive", True),
+    ("he is in shock", True),
+])
+def test_a_documented_bp_outranks_shock_words(text, expected):
+    assert has_hypotension_or_shock(text) is expected, text
+
+
+@pytest.mark.parametrize("query,expected", [
+    ("6 year old, fever and altered, BP 110/70", False),
+    ("6 year old, fever and altered", False),
+    ("fever, altered, BP 70/40, HR 140", True),
+])
+def test_entry_16_no_longer_reaches_the_sepsis_card(query, expected):
+    """The gate condition for step 2h, end of the chain: fever still supplies
+    the infection, and only real hemodynamic evidence supplies the shock."""
+    assert looks_like_sepsis(query) is expected, query
+
+
+def test_the_sepsis_card_says_where_it_came_from():
+    """It shipped as DETERMINISTIC_CHECKED with no SOURCE line — an assertion
+    of a diagnosis and a treatment, presented as checked, citing nothing."""
+    import openai_client as _oc
+    text = _oc.build_sepsis_management_response()
+    assert "**SOURCE**" in text
+    assert "Sepsis Management in Prolonged Field Care" in text
+    assert "ID83" in text
 
 
 def test_a_dose_in_grams_no_longer_routes_a_casualty_as_septic():

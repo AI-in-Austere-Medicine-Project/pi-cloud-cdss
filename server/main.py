@@ -11,7 +11,7 @@ import os
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
 from version import __version__
-from openai_client import query_with_rag
+from openai_client import INPUT_MODES, query_with_rag
 import general_reference
 import providers
 import tts
@@ -74,6 +74,17 @@ class QueryRequest(BaseModel):
     conversation_history: list = Field(default_factory=list,
                                        max_length=MAX_HISTORY_TURNS)
     model: str = Field("", max_length=128)  # "" = server default; unknown values fall back to it
+    # How the query was entered: typed, voice, or a brief-first follow-up chip.
+    # Logged, never branched on — a chip's query goes down exactly the path the
+    # same words typed would.
+    input_mode: str = Field("typed", max_length=16)
+
+    @field_validator("input_mode")
+    @classmethod
+    def _known_input_mode(cls, v):
+        if v not in INPUT_MODES:
+            raise ValueError(f"input_mode must be one of {', '.join(INPUT_MODES)}")
+        return v
 
     @field_validator("conversation_history")
     @classmethod
@@ -105,6 +116,10 @@ class QueryResponse(BaseModel):
     # is not only clearing it at a boundary but showing it the rest of the time.
     patient_context: dict = {}
     vitals_cautions: list = []
+    # Answer first. At most three lines projected from `response` — never new
+    # content, see brief.py — and the section names the client must not fold.
+    brief: str = ""
+    critical_sections: list = []
 
 class FeedbackRequest(BaseModel):
     query: str = Field(..., max_length=MAX_QUERY_CHARS)
@@ -188,7 +203,8 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             query_with_rag, request.query, chromadb_client,
             voice_mode=(request.voice_mode == "brief"),
             conversation_history=request.conversation_history,
-            synthetic=synthetic, model=request.model or None)
+            synthetic=synthetic, model=request.model or None,
+            input_mode=request.input_mode)
         ms = int((datetime.now() - start).total_seconds() * 1000)
         return QueryResponse(
             response=result["response"],
@@ -202,7 +218,9 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             model=result.get("model") or "",
             source=result.get("source", ""),
             patient_context=result.get("patient_context") or {},
-            vitals_cautions=result.get("vitals_cautions", [])
+            vitals_cautions=result.get("vitals_cautions", []),
+            brief=result.get("brief") or "",
+            critical_sections=result.get("critical_sections") or []
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -277,10 +295,16 @@ async def speak_endpoint(http_request: Request):
         body = await http_request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Body must be JSON")
+    # Brief first, in the ear as on the screen: when the caller sends the
+    # brief, the brief is what is spoken — nothing else, whatever `text` holds.
+    # Decided here rather than trusted to the client, for the same reason the
+    # disclosure below is. There is no separate "actions" voice mode yet; this
+    # is the default mode, and a caller with no brief is spoken as before.
+    spoken = body.get("brief") or body.get("text", "")
     # The spoken disclosure is applied server-side, not by the client. A client
     # that forgot it would produce a spoken answer with no indication it did not
     # come from JTS — the one thing general reference is not allowed to do.
-    text = general_reference.for_speech(body.get("text", ""), body.get("source", ""))
+    text = general_reference.for_speech(spoken, body.get("source", ""))
     try:
         audio = await tts.synthesize(tts.normalize_for_speech(text))
     except tts.VoiceUnavailable as e:

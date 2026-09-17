@@ -229,6 +229,22 @@ def test_synthetic_does_not_alter_pipeline():
         assert entry_on[field] == entry_off[field], field
 
 
+def test_input_mode_is_logged():
+    entry, _ = run_and_read(_RecordingInternal(), input_mode="chip")
+    assert entry["input_mode"] == "chip"
+
+
+def test_input_mode_does_not_alter_pipeline():
+    """Same rule as synthetic: client-declared, so it must never grow teeth. A
+    chip's words go down exactly the path the same words typed would."""
+    chip, typed = _RecordingInternal(), _RecordingInternal()
+    _, result_chip = run_and_read(chip, input_mode="chip")
+    _, result_typed = run_and_read(typed, input_mode="typed")
+    assert chip.calls == typed.calls, "input_mode must not reach the pipeline"
+    assert all("input_mode" not in kwargs for _args, kwargs in chip.calls)
+    assert result_chip == result_typed
+
+
 def test_run_tests_sends_the_synthetic_header():
     """The half that actually keeps the production log clean.
 
@@ -247,7 +263,7 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 9
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 10
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):
@@ -271,6 +287,8 @@ def test_log_schema_version_is_stamped():
     for field in ("card_id", "card_version"):
         assert field in entry, f"schema 9 must carry {field}"
         assert entry[field] is None
+    # Schema 10: how the query was entered. Defaults to "typed", never absent.
+    assert entry["input_mode"] == "typed", "schema 10 must carry input_mode"
 
 
 def test_schema_5_logs_a_temperature_in_the_unit_it_was_stated_in():

@@ -2,6 +2,73 @@
 
 ## [Unreleased]
 
+### Brief first — the answer, then depth on request
+
+A medic under load reads the top of the screen and acts on it. Every response now
+starts with a **brief**: at most three short lines lifted from the response itself.
+The full card is still served, word for word, one tap below. Nothing in this change
+alters what the system decides, what doses it computes, or what the gates block.
+Pre-gates, dose contracts and validators are untouched, and no deterministic card's
+clinical text was shortened or rewritten.
+
+- **`brief` and `critical_sections` on every `/query` response**, from deterministic
+  cards and generated answers alike (`server/brief.py`). The brief is a projection,
+  not a rewrite: every line comes from a section the response already has, and the
+  only words added are joins. A **dose goes in verbatim**: each GIVE /
+  POST-INTUBATION SEDATION / DRIP dose line appears as printed, up to its
+  `Indication:` clause, so `CANONICAL_GIVE_RE` reads the same numbers off the brief
+  as off the card. A candidate line that restates a dose in other words is dropped.
+  When the brief carries **more than one dose, each says what it is for**, in
+  brackets, from its own Indication clause (or its section's name when it has
+  none): RSI reads `[RSI induction] ketamine IV: 160 mg` and
+  `[post-intubation sedation — repeated bolus (no infusion pump)] ketamine IV:
+  40 mg`, not two bare ketamine doses side by side.
+  A **safety hold, a gate question, a pre-gate refusal headline and every critical
+  contraindication are required lines**: when they overflow three lines they merge
+  onto fewer, and they are never cut. The brief is attached once, after `_finalise`,
+  so it reads exactly what is served and nothing downstream can see it.
+- **"Critical" is structural, not a judgement made at render time**: a
+  CONTRAINDICATIONS item that records something ("None recorded" is a gap, not a
+  contraindication), or a DON'T line that says "never" or "contraindicated", or
+  that names a drug the response is dosing. It decides which lines are REQUIRED in
+  the brief. It does not decide whether DON'T folds: **DON'T never folds**. Across
+  the fixed cards and 124 real Sonnet 5 answers from the eval harness, the
+  "never"/dosed-drug rule left 74 DON'T lines folded in 73 of 133 responses —
+  "Don't give succinylcholine if any concern for hyperkalemia or crush injury"
+  among them — because models write "Don't", not "never". Owner review of the
+  brief rule is still invited.
+- **Generated answers** are asked for a `**BRIEF**` first section (JTS formats and
+  the general-reference acute format; not in reply to a gate question). When one is
+  written it supplies the optional lines, otherwise the TLDR does. The verbatim dose
+  and the required lines are enforced in code either way.
+- **Portal: brief first, the rest folded.** Every section renders under a one-tap
+  heading. Never folded: a hold, CONFIRM VIAL, DON'T (the server lists every
+  non-empty DON'T in `critical_sections`, and the client keeps it open on its own
+  rule too), anything else in `critical_sections`,
+  and every warning (⚠️ headings and lines, notices, the disclaimer). Open/closed
+  is remembered per section in `localStorage`, inside try/catch. Feedback controls
+  are unchanged.
+- **Follow-up chips** under the brief: Why? · Contraindications · Vial math ·
+  Pediatric · What to watch · Full protocol. Each sends a fixed phrasing through the
+  normal history path, tagged `input_mode: "chip"`. The phrasings are pinned so a
+  chip cannot move the patient: "Pediatric dosing?" would have set `is_pediatric`
+  on an adult with no stated age, so the Pediatric chip asks "How does that change
+  for a smaller or younger patient?".
+- **`input_mode`** (`typed` | `voice` | `chip`) on `/query`, logged and never
+  branched on. `log_schema` 9 → **10**.
+- **Voice speaks the brief.** When `/speak` receives `brief`, it synthesizes the
+  brief and nothing else. The general-reference spoken disclosure still applies.
+
+### Hypothermia reads in Celsius — owner decision, 2026-09-17
+
+- **`temp` spans 25-43C and 77-110F** (was 35-43C / 93-110F), in
+  `server/vitals_rules.json` with no code change. "temp 33" was rejected as
+  unreadable while "temp 93 F", the same patient, was stored, so
+  `hypothermia_txa` could only arm from Fahrenheit. It now arms from either.
+  The two floors are the same temperature and the bands still do not overlap.
+  None of the 250 distinct logged and feedback queries parses a temperature
+  differently.
+
 ### What a medic reads now, and what the record keeps — owner rulings 9-12, 2026-08-26
 
 The RSI bundle served **eighteen caution bullets**, several of them paragraphs

@@ -1,0 +1,286 @@
+{
+  "schema_version": "1.0.0",
+  "kit_id": "example-unsigned",
+  "_comment": [
+    "EdgeCDSS — CONCENTRATION MASTER LIST, UNSIGNED EXAMPLE.",
+    "",
+    "This is a TEMPLATE, not a live file. Nothing here is loaded at runtime:",
+    "drug_concentrations.py reads drug_concentrations.json and nothing else.",
+    "",
+    "TO USE IT, in server/:",
+    "",
+    "    cp drug_concentrations.example.json drug_concentrations.json",
+    "    python3 tools/set_concentration.py --list",
+    "    python3 tools/set_concentration.py --drug ketamine \\",
+    "            --sign \"500 mg / 10 mL vial\" --by <signer> --date <YYYY-MM-DD>",
+    "",
+    "drug_concentrations.json is gitignored, deliberately. A signed",
+    "concentration is a claim about ONE physical kit — what is in THIS bag —",
+    "and committing one deployment's signatures would make every clone assert",
+    "vials it does not have. That is the exact failure the signoff gate exists",
+    "to prevent, so the live file is deployment state, not source. Back it up",
+    "with scripts/backup_deployment_state.sh; see docs/RECOVERY.md.",
+    "",
+    "EVERY PRESENTATION HERE SHIPS signoff:false. Until a clinician signs, the",
+    "system serves milligram doses and NO VOLUMES AT ALL. That is the intended",
+    "resting state: it ends the 2.5x succinylcholine volume error on copy",
+    "rather than on signature.",
+    "",
+    "The presentations below are the shapes a deployment is likely to stock,",
+    "carried over from the reference kit as a starting point. THEY ARE NOT AN",
+    "INVENTORY. Delete what you do not carry, declare what you do (--declare),",
+    "and sign only what you have physically read off the vial.",
+    "",
+    "A presentation is declared the way the vial is LABELLED — mass_mg and",
+    "volume_ml — and concentration_mg_ml is derived from them. The loader",
+    "refuses any presentation where the two disagree, which is what catches a",
+    "transcription slip.",
+    "",
+    "TO REVOKE: set signoff false. That needs no signature. Revoking is always",
+    "safe because it degrades to mg-only; declaring is what needs authority.",
+    "",
+    "confirm_required: true means ALWAYS ask which vial, even if only one is",
+    "declared. Set it where guessing wrong is expensive."
+  ],
+  "guardrails": {
+    "absolute_range_mg_ml": [
+      0.001,
+      1000.0
+    ],
+    "order_of_magnitude_factor": 10.0,
+    "_note": "Tier 1 is structural: a value outside the absolute range is a unit error, not a vial. Tier 2 compares against the strengths the approved sources cite for that drug in drug_contracts.json forms[] — a declaration more than 10x away from every one of them is refused, because that is the shape of a decimal slip. Drugs no approved source lists (rocuronium) get tier 1 only, and are marked NO_SOURCED_STRENGTH so the weaker protection is visible rather than assumed."
+  },
+  "entries": [
+    {
+      "generic_name": "ketamine",
+      "confirm_required": true,
+      "confirm_reason": "Both presentations are common and they differ five-fold. The owner set this drug to always ask rather than assume, because a wrong guess here is a 5x error on an induction agent.",
+      "presentations": [
+        {
+          "label_text": "500 mg / 10 mL vial",
+          "mass_mg": 500.0,
+          "volume_ml": 10.0,
+          "concentration_mg_ml": 50.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.6 lists ketamine injection at 10 mg/mL and 50 mg/mL. This is the 50 mg/mL presentation.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        },
+        {
+          "label_text": "200 mg / 20 mL vial",
+          "mass_mg": 200.0,
+          "volume_ml": 20.0,
+          "concentration_mg_ml": 10.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.6 lists ketamine injection at 10 mg/mL and 50 mg/mL. This is the 10 mg/mL presentation.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "succinylcholine",
+      "confirm_required": false,
+      "presentations": [
+        {
+          "label_text": "100 mg / 2 mL ampoule",
+          "mass_mg": 100.0,
+          "volume_ml": 2.0,
+          "concentration_mg_ml": 50.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.57 lists suxamethonium injection at 50 mg/mL (chloride) in a 2 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "rocuronium",
+      "confirm_required": false,
+      "presentations": [
+        {
+          "label_text": "100 mg / 10 mL vial",
+          "mass_mg": 100.0,
+          "volume_ml": 10.0,
+          "concentration_mg_ml": 10.0,
+          "source_note": "NOT ON THE WHO EML and absent from NASEMSO v3.0 — neither approved source cites a rocuronium strength, so this declaration has no source corroboration and the order-of-magnitude guardrail cannot protect it.",
+          "justification": "Owner declaration: 100 mg/10 mL is the standard stocked presentation. Accepted with justification because no approved source lists rocuronium at all; this is the least-corroborated entry in the list.",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "lorazepam",
+      "confirm_required": false,
+      "presentations": [
+        {
+          "label_text": "4 mg / 2 mL ampoule",
+          "mass_mg": 4.0,
+          "volume_ml": 2.0,
+          "concentration_mg_ml": 2.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.10 lists lorazepam injection at 2 mg/mL in a 1 mL ampoule and 4 mg/mL in a 1 mL ampoule. This is the 2 mg/mL presentation, which also matches the value the pre-contract calculator used.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "epinephrine",
+      "confirm_required": false,
+      "presentations": [
+        {
+          "label_text": "1 mg / 1 mL ampoule",
+          "mass_mg": 1.0,
+          "volume_ml": 1.0,
+          "concentration_mg_ml": 1.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.9 lists epinephrine injection at 1 mg/mL in a 1 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "tranexamic acid",
+      "confirm_required": false,
+      "presentations": [
+        {
+          "label_text": "1000 mg / 10 mL ampoule",
+          "mass_mg": 1000.0,
+          "volume_ml": 10.0,
+          "concentration_mg_ml": 100.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.42 lists tranexamic acid injection at 100 mg/mL in a 10 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "naloxone",
+      "confirm_required": false,
+      "presentations": [
+        {
+          "label_text": "0.4 mg / 1 mL ampoule",
+          "mass_mg": 0.4,
+          "volume_ml": 1.0,
+          "concentration_mg_ml": 0.4,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.9 lists naloxone injection at 400 micrograms (hydrochloride) in a 1 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "calcium gluconate",
+      "confirm_required": false,
+      "presentations": [
+        {
+          "label_text": "1000 mg / 10 mL ampoule",
+          "mass_mg": 1000.0,
+          "volume_ml": 10.0,
+          "concentration_mg_ml": 100.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.9 lists calcium gluconate injection at 100 mg/mL (10%) in a 10 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "morphine",
+      "confirm_required": true,
+      "confirm_reason": "WHO lists three injection strengths and this deployment has not narrowed it, so the vial must be named before a volume can be computed.",
+      "presentations": [
+        {
+          "label_text": "10 mg / 1 mL ampoule",
+          "mass_mg": 10.0,
+          "volume_ml": 1.0,
+          "concentration_mg_ml": 10.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.7 lists morphine injection at 1 mg/mL, 2 mg/mL and 10 mg/mL in a 1 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        },
+        {
+          "label_text": "2 mg / 1 mL ampoule",
+          "mass_mg": 2.0,
+          "volume_ml": 1.0,
+          "concentration_mg_ml": 2.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.7 lists morphine injection at 1 mg/mL, 2 mg/mL and 10 mg/mL in a 1 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        },
+        {
+          "label_text": "1 mg / 1 mL ampoule",
+          "mass_mg": 1.0,
+          "volume_ml": 1.0,
+          "concentration_mg_ml": 1.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.7 lists morphine injection at 1 mg/mL, 2 mg/mL and 10 mg/mL in a 1 mL ampoule.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "midazolam",
+      "confirm_required": true,
+      "confirm_reason": "WHO lists two injection strengths differing five-fold; the vial must be named.",
+      "presentations": [
+        {
+          "label_text": "5 mg / 1 mL vial",
+          "mass_mg": 5.0,
+          "volume_ml": 1.0,
+          "concentration_mg_ml": 5.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.6 lists midazolam injection at 1 mg/mL in a 5 mL vial and 5 mg/mL in a 1 mL or 3 mL vial.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        },
+        {
+          "label_text": "5 mg / 5 mL vial",
+          "mass_mg": 5.0,
+          "volume_ml": 5.0,
+          "concentration_mg_ml": 1.0,
+          "source_note": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 p.6 lists midazolam injection at 1 mg/mL in a 5 mL vial and 5 mg/mL in a 1 mL or 3 mL vial.",
+          "justification": null,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": null,
+          "version": "0.1.0-draft"
+        }
+      ]
+    }
+  ]
+}
