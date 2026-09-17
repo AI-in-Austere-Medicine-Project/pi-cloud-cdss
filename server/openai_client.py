@@ -178,10 +178,14 @@ def _get_log_file() -> pathlib.Path:
 # override_fired answers for the gate. Both are null on every non-card answer,
 # present-and-null rather than absent, because absent is indistinguishable
 # from a log written before cards existed.
+# Schema 11 adds `generation_truncated`: true when the generator stopped at its
+# token limit, false when it finished, null when no model wrote the text or the
+# provider did not say. A truncated answer loses the END of its format first,
+# which is where DON'T, EVAC IF, TLDR and SOURCE sit.
 # Schema 10 adds `input_mode`: how the query was entered — "typed", "voice", or
 # "chip" for a brief-first follow-up chip. Log hygiene like `synthetic`: it is
 # client-declared, and nothing in the pipeline may branch on it.
-LOG_SCHEMA_VERSION = 10
+LOG_SCHEMA_VERSION = 11
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -251,6 +255,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "vitals_rejected": (result.get("patient_context") or {}).get(
                 "vitals_rejected", []),
             "vitals_cautions": result.get("vitals_cautions", []),
+            "generation_truncated": result.get("generation_truncated"),
             "pipeline_ms": pipeline_ms,
             "history_turns": len(conversation_history) if conversation_history else 0,
             "patient_ctx": {
@@ -2774,6 +2779,14 @@ CANONICAL_GIVE_RE = (
 )
 
 
+TRUNCATED_NOTICE = (
+    "⚠️ This answer was cut off at its length limit. Anything after the cut — "
+    "DON'T, EVAC IF, TLDR or SOURCE — may be missing. Ask again for the part you "
+    "need, and use local protocol.\n\n")
+TRUNCATED_ISSUE = ("Generated response stopped at the token limit; content after "
+                   "the cut is missing.")
+
+
 VOLUME_STRIPPED_NOTICE = (
     "⚠️ A dose volume in this response could not be verified against the "
     "confirmed concentration and has been removed. The milligram dose stands. "
@@ -4441,6 +4454,18 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
         if result.get("validator_result") in CLEAN_VERDICTS:
             result["validator_result"] = "NEEDS_HUMAN_REVIEW"
 
+    # A generated answer cut off at its token limit is FLAGGED, not held (owner
+    # decision 2026-09-17): what arrived passed the gate, and a partial protocol
+    # answer beats none. Same shape as the volume audit above — a notice, the
+    # issue logged, a clean verdict downgraded to review, never escalated. A
+    # hold replaced the text, so there is nothing cut off to warn about; the
+    # flag is still logged.
+    if result.get("generation_truncated") and result.get("validator_result") != "UNSAFE":
+        result["response"] = TRUNCATED_NOTICE + result.get("response", "")
+        result["validator_issues"] = list(result.get("validator_issues") or []) + [TRUNCATED_ISSUE]
+        if result.get("validator_result") in CLEAN_VERDICTS:
+            result["validator_result"] = "NEEDS_HUMAN_REVIEW"
+
     if ctx is None:
         return result
 
@@ -4934,10 +4959,13 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         messages.append({"role": "user", "content": f"Clinical query: {query}"})
         transcript_lines.append(f"CURRENT USER: {query}")
 
+        providers.reset_truncation()
         response_text = providers.chat(
             system_prompt, messages,
             model=model, temperature=0.2, max_tokens=700,
         )
+        # Now, before the validator's own chat() overwrites it.
+        generation_truncated = providers.last_chat_truncated()
 
         # Step 6: Deterministic post-checks use full history.
         det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
@@ -4990,6 +5018,9 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "model": model_label(model),
             "validator_result": outcome.verdict,
             "validator_issues": outcome.issues,
+            # Captured straight after the generator call; acted on in _finalise
+            # with the other post-gate flags.
+            "generation_truncated": generation_truncated,
             "override_fired": outcome.override_fired,
             "review_suppressed": outcome.review_suppressed,
             "boundary_reset": patient_ctx.boundary_reset_reason,

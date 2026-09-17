@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### A cut-off answer is flagged, not served as whole — owner decision, 2026-09-17
+
+- **Token-limit stops are detected.** The generator runs under
+  `max_tokens=700`, and a model that runs out simply stops. The format puts
+  DON'T, EVAC IF, TLDR, SOURCE and the disclaimer last, so those went first,
+  and nothing noticed. `providers.chat()` now records whether the call stopped
+  at its limit (`finish_reason == "length"` on the OpenAI-compatible adapter,
+  `stop_reason == "max_tokens"` on Anthropic) in a context variable, read with
+  `providers.last_chat_truncated()`. `chat()` still returns only the text, so
+  every caller and the eval harness's wrapper are unchanged.
+- **Flagged, not held.** The pipeline captures the generator's stop before the
+  validator's own call overwrites it. `_finalise` then does what the volume
+  audit does: a visible `⚠️` notice ahead of the answer, the issue in
+  `validator_issues`, and a SAFE verdict downgraded to NEEDS_HUMAN_REVIEW, never
+  escalated to a block. A hold gets no notice, because its text replaced the
+  answer. The brief does not read the notice as the answer.
+- **`generation_truncated` in the log**: true, false, or null when no model
+  wrote the text or the provider did not say. `log_schema` 10 → **11**.
+
 ### Brief first — the answer, then depth on request
 
 A medic under load reads the top of the screen and acts on it. Every response now

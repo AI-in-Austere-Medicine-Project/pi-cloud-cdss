@@ -33,6 +33,7 @@ as a top-level parameter rather than a message, and current Claude models reject
 the ModelSpec flags that describe them.
 """
 
+import contextvars
 import json
 import os
 import re
@@ -412,6 +413,33 @@ def _anthropic_client(provider_id: str):
     return client
 
 
+# Whether the most recent chat() in this context stopped at its token limit:
+# True, False, or None when the provider did not say or no call has been made.
+# A context variable, not a return value, so chat() still returns the text and
+# every caller and stand-in that treats it as a string keeps working — the eval
+# harness wraps chat() and passes its result straight through. A ContextVar
+# rather than a global so two requests in two threads cannot read each other's.
+_TRUNCATED = contextvars.ContextVar("edgecdss_chat_truncated", default=None)
+
+
+def last_chat_truncated() -> Optional[bool]:
+    """Did the last chat() here stop because it ran out of tokens?
+
+    A truncated answer is served silently otherwise: the text simply ends, and
+    whatever the format put last — DON'T, EVAC IF, TLDR, SOURCE, the
+    disclaimer — is not there. Read it immediately after the call it describes;
+    the next chat() overwrites it.
+    """
+    return _TRUNCATED.get()
+
+
+def reset_truncation() -> None:
+    """Forget the last call. For callers that read last_chat_truncated() after
+    a chat() that may be a stand-in, so a real call's answer cannot leak into
+    a later one that never reported."""
+    _TRUNCATED.set(None)
+
+
 def _reset_clients():
     """Drop cached clients so a changed key or base_url is picked up. Tests only."""
     with _client_lock:
@@ -427,7 +455,10 @@ def _chat_openai_compat(spec: ModelSpec, system: str, messages: list,
     if spec.supports_temperature:
         kwargs["temperature"] = temperature
     result = client.chat.completions.create(**kwargs)
-    return (result.choices[0].message.content or "").strip()
+    choice = result.choices[0]
+    finish = getattr(choice, "finish_reason", None)
+    _TRUNCATED.set(None if finish is None else finish == "length")
+    return (choice.message.content or "").strip()
 
 
 @lru_cache(maxsize=1)
@@ -475,6 +506,8 @@ def _chat_anthropic(spec: ModelSpec, system: str, messages: list,
     if spec.effort:
         kwargs["output_config"] = {"effort": spec.effort}
     result = client.messages.create(**kwargs)
+    stop = getattr(result, "stop_reason", None)
+    _TRUNCATED.set(None if stop is None else stop == "max_tokens")
     # content is a list of blocks — thinking blocks come first on models that
     # think, and only text blocks carry the answer.
     return "".join(b.text for b in result.content if getattr(b, "type", "") == "text").strip()
@@ -498,6 +531,7 @@ def chat(system: str, messages: list, *, model: str,
     `temperature` is a request, not a guarantee: models that reject sampling
     parameters (Claude Opus 5, Sonnet 5) drop it. See models[].supports_temperature.
     """
+    _TRUNCATED.set(None)
     spec = MODELS.get(model)
     if spec is None:
         raise ProviderUnavailable(f"unknown model {model!r}")
