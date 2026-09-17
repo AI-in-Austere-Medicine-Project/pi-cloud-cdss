@@ -238,6 +238,14 @@ deliberately did NOT touch.
         sedation dose is 25 mg, the 100 mg is induction; a second dose line
         outside the canonical "Draw X mL" form (midazolam IV 5 mg, no contract)
         rode along unchecked.
+      - Tests: `server/tests/test_equipment_precondition.py`. Two xfail
+        (strict) false blocks — the signed no-pump 50 mg bolus at 100 kg held
+        for "no pump", and the 100 mg loading dose held with "infusion pump
+        available" in the history. The four holes above are plain tests that
+        pass today and must keep passing. Note the deterministic check passes
+        all four holes on main; the validator's verdict is the only thing
+        holding them, so the fix cannot lean on `run_deterministic_checks` as
+        it stands.
 
 ### Deterministic cards owed
 
