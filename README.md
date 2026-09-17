@@ -242,8 +242,11 @@ which either produces a deterministic line or holds.
 ### Brief first
 
 Every answer leads with a **brief**: at most three lines, lifted from the answer
-itself (a dose copied verbatim from its GIVE line, the next action, and any hold or
-critical contraindication). The full card is still there, one tap below, with each
+itself — the dose copied verbatim from its GIVE line with the per-kg basis it was
+computed from, the card's next action, and a contraindication specific to this
+indication (or a hold, which is the whole brief). Where one vial is signed and the
+card is still asking which, the brief says what the dose would be: "At 50 mg/mL
+that's 0.12 mL — confirm vial". The full card is still there, one tap below, with each
 section under its own heading. A hold, CONFIRM VIAL, DON'T, anything the server
 marks critical, and every warning are never folded. When the brief carries more than
 one dose, each is labelled with what it is for. Under the brief, follow-up chips

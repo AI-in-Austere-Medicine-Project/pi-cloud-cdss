@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+### The brief reads like a card, not a template — 2026-09-17
+
+Format only. No new clinical claim: every sentence is text the card already
+carries, or a value computed from what the card computed its dose from.
+
+- **Three slots when the response doses**: (a) the GIVE line verbatim, followed
+  by the per-kg basis when the dose was weight-computed — `ketamine IV: 6.25 mg
+  (0.25 mg/kg × 25 kg)`; (b) the card's first real next action, skipping
+  equipment preamble ("Confirm monitoring and airway equipment ready.") and a
+  restated "Give <the dosed drug>", falling back to WATCH; (c) a
+  contraindication only when it is specific to the indication.
+- **The basis is recomputed, never parsed.** It comes from the signed contract
+  entry for that drug, route and indication at the confirmed weight, and is
+  shown only when the recomputation reproduces the printed dose exactly. A
+  capped dose, a reworded indication or an unconfirmed weight gets none.
+- **A conditional volume where the card has none.** With exactly one signed
+  presentation, a no-volume dose line reads "At 50 mg/mL that's 0.12 mL —
+  confirm vial", using `drug_concentrations.single_signed_volume()` — the same
+  arithmetic, syringe rounding and drawable bounds as every served volume, so
+  it cannot differ from what the card prints once the vial is confirmed. Zero
+  or several signed presentations, or an undrawable volume, keep the card's own
+  reason. **The GIVE line and the CONFIRM VIAL block are unchanged.**
+- **Hypersensitivity and allergy are boilerplate** and no longer reach a brief
+  or mark CONTRAINDICATIONS critical; they stay in the section, which folds.
+  A specific one ("Cardiac dilatation", "Traumatic brain injury") still leads.
+- **Sentence case.** "NO VOLUME" is gone from briefs entirely; a shouted word is
+  lowercased and an acronym is not (IV, TBI, PEEP, CICO, ETCO2, CRASH).
+- **Follow-up chips are separated in the markup.** The flex gap already spaced
+  them on screen — checked in headless Chromium at 390 px — but the buttons had
+  no whitespace between them, so copied text read
+  "Why?ContraindicationsVial math". Layout unchanged.
+
 ### A cut-off answer is flagged, not served as whole — owner decision, 2026-09-17
 
 - **Token-limit stops are detected.** The generator runs under
