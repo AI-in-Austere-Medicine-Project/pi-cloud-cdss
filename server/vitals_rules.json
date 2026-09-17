@@ -54,10 +54,10 @@
     "          104 F is shown 104 F — and carries both conversions. Only the",
     "          canonical Celsius value is compared against the table below.",
     "",
-    "          NOTE: min 35 excludes hypothermia stated in Celsius. 'temp 33' is",
-    "          rejected, and hypothermia_txa can then only arm from a Fahrenheit",
-    "          reading (93-94.9F is 33.9-34.9C). Lowering temp.min here restores",
-    "          it with no code change.",
+    "          The floors are 25C and 77F, the same temperature, so hypothermia",
+    "          reads in either unit and hypothermia_txa arms from both. They",
+    "          were 35C / 93F, which rejected 'temp 33' while storing 'temp 93 F'",
+    "          for the same patient. Owner decision 2026-09-17.",
     "",
     "glucose   TWO units whose plausible bands OVERLAP, which temperature's do",
     "          not: 32 is a critical low in mg/dL and a high in mmol/L, the",
@@ -142,10 +142,10 @@
     "temp": {
       "label": "Temp",
       "unit": "C",
-      "min": 35,
+      "min": 25,
       "max": 43,
       "alt_unit": "F",
-      "alt_min": 93,
+      "alt_min": 77,
       "alt_max": 110
     },
     "glucose": {

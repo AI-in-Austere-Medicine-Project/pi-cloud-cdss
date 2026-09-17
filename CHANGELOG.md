@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Hypothermia reads in Celsius — owner decision, 2026-09-17
+
+- **`temp` spans 25-43C and 77-110F** (was 35-43C / 93-110F), in
+  `server/vitals_rules.json` with no code change. "temp 33" was rejected as
+  unreadable while "temp 93 F", the same patient, was stored, so
+  `hypothermia_txa` could only arm from Fahrenheit. It now arms from either.
+  The two floors are the same temperature and the bands still do not overlap.
+  None of the 250 distinct logged and feedback queries parses a temperature
+  differently.
+
 ### What a medic reads now, and what the record keeps — owner rulings 9-12, 2026-08-26
 
 The RSI bundle served **eighteen caution bullets**, several of them paragraphs

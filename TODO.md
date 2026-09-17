@@ -138,14 +138,15 @@ an oversight. Ordered by what v4.1 leaves most exposed.
       pressure is marked in the strip and its age reaches the prompt, but
       nothing refuses to reason about it. Whether an old vital should stop
       arming a caution — and at what age — is a clinical call.
-- [ ] **The Celsius band excludes hypothermia. Needs an owner decision.**
-      `temp` ships with a plausible range of 35-43C and 93-110F. The Fahrenheit
-      band reaches 33.9C, the Celsius band stops at 35, so `temp 33` is rejected
-      as unreadable while `temp 93 F` — the same patient — is stored. It also
-      means `hypothermia_txa` can only arm from a Fahrenheit reading. Lowering
-      `temp.min` in `server/vitals_rules.json` fixes it with no code change; the
-      question is what the floor should be for a trauma population where
-      hypothermia is a real presentation, not a typo.
+- [x] **The Celsius band excluded hypothermia.** Fixed 2026-09-17 by owner
+      decision: `temp` now spans 25-43C and 77-110F (was 35-43C / 93-110F),
+      config only. `temp 33` is stored and arms `hypothermia_txa`. Replaying
+      the 250 distinct logged and feedback queries, none parses a
+      temperature differently.
+      **Carried forward:** the bare `t` label now stores `t 30` as 30C where
+      it used to reject it visibly — no logged query has that shape. The
+      built-in fallback in `vitals.py` still carries 35C / 93F, which only
+      applies if the config fails to load and fails in the rejecting direction.
 - [ ] **No structured vitals entry.** Capture is free-text only, which is what
       was asked for. A dedicated input would remove the parser from the path for
       medics who prefer fields.
