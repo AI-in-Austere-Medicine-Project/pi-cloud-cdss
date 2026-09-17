@@ -20,6 +20,11 @@ drug_concentrations.json, which is gitignored and carries whatever that kit's
 clinician has actually signed; on a deployed box some presentations are signed
 and volumes are served for those.
 
+The suite runs against neither. conftest.py installs a pinned TEST kit — the
+example file with a fixed set of presentations signed — so a clean checkout and
+a deployed device see the same vials. The live file is checked by exactly one
+test, for rejections and unhonoured signatures, and skipped where it is absent.
+
 So no test below may assert anything about the signed/unsigned state of the
 file on disk: it is deployment state, and a test that reads it passes or fails
 by which machine it runs on. The tests that need a volume sign a synthetic
@@ -94,9 +99,9 @@ def test_an_unsigned_presentation_is_never_served(unsigned_kit):
 
 
 def test_every_signed_presentation_in_this_kit_was_signed_properly():
-    """The other half, over whatever this deployment has actually signed. A
-    signature this deployment will not honour is worse than none: the tool
-    said SIGNED and the volume simply is not there."""
+    """The other half, over the kit the suite runs against. A signature the
+    fence will not honour is worse than none: the tool said SIGNED and the
+    volume simply is not there."""
     assert dcn.unhonoured_signatures() == [], (
         "presentations are signed by someone this deployment will not honour: "
         f"{dcn.unhonoured_signatures()}")
@@ -105,6 +110,22 @@ def test_every_signed_presentation_in_this_kit_was_signed_properly():
             if pres.get("signoff") is True:
                 assert pres.get("reviewed_by") in dcn.SIGNOFF_AUTHORS, name
                 assert pres.get("review_date") != dcn.PENDING, name
+
+
+def test_the_live_kit_on_this_device_is_signed_properly(monkeypatch):
+    """The suite runs against a pinned kit (conftest.py), so this is the one
+    test that reads THIS device's drug_concentrations.json. It checks what
+    only a deployed file can get wrong — a rejected declaration, or a
+    signature the fence will not honour — and says nothing about which vials
+    are signed. Skipped where there is no live file, as on a clean checkout."""
+    entries, rejections, raw = dcn._load()
+    if raw is None:
+        pytest.skip("no drug_concentrations.json on this machine")
+    assert rejections == [], f"the live kit has rejected declarations: {rejections}"
+    monkeypatch.setattr(dcn, "ENTRIES", entries)
+    assert dcn.unhonoured_signatures() == [], (
+        "the live kit is signed by someone this deployment will not honour: "
+        f"{dcn.unhonoured_signatures()}")
 
 
 def test_the_calculators_no_longer_carry_a_concentration():
@@ -620,6 +641,10 @@ def test_a_hand_edit_is_detected_and_logged(tmp_path, monkeypatch):
     change log that the most likely editing method bypasses is not a log."""
     log = tmp_path / "conc.log.jsonl"
     monkeypatch.setattr(dcn, "CHANGE_LOG", log)
+    # A hash of its own rather than the live file's: with no kit file on disk
+    # the hash is empty, an empty hash is no baseline, and the edit below would
+    # read as a second baseline instead of an edit.
+    monkeypatch.setattr(dcn, "_config_hash", lambda: "hash-1")
     dcn.detect_external_edit()                       # baseline
     entries = copy.deepcopy(dcn.ENTRIES)
     entries["ketamine"]["presentations"][0]["concentration_mg_ml"] = 10.0
@@ -758,9 +783,11 @@ def test_the_tool_records_a_snapshot_on_every_change():
         "a set_concentration command logs without a snapshot"
 
 
-def test_snapshot_from_file_reads_the_file_not_the_process():
+def test_snapshot_from_file_reads_the_file_not_the_process(monkeypatch):
     """The tool writes, then logs. It must snapshot what it just WROTE, not
-    the stale copy this process loaded at import."""
+    the stale copy this process loaded at import. Read from the committed
+    example, so the file is there on a clean checkout too."""
+    monkeypatch.setattr(dcn, "CONFIG", dcn._DIR / "drug_concentrations.example.json")
     snap = dcn.snapshot_from_file()
     assert "succinylcholine" in snap
     assert snap["succinylcholine"]["100 mg / 2 mL ampoule"][0] == 50.0

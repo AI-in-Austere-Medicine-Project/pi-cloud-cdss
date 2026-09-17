@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### The offline suite runs on a clean checkout again — 2026-09-17
+
+- **The suite no longer reads this device's vial file.** It read the
+  gitignored `server/drug_concentrations.json`, so a fresh clone failed 19
+  tests with 24 errors, and a deployed device would have started failing the
+  day its kit changed. `tests/conftest.py` now installs a pinned test kit: the
+  committed example file with a fixed set of presentations signed. Test only:
+  `drug_concentrations.CONFIG` still points at the live file, and no runtime
+  code changed.
+- **The live kit is still checked, by one test.**
+  `test_the_live_kit_on_this_device_is_signed_properly` reads the device's
+  file for rejected declarations and signatures the fence will not honour, and
+  skips where there is no file.
+- 1,336 passed on a deployed device; 1,335 passed with that one skip on a
+  clean export.
+
 ### Brief first — the answer, then depth on request
 
 A medic under load reads the top of the screen and acts on it. Every response now
