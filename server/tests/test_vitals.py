@@ -126,7 +126,7 @@ def test_a_stated_unit_is_kept_and_both_conversions_are_stored():
 
 
 def test_an_unlabelled_temperature_is_read_by_which_band_it_falls_in():
-    """35-43 is a Celsius patient; 93-110 is a Fahrenheit one. No overlap."""
+    """25-43 is a Celsius patient; 77-110 is a Fahrenheit one. No overlap."""
     for text, value, unit in (("temp 39", 39.0, "C"),
                               ("temp 36.8", 36.8, "C"),
                               ("temp 99", 99.0, "F"),
@@ -153,26 +153,42 @@ def test_a_stated_unit_is_never_reinterpreted():
     """
     readings, rejections = parse("temp 104 C")
     assert "temp" not in readings
-    assert "35-43C" in rejections[0].reason
+    assert "25-43C" in rejections[0].reason
 
     readings, rejections = parse("temp 39 F")
     assert "temp" not in readings
-    assert "93-110F" in rejections[0].reason
+    assert "77-110F" in rejections[0].reason
 
 
-def test_hypothermia_in_celsius_is_rejected_by_the_shipped_band():
-    """Pinned because it is a consequence, not an accident.
+def test_hypothermia_in_celsius_is_read_and_arms_the_txa_caution():
+    """The shipped band reaches 25C / 77F, so hypothermia reads in either unit.
 
-    temp.min is 35, so a Celsius hypothermia reading falls outside the band and
-    is not stored. Stated in Fahrenheit the same patient reads fine (93F is
-    33.9C), which is the only way hypothermia_txa arms. Lowering temp.min in
-    vitals_rules.json restores it with no code change; this test says out loud
-    which way the shipped config is set.
+    It used to stop at 35C, which rejected "temp 33" while "temp 93 F" — the
+    same patient — was stored, and left hypothermia_txa armable only from a
+    Fahrenheit reading. A trauma population presents hypothermic; that is a
+    reading, not a typo.
     """
     readings, rejections = parse("temp 33")
-    assert "temp" not in readings
-    assert rejections and rejections[0].name == "temp"
+    assert rejections == []
+    assert (readings["temp"].value, readings["temp"].unit) == (33.0, "C")
+
+    cautions = v.conflicts("Give TXA 1 g IV.", armed("temp 33"))
+    assert len(cautions) == 1
+    assert "33 C" in cautions[0], "quoted back in the unit the medic used"
+
     assert parse("temp 93 F")[0]["temp"].canonical == pytest.approx(33.9, abs=0.1)
+
+
+@pytest.mark.parametrize("text,accepted", [
+    ("temp 25", True), ("temp 24.9", False),
+    ("temp 77 F", True), ("temp 76 F", False),
+])
+def test_the_hypothermia_floor_is_25c_and_77f(text, accepted):
+    """The two floors are the same temperature, so neither unit reads a
+    patient the other would reject."""
+    readings, rejections = parse(text)
+    assert ("temp" in readings) is accepted, text
+    assert (rejections == []) is accepted, text
 
 
 def test_febrile_without_a_number_captures_nothing():
