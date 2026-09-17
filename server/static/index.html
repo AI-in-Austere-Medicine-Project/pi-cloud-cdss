@@ -627,10 +627,16 @@ const BRIEF_HEADING = 'BRIEF';
 const HEADING_RE = /^\s*(⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*:?\s*(.*)$/;
 const DISCLAIMER_RE = /^Guideline-based support only\./;
 
+// Joined with a space. The flex gap spaces them on the page, and a space
+// between flex items renders as nothing, so the layout is unchanged. Without
+// it the markup has no whitespace between buttons, and anything that reads
+// the text instead of the layout (copy and paste, a screen reader, a page
+// whose stylesheet did not load) ran the labels together:
+// "Why?ContraindicationsVial math".
 function chipsHtml() {
   return '<div class="chips">' + FOLLOW_UP_CHIPS.map(c =>
     '<button class="chip" type="button" data-q="' + esc(c[1]) + '">' + esc(c[0]) + '</button>'
-  ).join('') + '</div>';
+  ).join(' ') + '</div>';
 }
 
 // Per-viewer and optional. Private windows, blocked storage and the render
