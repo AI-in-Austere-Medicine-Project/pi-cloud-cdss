@@ -48,6 +48,7 @@ import json
 import time
 from dataclasses import dataclass, field, asdict, replace as dc_replace
 from typing import Literal, Optional, List
+import brief as brief_mod
 import general_reference
 import providers
 import vent_module
@@ -177,7 +178,14 @@ def _get_log_file() -> pathlib.Path:
 # override_fired answers for the gate. Both are null on every non-card answer,
 # present-and-null rather than absent, because absent is indistinguishable
 # from a log written before cards existed.
-LOG_SCHEMA_VERSION = 9
+# Schema 10 adds `input_mode`: how the query was entered — "typed", "voice", or
+# "chip" for a brief-first follow-up chip. Log hygiene like `synthetic`: it is
+# client-declared, and nothing in the pipeline may branch on it.
+LOG_SCHEMA_VERSION = 10
+
+# The input modes /query accepts. Closed, so a typo in a client is a 422 rather
+# than a new category silently appearing in the audit log.
+INPUT_MODES = ("typed", "voice", "chip")
 
 # source_modes whose answer did NOT come from retrieved JTS protocol text.
 # FIXED_PREP is here deliberately: a standardized preparation recipe is
@@ -205,7 +213,8 @@ def knowledge_source(source_mode: str) -> str:
 
 
 def log_query(query: str, result: dict, conversation_history: list = None,
-              pipeline_ms: Optional[int] = None, synthetic: bool = False):
+              pipeline_ms: Optional[int] = None, synthetic: bool = False,
+              input_mode: str = "typed"):
     """
     Write one structured log entry per query.
     JSONL format — one JSON object per line.
@@ -217,6 +226,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "log_schema": LOG_SCHEMA_VERSION,
             "debug_warn_only": DEBUG_WARN_ONLY,
             "synthetic": bool(synthetic),
+            "input_mode": input_mode,
             "query": query,
             "response_preview": result.get("response", "")[:200],
             "source_mode": result.get("source_mode", "UNKNOWN"),
@@ -2514,7 +2524,7 @@ Format: "Draw X mL of Y mg/mL [drug] [route] (Z mg). Indication: [reason]."
 Infusion: "Mix X mg in Y mL NS (Z mg/mL). Start X mL/hr. Target: [goal]."
 
 GATE QUESTION RULE: If the response is a gate question (weight, route, concentration),
-answer ONLY the gate question. Do not add clinical warnings or extra content.
+answer ONLY the gate question. Do not add clinical warnings or extra content, and no BRIEF.
 
 ────────────────────────────────
 SCOPE OF PRACTICE
@@ -2562,6 +2572,11 @@ written, including its confirm-concentration sentence.
 RESPONSE FORMAT — JTS SCOPE
 ────────────────────────────────
 
+**BRIEF** [required, always first — at most 3 short lines, spoken to the medic]
+- [If GIVE has a dose: that GIVE line's drug, dose and route, copied exactly]
+- [The next action]
+- [The one contraindication or hold that must not be missed, if there is one]
+
 **DO THIS**
 1. [Most critical action]
 2. [Second action]
@@ -2600,6 +2615,9 @@ Guideline-based support only. Not a substitute for clinical judgment.
 ────────────────────────────────
 RESPONSE FORMAT — NON-JTS SCOPE
 ────────────────────────────────
+
+**BRIEF** [required, always first — same rules as above]
+- [At most 3 short lines: dose copied exactly if any, next action, what must not be missed]
 
 **[CONDITION]**
 - What it is: [one sentence]
@@ -4457,7 +4475,20 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     state: dict = {}
     result = _run_pipeline(query, chromadb_client, voice_mode,
                            conversation_history, session_ctx, model, state)
-    return _finalise(result, state.get("patient_ctx"))
+    return attach_brief(_finalise(result, state.get("patient_ctx")))
+
+
+def attach_brief(result: dict) -> dict:
+    """Add `brief` and `critical_sections`. Reads the response; changes nothing.
+
+    Last, after _finalise, so the brief is built from exactly the text that is
+    served — stripped volumes, notices and holds included — and so no gate,
+    override or validator ever sees it. Presentation only: see brief.py.
+    """
+    out = brief_mod.build_brief(result.get("response", ""), MEDICATION_TERMS)
+    result["brief"] = out["brief"]
+    result["critical_sections"] = out["critical_sections"]
+    return result
 
 
 def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
@@ -4986,7 +5017,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    conversation_history: list = None,
                    session_ctx: Optional[PatientContext] = None,
                    synthetic: bool = False,
-                   model: Optional[str] = None) -> dict:
+                   model: Optional[str] = None,
+                   input_mode: str = "typed") -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
 
@@ -5010,5 +5042,6 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     result["source"] = knowledge_source(result.get("source_mode", "UNKNOWN"))
     pipeline_ms = int((time.perf_counter() - t0) * 1000)
     log_query(query, result, conversation_history,
-              pipeline_ms=pipeline_ms, synthetic=synthetic)
+              pipeline_ms=pipeline_ms, synthetic=synthetic,
+              input_mode=input_mode)
     return result

@@ -38,7 +38,7 @@ function el() {
 
 // A sandbox per scenario: patientCtx is module state and must not leak between
 // cases.
-function load(fetchImpl) {
+function load(fetchImpl, globals) {
   const byId = {};
   const getElementById = id => (byId[id] = byId[id] || el());
   const sandbox = {
@@ -54,6 +54,7 @@ function load(fetchImpl) {
     Audio: function () { return { play: () => Promise.resolve() }; },
     URL: { createObjectURL: () => 'blob:x', revokeObjectURL() {} },
   };
+  Object.assign(sandbox, globals || {});
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
@@ -138,7 +139,75 @@ const SEPSIS_PAYLOAD = {
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
+// ── Brief first ─────────────────────────────────────────────────────────────
+// Driven by test_portal_brief.py with payloads it builds from the REAL
+// pipeline, so these scenarios render served cards, not a hand-copied snapshot:
+//   node client_render_harness.js static/index.html brief payloads.json
+function memoryStorage(initial) {
+  const store = Object.assign({}, initial || {});
+  return {
+    store,
+    getItem: k => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+  };
+}
+
+async function briefScenarios(payloads) {
+  const out = {};
+  const base = extra => Object.assign({
+    sources: [{ title: 'JTS Airway CPG', page: 7, confidence: 0.5 }],
+    processing_time_ms: 1, model: '', source: 'jts', patient_context: {},
+  }, extra);
+
+  await probe(out, 'rsi', () => ask(load(queryOnly(base(payloads.rsi))), 'rsi'));
+  await probe(out, 'hold', () => ask(load(queryOnly(base(payloads.hold))), 'wpw'));
+  await probe(out, 'no_sections', () => ask(load(queryOnly(base(payloads.no_sections))), 'lactate'));
+  await probe(out, 'pref_open', () => {
+    const storage = memoryStorage({ 'edgecdss.sections.v1':
+      JSON.stringify({ 'DO THIS': true, 'CONFIRM VIAL': false }) });
+    return ask(load(queryOnly(base(payloads.rsi)), { localStorage: storage }), 'rsi');
+  });
+  await probe(out, 'storage_throws', () => {
+    const storage = { getItem() { throw new Error('SecurityError'); },
+                      setItem() { throw new Error('SecurityError'); } };
+    return ask(load(queryOnly(base(payloads.rsi)), { localStorage: storage }), 'rsi');
+  });
+  await probe(out, 'dont_unmarked', () => {
+    // DON'T never folds on the client's own rule: a server that marks nothing
+    // critical, and a saved preference that says closed, both lose to it.
+    const storage = memoryStorage({ 'edgecdss.sections.v1': JSON.stringify({ "DON'T": false }) });
+    return ask(load(queryOnly(base(Object.assign({}, payloads.rsi, { critical_sections: [] }))),
+                    { localStorage: storage }), 'rsi');
+  });
+  await probe(out, 'chip_request', async () => {
+    // A typed turn, then a chip. The chip must go out through the same
+    // history path, carrying the turn before it, tagged as a chip.
+    const bodies = [];
+    const fetchImpl = (url, opts) => {
+      if (String(url).indexOf('/query') !== 0) return Promise.reject(new Error('offline'));
+      bodies.push(JSON.parse(opts.body));
+      return jsonResponse(base(payloads.rsi));
+    };
+    const env = load(fetchImpl);
+    await ask(env, 'RSI an 80kg male trauma patient ketamine and rocuronium');
+    await vm.runInContext("ask('Why that dose?', 'chip')", env.sandbox);
+    return { bodies, box: env.getElementById('q').value };
+  });
+  await probe(out, 'pref_saved', () => {
+    const storage = memoryStorage();
+    const env = load(queryOnly(base(payloads.rsi)), { localStorage: storage });
+    vm.runInContext("saveSectionPref('WATCH', true)", env.sandbox);
+    return JSON.parse(storage.store['edgecdss.sections.v1']);
+  });
+  return out;
+}
+
 (async () => {
+  if (process.argv[3] === 'brief') {
+    const payloads = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
+    process.stdout.write(JSON.stringify(await briefScenarios(payloads), null, 1));
+    return;
+  }
   const out = {};
 
   // 1. esc() on everything a JSON body can hand it.

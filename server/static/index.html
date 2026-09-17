@@ -193,6 +193,34 @@ header h1 span { color: var(--blue); }
 }
 .flagpanel button.primary { background: var(--amber); color: #1a1200; border: none; }
 .sev-dangerous { color: var(--red); }
+/* Brief first. The brief is the answer a medic reads; everything under it is one
+   tap away, not gone. Sections that must not be missed never start folded:
+   holds, CONFIRM VIAL, warnings, and whatever the server marks critical. */
+.brief {
+  font-size: 17px; line-height: 1.5; font-weight: 500; color: var(--text);
+  border-left: 3px solid var(--blue); padding: 2px 0 2px 12px; margin-bottom: 10px;
+}
+.brief.hold { border-left-color: var(--red); }
+.pre { margin-bottom: 8px; }
+details.sect { border-top: 1px solid var(--border); }
+details.sect > summary {
+  cursor: pointer; list-style: none; padding: 9px 2px; min-height: 36px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--dim); user-select: none;
+}
+details.sect > summary::-webkit-details-marker { display: none; }
+details.sect > summary::before { content: '\25B8  '; }
+details.sect[open] > summary::before { content: '\25BE  '; }
+details.sect.critical > summary { color: var(--amber); }
+details.sect > .sect-body { padding: 0 2px 10px 2px; }
+.notes { margin-top: 8px; font-size: 13px; color: var(--dim); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px 0; }
+.chip {
+  cursor: pointer; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 14px; padding: 6px 12px; min-height: 32px;
+  font-family: var(--mono); font-size: 11px;
+}
+.chip:hover { border-color: var(--blue); color: var(--blue); }
 .thinking { color: var(--dim); font-family: var(--mono); font-size: 12px; }
 .thinking::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
@@ -447,7 +475,7 @@ function validatorBadge(v) {
   return '<span class="badge warn">' + esc(v || 'REVIEW') + '</span>';
 }
 
-async function speak(text, btn, source) {
+async function speak(text, btn, source, brief) {
   btn.textContent = '…';
   let url = null;
   try {
@@ -457,7 +485,7 @@ async function speak(text, btn, source) {
                  'X-Access-Token': document.getElementById('token').value },
       // The server prepends the spoken disclosure for source=general. Sending
       // the flag rather than the phrase keeps one definition of the wording.
-      body: JSON.stringify({ text, source })
+      body: JSON.stringify({ text, source, brief: brief || '' })
     });
     if (!r.ok) {
       // The server now says WHY. Surface it instead of a blank failure.
@@ -563,10 +591,183 @@ function decoration(what, fn) {
   try { fn(); } catch (e) { console.error('render: ' + what + ' omitted \u2014', e); }
 }
 
-async function ask() {
-  const text = q.value.trim();
+// ── Brief first ────────────────────────────────────────────────────────────
+// The server sends `brief` (at most three lines lifted from the response — see
+// server/brief.py) and `critical_sections`. The brief is shown as the answer;
+// every section of the full response is still rendered, under a one-tap
+// heading. Nothing is removed from the page, only folded.
+//
+// Never folded, whatever the saved preference says:
+//   - a safety hold (validator_result UNSAFE — blocked iff UNSAFE, server-side);
+//   - CONFIRM VIAL, because the volumes are waiting on its answer;
+//   - DON'T, under any of its spellings, whatever the server marks. The server
+//     marks it critical too; this does not depend on that;
+//   - any section the server lists in critical_sections;
+//   - any warning heading or line (⚠️): vitals cautions, the human-review note.
+// A server that sends no brief gets the full response, rendered as before.
+const ALWAYS_OPEN = ['CONFIRM VIAL', "DON'T", 'DONT', 'DO NOT'];
+// Follow-up chips. Each sends a fixed phrasing through the ordinary /query
+// path, conversation history and all, tagged input_mode "chip". The words are
+// chosen so they cannot move the patient: none names an age band ("pediatric"
+// would set is_pediatric), states a number (a weight or age contradiction is a
+// new patient), or opens "have a ..." (a presentational opener).
+// test_brief_chips.py reads this list and pins all three, plus the path two of
+// them take.
+const FOLLOW_UP_CHIPS = [
+  ['Why?', 'Why that dose?'],
+  ['Contraindications', 'Contraindications for that?'],
+  ['Vial math', 'Show the vial math for that dose.'],
+  ['Pediatric', 'How does that change for a smaller or younger patient?'],
+  ['What to watch', 'What should I watch for after that?'],
+  ['Full protocol', 'Show the full protocol'],
+];
+const SECTION_PREFS_KEY = 'edgecdss.sections.v1';
+const BRIEF_HEADING = 'BRIEF';
+// Mirrors brief.py's _HEADING_RE: a bold run with no lower-case letters.
+const HEADING_RE = /^\s*(⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*:?\s*(.*)$/;
+const DISCLAIMER_RE = /^Guideline-based support only\./;
+
+function chipsHtml() {
+  return '<div class="chips">' + FOLLOW_UP_CHIPS.map(c =>
+    '<button class="chip" type="button" data-q="' + esc(c[1]) + '">' + esc(c[0]) + '</button>'
+  ).join('') + '</div>';
+}
+
+// Per-viewer and optional. Private windows, blocked storage and the render
+// harness all throw or lack it; every path degrades to "no preference".
+function loadSectionPrefs() {
+  try { return JSON.parse(localStorage.getItem(SECTION_PREFS_KEY) || '{}') || {}; }
+  catch (e) { return {}; }
+}
+function saveSectionPref(name, open) {
+  try {
+    const prefs = loadSectionPrefs();
+    prefs[name] = !!open;
+    localStorage.setItem(SECTION_PREFS_KEY, JSON.stringify(prefs));
+  } catch (e) { /* no storage: the preference is simply not remembered */ }
+}
+
+function normHeading(name) {
+  return String(name || '').replace(/’/g, "'").replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
+// {pre: [lines], sections: [{name, warn, lines}], notes: [lines]}
+function splitSections(text) {
+  const pre = [], sections = [], notes = [];
+  let cur = null;
+  String(text || '').split('\n').forEach(raw => {
+    const m = HEADING_RE.exec(raw);
+    if (m) {
+      cur = { name: normHeading(m[2]), warn: !!m[1], lines: [] };
+      sections.push(cur);
+      if (m[3] && m[3].trim() && m[3].trim()[0] !== '[') cur.lines.push(m[3].trim());
+      return;
+    }
+    const t = raw.trim();
+    // Warnings and the disclaimer ride at the end of whatever section happens
+    // to be last. They are not that section's content and must not fold with it.
+    if (cur && (t.indexOf('⚠️') === 0 || DISCLAIMER_RE.test(t))) { notes.push(t); return; }
+    if (!cur) { pre.push(raw); return; }
+    if (cur.name === BRIEF_HEADING && !t && cur.lines.some(l => l.trim())) {
+      // Same rule as brief.py: answer text after the brief is not the brief.
+      cur = { name: '', warn: false, lines: [] };
+      sections.push(cur);
+      return;
+    }
+    cur.lines.push(raw);
+  });
+  return { pre, sections, notes };
+}
+
+function trimBlank(lines) {
+  const out = lines.slice();
+  while (out.length && !out[0].trim()) out.shift();
+  while (out.length && !out[out.length - 1].trim()) out.pop();
+  return out;
+}
+
+function sectionHtml(name, bodyHtml, forced, critical, prefs) {
+  const open = forced || prefs[name] === true;
+  return '<details class="sect' + (critical ? ' critical' : '') + '" data-name="' + esc(name) +
+         '"' + (forced ? ' data-forced="1"' : '') + (open ? ' open' : '') + '>' +
+         '<summary>' + esc(name) + '</summary><div class="sect-body">' + bodyHtml + '</div></details>';
+}
+
+function sourcesHtml(sources) {
+  return (sources || []).filter(s => s.confidence >= 0.1).map(s =>
+    '<span class="src"><b>' + esc(s.title) + '</b> p.' + esc(s.page) +
+    ' · ' + (s.confidence * 100).toFixed(0) + '%</span>').join(' ');
+}
+
+// The answer body: brief, then everything else folded. Returns HTML.
+function answerHtml(d, body) {
+  const blocked = d.validator_result === 'UNSAFE';
+  if (!d.brief) {
+    // An older server: the whole response open, as before, with its sources.
+    return renderMd(body) + '<div class="meta">' + sourcesHtml(d.sources) + '</div>';
+  }
+  const prefs = loadSectionPrefs();
+  const critical = Array.isArray(d.critical_sections) ? d.critical_sections.map(normHeading) : [];
+  const parts = ['<div class="brief' + (blocked ? ' hold' : '') + '">' +
+                 String(d.brief).split('\n').map(esc).join('<br>') + '</div>'];
+  const split = splitSections(body);
+  const pre = trimBlank(split.pre);
+  // Under the brief. Not under a hold or a bare gate question: there is no
+  // answer yet to ask about.
+  if (!blocked && split.sections.length) parts.push(chipsHtml());
+
+  if (!split.sections.length) {
+    // No sections: a hold, a gate question, an ask, or reference prose. A hold
+    // stays open. Anything the brief already says in full is not repeated.
+    // Notices (the boundary reset, an unreadable vital) and warnings (the
+    // human-review note) are pulled out first: they never fold with the prose.
+    const isNotice = l => /^\s*(\u26a0\ufe0f|\ud83d\udd04)/.test(l) || DISCLAIMER_RE.test(l.trim());
+    split.notes = pre.filter(isNotice).map(l => l.trim()).concat(split.notes);
+    const full = trimBlank(pre.filter(l => !isNotice(l))).join('\n').trim();
+    if (full && full !== String(d.brief).trim()) {
+      parts.push(blocked ? '<div class="pre">' + renderMd(full) + '</div>'
+                         : sectionHtml('FULL ANSWER', renderMd(full), false, false, prefs));
+    }
+  } else {
+    // Notices and a pre-gate headline sit above the sections, open.
+    if (pre.length) parts.push('<div class="pre">' + renderMd(pre.join('\n')) + '</div>');
+    split.sections.forEach(sec => {
+      if (sec.name === BRIEF_HEADING) return;          // already shown above
+      const lines = trimBlank(sec.lines);
+      if (!sec.name) {                                  // answer prose after a brief
+        if (lines.length) parts.push('<div class="pre">' + renderMd(lines.join('\n')) + '</div>');
+        return;
+      }
+      const isCritical = critical.indexOf(sec.name) >= 0;
+      const forced = blocked || sec.warn || isCritical || ALWAYS_OPEN.indexOf(sec.name) >= 0;
+      parts.push(sectionHtml(sec.name, renderMd(lines.join('\n')), forced, isCritical, prefs));
+    });
+  }
+  const chips = sourcesHtml(d.sources);
+  if (chips) parts.push(sectionHtml('SOURCES', '<div class="meta">' + chips + '</div>', false, false, prefs));
+  if (split.notes.length) parts.push('<div class="notes">' + renderMd(split.notes.join('\n')) + '</div>');
+  return parts.join('');
+}
+
+// Remember what the medic opens and closes, per section name. A forced section
+// is not a preference: closing CONFIRM VIAL once must not fold it next time.
+function wireSections(container) {
+  container.querySelectorAll('details.sect').forEach(el => {
+    el.addEventListener('toggle', () => {
+      if (el.dataset.forced === '1') return;
+      saveSectionPref(el.dataset.name, el.open);
+    });
+  });
+}
+
+// `followUp` is a chip's fixed phrasing; typed queries come from the box.
+async function ask(followUp, inputMode) {
+  const fromChip = typeof followUp === 'string';
+  if (fromChip && send.disabled) return;           // one request at a time
+  const text = (fromChip ? followUp : q.value).trim();
   if (!text) return;
-  q.value = ''; send.disabled = true;
+  if (!fromChip) q.value = '';
+  send.disabled = true;
   addMsg('Medic', esc(text), 'user');
   const pending = addMsg('EdgeCDSS', '<span class="thinking">consulting guidelines</span>');
   const mode = document.querySelector('input[name=mode]:checked').value;
@@ -579,20 +780,17 @@ async function ask() {
         query: text, device_id: deviceId,
         timestamp: new Date().toISOString(),
         voice_mode: mode, conversation_history: history.slice(-50),
-        model: document.getElementById('model').value
+        model: document.getElementById('model').value,
+        input_mode: (fromChip && inputMode) || 'typed'
       })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const split = splitBanner(d.response);
     let html = (split.banner ? '<span class="genref">' + esc(split.banner) + '</span>' : '')
-             + renderMd(split.body);
+             + answerHtml(d, split.body);
     let meta = '<div class="meta">' + validatorBadge(d.validator_result) +
       '<span class="badge time">' + d.processing_time_ms + ' ms</span>';
-    (d.sources || []).filter(s => s.confidence >= 0.1).forEach(s => {
-      meta += '<span class="src"><b>' + esc(s.title) + '</b> p.' + s.page +
-              ' · ' + (s.confidence * 100).toFixed(0) + '%</span>';
-    });
     meta += '<button class="listen">🔊 listen</button>' + fbControls() + '</div>';
     // Which model and which knowledge source, on every answer. A deterministic
     // card was written by Python and is attributed to no model — saying
@@ -611,8 +809,19 @@ async function ask() {
     });
     decoration('listen button', function () {
       pending.querySelector('.listen').onclick = function () {
-        speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source);
+        // The brief is what is heard; the server speaks it in preference to
+        // the full text whenever it is sent. An older server sends no brief.
+        speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source,
+              d.brief || '');
       };
+    });
+    decoration('section toggles', function () {
+      wireSections(pending);
+    });
+    decoration('follow-up chips', function () {
+      pending.querySelectorAll('.chip').forEach(b => {
+        b.onclick = () => ask(b.dataset.q, 'chip');
+      });
     });
     decoration('feedback controls', function () {
       wireFeedback(pending, text, d.response);
@@ -627,7 +836,7 @@ async function ask() {
   send.disabled = false; q.focus();
   chat.scrollTop = chat.scrollHeight;
 }
-send.onclick = ask;
+send.onclick = () => ask();
 document.getElementById('newpatient').onclick = newPatient;
 q.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
