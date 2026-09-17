@@ -177,14 +177,21 @@ def test_a_never_line_is_critical_and_survives_three_doses(served):
 def test_rsi_doses_say_what_each_is_for(served):
     """RSI serves ketamine twice. Two bare "ketamine IV" doses side by side is
     how the 40 mg sedation dose gets given to induce, or the 160 mg to sedate."""
-    b = served["adult_rsi"]["brief"]
+    r = served["adult_rsi"]
+    b = r["brief"]
     assert "[RSI induction] ketamine IV: 160 mg." in b
-    assert "[RSI paralytic] Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg)." in b
     assert ("[post-intubation sedation — repeated bolus (no infusion pump)] "
             "ketamine IV: 40 mg.") in b
-    # Every dose in the brief carries a label: none is left bare.
-    for m in re.finditer(r"(?:ketamine IV:|Draw \d)", b):
-        assert b[:m.start()].rstrip().endswith("]"), f"unlabelled dose at {m.start()}:\n{b}"
+    # Rocuronium prints as a volume or as "NO VOLUME" depending on whether a
+    # local drug_concentrations.json declares its vial, so it is found, not typed.
+    items = _give_items(r["response"])
+    assert len(items) == 3, "the RSI card no longer serves three doses; the fixture has drifted"
+    for item in items:
+        clause = item.split(" Indication:")[0].rstrip()
+        i = b.index(clause)
+        assert b[:i].endswith("] "), f"unlabelled dose {clause!r} in:\n{b}"
+    roc = next(i.split(" Indication:")[0].rstrip() for i in items if "rocuronium" in i)
+    assert "[RSI paralytic] " + roc in b
 
 
 def test_a_single_dose_is_not_labelled(served):
