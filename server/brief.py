@@ -36,8 +36,12 @@ it, and that is the only thing that makes it safe to put first:
   - a DON'T item that says "never", says "contraindicated", or names a drug the
     response is dosing — the generator is told to put a dosed drug's signed
     contraindications in DON'T, so that is where they arrive on that path.
-The sections holding critical items are returned as `critical_sections`, which
-is how the client knows not to collapse them.
+`critical_sections` tells the client what not to fold. It holds the sections
+with critical items, and EVERY non-empty DON'T section whether or not a line in
+it is critical: models write "Don't give succinylcholine if crush injury", which
+the rule above does not catch, and a contraindication one tap away is one a
+medic under load does not read. The client never folds DON'T either, so the two
+agree without depending on each other.
 
 This module reads text and returns text. It is called once, at the end of
 openai_client._finalise, after the gate and after every notice, so nothing in
@@ -304,10 +308,9 @@ def build_brief(response_text: str, medication_terms=()) -> dict:
                     if _NEVER_RE.search(i)
                     or any(re.search(r"(?<!\w)" + re.escape(d) + r"(?!\w)", i.lower())
                            for d in dosed)]
-            if hits:
-                critical += hits
-                if name not in critical_sections:
-                    critical_sections.append(name)
+            critical += hits
+            if _top_items(lines) and name not in critical_sections:
+                critical_sections.append(name)
 
     # Optional lines, in priority order: the generator's own BRIEF when it
     # wrote one, then the TLDR (the fallback the prompt contract names), then

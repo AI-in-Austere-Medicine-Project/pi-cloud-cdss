@@ -600,10 +600,12 @@ function decoration(what, fn) {
 // Never folded, whatever the saved preference says:
 //   - a safety hold (validator_result UNSAFE — blocked iff UNSAFE, server-side);
 //   - CONFIRM VIAL, because the volumes are waiting on its answer;
+//   - DON'T, under any of its spellings, whatever the server marks. The server
+//     marks it critical too; this does not depend on that;
 //   - any section the server lists in critical_sections;
 //   - any warning heading or line (⚠️): vitals cautions, the human-review note.
 // A server that sends no brief gets the full response, rendered as before.
-const ALWAYS_OPEN = ['CONFIRM VIAL'];
+const ALWAYS_OPEN = ['CONFIRM VIAL', "DON'T", 'DONT', 'DO NOT'];
 // Follow-up chips. Each sends a fixed phrasing through the ordinary /query
 // path, conversation history and all, tagged input_mode "chip". The words are
 // chosen so they cannot move the patient: none names an age band ("pediatric"

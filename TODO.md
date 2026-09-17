@@ -322,11 +322,21 @@ same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/RETRIEVAL_DIA
       accepts.
 - [ ] Owner review of the "critical" rule in `server/brief.py`: recorded
       contraindications, plus DON'T lines saying "never"/"contraindicated" or
-      naming a dosed drug. It decides what the portal refuses to fold.
+      naming a dosed drug. It decides which lines are required in the brief.
+      It no longer decides folding for DON'T, which never folds (owner decision
+      2026-09-17). Headings like "SUCCINYLCHOLINE — CONTRAINDICATED" on a
+      generated answer still fold; decide whether they should.
 - [ ] New portal screenshots for the release notes. The 4.3 set predates brief-first
       (see the README screenshot note).
 - [ ] Measure whether the generator's `**BRIEF**` section pushes long RSI-shaped
       answers into `max_tokens=700` truncation. A truncated tail loses SOURCE first.
+      Measured 2026-09-17 from the eval harness: gpt-4o-mini (the default, no
+      reserve) peaked at 311 output tokens including the validator, so no risk
+      there. Sonnet/Opus/Gemini/Grok carry reserve_tokens 3000. Unmeasured:
+      claude-haiku-4-5 and gpt-4o (reserve 0) — at Sonnet-length (~650-700
+      tokens) plus a brief, the disclaimer/SOURCE/TLDR tail could be cut; DON'T
+      has 180-300 tokens behind it and would survive. Nothing checks
+      stop_reason / finish_reason, so a truncation would be served silently.
 - [ ] Consider logging `brief` (log schema 11). It is now the first thing a
       medic reads, and `response_preview` (200 chars) cannot reconstruct it.
 

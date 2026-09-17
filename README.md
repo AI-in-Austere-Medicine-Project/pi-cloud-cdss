@@ -244,8 +244,9 @@ which either produces a deterministic line or holds.
 Every answer leads with a **brief**: at most three lines, lifted from the answer
 itself (a dose copied verbatim from its GIVE line, the next action, and any hold or
 critical contraindication). The full card is still there, one tap below, with each
-section under its own heading. A hold, CONFIRM VIAL, anything the server marks
-critical, and every warning are never folded. Under the brief, follow-up chips
+section under its own heading. A hold, CONFIRM VIAL, DON'T, anything the server
+marks critical, and every warning are never folded. When the brief carries more than
+one dose, each is labelled with what it is for. Under the brief, follow-up chips
 (Why? · Contraindications · Vial math · Pediatric · What to watch · Full protocol)
 ask the obvious next question through the same conversation. The listen button
 speaks the brief.

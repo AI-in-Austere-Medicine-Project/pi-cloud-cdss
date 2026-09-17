@@ -18,6 +18,11 @@ clinical text was shortened or rewritten.
   POST-INTUBATION SEDATION / DRIP dose line appears as printed, up to its
   `Indication:` clause, so `CANONICAL_GIVE_RE` reads the same numbers off the brief
   as off the card. A candidate line that restates a dose in other words is dropped.
+  When the brief carries **more than one dose, each says what it is for**, in
+  brackets, from its own Indication clause (or its section's name when it has
+  none): RSI reads `[RSI induction] ketamine IV: 160 mg` and
+  `[post-intubation sedation — repeated bolus (no infusion pump)] ketamine IV:
+  40 mg`, not two bare ketamine doses side by side.
   A **safety hold, a gate question, a pre-gate refusal headline and every critical
   contraindication are required lines**: when they overflow three lines they merge
   onto fewer, and they are never cut. The brief is attached once, after `_finalise`,
@@ -25,13 +30,21 @@ clinical text was shortened or rewritten.
 - **"Critical" is structural, not a judgement made at render time**: a
   CONTRAINDICATIONS item that records something ("None recorded" is a gap, not a
   contraindication), or a DON'T line that says "never" or "contraindicated", or
-  that names a drug the response is dosing. Owner review of this rule is invited.
+  that names a drug the response is dosing. It decides which lines are REQUIRED in
+  the brief. It does not decide whether DON'T folds: **DON'T never folds**. Across
+  the fixed cards and 124 real Sonnet 5 answers from the eval harness, the
+  "never"/dosed-drug rule left 74 DON'T lines folded in 73 of 133 responses —
+  "Don't give succinylcholine if any concern for hyperkalemia or crush injury"
+  among them — because models write "Don't", not "never". Owner review of the
+  brief rule is still invited.
 - **Generated answers** are asked for a `**BRIEF**` first section (JTS formats and
   the general-reference acute format; not in reply to a gate question). When one is
   written it supplies the optional lines, otherwise the TLDR does. The verbatim dose
   and the required lines are enforced in code either way.
 - **Portal: brief first, the rest folded.** Every section renders under a one-tap
-  heading. Never folded: a hold, CONFIRM VIAL, anything in `critical_sections`,
+  heading. Never folded: a hold, CONFIRM VIAL, DON'T (the server lists every
+  non-empty DON'T in `critical_sections`, and the client keeps it open on its own
+  rule too), anything else in `critical_sections`,
   and every warning (⚠️ headings and lines, notices, the disclaimer). Open/closed
   is remembered per section in `localStorage`, inside try/catch. Feedback controls
   are unchanged.

@@ -172,6 +172,13 @@ async function briefScenarios(payloads) {
                       setItem() { throw new Error('SecurityError'); } };
     return ask(load(queryOnly(base(payloads.rsi)), { localStorage: storage }), 'rsi');
   });
+  await probe(out, 'dont_unmarked', () => {
+    // DON'T never folds on the client's own rule: a server that marks nothing
+    // critical, and a saved preference that says closed, both lose to it.
+    const storage = memoryStorage({ 'edgecdss.sections.v1': JSON.stringify({ "DON'T": false }) });
+    return ask(load(queryOnly(base(Object.assign({}, payloads.rsi, { critical_sections: [] }))),
+                    { localStorage: storage }), 'rsi');
+  });
   await probe(out, 'chip_request', async () => {
     // A typed turn, then a chip. The chip must go out through the same
     // history path, carrying the turn before it, tagged as a chip.

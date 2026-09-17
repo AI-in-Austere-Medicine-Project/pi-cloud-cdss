@@ -202,6 +202,23 @@ def test_a_dose_label_comes_from_the_card():
         == "DRIP"
 
 
+def test_every_dont_section_is_critical_and_only_its_hits_enter_the_brief():
+    """Generators write "Don't", not "never". A DON'T section never folds; the
+    brief still only carries the lines the structural rule picks."""
+    text = ("**DO THIS**\n1. Prepare for RSI.\n\n"
+            "**DON'T**\n- Don't give succinylcholine if any concern for hyperkalemia "
+            "or crush injury.\n")
+    out = brief.build_brief(text, oc.MEDICATION_TERMS)
+    assert "DON'T" in out["critical_sections"]
+    assert "succinylcholine" not in out["brief"]
+
+
+def test_an_empty_dont_section_is_not_critical():
+    out = brief.build_brief("**DO THIS**\n1. Prepare.\n\n**DON'T**\n\n**TLDR**\n- Go.\n",
+                            oc.MEDICATION_TERMS)
+    assert "DON'T" not in out["critical_sections"]
+
+
 def test_an_empty_contraindication_record_is_not_critical():
     text = ("**GIVE**\n- ketamine IV: 15 mg. NO VOLUME — confirm concentration to "
             "compute volume. Indication: pain.\n\n**CONTRAINDICATIONS**\n- None "

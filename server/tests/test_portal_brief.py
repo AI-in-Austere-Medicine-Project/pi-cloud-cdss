@@ -8,8 +8,8 @@ medic is actually served.
 The rules pinned here:
   - the brief comes first, and every section of the response is still on the
     page, under a one-tap heading;
-  - a hold, CONFIRM VIAL, a section the server marks critical, and every
-    warning never start folded, whatever the saved preference says;
+  - a hold, CONFIRM VIAL, DON'T, a section the server marks critical, and
+    every warning never start folded, whatever the saved preference says;
   - the saved preference opens what the medic opened last time, and storage
     that is missing or throws costs the preference, never the answer;
   - the feedback controls are unchanged.
@@ -142,6 +142,22 @@ def test_sections_the_server_marks_critical_stay_open(rendered, payloads):
         tag = details(bubble, name)
         assert is_open(tag), f"{name} is critical and folded"
         assert "critical" in tag
+
+
+def test_dont_never_folds_even_unmarked_and_saved_closed(rendered):
+    """The server marks DON'T critical, but the client does not rely on it."""
+    bubble = rendered["dont_unmarked"]["bubble"]
+    tag = details(bubble, "DON'T")
+    assert is_open(tag), "DON'T folded when the server did not mark it"
+    assert "Avoid succinylcholine in burns/crush/hyperkalemia risk" in bubble
+
+
+def test_the_client_never_folds_every_spelling_brief_py_reads():
+    import brief
+    html = CLIENT.read_text()
+    line = next(l for l in html.splitlines() if l.startswith("const ALWAYS_OPEN"))
+    for name in brief.DONT_SECTIONS:
+        assert f"'{name}'" in line or f'"{name}"' in line, f"{name} can fold"
 
 
 def test_a_warning_never_folds(rendered):
