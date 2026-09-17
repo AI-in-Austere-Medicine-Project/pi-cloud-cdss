@@ -18,6 +18,11 @@ it, and that is the only thing that makes it safe to put first:
      CANONICAL_GIVE_RE reads the same numbers off the brief that it reads off
      the card. A candidate line that states a dose in other words is dropped
      rather than risk a second, differently-worded number on top of the screen.
+     When the brief carries more than one dose, each is prefixed with what it
+     is for — its own Indication clause, in brackets, or its section's name
+     when it has none. RSI serves ketamine twice, 160 mg to induce and 40 mg to
+     sedate after the tube, and two bare "ketamine IV" doses side by side is
+     how one gets given for the other.
 
   3. **What must not be missed is required.** A safety hold, a gate question, a
      pre-gate refusal headline, and every critical contraindication are
@@ -174,6 +179,23 @@ def dose_clause(item: str) -> str:
     return (item[:idx] if idx >= 0 else item).rstrip()
 
 
+def dose_label(section: str, item: str) -> str:
+    """What a dose is for, in the card's own words.
+
+    The Indication clause when there is one, otherwise the section it sits
+    under. An indication that itself states a dose ("pain, max 3 doses of 50
+    mg") is not used: that would be a second number on the line, and rule 2 is
+    that a dose is said once. GIVE is not a label, so a GIVE line with no
+    indication gets none.
+    """
+    idx = item.find(" Indication:")
+    if idx >= 0:
+        indication = item[idx + len(" Indication:"):].strip().rstrip(". ").strip()
+        if indication and not _DOSE_RE.search(indication):
+            return indication
+    return "" if section == "GIVE" else section
+
+
 def _dosed_drugs(clauses, medication_terms):
     text = " ".join(clauses).lower()
     return {t for t in medication_terms
@@ -260,9 +282,15 @@ def build_brief(response_text: str, medication_terms=()) -> dict:
     # sepsis-DCR refusal leads with its refusal. Required.
     lead = [_clean(content[0])] if content else []
 
-    doses = [dose_clause(i) for i in _section(sections, DOSE_SECTIONS)
-             if _DOSE_RE.search(i)]
-    dosed = _dosed_drugs(doses, medication_terms)
+    dose_items = [(name, item) for name, lines in sections if name in DOSE_SECTIONS
+                  for item in _top_items(lines) if _DOSE_RE.search(item)]
+    clauses = [dose_clause(item) for _, item in dose_items]
+    dosed = _dosed_drugs(clauses, medication_terms)
+    doses = clauses
+    if len(dose_items) > 1:
+        labels = [dose_label(name, item) for name, item in dose_items]
+        doses = [f"[{label}] {clause}" if label else clause
+                 for label, clause in zip(labels, clauses)]
 
     critical, critical_sections = [], []
     contra = _contraindication_lines(_section(sections, CONTRAINDICATION_SECTIONS))

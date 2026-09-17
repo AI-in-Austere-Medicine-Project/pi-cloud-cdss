@@ -174,6 +174,34 @@ def test_a_never_line_is_critical_and_survives_three_doses(served):
     assert "DON'T" in r["critical_sections"]
 
 
+def test_rsi_doses_say_what_each_is_for(served):
+    """RSI serves ketamine twice. Two bare "ketamine IV" doses side by side is
+    how the 40 mg sedation dose gets given to induce, or the 160 mg to sedate."""
+    b = served["adult_rsi"]["brief"]
+    assert "[RSI induction] ketamine IV: 160 mg." in b
+    assert "[RSI paralytic] Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg)." in b
+    assert ("[post-intubation sedation — repeated bolus (no infusion pump)] "
+            "ketamine IV: 40 mg.") in b
+    # Every dose in the brief carries a label: none is left bare.
+    for m in re.finditer(r"(?:ketamine IV:|Draw \d)", b):
+        assert b[:m.start()].rstrip().endswith("]"), f"unlabelled dose at {m.start()}:\n{b}"
+
+
+def test_a_single_dose_is_not_labelled(served):
+    assert served["ped_ketamine_iv"]["brief"].startswith("ketamine IV: 6.25 mg.")
+
+
+def test_a_dose_label_comes_from_the_card():
+    assert brief.dose_label("GIVE", "ketamine IV: 15 mg. Indication: analgesia.") == "analgesia"
+    # No indication: the section's own name, except GIVE, which says nothing.
+    assert brief.dose_label("POST-INTUBATION SEDATION", "ketamine IV: 40 mg.") == \
+        "POST-INTUBATION SEDATION"
+    assert brief.dose_label("GIVE", "ketamine IV: 15 mg.") == ""
+    # An indication that states a dose is a second number: not used.
+    assert brief.dose_label("DRIP", "Mix 50 mg in 50 mL. Indication: pain, max 3 doses of 50 mg.") \
+        == "DRIP"
+
+
 def test_an_empty_contraindication_record_is_not_critical():
     text = ("**GIVE**\n- ketamine IV: 15 mg. NO VOLUME — confirm concentration to "
             "compute volume. Indication: pain.\n\n**CONTRAINDICATIONS**\n- None "
