@@ -214,6 +214,31 @@ deliberately did NOT touch.
       not the fix; the generator has to stop emitting doses, or the file has to
       start reading them from `drug_contracts.json`.
 
+### Safety gate
+
+- [ ] **Validator invents equipment preconditions and blocks contract-signed doses.**
+      An override attempt (branch `wip/equipment-precondition-override`,
+      discarded 2026-09-17) keyed on drug+route and could pass doses the
+      contract never signed for the situation. A correct fix must key on the
+      signed indication and fail closed when the indication is not signed.
+      Reproduce cases:
+      - `server/feedback.log` line 49 (entry 48, 2026-09-03, device
+        `web-0wfzq4`): query "500mg / 10ml", held with "Response recommends
+        100 mg ketamine IV for sedation without confirming the presence of an
+        infusion pump." Medic: "Strange it held on this - its a safe dose to
+        give." Not in `docs/FEEDBACK_REVIEW_2026-09-03.md` (covers 0–47); the
+        earlier turns were never captured, so the 100 mg came from the
+        generated path and can't be replayed exactly.
+      - Holes the override opened (each must stay blocked under any fix):
+        100 kg, ketamine 100 mg IV "sedation" with no pump established — the
+        bank signs 100 mg only as the pump-available loading dose (ruling 7);
+        50 kg, ketamine 100 mg **IM** — no IM entry signs 100 mg at 50 kg, but
+        the IV induction entry vouched for it because route wasn't compared;
+        50 kg, ketamine 100 mg IV labelled sedation — the signed repeated-bolus
+        sedation dose is 25 mg, the 100 mg is induction; a second dose line
+        outside the canonical "Draw X mL" form (midazolam IV 5 mg, no contract)
+        rode along unchecked.
+
 ### Deterministic cards owed
 
 - [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
