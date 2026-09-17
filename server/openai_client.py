@@ -4510,7 +4510,9 @@ def attach_brief(result: dict) -> dict:
     served — stripped volumes, notices and holds included — and so no gate,
     override or validator ever sees it. Presentation only: see brief.py.
     """
-    out = brief_mod.build_brief(result.get("response", ""), MEDICATION_TERMS)
+    out = brief_mod.build_brief(
+        result.get("response", ""), MEDICATION_TERMS,
+        weight_kg=(result.get("patient_context") or {}).get("confirmed_weight_kg"))
     result["brief"] = out["brief"]
     result["critical_sections"] = out["critical_sections"]
     return result

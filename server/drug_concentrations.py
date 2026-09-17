@@ -453,6 +453,30 @@ def volume_refusal(generic_name: str, dose_mg: float,
 # to whoever needs something like it next. Use resolve().
 
 
+def single_signed_volume(generic_name: str, dose_mg: float) -> tuple:
+    """(volume_ml, concentration_mg_ml) when exactly ONE presentation is signed.
+
+    For the brief's conditional line, "At 50 mg/mL that's 0.13 mL — confirm
+    vial", on a drug whose card still asks which vial (confirm_required). It is
+    not a served volume: the GIVE line and CONFIRM VIAL are unchanged, and the
+    brief says "confirm vial" in the same sentence. Same arithmetic, rounding
+    and drawable() bounds as volume_ml(), so the number cannot differ from the
+    one the card prints once the vial is confirmed. (None, None) for zero or
+    several signed presentations, or a volume no syringe can draw.
+    """
+    signed = signed_presentations(generic_name)
+    if len(signed) != 1:
+        return None, None
+    conc = signed[0].get("concentration_mg_ml")
+    if not conc:
+        return None, None
+    true_vol = dose_mg / conc
+    ok, _why = drawable(true_vol)
+    if not ok:
+        return None, None
+    return round(true_vol, draw_precision(true_vol)), conc
+
+
 def all_signed_strengths(generic_name: str) -> list:
     return sorted(p["concentration_mg_ml"] for p in signed_presentations(generic_name))
 
