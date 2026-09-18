@@ -527,14 +527,69 @@ def test_the_rsi_template_refuses_a_volume_until_the_vial_is_confirmed():
         assert "**CONFIRM VIAL**" in text
 
 
-def test_the_tldr_degrades_with_the_give_line():
+# ═══════════════════════════════════════════════════════════════════════════
+# HOW MANY DECIMALS A VOLUME IS DRAWN TO
+# ═══════════════════════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("dose_mg,conc,expected", [
+    # Below a millilitre: three places, always. 0.125 is drawn in a 1 mL
+    # syringe graduated in hundredths; 0.12 is 4% less ketamine, and the old
+    # 5% band tolerated that silently.
+    (6.25, 50.0, 0.125),
+    (2.5, 50.0, 0.05),
+    (7.5, 10.0, 0.75),
+    # A millilitre and above: two, as before. 2.842 mL is arithmetic.
+    (142.1, 50.0, 2.84),
+    (96.0, 10.0, 9.6),
+    (1000.0, 100.0, 10.0),
+])
+def test_a_volume_is_drawn_to_the_places_a_syringe_shows(dose_mg, conc, expected,
+                                                         monkeypatch):
+    entries = copy.deepcopy(dcn.ENTRIES)
+    entries["ketamine"]["confirm_required"] = False
+    entries["ketamine"]["presentations"] = [
+        _sign(dict(entries["ketamine"]["presentations"][0],
+                   concentration_mg_ml=conc, mass_mg=conc, volume_ml=1.0))]
+    monkeypatch.setattr(dcn, "ENTRIES", entries)
+    assert dcn.volume_ml("ketamine", dose_mg) == (expected, conc)
+
+
+def test_three_places_still_escalate_when_they_would_misstate_the_dose():
+    """The escape hatch survives: 0.0004 mL rounds to nothing at three."""
+    assert dcn.draw_precision(0.000412) == 4
+    assert dcn.draw_precision(0.125) == 3
+    assert dcn.draw_precision(2.842) == 2
+
+
+def test_the_tldr_degrades_with_the_give_line(unsigned_kit):
     """A TLDR still saying "= 1.2mL of 100mg/mL" under a refused GIVE line
-    would be the only number on the screen."""
+    would be the only number on the screen. On a kit with nothing signed there
+    is no volume to state at all, conditionally or otherwise."""
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     text = oc.build_ketamine_analgesia_response(ctx)
     tldr = text.split("**TLDR**")[1]
+    assert "Volume not computed" in tldr
     assert "mL" not in tldr.split("Volume not computed")[0]
+
+
+def test_the_tldr_states_the_volume_conditionally_on_a_single_signed_vial():
+    """The pinned kit: ketamine is confirm_required with ONE signed vial, so
+    the card asks which and serves no volume — but the volume IS computable,
+    and "Volume not computed" under a brief quoting it is two lines about one
+    dose that disagree. Same sentence as the brief, from the same function."""
+    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
+                         route_preference="IV")
+    text = oc.build_ketamine_analgesia_response(ctx)
+    tldr = text.split("**TLDR**")[1].split("**")[0]
+    assert "Volume not computed" not in tldr
+    assert dcn.conditional_volume_line("ketamine", 20.0) in tldr
+    assert "confirm vial" in tldr
+    assert "mL of" not in tldr, "a conditional volume is not a served one"
+    assert "**CONFIRM VIAL**" in text, "the block that asks which vial is unchanged"
+    give = text.split("**GIVE**")[1].split("**")[0]
+    assert oc.CONFIRM_CONCENTRATION_LINE in give and "NO VOLUME" in give, \
+        "the GIVE line keeps its fail-closed marker"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
