@@ -61,6 +61,12 @@ def served():
             for name, (q, h) in CARDS.items()}
 
 
+def _dose_head(item):
+    """The dose as the card printed it, without its no-volume tail or full stop."""
+    clause = item.split(" Indication:")[0].rstrip()
+    return clause.split(" NO VOLUME")[0].rstrip().rstrip(".")
+
+
 def _give_items(response):
     _, sections = brief.parse_sections(response)
     return [i for i in brief._section(sections, brief.DOSE_SECTIONS)
@@ -97,8 +103,11 @@ def test_the_brief_carries_every_give_dose_verbatim(served, name):
     for item in items:
         # Computed here, not with brief.dose_clause: a test that asks the code
         # under test what "verbatim" means passes whatever the code decides.
-        clause = item.split(" Indication:")[0].rstrip()
-        assert clause in r["brief"], f"{clause!r} not verbatim in:\n{r['brief']}"
+        # Verbatim is the dose itself, up to the card's no-volume tail, which
+        # the brief replaces (tests/test_brief_tone.py) and up to its full stop,
+        # which a per-kg basis follows.
+        head = _dose_head(item)
+        assert head in r["brief"], f"{head!r} not verbatim in:\n{r['brief']}"
 
 
 def test_the_post_check_reads_the_same_numbers_off_the_brief(served):
@@ -126,7 +135,6 @@ def test_a_reworded_dose_is_never_a_brief_line():
     b = brief.build_brief(text, oc.MEDICATION_TERMS)["brief"]
     assert "Draw 0.3 mL of 50mg/mL ketamine IV (15 mg)." in b
     assert "16 mg" not in b
-    assert "Reassess at 5 min." in b
 
 
 # ── rule 3: holds and critical contraindications are never cut ───────────────
@@ -159,9 +167,13 @@ def test_a_pregate_refusal_leads_with_the_refusal(served):
 
 
 def test_recorded_contraindications_are_in_the_brief_and_marked_critical(served):
+    """The specific ones. Hypersensitivity, listed in the same card item, is
+    boilerplate: it stays in the section and out of the brief."""
     r = served["push_dose_epi"]
-    for word in ("Hypersensitivity", "Cardiac dilatation", "Coronary insufficiency"):
+    for word in ("Cardiac dilatation", "Coronary insufficiency"):
         assert word in r["brief"]
+    assert "Hypersensitivity" not in r["brief"]
+    assert "Hypersensitivity" in r["response"]
     assert "CONTRAINDICATIONS" in r["critical_sections"]
 
 
@@ -179,34 +191,35 @@ def test_rsi_doses_say_what_each_is_for(served):
     how the 40 mg sedation dose gets given to induce, or the 160 mg to sedate."""
     r = served["adult_rsi"]
     b = r["brief"]
-    assert "[RSI induction] ketamine IV: 160 mg." in b
+    assert "[RSI induction] ketamine IV: 160 mg" in b
     assert ("[post-intubation sedation — repeated bolus (no infusion pump)] "
-            "ketamine IV: 40 mg.") in b
+            "ketamine IV: 40 mg") in b
     # Rocuronium prints as a volume or as "NO VOLUME" depending on whether a
     # local drug_concentrations.json declares its vial, so it is found, not typed.
     items = _give_items(r["response"])
     assert len(items) == 3, "the RSI card no longer serves three doses; the fixture has drifted"
     for item in items:
-        clause = item.split(" Indication:")[0].rstrip()
-        i = b.index(clause)
-        assert b[:i].endswith("] "), f"unlabelled dose {clause!r} in:\n{b}"
-    roc = next(i.split(" Indication:")[0].rstrip() for i in items if "rocuronium" in i)
+        head = _dose_head(item)
+        i = b.index(head)
+        assert b[:i].endswith("] "), f"unlabelled dose {head!r} in:\n{b}"
+    roc = next(_dose_head(i) for i in items if "rocuronium" in i)
     assert "[RSI paralytic] " + roc in b
 
 
 def test_a_single_dose_is_not_labelled(served):
-    assert served["ped_ketamine_iv"]["brief"].startswith("ketamine IV: 6.25 mg.")
+    assert served["ped_ketamine_iv"]["brief"].startswith("ketamine IV: 6.25 mg")
 
 
 def test_a_dose_label_comes_from_the_card():
     assert brief.dose_label("GIVE", "ketamine IV: 15 mg. Indication: analgesia.") == "analgesia"
-    # No indication: the section's own name, except GIVE, which says nothing.
+    # No indication: the section's own name in sentence case, except GIVE,
+    # which says nothing.
     assert brief.dose_label("POST-INTUBATION SEDATION", "ketamine IV: 40 mg.") == \
-        "POST-INTUBATION SEDATION"
+        "Post-intubation sedation"
     assert brief.dose_label("GIVE", "ketamine IV: 15 mg.") == ""
     # An indication that states a dose is a second number: not used.
     assert brief.dose_label("DRIP", "Mix 50 mg in 50 mL. Indication: pain, max 3 doses of 50 mg.") \
-        == "DRIP"
+        == "Drip"
 
 
 def test_every_dont_section_is_critical_and_only_its_hits_enter_the_brief():

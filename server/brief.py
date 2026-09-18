@@ -8,8 +8,9 @@ it, and that is the only thing that makes it safe to put first:
 
   1. **No new clinical content.** Every line is lifted from a section the
      response already contains — a safety hold, a GIVE line, the TLDR, a DO THIS
-     step, a contraindication. The only words this module adds are the joins
-     between items ("Contraindicated — ", " · ").
+     step, a contraindication — or states a value computed from what the card
+     was computed from. The only words this module adds are joins ("Contraindicated
+     — ", " · ") and the two computed phrasings under rule 2.
 
   2. **A dose goes in verbatim or not at all.** If the response has a dose line
      under GIVE, POST-INTUBATION SEDATION or DRIP, that line's drug, dose and
@@ -24,6 +25,26 @@ it, and that is the only thing that makes it safe to put first:
      sedate after the tube, and two bare "ketamine IV" doses side by side is
      how one gets given for the other.
 
+     Two computed additions, each derived from the same source the card used
+     and omitted rather than guessed when they cannot be:
+       - the per-kg basis, "(0.25 mg/kg × 25 kg)", when the signed contract
+         entry for that drug, route and indication is per-kg and recomputing it
+         at the patient's confirmed weight gives exactly the printed dose (a
+         capped dose does not, so it gets no basis it does not follow);
+       - for a line the card printed with no volume, when exactly ONE
+         presentation of that drug is signed: "At 50 mg/mL that's 0.125 mL —
+         confirm vial", rounded and bounded by the same syringe rules
+         drug_concentrations applies to every volume. Zero or several signed
+         presentations, or a volume no syringe can draw, keep the card's own
+         no-volume reason. The CONFIRM VIAL block is untouched either way.
+
+  Three slots when the response doses: (a) the dose line(s); (b) the card's
+     first next action — the first DO THIS step that is neither equipment
+     preamble ("Confirm monitoring and airway equipment ready.") nor a restated
+     "Give <the dosed drug>", else the first WATCH line; (c) the critical
+     contraindications. A response with no dose keeps the lead / optional /
+     critical order below.
+
   3. **What must not be missed is required.** A safety hold, a gate question, a
      pre-gate refusal headline, and every critical contraindication are
      REQUIRED lines: they are placed before anything optional, and when they do
@@ -31,8 +52,10 @@ it, and that is the only thing that makes it safe to put first:
      dropped. Brevity loses to those, every time.
 
 "Critical" is a structural rule, not a clinical judgement made here:
-  - a CONTRAINDICATIONS item that records something (the "None recorded" line
-    is a gap in the record, not a contraindication);
+  - a CONTRAINDICATIONS item that records something specific to the drug's
+    indication. "None recorded" is a gap in the record, and hypersensitivity /
+    allergy is boilerplate every drug carries: both stay in the section, which
+    folds, and neither reaches the brief;
   - a DON'T item that says "never", says "contraindicated", or names a drug the
     response is dosing — the generator is told to put a dosed drug's signed
     contraindications in DON'T, so that is where they arrive on that path.
@@ -42,6 +65,9 @@ it is critical: models write "Don't give succinylcholine if crush injury", which
 the rule above does not catch, and a contraindication one tap away is one a
 medic under load does not read. The client never folds DON'T either, so the two
 agree without depending on each other.
+
+Sentence case throughout: an all-caps English word ("NO VOLUME", "FENTANYL
+DOSING") is lowercased; an acronym (IV, TBI, PEEP, CICO) is not.
 
 This module reads text and returns text. It is called once, at the end of
 openai_client._finalise, after the gate and after every notice, so nothing in
@@ -85,6 +111,34 @@ _DOSE_RE = re.compile(
 _NEVER_RE = re.compile(r"\b(?:never|contraindicat\w*)\b", re.IGNORECASE)
 _CONTRA_ITEM_RE = re.compile(r"^(.+?) — .+?: (.+)$")
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
+# Hypersensitivity / allergy: true of every drug, so it tells the medic nothing
+# about THIS patient. It stays in the CONTRAINDICATIONS section.
+_BOILERPLATE_CONTRA_RE = re.compile(r"\b(?:hypersensitiv\w*|allerg\w*)\b", re.IGNORECASE)
+# Equipment readiness said before every procedure, not a next action.
+_PREAMBLE_RE = re.compile(
+    r"^(?:confirm|ensure|check|verify|have)\b.*\b(?:ready|available|prepared|"
+    r"at hand|on hand|set up)\.?$", re.IGNORECASE)
+WATCH_SECTIONS = ("WATCH", "WATCH FOR")
+# The card's no-volume tail, as render_give_line writes it.
+_NO_VOLUME_RE = re.compile(r"^(?P<head>.*?\.)\s+NO VOLUME\s+—\s+(?P<why>.+?)\.?$")
+_MG_LINE_RE = re.compile(
+    r"^(?P<drug>.+?) (?P<route>\S+): (?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\.$")
+_DRAW_LINE_RE = re.compile(
+    r"^Draw [\d.]+ mL of [\d.]+ ?mg/mL (?P<drug>.+?) (?P<route>\S+) "
+    r"\((?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\)\.$")
+_TO_MG = {"mg": 1.0, "mcg": 0.001, "g": 1000.0}
+# All-caps tokens of four or more letters that are acronyms, not shouting.
+# Three letters and under are left alone (IV, TBI, GCS, TXA): nearly all
+# acronyms, and the shouted short words are listed in _SHOUTED_SHORT.
+ACRONYMS = frozenset({
+    "ACLS", "ARDS", "ASAP", "AVPU", "BIPAP", "CASEVAC", "CICO", "COPD", "CPAP", "CRASH",
+    "DOPE", "ECMO", "EFAST", "ETCO2", "FAST", "HRIG", "LTOWB", "MARCH", "MASCAL",
+    "MEDEVAC", "NSAID", "NSAIDS", "PALS", "PEEP", "PPE", "RASS", "RSDL", "SIRS",
+    "SPO2", "TACEVAC", "TCCC", "ZMIST",
+})
+_SHOUTED_SHORT = frozenset({"NO", "YES", "DO", "NOT", "AND", "OR", "IF", "NOW",
+                            "GIVE", "STOP", "VENT", "THE", "FOR", "TO", "OF"})
+_CAPS_TOKEN_RE = re.compile(r"(?<![\w'’-])[A-Z][A-Z'’-]*[A-Z](?![\w'’-])")
 
 
 def _norm_heading(name: str) -> str:
@@ -183,6 +237,117 @@ def dose_clause(item: str) -> str:
     return (item[:idx] if idx >= 0 else item).rstrip()
 
 
+def _sentence_case(line: str) -> str:
+    """Lowercase shouted words, keep acronyms, capitalise a lowered first word."""
+    first_lowered = False
+
+    def fix(m):
+        nonlocal first_lowered
+        word = m.group(0)
+        letters = re.sub(r"[^A-Z]", "", word)
+        shouted = (word in _SHOUTED_SHORT or
+                   (len(letters) >= 4 and word not in ACRONYMS))
+        if not shouted:
+            return word
+        if not line[:m.start()].strip(" [(\"'"):
+            first_lowered = True
+        return word.lower()
+
+    out = _CAPS_TOKEN_RE.sub(fix, line)
+    if first_lowered:
+        i = next((k for k, ch in enumerate(out) if ch.isalpha()), None)
+        if i is not None:
+            out = out[:i] + out[i].upper() + out[i + 1:]
+    return out
+
+
+def _indication(item: str) -> str:
+    idx = item.find(" Indication:")
+    return item[idx + len(" Indication:"):].strip().rstrip(". ").strip() if idx >= 0 else ""
+
+
+def per_kg_basis(drug: str, route: str, value: float, unit: str,
+                 indication: str, weight_kg) -> str:
+    """"(0.25 mg/kg × 25 kg)" when the printed dose IS that product, else "".
+
+    Found from the signed contract entry for this drug, route and indication,
+    recomputed with drug_contracts.resolve_dose at the confirmed weight. Only
+    when the recomputation reproduces the printed number: a capped dose, a
+    different entry, or a generated line whose indication was reworded gets no
+    basis rather than one it does not follow.
+    """
+    if weight_kg is None or not indication:
+        return ""
+    try:
+        import drug_contracts
+    except Exception:
+        return ""
+    for entry in drug_contracts.servable_entries().get(drug, []):
+        if entry.get("route") != route or entry.get("indication") != indication:
+            continue
+        rng = entry.get("dose_range") or {}
+        if not rng.get("per_kg") or not isinstance(rng.get("min"), (int, float)):
+            continue
+        r = drug_contracts.resolve_dose(entry, weight_kg)
+        if (r.get("display_value") is None or r.get("display_units") != unit
+                or abs(r["display_value"] - value) > 1e-9):
+            continue
+        return f"({rng['min']:g} {rng['units']} × {weight_kg:g} kg)"
+    return ""
+
+
+def conditional_volume(drug: str, dose_mg: float) -> str:
+    """"At 50 mg/mL that's 0.13 mL — confirm vial", or "" to keep the card's line."""
+    try:
+        import drug_concentrations
+    except Exception:
+        return ""
+    # The sentence itself lives in drug_concentrations, which owns volumes and
+    # is where the card's TLDR gets the same line.
+    return drug_concentrations.conditional_volume_line(drug, dose_mg)
+
+
+def dose_line(item: str, weight_kg=None) -> str:
+    """One dose, for slot (a): the GIVE clause verbatim, then what it computes to."""
+    clause = dose_clause(item)
+    m = _NO_VOLUME_RE.match(clause)
+    head, why = (m.group("head"), m.group("why")) if m else (clause, None)
+    parsed = _MG_LINE_RE.match(head) or _DRAW_LINE_RE.match(head)
+    out = head
+    if parsed:
+        value, unit = float(parsed.group("value")), parsed.group("unit")
+        basis = per_kg_basis(parsed.group("drug"), parsed.group("route"), value, unit,
+                             _indication(item), weight_kg)
+        if basis:
+            out = f"{head[:-1]} {basis}."
+    if why is not None:
+        cond = (conditional_volume(parsed.group("drug"),
+                                   float(parsed.group("value")) * _TO_MG[parsed.group("unit")])
+                if parsed else "")
+        out += " " + (cond or f"No volume — {why}.")
+    return out
+
+
+def _next_action(sections, dosed):
+    """Slot (b): the first real step, else the first thing to watch."""
+    for item in _section(sections, ACTION_SECTIONS):
+        c = _clean(item)
+        if not c or _PREAMBLE_RE.match(c) or len(c) > OPTIONAL_MAX_CHARS:
+            continue
+        low = c.lower()
+        if low.startswith("give ") and any(
+                re.search(r"(?<!\w)" + re.escape(d) + r"(?!\w)", low) for d in dosed):
+            continue
+        if _DOSE_RE.search(c):
+            continue
+        return c
+    for item in _section(sections, WATCH_SECTIONS):
+        c = _clean(item)
+        if c and len(c) <= OPTIONAL_MAX_CHARS and not _DOSE_RE.search(c):
+            return c
+    return ""
+
+
 def dose_label(section: str, item: str) -> str:
     """What a dose is for, in the card's own words.
 
@@ -197,7 +362,7 @@ def dose_label(section: str, item: str) -> str:
         indication = item[idx + len(" Indication:"):].strip().rstrip(". ").strip()
         if indication and not _DOSE_RE.search(indication):
             return indication
-    return "" if section == "GIVE" else section
+    return "" if section == "GIVE" else section.capitalize()
 
 
 def _dosed_drugs(clauses, medication_terms):
@@ -217,12 +382,17 @@ def _contraindication_lines(items):
         if drug not in by_drug:
             by_drug[drug] = []
             order.append(drug)
-        what = what.rstrip(". ")
-        if what not in by_drug[drug]:
-            by_drug[drug].append(what)
+        # One card item can list several ("Hypersensitivity; Cardiac
+        # dilatation"): the boilerplate goes, the rest stays.
+        for part in what.split(";"):
+            part = part.strip().rstrip(". ")
+            if not part or _BOILERPLATE_CONTRA_RE.search(part):
+                continue
+            if part not in by_drug[drug]:
+                by_drug[drug].append(part)
     return [f"Contraindicated — {d}: {'; '.join(by_drug[d])}." if d
             else f"Contraindicated — {'; '.join(by_drug[d])}."
-            for d in order]
+            for d in order if by_drug[d]]
 
 
 def _fit(lead, doses, optional, critical):
@@ -246,8 +416,18 @@ def _fit(lead, doses, optional, critical):
     return lead_l + dose_l + list(optional[:room]) + crit_l
 
 
-def build_brief(response_text: str, medication_terms=()) -> dict:
-    """{"brief": str, "critical_sections": [str]} for one served response."""
+def build_brief(response_text: str, medication_terms=(), weight_kg=None) -> dict:
+    """{"brief": str, "critical_sections": [str]} for one served response.
+
+    `weight_kg` is the patient's CONFIRMED weight, the one the dose calculators
+    use; it is only ever used to show the per-kg basis of a printed dose.
+    """
+    out = _build(response_text, medication_terms, weight_kg)
+    out["brief"] = "\n".join(_sentence_case(l) for l in out["brief"].split("\n"))
+    return out
+
+
+def _build(response_text, medication_terms, weight_kg):
     preamble, sections = parse_sections(response_text)
     content = [p for p in preamble if not _is_notice(p) and p != DISCLAIMER]
 
@@ -290,11 +470,11 @@ def build_brief(response_text: str, medication_terms=()) -> dict:
                   for item in _top_items(lines) if _DOSE_RE.search(item)]
     clauses = [dose_clause(item) for _, item in dose_items]
     dosed = _dosed_drugs(clauses, medication_terms)
-    doses = clauses
+    doses = [dose_line(item, weight_kg) for _, item in dose_items]
     if len(dose_items) > 1:
         labels = [dose_label(name, item) for name, item in dose_items]
-        doses = [f"[{label}] {clause}" if label else clause
-                 for label, clause in zip(labels, clauses)]
+        doses = [f"[{label}] {line}" if label else line
+                 for label, line in zip(labels, doses)]
 
     critical, critical_sections = [], []
     contra = _contraindication_lines(_section(sections, CONTRAINDICATION_SECTIONS))
@@ -305,12 +485,20 @@ def build_brief(response_text: str, medication_terms=()) -> dict:
             critical_sections.append(name)
         if name in DONT_SECTIONS:
             hits = [i for i in _top_items(lines)
-                    if _NEVER_RE.search(i)
+                    if not _BOILERPLATE_CONTRA_RE.search(i)
+                    and (_NEVER_RE.search(i)
                     or any(re.search(r"(?<!\w)" + re.escape(d) + r"(?!\w)", i.lower())
-                           for d in dosed)]
+                           for d in dosed))]
             critical += hits
             if _top_items(lines) and name not in critical_sections:
                 critical_sections.append(name)
+
+    # ── Three slots when the response doses ─────────────────────────────────
+    if doses:
+        slot_b = _next_action(sections, dosed)
+        lines = _fit(lead, [" · ".join(doses)], [slot_b] if slot_b else [],
+                     [" · ".join(critical)] if critical else [])
+        return {"brief": "\n".join(lines), "critical_sections": critical_sections}
 
     # Optional lines, in priority order: the generator's own BRIEF when it
     # wrote one, then the TLDR (the fallback the prompt contract names), then

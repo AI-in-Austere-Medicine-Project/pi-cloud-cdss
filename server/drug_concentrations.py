@@ -379,12 +379,21 @@ def match_confirmation(generic_name: str, text: str) -> Optional[float]:
 def draw_precision(true_volume_ml: float) -> int:
     """Decimal places a syringe can actually be read to for this volume.
 
-    Two places by default: 2.842 mL is arithmetic, 2.84 mL is a thing a person
-    can draw. Falls back to three only when two would misstate the dose by more
-    than 5%, which happens on the small pushes where the volume is a fraction
-    of a millilitre and the precision genuinely matters.
+    Two places at a millilitre and above: 2.842 mL is arithmetic, 2.84 mL is a
+    thing a person can draw.
+
+    THREE below a millilitre, always. Two places there round on the digit that
+    carries the dose: the paediatric ketamine push is 0.125 mL and 0.12 mL is
+    4% less ketamine — inside the 5% band the old rule tolerated, so it never
+    escalated and the card served the rounded number. A fraction-of-a-mL push
+    is drawn in a 1 mL syringe graduated in hundredths, so the third decimal is
+    the medic's information rather than false precision.
+
+    Four places remain the escape hatch for a volume three would still misstate
+    by more than 5%.
     """
-    for places in (2, 3, 4):
+    start = 3 if true_volume_ml < 1.0 else 2
+    for places in (start, start + 1, 4):
         rounded = round(true_volume_ml, places)
         if rounded > 0 and abs(rounded - true_volume_ml) <= true_volume_ml * 0.05:
             return places
@@ -451,6 +460,43 @@ def volume_refusal(generic_name: str, dose_mg: float,
 # exact question resolve() exists to force. Dead code that bypasses a gate is
 # the A2 shape: harmless today, and indistinguishable from the house pattern
 # to whoever needs something like it next. Use resolve().
+
+
+def single_signed_volume(generic_name: str, dose_mg: float) -> tuple:
+    """(volume_ml, concentration_mg_ml) when exactly ONE presentation is signed.
+
+    For the brief's conditional line, "At 50 mg/mL that's 0.13 mL — confirm
+    vial", on a drug whose card still asks which vial (confirm_required). It is
+    not a served volume: the GIVE line and CONFIRM VIAL are unchanged, and the
+    brief says "confirm vial" in the same sentence. Same arithmetic, rounding
+    and drawable() bounds as volume_ml(), so the number cannot differ from the
+    one the card prints once the vial is confirmed. (None, None) for zero or
+    several signed presentations, or a volume no syringe can draw.
+    """
+    signed = signed_presentations(generic_name)
+    if len(signed) != 1:
+        return None, None
+    conc = signed[0].get("concentration_mg_ml")
+    if not conc:
+        return None, None
+    true_vol = dose_mg / conc
+    ok, _why = drawable(true_vol)
+    if not ok:
+        return None, None
+    return round(true_vol, draw_precision(true_vol)), conc
+
+
+def conditional_volume_line(generic_name: str, dose_mg: float) -> str:
+    """"At 50 mg/mL that's 0.125 mL — confirm vial.", or "".
+
+    The one phrasing for a volume that is COMPUTED but not CONFIRMED, used by
+    the brief and by the TLDR under a GIVE line that has no volume. One place,
+    so the two cannot drift into saying different things about the same dose.
+    """
+    vol, conc = single_signed_volume(generic_name, dose_mg)
+    if vol is None:
+        return ""
+    return f"At {conc:g} mg/mL that's {vol:g} mL — confirm vial."
 
 
 def all_signed_strengths(generic_name: str) -> list:

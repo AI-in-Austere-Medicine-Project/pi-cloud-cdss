@@ -231,6 +231,21 @@ def test_chips_sit_under_the_brief(rendered):
         assert ">" + label + "</button>" in bubble
 
 
+def test_chip_labels_are_separated_in_the_text_not_only_the_layout(rendered):
+    """On a phone the flex gap spaces them (checked in headless Chromium at
+    390 px). The pasted output ran them together because the markup had no
+    whitespace between buttons, so anything reading text rather than layout
+    got "Why?ContraindicationsVial math"."""
+    bubble = rendered["rsi"]["bubble"]
+    chips = bubble[bubble.index('<div class="chips">'):]
+    chips = chips[:chips.index("</div>")]
+    text = re.sub(r"<[^>]+>", "", chips)
+    assert text == "Why? Contraindications Vial math Pediatric What to watch Full protocol"
+    css = CLIENT.read_text()
+    assert re.search(r"\.chips\s*\{[^}]*gap:\s*\d+px[^}]*flex-wrap:\s*wrap", css), \
+        "the chip row lost its gap or its wrap"
+
+
 def test_no_chips_under_a_hold(rendered):
     assert '<div class="chips">' not in rendered["hold"]["bubble"]
 
