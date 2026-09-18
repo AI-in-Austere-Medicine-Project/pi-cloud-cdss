@@ -626,13 +626,9 @@ def extract_patient_context(query: str,
         ctx.ams_stated = True
 
     # ── Age extraction ────────────────────────────────────────────────────
-    age_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:yo|y/o|year[\s-]*old|yr\s*old)\b', q)
-    if age_match:
-        ctx.age_years = float(age_match.group(1))
-    if not age_match:
-        age_match2 = re.search(r'(\d+)[\s-]*year[\s-]*old', q)
-        if age_match2:
-            ctx.age_years = float(age_match2.group(1))
+    stated_age = _stated_age_years(q)
+    if stated_age is not None:
+        ctx.age_years = stated_age
 
     # ── Pediatric detection ───────────────────────────────────────────────
     # Word-boundary matched: 'kid' must not fire on "kidney", 'girl' on
@@ -3656,12 +3652,23 @@ def _stated_weight_kg(q: str) -> Optional[float]:
 
 
 def _stated_age_years(q: str) -> Optional[float]:
+    """The age this text states, in years, or None.
+
+    Months count too, converted to years: "2 month old" is 2/12 yr. Without
+    it an infant's age was never read at all, so an age-limited
+    contraindication ("Age < 3 months", ketamine) had no age to be read
+    against. The one parser for both extract_patient_context and the patient
+    boundary check, so the two cannot disagree about what age was said.
+    """
     m = re.search(r'(\d+(?:\.\d+)?)\s*(?:yo|y/o|year[\s-]*old|yr\s*old)\b', q)
     if m:
         return float(m.group(1))
     m = re.search(r'(\d+)[\s-]*year[\s-]*old', q)
     if m:
         return float(m.group(1))
+    m = re.search(r'(\d+(?:\.\d+)?)[\s-]*months?[\s-]*old\b', q)
+    if m:
+        return round(float(m.group(1)) / 12.0, 4)
     return None
 
 

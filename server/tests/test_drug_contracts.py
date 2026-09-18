@@ -342,9 +342,11 @@ def test_every_tier_1_citation_names_a_guideline_and_page():
                     continue
                 c = src["citation"]
                 cls = src.get("source_class")
-                assert cls in ("NASEMSO", "JTS"), f"{name}: tier 1 but {cls!r}"
+                assert cls in ("NASEMSO", "JTS", "SMOG"), f"{name}: tier 1 but {cls!r}"
                 if cls == "NASEMSO":
                     assert "NASEMSO" in c and "v3.0" in c, c
+                elif cls == "SMOG":
+                    assert "SMOG" in c and "CY24" in c, c
                 else:
                     assert "JTS" in c and "CPG ID" in c, c
                     assert re.search(r"\b\d{2} \w{3} \d{4}\b", c), \
@@ -660,8 +662,11 @@ def test_ruling_5_the_mislabelled_im_dose_is_gone():
 
 
 def test_ruling_5_the_two_analgesia_sources_are_no_longer_a_conflict():
+    # The adult-applicable pair. The paediatric SMOG entry (ruling 2026-09-18)
+    # is a population split, not a third source in this conflict.
     analg = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
-             if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict)]
+             if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict)
+             and e["population"] != "peds"]
     assert len(analg) == 2
     for e in analg:
         assert "SOURCE_CONFLICT" not in (e.get("flags") or [])
@@ -1921,6 +1926,7 @@ def test_the_detail_tier_hides_only_these_families():
         "Neither JTS CPG states a contraindication fo",
         "No approved source states a reduced PAEDIATR",
         "If an infusion pump IS available, see ketami",
+        "SMOG CY24 p.127 states the paediatric IV ana",
     }
 
 

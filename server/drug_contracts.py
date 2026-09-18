@@ -1195,6 +1195,25 @@ def single_concentration(generic_name: str) -> Optional[float]:
     return float(next(iter(concs)))
 
 
+def _prefer_population_specific(pairs: list) -> list:
+    """Drop a shared adult|peds entry where a population-specific one covers
+    the same drug, indication and route.
+
+    Callers have already filtered by population, so what is left for a child is
+    peds and adult|peds entries. Where both exist for one indication and route
+    they are two doses for one situation, and the one written for this
+    population is the one that serves. OWNER RULING 2026-09-18 (#65): ketamine
+    analgesia serves SMOG's paediatric 0.2 mg/kg to children, not NASEMSO's
+    all-ages 0.25 mg/kg, which the paediatric entry names as its alternate.
+    Order is otherwise preserved.
+    """
+    specific = {(n, e.get("indication"), e.get("route"))
+                for n, e in pairs if e.get("population") in ("adult", "peds")}
+    return [(n, e) for n, e in pairs
+            if not (e.get("population") == "adult|peds"
+                    and (n, e.get("indication"), e.get("route")) in specific)]
+
+
 def signed_entries_by_indication(patterns, is_pediatric: bool = False,
                                  age_years: Optional[float] = None) -> list:
     """(drug, entry) pairs whose INDICATION matches, whatever the query named.
@@ -1229,7 +1248,7 @@ def signed_entries_by_indication(patterns, is_pediatric: bool = False,
                 if not (lo <= age_years < hi):
                     continue
             out.append((name, e))
-    return out
+    return _prefer_population_specific(out)
 
 
 def _age_band(entry: dict):
@@ -1270,7 +1289,7 @@ def signed_entries_for(query: str, route: Optional[str] = None,
             if not is_pediatric and pop == "peds":
                 continue
             out.append((name, e))
-    return out
+    return _prefer_population_specific(out)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

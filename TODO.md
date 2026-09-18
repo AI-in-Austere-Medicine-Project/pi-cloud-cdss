@@ -332,6 +332,14 @@ deliberately did NOT touch.
       avoided" (emergence phenomenon). None of that is in the contract entry.
       Decide whether the paediatric analgesia dose stays at 0.25 mg/kg with
       NASEMSO's all-ages scope, or gets its own peds entry.
+      - [x] **Decided 2026-09-18 (#65): its own peds entry.** SMOG CY24 p.127,
+            IV **0.2 mg/kg** (the top of its 0.1-0.2 range), "Age < 3 months"
+            contraindication, "avoid 0.5-0.9 mg/kg IV" caution. For a child it
+            supersedes NASEMSO's 0.25 mg/kg, which stays signed for adults and
+            is named on the peds entry as the general-EBM alternate. SMOG's
+            paediatric IM 0.5 mg/kg is NOT entered. At 0.2 mg/kg the vial draw
+            is 0.004 mL/kg, refused below 12.5 kg — which is what the dilution
+            above now has to cover, on the peds entry rather than on NASEMSO's.
 
       **Follow-ons once the entry carries a dilution caution:**
       - [ ] The brief's conditional volume should say the dilution's volume, or

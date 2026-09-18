@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "46 of 95 dose entries across 12 of 32 drugs are signed and servable; 1 of those serves on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "47 of 96 dose entries across 12 of 32 drugs are signed and servable; 1 of those serves on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -29,6 +29,13 @@
       ],
       "retrieval_status": "retrieved 2026-08-25 from jts.health.mil; text layers intact",
       "note": "Tier 1 alongside NASEMSO. JTS is the source that actually covers RSI: NASEMSO v3.0 contains no RSI drug dosing at all and does not list rocuronium or succinylcholine anywhere. The two JTS documents do NOT always agree with each other — ID39 (2026) and ID40 (2021) give different induction and paralytic doses — and every such disagreement is kept as two entries under one conflict_group."
+    },
+    "tier_1_smog": {
+      "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG), CY24 revision",
+      "source_class": "SMOG",
+      "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+      "retrieval_status": "local copy in the protocol corpus (SMOG_CY24_REVISION_FINAL.pdf); text layer intact, printed page == PDF page. Quotes verified against the PDF 2026-09-18.",
+      "note": "Tier 1 alongside NASEMSO and JTS. OWNER RULING 2026-09-18 (#65): admitted for the paediatric ketamine analgesia column of its ketamine monograph (p.127), which NASEMSO does not state separately. Under the dual-domain rule SMOG is the military-aeromedical source and NASEMSO the general-EBM one; where both state a paediatric value, the paediatric-specific SMOG entry serves and the NASEMSO all-ages value is named on it as the alternate."
     }
   },
   "copyright_note": "Values here are extracted FACTS — a strength, a form, a scope statement — restructured into this project's own schema. No source table, figure or layout is reproduced. WHO's third-party-materials notice puts the risk of reusing ITS third-party tables on the reuser, which is the reason this file is authored rather than transcribed.",
@@ -269,6 +276,61 @@
           "extraction_notes": "TIER 1 VALUE. NASEMSO gives 0.25 mg/kg IM/IV/IO for moderate to severe pain, capped at 25 mg initial and 100 mg cumulative. This CONFLICTS with the migrated hardcoded contract, which uses 0.3 mg/kg IV with no cap and 2.0 mg/kg IM with no cap. Both entries are kept. The IM divergence is the serious one: for an 80 kg patient the hardcode gives 160 mg IM where NASEMSO caps at 25 mg — roughly SIX TIMES. Adjudicate before signing either.",
           "adjudication": "OWNER RULING 2026-08-25: JTS ID61's 0.1-0.2 mg/kg and NASEMSO's 0.25 mg/kg are the same clinical range for sub-dissociative analgesia. Both kept and both cited; this is not a conflict.",
           "adjudicated_on": "2026-08-25"
+        },
+        {
+          "indication": "moderate to severe pain / analgesia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.2,
+            "max": 0.2,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Age < 3 months"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Avoid 0.5-0.9 mg/kg IV — emergence phenomena (SMOG: \"feeling of unreality leading to agitation\")."
+            },
+            {
+              "tier": "serve",
+              "text": "General-EBM alternate (dual-domain): NASEMSO gives 0.25 mg/kg IV/IO for all ages, max 25 mg initial / 100 mg cumulative (Pain Management, p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "SMOG CY24 p.127 states the paediatric IV analgesia dose as a range, 0.1-0.2 mg/kg, repeat q 10-30 min PRN. OWNER RULING 2026-09-18: the signed value is 0.2 mg/kg, the top of that range."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration: Pediatric, Analgesia, IV; Contraindications; Adverse Reactions / Precautions, p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-18"
+            }
+          ],
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-09-18",
+          "version": "0.1.0",
+          "extraction_notes": "SMOG CY24 p.127, PEDIATRIC column, verified against the PDF: \"Analgesia: ... IV: 0.1 – 0.2 mg/kg, repeat q 10-30 prn\"; Contraindications: \"Children <3 mo. age\"; Precautions: \"Dosing between 0.5-0.9 mg/kg IV (and equivalent IM dose) can give patients the feeling of unreality leading to agitation and should be avoided\". Lower than the NASEMSO 0.25 mg/kg all-ages entry, which stays signed and serves adults. SMOG's paediatric IM analgesia (0.5 mg/kg) is NOT entered here.",
+          "adjudication": "OWNER RULING 2026-09-18 (#65): for a paediatric patient this entry serves in place of the NASEMSO 0.25 mg/kg adult|peds entry for the same indication and route. NASEMSO is kept, still serves adults, and is named on this entry as the general-EBM alternate under the dual-domain rule. The signed dose is 0.2 mg/kg, the top of SMOG's 0.1-0.2 mg/kg range.",
+          "adjudicated_on": "2026-09-18"
         },
         {
           "indication": "agitated or violent patient — dissociative sedation",
