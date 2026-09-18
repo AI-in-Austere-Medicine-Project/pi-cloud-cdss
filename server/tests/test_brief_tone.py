@@ -9,7 +9,7 @@ or to a value computed from what the card was computed from. Pinned here:
     next action, not equipment preamble; (c) a contraindication only when it is
     specific to this indication;
   - with exactly one signed presentation, a no-volume dose line carries the
-    volume conditionally ("At 50 mg/mL that's 0.12 mL — confirm vial"); with
+    volume conditionally ("At 50 mg/mL that's 0.125 mL — confirm vial"); with
     zero or several, the card's own reason stays, in sentence case;
   - hypersensitivity / allergy boilerplate never reaches a brief, while a
     patient-specific contraindication (steroids in TBI) still does;
@@ -54,7 +54,7 @@ def test_the_ketamine_brief_is_three_slots(served):
     r = served["ped_ketamine_iv"]
     assert r["brief"].splitlines() == [
         # (a) the GIVE line verbatim, its per-kg basis, the conditional volume
-        "ketamine IV: 6.25 mg (0.25 mg/kg × 25 kg). At 50 mg/mL that's 0.12 mL — confirm vial.",
+        "ketamine IV: 6.25 mg (0.25 mg/kg × 25 kg). At 50 mg/mL that's 0.125 mL — confirm vial.",
         # (b) DO THIS step 3: step 1 is equipment preamble, step 2 restates the dose
         "Reassess pain, airway, respirations q5min.",
     ]
@@ -78,9 +78,9 @@ def test_every_line_of_the_ketamine_brief_traces_to_the_card_or_a_computation(se
     # The volume is the one the card serves once the medic confirms the vial:
     # resolve_dose_volume goes through drug_concentrations.volume_ml, and with
     # the vial confirmed that returns the same number.
-    assert oc.drug_concentrations.volume_ml("ketamine", 6.25, {"ketamine": 50.0}) == (0.12, 50.0), \
+    assert oc.drug_concentrations.volume_ml("ketamine", 6.25, {"ketamine": 50.0}) == (0.125, 50.0), \
         "the conditional volume disagrees with the volume the card serves once confirmed"
-    assert "At 50 mg/mL that's 0.12 mL" in line_a
+    assert "At 50 mg/mL that's 0.125 mL" in line_a
 
 
 def test_the_dose_line_is_verbatim(served):
@@ -141,7 +141,7 @@ def test_one_signed_presentation_gives_a_conditional_volume():
     assert [p["label_text"] for p in dcn.signed_presentations("ketamine")] == \
         ["500 mg / 10 mL vial"], "the pinned test kit changed"
     b = brief.build_brief(NO_VOL, oc.MEDICATION_TERMS)["brief"]
-    assert "At 50 mg/mL that's 0.12 mL — confirm vial." in b
+    assert "At 50 mg/mL that's 0.125 mL — confirm vial." in b
     assert "No volume" not in b
 
 
