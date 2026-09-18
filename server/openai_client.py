@@ -1436,8 +1436,22 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
     Kept in step deliberately: a TLDR that still said "= 1.2mL of 100mg/mL"
     under a GIVE line that had already refused to give a volume would be the
     only number on the screen, and the one a medic would act on.
+
+    "Volume not computed" was true of the pipeline and false to the medic where
+    the kit has exactly ONE signed presentation: the volume IS computable, the
+    card is only asking which vial, and the brief now says so on the first
+    screen. Two lines about one dose, one saying it cannot be computed and one
+    quoting it, is worse than either — so that case states it the way the brief
+    does, conditionally, in the same words, from the same function. The GIVE
+    line above is unchanged: its NO VOLUME is the fail-closed marker the
+    generator prompt, the post-checks and the volume audit all key on. So is
+    CONFIRM VIAL.
     """
     if d.volume_ml is None or d.concentration_mg_ml is None:
+        conditional = (drug_concentrations.conditional_volume_line(d.drug, d.dose_mg)
+                       if drug_concentrations is not None else "")
+        if conditional:
+            return f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. {conditional}"
         return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "
                 f"Volume not computed — {CONFIRM_CONCENTRATION_LINE}.")
     return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg = "
