@@ -253,13 +253,13 @@ deliberately did NOT touch.
 - [ ] **Pediatric IV ketamine needs dilution guidance before it serves a volume.
       Needs an owner decision — content, not format.** At the signed 50 mg/mL
       vial, the analgesia dose (0.25 mg/kg) is a fraction of a millilitre for
-      any child: 10 kg is 2.5 mg = **0.05 mL**, 25 kg is 6.25 mg = **0.12 mL**
-      (0.125 rounded by the syringe rule), and 40 kg is 10 mg = 0.2 mL. Below
+      any child: 10 kg is 2.5 mg = **0.05 mL**, 25 kg is 6.25 mg = **0.125 mL**,
+      and 40 kg is 10 mg = 0.2 mL. Below
       10 kg it is refused outright — 5 kg computes 0.025 mL, under the 0.05 mL
       floor `drug_concentrations.drawable()` enforces — and the medic is told
       the dose "likely needs a dilution the kit has not declared" without being
       told what dilution. A draw that small is where a tenfold error lives, and
-      the brief now states it conditionally ("At 50 mg/mL that's 0.12 mL —
+      the brief now states it conditionally ("At 50 mg/mL that's 0.125 mL —
       confirm vial"), which puts the small number on the first screen.
       **What the card should carry, for the owner to author and sign:** a
       target concentration for pediatric analgesia, the recipe that reaches it

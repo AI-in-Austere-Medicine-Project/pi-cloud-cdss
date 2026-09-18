@@ -18,7 +18,7 @@ carries, or a value computed from what the card computed its dose from.
   shown only when the recomputation reproduces the printed dose exactly. A
   capped dose, a reworded indication or an unconfirmed weight gets none.
 - **A conditional volume where the card has none.** With exactly one signed
-  presentation, a no-volume dose line reads "At 50 mg/mL that's 0.12 mL —
+  presentation, a no-volume dose line reads "At 50 mg/mL that's 0.125 mL —
   confirm vial", using `drug_concentrations.single_signed_volume()` — the same
   arithmetic, syringe rounding and drawable bounds as every served volume, so
   it cannot differ from what the card prints once the vial is confirmed. Zero
@@ -29,6 +29,17 @@ carries, or a value computed from what the card computed its dose from.
   A specific one ("Cardiac dilatation", "Traumatic brain injury") still leads.
 - **Sentence case.** "NO VOLUME" is gone from briefs entirely; a shouted word is
   lowercased and an acronym is not (IV, TBI, PEEP, CICO, ETCO2, CRASH).
+- **A volume under a millilitre is drawn to three decimals** (`draw_precision`).
+  Two places there round on the digit that carries the dose: 0.125 mL of
+  ketamine was served as 0.12 mL, 4% less, inside the 5% band the rule
+  tolerated. Two places stay at a millilitre and above, and four remain the
+  escape hatch. Seven volume shapes in the kit change, all of them cases where
+  the second decimal was dropping a real digit.
+- **The conditional volume is the brief's alone** (owner decision). The card
+  keeps saying "Volume not computed — confirm concentration" under a GIVE line
+  that says NO VOLUME, and CONFIRM VIAL still asks which vial. One conditional
+  sentence per answer, on the first screen. The phrasing lives in
+  `drug_concentrations.conditional_volume_line()`, which owns volumes.
 - **Follow-up chips are separated in the markup.** The flex gap already spaced
   them on screen — checked in headless Chromium at 390 px — but the buttons had
   no whitespace between them, so copied text read

@@ -527,6 +527,40 @@ def test_the_rsi_template_refuses_a_volume_until_the_vial_is_confirmed():
         assert "**CONFIRM VIAL**" in text
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# HOW MANY DECIMALS A VOLUME IS DRAWN TO
+# ═══════════════════════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("dose_mg,conc,expected", [
+    # Below a millilitre: three places, always. 0.125 is drawn in a 1 mL
+    # syringe graduated in hundredths; 0.12 is 4% less ketamine, and the old
+    # 5% band tolerated that silently.
+    (6.25, 50.0, 0.125),
+    (2.5, 50.0, 0.05),
+    (7.5, 10.0, 0.75),
+    # A millilitre and above: two, as before. 2.842 mL is arithmetic.
+    (142.1, 50.0, 2.84),
+    (96.0, 10.0, 9.6),
+    (1000.0, 100.0, 10.0),
+])
+def test_a_volume_is_drawn_to_the_places_a_syringe_shows(dose_mg, conc, expected,
+                                                         monkeypatch):
+    entries = copy.deepcopy(dcn.ENTRIES)
+    entries["ketamine"]["confirm_required"] = False
+    entries["ketamine"]["presentations"] = [
+        _sign(dict(entries["ketamine"]["presentations"][0],
+                   concentration_mg_ml=conc, mass_mg=conc, volume_ml=1.0))]
+    monkeypatch.setattr(dcn, "ENTRIES", entries)
+    assert dcn.volume_ml("ketamine", dose_mg) == (expected, conc)
+
+
+def test_three_places_still_escalate_when_they_would_misstate_the_dose():
+    """The escape hatch survives: 0.0004 mL rounds to nothing at three."""
+    assert dcn.draw_precision(0.000412) == 4
+    assert dcn.draw_precision(0.125) == 3
+    assert dcn.draw_precision(2.842) == 2
+
+
 def test_the_tldr_degrades_with_the_give_line():
     """A TLDR still saying "= 1.2mL of 100mg/mL" under a refused GIVE line
     would be the only number on the screen."""
@@ -535,6 +569,23 @@ def test_the_tldr_degrades_with_the_give_line():
     text = oc.build_ketamine_analgesia_response(ctx)
     tldr = text.split("**TLDR**")[1]
     assert "mL" not in tldr.split("Volume not computed")[0]
+
+
+def test_the_card_stays_silent_about_an_unconfirmed_volume():
+    """The pinned kit signs ONE ketamine vial and the card still asks which, so
+    the volume is computable and the BRIEF states it conditionally. The card
+    does not: owner decision 2026-09-18, one conditional sentence per answer.
+    """
+    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
+                         route_preference="IV")
+    text = oc.build_ketamine_analgesia_response(ctx)
+    assert dcn.single_signed_volume("ketamine", 20.0) == (0.4, 50.0), \
+        "the volume IS computable on this kit; the point is that the card does not say so"
+    assert "confirm vial" not in text.lower().replace("**confirm vial**", "")
+    assert "Volume not computed" in text
+    give = text.split("**GIVE**")[1].split("**")[0]
+    assert "NO VOLUME" in give and oc.CONFIRM_CONCENTRATION_LINE in give
+    assert "**CONFIRM VIAL**" in text
 
 
 # ═══════════════════════════════════════════════════════════════════════════

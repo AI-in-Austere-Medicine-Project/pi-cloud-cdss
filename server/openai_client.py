@@ -1436,6 +1436,14 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
     Kept in step deliberately: a TLDR that still said "= 1.2mL of 100mg/mL"
     under a GIVE line that had already refused to give a volume would be the
     only number on the screen, and the one a medic would act on.
+
+    Where exactly one presentation is signed, the volume IS computable and the
+    card is only asking which vial — the brief says so on the first screen
+    ("At 50 mg/mL that's 0.125 mL — confirm vial"). This line deliberately does
+    NOT: the card stays silent about a volume until the vial is confirmed, one
+    conditional sentence on the answer is enough, and "Volume not computed"
+    beside a GIVE line that says NO VOLUME is the pair a medic already reads
+    together. Owner decision 2026-09-18.
     """
     if d.volume_ml is None or d.concentration_mg_ml is None:
         return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "

@@ -32,7 +32,7 @@ it, and that is the only thing that makes it safe to put first:
          at the patient's confirmed weight gives exactly the printed dose (a
          capped dose does not, so it gets no basis it does not follow);
        - for a line the card printed with no volume, when exactly ONE
-         presentation of that drug is signed: "At 50 mg/mL that's 0.13 mL —
+         presentation of that drug is signed: "At 50 mg/mL that's 0.125 mL —
          confirm vial", rounded and bounded by the same syringe rules
          drug_concentrations applies to every volume. Zero or several signed
          presentations, or a volume no syringe can draw, keep the card's own
@@ -302,10 +302,9 @@ def conditional_volume(drug: str, dose_mg: float) -> str:
         import drug_concentrations
     except Exception:
         return ""
-    vol, conc = drug_concentrations.single_signed_volume(drug, dose_mg)
-    if vol is None:
-        return ""
-    return f"At {conc:g} mg/mL that's {vol:g} mL — confirm vial."
+    # The sentence itself lives in drug_concentrations, which owns volumes and
+    # is where the card's TLDR gets the same line.
+    return drug_concentrations.conditional_volume_line(drug, dose_mg)
 
 
 def dose_line(item: str, weight_kg=None) -> str:
