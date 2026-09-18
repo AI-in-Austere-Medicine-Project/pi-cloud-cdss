@@ -261,15 +261,31 @@ deliberately did NOT touch.
       which. The brief now states the volume conditionally ("At 50 mg/mL that's
       0.125 mL — confirm vial"), so the small number is on the first screen.
 
-      **What the corpus states, checked 2026-09-18** (133 ketamine chunks): the
-      only ketamine concentration any guideline in the corpus prepares is
-      **1 mg/mL, and only for infusions** — "250 mg of Ketamine in 250 ml of
-      normal saline" (Pain Anxiety Delirium, p.8) and "MIX 500 mg/500 mL
-      CONCENTRATION 1 mg/mL" (SMOG CY24, p.128). **No guideline in the corpus
-      states a push dilution, a paediatric preparation, or a target
-      concentration for IV push.** So whatever is authored here is an OWNER
-      DECLARATION, not a citation — the `owner_declaration` block, the way
-      ketamine's no-pump sedation entry already is.
+      **What the corpus states, checked 2026-09-18** (133 ketamine chunks,
+      quotes verified against the source PDFs):
+      - Every ketamine concentration any guideline in the corpus prepares is an
+        **INFUSION** mix: "MIX: 750mg (1.5 vials of 500mg/5mL) in 250mL of
+        normal saline (3mg/mL solution)" (JTS ID61, Appendix B, p.9); "250 mg
+        of Ketamine in 250 ml of normal saline" (Pain Anxiety Delirium, p.8);
+        "MIX 500 mg/500 mL CONCENTRATION 1 mg/mL" (SMOG CY24, p.128).
+      - **No guideline in the corpus states a ketamine PUSH dilution, a
+        paediatric preparation, or a target concentration for push.** The push
+        guidance is a RATE, not a concentration: "IV/IO Push (over 1 min)"
+        (SMOG CY24, p.127), and "Rapid IV administration may cause hypotension,
+        apnea, or laryngospasm" (same page).
+      - The corpus does carry a **drug-agnostic dilution table** whose 50 mg row
+        gives exactly the recipe below: 50 mg into 10 cc = **5 mg/mL**, with
+        "1ml drug + 9ml fluid = 10ml solution" (SMOG CY24, p.71). It names no
+        drug, so it sources the ARITHMETIC, not the choice to apply it to
+        ketamine.
+      - Dilution recipes for other drugs ARE stated and are the precedent for
+        the shape: naloxone "Dilute 0.4mg (1mL) with 9mL normal saline" (JTS
+        ID61, Appendix C, p.10), and push-dose epinephrine, which is already
+        signed and serving.
+
+      So the concentration itself is an OWNER DECLARATION, not a citation — the
+      `owner_declaration` block, the way ketamine's no-pump sedation entry
+      already is.
 
       **Recommended shape — mirror push-dose epinephrine exactly.** That entry
       carries its dilution as CAUTIONS on the dose entry, not as card prose:
@@ -306,6 +322,16 @@ deliberately did NOT touch.
       signed presentations two, which silently switches off the brief's
       conditional volume line, and (b) let `audit_volume_lines` accept a
       "5mg/mL ketamine" GIVE line as a stocked strength.
+
+      **Related content question, same sign-off (the DOSE, not the volume).**
+      The served paediatric analgesia dose is NASEMSO's 0.25 mg/kg, which that
+      guideline applies to all ages. SMOG CY24's ketamine monograph (p.127)
+      states a separate PAEDIATRIC column: analgesia **IV 0.1-0.2 mg/kg**,
+      IM 0.5 mg/kg — lower than what is served — plus "Children <3 mo. age" as
+      a contraindication and "Dosing between 0.5-0.9 mg/kg IV ... should be
+      avoided" (emergence phenomenon). None of that is in the contract entry.
+      Decide whether the paediatric analgesia dose stays at 0.25 mg/kg with
+      NASEMSO's all-ages scope, or gets its own peds entry.
 
       **Follow-ons once the entry carries a dilution caution:**
       - [ ] The brief's conditional volume should say the dilution's volume, or
