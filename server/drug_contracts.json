@@ -293,6 +293,7 @@
             "Hypersensitivity",
             "Age < 3 months"
           ],
+          "min_age_months": 3,
           "cautions": [
             {
               "tier": "serve",
@@ -329,7 +330,7 @@
           "review_date": "2026-09-18",
           "version": "0.1.0",
           "extraction_notes": "SMOG CY24 p.127, PEDIATRIC column, verified against the PDF: \"Analgesia: ... IV: 0.1 – 0.2 mg/kg, repeat q 10-30 prn\"; Contraindications: \"Children <3 mo. age\"; Precautions: \"Dosing between 0.5-0.9 mg/kg IV (and equivalent IM dose) can give patients the feeling of unreality leading to agitation and should be avoided\". Lower than the NASEMSO 0.25 mg/kg all-ages entry, which stays signed and serves adults. SMOG's paediatric IM analgesia (0.5 mg/kg) is NOT entered here.",
-          "adjudication": "OWNER RULING 2026-09-18 (#65): for a paediatric patient this entry serves in place of the NASEMSO 0.25 mg/kg adult|peds entry for the same indication and route. NASEMSO is kept, still serves adults, and is named on this entry as the general-EBM alternate under the dual-domain rule. The signed dose is 0.2 mg/kg, the top of SMOG's 0.1-0.2 mg/kg range.",
+          "adjudication": "OWNER RULING 2026-09-18 (#65): for a paediatric patient this entry serves in place of the NASEMSO 0.25 mg/kg adult|peds entry for the same indication and route. NASEMSO is kept, still serves adults, and is named on this entry as the general-EBM alternate under the dual-domain rule. The signed dose is 0.2 mg/kg, the top of SMOG's 0.1-0.2 mg/kg range. A STATED age under 3 months blocks this entry (min_age_months), rather than serving a dose its own contraindication rules out; an unknown age does not.",
           "adjudicated_on": "2026-09-18"
         },
         {

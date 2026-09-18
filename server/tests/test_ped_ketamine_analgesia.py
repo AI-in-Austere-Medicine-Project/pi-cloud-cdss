@@ -3,7 +3,8 @@ EdgeCDSS — paediatric ketamine analgesia serves SMOG's paediatric column.
 
 OWNER RULING 2026-09-18 (#65). SMOG CY24 p.127 states a paediatric IV
 analgesia dose (0.1-0.2 mg/kg; the signed value is 0.2 mg/kg), a "<3 mo"
-contraindication and "avoid 0.5-0.9 mg/kg IV" for emergence phenomena. For a
+contraindication and "avoid 0.5-0.9 mg/kg IV" for emergence phenomena. A
+STATED age under 3 months blocks the dose; an unknown age does not. For a
 child that entry serves in place of NASEMSO's all-ages 0.25 mg/kg, which stays
 signed, still serves adults, and is named on the paediatric entry as the
 general-EBM alternate under the dual-domain rule.
@@ -11,6 +12,8 @@ general-EBM alternate under the dual-domain rule.
     cd server && ./run_unit_tests.sh
 """
 import os
+
+import pytest
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
 
@@ -60,13 +63,79 @@ def test_a_named_ketamine_lookup_for_a_child_does_not_serve_both_analgesia_doses
     assert [e["population"] for e in analg] == ["peds"]
 
 
-def test_a_2_month_old_is_shown_the_under_3_months_contraindication():
-    ctx = oc.extract_patient_context("2 month old 5kg needs ketamine IV for pain")
-    assert ctx.age_years is not None and ctx.age_years < 0.25
-    assert ctx.is_pediatric
+def _served(q, history=()):
+    class _NoRetrieval:
+        def query(self, *a, **k):
+            raise AssertionError("reached retrieval")
+    return oc._query_with_rag_internal(q, _NoRetrieval(), conversation_history=list(history))
 
-    card = oc.build_ketamine_analgesia_response(ctx)
+
+def test_a_stated_age_under_3_months_blocks_the_dose():
+    """OWNER RULING 2026-09-18: block, not just show. Refused on the first
+    turn — asking for a weight and a route would only lead to a refusal."""
+    ctx = oc.extract_patient_context("2 month old 5kg needs ketamine IV for pain")
+    assert ctx.age_years is not None and ctx.age_years < 0.25 and ctx.is_pediatric
+
+    r = _served("2 month old, ketamine for pain")
+    card = r["response"]
+    assert r["validator_result"] == "UNSAFE"
+    assert "Do not give ketamine: contraindicated under 3 months of age (stated age 2 months)" in card
     assert "Age < 3 months" in _section(card, "CONTRAINDICATIONS")
+    assert "SMOG" in card and "p.127" in card
+    for dose in ("**GIVE**", " mg.", "mL", "Dilute"):
+        assert dose not in card, f"a dose reached a contraindicated infant: {dose!r}"
+    assert "Do not give ketamine: contraindicated under 3 months" in r["brief"]
+    assert "DON'T" in r["critical_sections"]
+
+
+@pytest.mark.parametrize("route", ["IV", "IM"])
+def test_the_analgesia_card_refuses_on_every_route(route):
+    """IM has no contract entry and backfills from the calculator. The block
+    must hold there too."""
+    ctx = oc.PatientContext(confirmed_weight_kg=5.0, weight_source="stated",
+                            route_preference=route, is_pediatric=True,
+                            age_years=2 / 12)
+    card = oc.build_ketamine_analgesia_response(ctx)
+    assert card.startswith("**DON'T**\n- Do not give ketamine")
+    assert "**GIVE**" not in card
+
+
+def test_a_blocked_peds_entry_does_not_hand_back_the_shared_dose():
+    """Dropping the peds entry must not leave NASEMSO's adult|peds 0.25 mg/kg
+    standing in for it."""
+    age = 2 / 12
+    assert dc.signed_entries_by_indication(["moderate to severe pain"], True, age) == []
+    named = dc.signed_entries_for("ketamine for pain", is_pediatric=True, age_years=age)
+    assert not [e for n, e in named if e["indication"] == ANALGESIA]
+    ctx = _ctx(5.0, ped=True, age=age)
+    assert all(d.indication != ANALGESIA for d in oc.build_allowed_doses("ketamine for pain", ctx))
+
+
+@pytest.mark.parametrize("age", [0.25, 6.0, None])
+def test_three_months_and_up_or_unstated_still_doses(age):
+    """The floor is 'under 3 months'. An unknown age blocks nothing: refusing
+    every child whose age was not said would take the dose from the patients
+    it is signed for. The contraindication is still shown."""
+    card = oc.build_ketamine_analgesia_response(_ctx(25.0, ped=True, age=age))
+    assert "ketamine IV: 5 mg" in _section(card, "GIVE")
+    assert "Age < 3 months" in _section(card, "CONTRAINDICATIONS")
+
+
+def test_an_age_floor_is_stated_in_the_contraindications():
+    """The machine-readable floor and the words the medic reads agree."""
+    for name, entries in dc.servable_entries().items():
+        for e in entries:
+            if e.get("min_age_months") is not None:
+                assert f"Age < {e['min_age_months']:g} months" in e["contraindications"], name
+
+
+def test_a_malformed_age_floor_is_refused():
+    import copy
+    e = copy.deepcopy(next(e for e in dc.servable_entries()["ketamine"]
+                           if e.get("min_age_months")))
+    e["min_age_months"] = "3"
+    ok, why = dc.entry_is_servable(e, dc.DRUGS["ketamine"])
+    assert not ok and "min_age_months" in why
 
 
 def test_an_80kg_adult_is_unchanged():

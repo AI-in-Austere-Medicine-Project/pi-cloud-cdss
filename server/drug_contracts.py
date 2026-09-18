@@ -630,6 +630,10 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
     if not ok:
         return False, why
 
+    ok, why = _age_floor_ok(entry)
+    if not ok:
+        return False, why
+
     # Populate ONLY from the two approved sources. Tier 0 is the migration
     # carrier for the four pre-contract hardcodes; it is not clinical evidence,
     # so an entry that cites nothing but tier 0 cannot be signed no matter who
@@ -1195,6 +1199,39 @@ def single_concentration(generic_name: str) -> Optional[float]:
     return float(next(iter(concs)))
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# AGE FLOOR — THE ONE CONTRAINDICATION THAT BLOCKS
+#
+# Contraindications are shown, never enforced (ruling 12): the system cannot
+# see most of what they name. An age it CAN see, when the medic states one.
+# OWNER RULING 2026-09-18 (#65): ketamine's "Age < 3 months" (SMOG CY24 p.127)
+# blocks the dose when the stated age is under it, instead of serving a dose
+# whose own contraindication list rules this patient out. `min_age_months` on
+# the entry is the machine-readable form; the contraindication text stays, and
+# a test holds the two together. An UNKNOWN age blocks nothing — the line is
+# still shown — because refusing every child whose age was not said would take
+# the dose away from the patients it is signed for.
+# ─────────────────────────────────────────────────────────────────────────────
+def _age_floor_ok(entry: dict) -> tuple:
+    v = entry.get("min_age_months")
+    if v is None:
+        return True, ""
+    if not isinstance(v, (int, float)) or isinstance(v, bool) or v <= 0:
+        return False, "min_age_months must be a positive number"
+    return True, ""
+
+
+def age_exclusion(entry: dict, age_years: Optional[float]) -> Optional[str]:
+    """Why a STATED age rules this entry out, or None."""
+    floor = (entry or {}).get("min_age_months")
+    if age_years is None or not isinstance(floor, (int, float)):
+        return None
+    if age_years * 12.0 < floor - 1e-9:
+        return (f"contraindicated under {floor:g} months of age "
+                f"(stated age {age_years * 12.0:.3g} months)")
+    return None
+
+
 def _prefer_population_specific(pairs: list) -> list:
     """Drop a shared adult|peds entry where a population-specific one covers
     the same drug, indication and route.
@@ -1217,6 +1254,30 @@ def _prefer_population_specific(pairs: list) -> list:
 def signed_entries_by_indication(patterns, is_pediatric: bool = False,
                                  age_years: Optional[float] = None) -> list:
     """(drug, entry) pairs whose INDICATION matches, whatever the query named.
+
+    Age-floored entries a stated age rules out are dropped AFTER the
+    population preference, so a blocked paediatric entry never hands the
+    child back the shared adult|peds dose it superseded. See age_exclusions().
+    """
+    return [(n, e) for n, e in _by_indication(patterns, is_pediatric, age_years)
+            if age_exclusion(e, age_years) is None]
+
+
+def age_exclusions(patterns, is_pediatric: bool = False,
+                   age_years: Optional[float] = None) -> list:
+    """(drug, entry, reason) for the entries signed_entries_by_indication()
+    dropped because of the stated age. What a card refuses with."""
+    out = []
+    for n, e in _by_indication(patterns, is_pediatric, age_years):
+        why = age_exclusion(e, age_years)
+        if why:
+            out.append((n, e, why))
+    return out
+
+
+def _by_indication(patterns, is_pediatric: bool = False,
+                   age_years: Optional[float] = None) -> list:
+    """The indication lookup, before the age floor is applied.
 
     An RSI query rarely names its drugs — "RSI now" is the whole request — so
     a lookup that only matches drugs mentioned in the text would drop the
@@ -1272,10 +1333,12 @@ def _age_band(entry: dict):
 
 
 def signed_entries_for(query: str, route: Optional[str] = None,
-                       is_pediatric: bool = False) -> list:
+                       is_pediatric: bool = False,
+                       age_years: Optional[float] = None) -> list:
     """(generic_name, entry) pairs that are BOTH named by this query and signed.
 
-    The only lookup the serving path is allowed to use.
+    The only lookup the serving path is allowed to use. A stated age drops
+    the entries its age floor rules out, after the population preference.
     """
     out = []
     live = servable_entries()
@@ -1289,7 +1352,8 @@ def signed_entries_for(query: str, route: Optional[str] = None,
             if not is_pediatric and pop == "peds":
                 continue
             out.append((name, e))
-    return _prefer_population_specific(out)
+    return [(n, e) for n, e in _prefer_population_specific(out)
+            if age_exclusion(e, age_years) is None]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

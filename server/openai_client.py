@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 17 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 18 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -1182,7 +1182,8 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
     w = ctx.dosing_weight_kg
     out = []
     for name, entry in drug_contracts.signed_entries_for(
-            query, route=None, is_pediatric=ctx.is_pediatric):
+            query, route=None, is_pediatric=ctx.is_pediatric,
+            age_years=ctx.age_years):
         # Units are resolved by drug_contracts, which converts explicitly and
         # FAILS CLOSED on anything it does not recognise. This loop used to do
         # `base * w if per_kg else base` and call the answer milligrams
@@ -3913,6 +3914,48 @@ LEGACY_ANALGESIA_SOURCE = (
     "sedation at a much higher dose and were NOT used")
 
 
+def ketamine_age_exclusions(ctx: PatientContext) -> list:
+    """(name, entry, reason) for signed ketamine analgesia entries the STATED
+    age rules out. Every route: SMOG's "Children <3 mo. age" is a
+    contraindication to the drug, and refusing IV while the IM calculator
+    backfilled a dose would be the same failure by another route."""
+    if drug_contracts is None or ctx.age_years is None:
+        return []
+    return [(n, e, why) for n, e, why in drug_contracts.age_exclusions(
+                ANALGESIA_INDICATIONS, ctx.is_pediatric, ctx.age_years)
+            if n == "ketamine"]
+
+
+def build_ketamine_age_block(ctx: PatientContext) -> Optional[str]:
+    """The refusal card for a stated age under the entry's age floor, or None.
+
+    OWNER RULING 2026-09-18 (#65). No dose, no volume, no dilution: the one
+    contraindication the system can see in the query is the patient's age,
+    and a card that dosed above its own "Contraindicated" line would be
+    asking the medic to notice the contradiction.
+    """
+    blocked = ketamine_age_exclusions(ctx)
+    if not blocked:
+        return None
+    _name, entry, why = blocked[0]
+    cites = "; ".join(s.get("citation") for s in entry.get("sources") or []
+                      if s.get("citation"))
+    cis = "; ".join(drug_contracts.serve_contraindications(entry))
+    return f"""**DON'T**
+- Do not give ketamine: {why}.
+
+**CONTRAINDICATIONS**
+- ketamine — {entry['indication']}: {cis}
+
+**DO THIS**
+1. No ketamine dose is served for this patient.
+2. Follow local protocol or contact medical control for analgesia in this age group.
+
+**SOURCE**: Signed dose contract — {cites}
+
+Guideline-based support only. Not a substitute for clinical judgment."""
+
+
 def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
     """Ketamine analgesia for a confirmed weight and a known route.
 
@@ -3932,6 +3975,12 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
     """
     if not ctx.confirmed_weight_kg or ctx.route_preference not in ["IV", "IM"]:
         return None
+
+    # A stated age the entry's floor rules out refuses here too, for any
+    # route, so neither the contract nor the calculator backfill can dose it.
+    block = build_ketamine_age_block(ctx)
+    if block:
+        return block
 
     d = _contract_analgesia_candidate(ctx)
     if d is None:
@@ -4430,7 +4479,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    seventeen early returns before retrieval — count them with the source_mode
+    eighteen early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -4772,6 +4821,25 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
+
+        # Step 2j-0: Ketamine analgesia for a stated age under the signed entry's
+        # age floor — refused before the weight and route questions, which
+        # would only lead to a refusal (owner ruling 2026-09-18, #65).
+        if (is_ketamine_analgesia_context(full_query_history)
+                and not is_rsi_or_post_intubation_context(query)):
+            age_block = build_ketamine_age_block(patient_ctx)
+            if age_block:
+                print("🛑 KETAMINE AGE-FLOOR PRE-GATE")
+                return {
+                    "response": age_block,
+                    "sources": [],
+                    "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "UNSAFE",
+                    "validator_issues": [
+                        "Ketamine requested for a stated age under its signed age floor."
+                    ],
+                    "patient_context": patient_ctx.to_dict()
+                }
 
         # Step 2j: Ketamine analgesia — deterministic for confirmed weight + known route
         # Only fires if current query is about ketamine/pain, not a different topic

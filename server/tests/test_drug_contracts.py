@@ -1622,6 +1622,7 @@ DOSELESS_CARDS = {
     "build_seizure_response", "build_hypothermic_arrest_response",
     "build_tbi_management_response", "build_mascal_response",
     "build_ketamine_drip_response", "build_cholera_response",
+    "build_ketamine_age_block",
     "build_snake_bite_response", "build_vtach_response",
     "build_txa_sepsis_block", "build_wpw_drug_block",
 }
@@ -1703,11 +1704,22 @@ def test_the_registered_cards_are_actually_registered():
         assert token in covered, f"{name} has no case in DOSE_TEMPLATE_CASES"
 
 
+# Arguments for the doseless cards that render for a patient rather than a
+# topic. The age-floor refusal is exercised on the patient it exists for.
+DOSELESS_CARD_ARGS = {
+    "build_ketamine_age_block": lambda: (_PC(
+        confirmed_weight_kg=5.0, weight_source="stated", route_preference="IV",
+        is_pediatric=True, age_years=2 / 12),),
+}
+
+
 @pytest.mark.parametrize("name", sorted(DOSELESS_CARDS))
 def test_a_doseless_card_states_no_dose(name):
     """If one of these ever grows a number, it becomes a dose surface and has
     to be registered like the rest."""
-    text = getattr(_oc, name)()
+    args = DOSELESS_CARD_ARGS.get(name, lambda: ())()
+    text = getattr(_oc, name)(*args)
+    assert text, f"{name} rendered nothing for its registered arguments"
     offenders = [(v, u, l) for v, u, l in _tokens(text)]
     assert not offenders, (
         f"{name} now states a dose: {offenders}. Either take the number out, or "
