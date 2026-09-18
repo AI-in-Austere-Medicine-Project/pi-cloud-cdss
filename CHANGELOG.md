@@ -35,15 +35,11 @@ carries, or a value computed from what the card computed its dose from.
   tolerated. Two places stay at a millilitre and above, and four remain the
   escape hatch. Seven volume shapes in the kit change, all of them cases where
   the second decimal was dropping a real digit.
-- **The card's TLDR stops contradicting the brief.** "Volume not computed —
-  confirm concentration" was true of the pipeline and false to the medic where
-  exactly one presentation is signed: the volume is computable and the card is
-  only asking which vial. That case now carries the same conditional sentence
-  the brief does, from the same function
-  (`drug_concentrations.conditional_volume_line()`). With nothing signed, or
-  several, the old line stands. **The GIVE line keeps its NO VOLUME marker** —
-  the generator prompt, the post-checks and the volume audit key on it — and
-  CONFIRM VIAL is unchanged.
+- **The conditional volume is the brief's alone** (owner decision). The card
+  keeps saying "Volume not computed — confirm concentration" under a GIVE line
+  that says NO VOLUME, and CONFIRM VIAL still asks which vial. One conditional
+  sentence per answer, on the first screen. The phrasing lives in
+  `drug_concentrations.conditional_volume_line()`, which owns volumes.
 - **Follow-up chips are separated in the markup.** The flex gap already spaced
   them on screen — checked in headless Chromium at 390 px — but the buttons had
   no whitespace between them, so copied text read

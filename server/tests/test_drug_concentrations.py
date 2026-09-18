@@ -561,35 +561,31 @@ def test_three_places_still_escalate_when_they_would_misstate_the_dose():
     assert dcn.draw_precision(2.842) == 2
 
 
-def test_the_tldr_degrades_with_the_give_line(unsigned_kit):
+def test_the_tldr_degrades_with_the_give_line():
     """A TLDR still saying "= 1.2mL of 100mg/mL" under a refused GIVE line
-    would be the only number on the screen. On a kit with nothing signed there
-    is no volume to state at all, conditionally or otherwise."""
+    would be the only number on the screen."""
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     text = oc.build_ketamine_analgesia_response(ctx)
     tldr = text.split("**TLDR**")[1]
-    assert "Volume not computed" in tldr
     assert "mL" not in tldr.split("Volume not computed")[0]
 
 
-def test_the_tldr_states_the_volume_conditionally_on_a_single_signed_vial():
-    """The pinned kit: ketamine is confirm_required with ONE signed vial, so
-    the card asks which and serves no volume — but the volume IS computable,
-    and "Volume not computed" under a brief quoting it is two lines about one
-    dose that disagree. Same sentence as the brief, from the same function."""
+def test_the_card_stays_silent_about_an_unconfirmed_volume():
+    """The pinned kit signs ONE ketamine vial and the card still asks which, so
+    the volume is computable and the BRIEF states it conditionally. The card
+    does not: owner decision 2026-09-18, one conditional sentence per answer.
+    """
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     text = oc.build_ketamine_analgesia_response(ctx)
-    tldr = text.split("**TLDR**")[1].split("**")[0]
-    assert "Volume not computed" not in tldr
-    assert dcn.conditional_volume_line("ketamine", 20.0) in tldr
-    assert "confirm vial" in tldr
-    assert "mL of" not in tldr, "a conditional volume is not a served one"
-    assert "**CONFIRM VIAL**" in text, "the block that asks which vial is unchanged"
+    assert dcn.single_signed_volume("ketamine", 20.0) == (0.4, 50.0), \
+        "the volume IS computable on this kit; the point is that the card does not say so"
+    assert "confirm vial" not in text.lower().replace("**confirm vial**", "")
+    assert "Volume not computed" in text
     give = text.split("**GIVE**")[1].split("**")[0]
-    assert oc.CONFIRM_CONCENTRATION_LINE in give and "NO VOLUME" in give, \
-        "the GIVE line keeps its fail-closed marker"
+    assert "NO VOLUME" in give and oc.CONFIRM_CONCENTRATION_LINE in give
+    assert "**CONFIRM VIAL**" in text
 
 
 # ═══════════════════════════════════════════════════════════════════════════

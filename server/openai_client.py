@@ -1437,21 +1437,15 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
     under a GIVE line that had already refused to give a volume would be the
     only number on the screen, and the one a medic would act on.
 
-    "Volume not computed" was true of the pipeline and false to the medic where
-    the kit has exactly ONE signed presentation: the volume IS computable, the
-    card is only asking which vial, and the brief now says so on the first
-    screen. Two lines about one dose, one saying it cannot be computed and one
-    quoting it, is worse than either — so that case states it the way the brief
-    does, conditionally, in the same words, from the same function. The GIVE
-    line above is unchanged: its NO VOLUME is the fail-closed marker the
-    generator prompt, the post-checks and the volume audit all key on. So is
-    CONFIRM VIAL.
+    Where exactly one presentation is signed, the volume IS computable and the
+    card is only asking which vial — the brief says so on the first screen
+    ("At 50 mg/mL that's 0.125 mL — confirm vial"). This line deliberately does
+    NOT: the card stays silent about a volume until the vial is confirmed, one
+    conditional sentence on the answer is enough, and "Volume not computed"
+    beside a GIVE line that says NO VOLUME is the pair a medic already reads
+    together. Owner decision 2026-09-18.
     """
     if d.volume_ml is None or d.concentration_mg_ml is None:
-        conditional = (drug_concentrations.conditional_volume_line(d.drug, d.dose_mg)
-                       if drug_concentrations is not None else "")
-        if conditional:
-            return f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. {conditional}"
         return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "
                 f"Volume not computed — {CONFIRM_CONCENTRATION_LINE}.")
     return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg = "
