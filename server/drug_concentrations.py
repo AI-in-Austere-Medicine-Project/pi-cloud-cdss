@@ -408,7 +408,29 @@ MIN_DRAWABLE_ML = 0.05
 MAX_BOLUS_ML = 60.0
 
 
-def drawable(volume_ml_value: float) -> tuple:
+def dilution_recipe(dilution: dict) -> str:
+    """"5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline)" — the one phrasing.
+
+    `dilution` is a dose entry's push_dilution (drug_contracts.push_dilution):
+    a prepared syringe the owner declared, never a presentation in this file.
+    """
+    return (f"{dilution['concentration_mg_ml']:g} mg/mL ({dilution['drug_ml']:g} mL of "
+            f"{dilution['from_concentration_mg_ml']:g} mg/mL + "
+            f"{dilution['diluent_ml']:g} mL {dilution['diluent']})")
+
+
+def _dilution_for(dilution: Optional[dict], conc: Optional[float]) -> Optional[dict]:
+    """The dilution, only if its recipe starts from the vial `conc` is.
+
+    "1 mL of 50 mg/mL + 9 mL" made from a 10 mg/mL vial is 1 mg/mL, not 5, so
+    a recipe is quoted only against the concentration it was written for.
+    """
+    if not dilution or not conc:
+        return None
+    return dilution if abs(dilution["from_concentration_mg_ml"] - conc) < 1e-9 else None
+
+
+def drawable(volume_ml_value: float, dilution: Optional[dict] = None) -> tuple:
     """(ok, reason). The last guard before a volume reaches a medic.
 
     Catches what the unit conversion and the volume audit cannot: a dose that
@@ -418,8 +440,16 @@ def drawable(volume_ml_value: float) -> tuple:
     epinephrine push dose is 10 mcg, which is 0.01 mL of the 1 mg/mL ampoule
     and 1 mL of the 10 mcg/mL dilution the guideline actually specifies. The
     right answer there is to refuse and say so, not to print 0.01 mL.
+
+    When the dose entry DOES declare a push dilution for this vial, the refusal
+    names it instead of "a dilution the kit has not declared". It still
+    refuses: a GIVE line never draws from a prepared syringe.
     """
     if volume_ml_value < MIN_DRAWABLE_ML:
+        if dilution:
+            return False, (f"{volume_ml_value:g} mL is below {MIN_DRAWABLE_ML:g} mL "
+                           f"and cannot be drawn accurately from the vial — "
+                           f"dilute first: {dilution_recipe(dilution)}")
         return False, (f"{volume_ml_value:g} mL is below {MIN_DRAWABLE_ML:g} mL "
                        f"and cannot be drawn accurately — this dose likely "
                        f"needs a dilution the kit has not declared, or the "
@@ -444,12 +474,17 @@ def volume_ml(generic_name: str, dose_mg: float,
 
 
 def volume_refusal(generic_name: str, dose_mg: float,
-                   confirmed: Optional[dict] = None) -> Optional[str]:
-    """Why no volume, when a concentration IS resolved. None if there is one."""
+                   confirmed: Optional[dict] = None,
+                   dilution: Optional[dict] = None) -> Optional[str]:
+    """Why no volume, when a concentration IS resolved. None if there is one.
+
+    `dilution` is the dose entry's declared push dilution, named in the refusal
+    when it is made from the vial that was resolved.
+    """
     status, conc, _ = resolve(generic_name, confirmed)
     if status != RESOLVED or not conc:
         return None
-    ok, why = drawable(dose_mg / conc)
+    ok, why = drawable(dose_mg / conc, _dilution_for(dilution, conc))
     return None if ok else why
 
 
@@ -486,17 +521,39 @@ def single_signed_volume(generic_name: str, dose_mg: float) -> tuple:
     return round(true_vol, draw_precision(true_vol)), conc
 
 
-def conditional_volume_line(generic_name: str, dose_mg: float) -> str:
+def conditional_volume_line(generic_name: str, dose_mg: float,
+                            dilution: Optional[dict] = None) -> str:
     """"At 50 mg/mL that's 0.125 mL — confirm vial.", or "".
 
     The one phrasing for a volume that is COMPUTED but not CONFIRMED, used by
-    the brief and by the TLDR under a GIVE line that has no volume. One place,
-    so the two cannot drift into saying different things about the same dose.
+    the brief under a GIVE line that has no volume. One place, so no two
+    callers can drift into saying different things about the same dose.
+
+    With a declared push `dilution` made from the one signed vial, the
+    diluted volume is quoted as well — "Diluted to 5 mg/mL (1 mL of 50 mg/mL
+    + 9 mL normal saline): 1 mL." — and when the vial volume is too small to
+    draw, the dilution is the whole line: "Dilute first — …: 0.4 mL — confirm
+    vial." The diluted volume passes the same drawable() bounds and rounding.
     """
+    signed = signed_presentations(generic_name)
+    vial_conc = signed[0].get("concentration_mg_ml") if len(signed) == 1 else None
+    dil = _dilution_for(dilution, vial_conc)
+    dil_vol = None
+    if dil:
+        true_dil = dose_mg / dil["concentration_mg_ml"]
+        if drawable(true_dil)[0]:
+            dil_vol = round(true_dil, draw_precision(true_dil))
+
     vol, conc = single_signed_volume(generic_name, dose_mg)
     if vol is None:
-        return ""
-    return f"At {conc:g} mg/mL that's {vol:g} mL — confirm vial."
+        if dil_vol is None:
+            return ""
+        return (f"Dilute first — {dilution_recipe(dil)}: {dil_vol:g} mL — "
+                f"confirm vial.")
+    line = f"At {conc:g} mg/mL that's {vol:g} mL — confirm vial."
+    if dil_vol is not None:
+        line += f" Diluted to {dilution_recipe(dil)}: {dil_vol:g} mL."
+    return line
 
 
 def all_signed_strengths(generic_name: str) -> list:

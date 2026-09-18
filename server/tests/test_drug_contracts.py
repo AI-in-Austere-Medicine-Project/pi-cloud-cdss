@@ -1940,6 +1940,7 @@ def test_the_detail_tier_hides_only_these_families():
         "If an infusion pump IS available, see ketami",
         "SMOG CY24 p.127 states the paediatric IV ana",
         "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.",
+        "DILUTION DECLARED by AI-AIM, 2026-09-18 (#65",
     }
 
 

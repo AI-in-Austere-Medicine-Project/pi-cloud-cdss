@@ -250,8 +250,13 @@ deliberately did NOT touch.
 
 ### Deterministic cards owed
 
-- [ ] **Pediatric IV ketamine needs dilution guidance before it serves a volume.
-      Needs an owner decision — content, not format.** At the signed 50 mg/mL
+- [x] **Pediatric IV ketamine needs dilution guidance before it serves a volume.
+      Needs an owner decision — content, not format.** **Decided 2026-09-18
+      (#65):** 5 mg/mL (1 mL + 9 mL NS) as an owner-declared `push_dilution` on
+      the SMOG paediatric analgesia entry (0.2 mg/kg = 0.04 mL/kg), in CAUTIONS,
+      the brief and the refusal; not in `drug_concentrations.json`. Not applied
+      to NASEMSO 0.25 mg/kg (no longer served to children) or to the adult|peds
+      0.5 mg/kg post-intubation sedation entry. At the signed 50 mg/mL
       vial, the analgesia dose (0.25 mg/kg) is a fraction of a millilitre at
       every paediatric weight: 10 kg is 2.5 mg = **0.05 mL**, 25 kg is 6.25 mg =
       **0.125 mL**, 40 kg is 10 mg = 0.2 mL. Below 10 kg it is refused outright
@@ -346,13 +351,14 @@ deliberately did NOT touch.
             above now has to cover, on the peds entry rather than on NASEMSO's.
 
       **Follow-ons once the entry carries a dilution caution:**
-      - [ ] The brief's conditional volume should say the dilution's volume, or
+      - [x] The brief's conditional volume should say the dilution's volume, or
             say "dilute first" — otherwise the brief quotes 0.125 mL of the
             vial while the card underneath says to dilute, which is the
-            contradiction the 2026-09-18 cleanup removed.
-      - [ ] `drawable()`'s refusal text names no dilution ("a dilution the kit
+            contradiction the 2026-09-18 cleanup removed. **Done:** both, from
+            the entry's `push_dilution` record.
+      - [x] `drawable()`'s refusal text names no dilution ("a dilution the kit
             has not declared"). Once one is declared for a drug, it should name
-            it.
+            it. **Done:** named when the entry declares one for that vial.
 
 - [ ] **Weight-only infant guard for ketamine.** Owner decision 2026-09-19
       (#66). The under-3-months age floor (`min_age_months`) blocks only a
