@@ -291,6 +291,86 @@ def serve_contraindications(entry: dict) -> list:
             if str(c or "").strip()]
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PUSH DILUTION — A PREPARED SYRINGE, NOT A STOCKED PRESENTATION
+#
+# Some doses are a fraction of a millilitre at the vial and have to be diluted
+# before a push can be drawn: push-dose epinephrine, and paediatric ketamine
+# analgesia (owner ruling 2026-09-18, #65). The CAUTIONS carry the recipe and
+# the mL/kg for the medic; this record carries the same numbers for the code
+# that has to quote them — the brief's conditional volume and drawable()'s
+# refusal — so neither parses prose.
+#
+# Deliberately NOT a presentation in drug_concentrations.json. A second signed
+# presentation would switch off the brief's single-vial volume line and let
+# the volume audit accept "Draw 1 mL of 5mg/mL ketamine" as a stocked
+# strength. A GIVE line never draws from a dilution; only the brief's
+# conditional sentence and the refusal text name it.
+#
+#   the arithmetic is written twice   from x drug / (drug + diluent) must equal
+#                                     the stated concentration, so editing one
+#                                     number without the other takes the entry
+#                                     off the wire — the declared_value rule
+#   it cannot be a stocked strength   a dilution at a strength the drug's forms
+#                                     list as a vial is indistinguishable from
+#                                     that vial in the hand
+#   it names who declared it          a recipe with no signer is an anonymous
+#                                     number, same as a dose
+# ─────────────────────────────────────────────────────────────────────────────
+_DILUTION_NUMBERS = ("concentration_mg_ml", "from_concentration_mg_ml",
+                     "drug_ml", "diluent_ml")
+
+
+def _stocked_strengths(drug: Optional[dict]) -> set:
+    out = set()
+    for f in (drug or {}).get("forms", []) or []:
+        if not isinstance(f, dict):
+            continue
+        if isinstance(f.get("concentration_mg_ml"), (int, float)):
+            out.add(float(f["concentration_mg_ml"]))
+        for o in f.get("concentration_mg_ml_options") or []:
+            if isinstance(o, (int, float)):
+                out.add(float(o))
+    return out
+
+
+def _dilution_ok(entry: dict, drug: Optional[dict] = None) -> tuple:
+    """(ok, reason). (True, "") for an entry with no push_dilution."""
+    dil = entry.get("push_dilution")
+    if dil is None:
+        return True, ""
+    if not isinstance(dil, dict):
+        return False, "push_dilution is not an object"
+    for k in _DILUTION_NUMBERS:
+        v = dil.get(k)
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or v <= 0:
+            return False, f"push_dilution.{k} must be a positive number"
+    for k in ("diluent", "declared_on"):
+        if not isinstance(dil.get(k), str) or not dil[k].strip():
+            return False, f"push_dilution.{k} must be a non-empty string"
+    if str(dil.get("declared_by") or "").strip() not in SIGNOFF_AUTHORS:
+        return False, (f"push_dilution.declared_by {dil.get('declared_by')!r} "
+                       "is not an authorised signer")
+    made = (dil["from_concentration_mg_ml"] * dil["drug_ml"]
+            / (dil["drug_ml"] + dil["diluent_ml"]))
+    if abs(made - dil["concentration_mg_ml"]) > 1e-9:
+        return False, (f"push_dilution does not add up: {dil['drug_ml']:g} mL "
+                       f"of {dil['from_concentration_mg_ml']:g} mg/mL in "
+                       f"{dil['diluent_ml']:g} mL is {made:g} mg/mL, not "
+                       f"{dil['concentration_mg_ml']:g}")
+    if float(dil["concentration_mg_ml"]) in _stocked_strengths(drug):
+        return False, (f"push_dilution is {dil['concentration_mg_ml']:g} mg/mL, "
+                       "which this drug's forms list as a stocked strength — a "
+                       "diluted syringe must not be mistakable for a vial")
+    return True, ""
+
+
+def push_dilution(entry: dict) -> Optional[dict]:
+    """The entry's declared push dilution, or None if it has none."""
+    dil = (entry or {}).get("push_dilution")
+    return dict(dil) if isinstance(dil, dict) and _dilution_ok(entry)[0] else None
+
+
 def _load(filename: str = "drug_contracts.json") -> dict:
     path = _DIR / filename
     try:
@@ -631,6 +711,10 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
         return False, why
 
     ok, why = _age_floor_ok(entry)
+    if not ok:
+        return False, why
+
+    ok, why = _dilution_ok(entry, drug)
     if not ok:
         return False, why
 

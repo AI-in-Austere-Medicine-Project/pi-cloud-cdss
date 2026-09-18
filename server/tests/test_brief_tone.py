@@ -54,8 +54,10 @@ def test_the_ketamine_brief_is_three_slots(served):
     "Age < 3 months", which is specific to this indication and fills it."""
     r = served["ped_ketamine_iv"]
     assert r["brief"].splitlines() == [
-        # (a) the GIVE line verbatim, its per-kg basis, the conditional volume
-        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). At 50 mg/mL that's 0.1 mL — confirm vial.",
+        # (a) the GIVE line verbatim, its per-kg basis, the conditional volume,
+        # and the entry's declared push dilution (#65)
+        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). At 50 mg/mL that's 0.1 mL — confirm vial. "
+        "Diluted to 5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL.",
         # (b) DO THIS step 3: step 1 is equipment preamble, step 2 restates the dose
         "Reassess pain, airway, respirations q5min.",
         # (c) the specific contraindication

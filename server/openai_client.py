@@ -387,6 +387,10 @@ class DoseCandidate:
     display_value: Optional[float] = None
     display_units: Optional[str] = None
     volume_refusal: Optional[str] = None
+    # The entry's declared push dilution (drug_contracts.push_dilution), or
+    # None. Never a volume source: it lets a refusal name the dilution instead
+    # of "a dilution the kit has not declared".
+    dilution: Optional[dict] = None
     # The contract's cautions as a LIST, unjoined. `warning` is the same text
     # joined with "; " for the generator's ALLOWED_DOSES block; anything that
     # renders cautions to a human must use this instead, because several of
@@ -1112,6 +1116,7 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
             source=_contract_source(name, entry),
             cautions=list(drug_contracts.serve_cautions(entry)),
             contraindications=list(drug_contracts.serve_contraindications(entry)),
+            dilution=drug_contracts.push_dilution(entry),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
     return out
 
@@ -1162,6 +1167,7 @@ def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate
             source=_contract_source(name, entry),
             cautions=list(drug_contracts.serve_cautions(entry)),
             contraindications=list(drug_contracts.serve_contraindications(entry)),
+            dilution=drug_contracts.push_dilution(entry),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None)
     return None
 
@@ -1205,6 +1211,7 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
             source=_contract_source(name, entry),
             cautions=list(drug_contracts.serve_cautions(entry)),
             contraindications=list(drug_contracts.serve_contraindications(entry)),
+            dilution=drug_contracts.push_dilution(entry),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
         ))
     return out
@@ -1374,6 +1381,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
                 source=_contract_source(name, entry),
                 cautions=list(drug_contracts.serve_cautions(entry)),
                 contraindications=list(drug_contracts.serve_contraindications(entry)),
+                dilution=drug_contracts.push_dilution(entry),
                 warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
         if not chosen and "lorazepam" not in superseded:
             doses.append(lorazepam_seizure(w))
@@ -1402,7 +1410,8 @@ def resolve_dose_volume(d: DoseCandidate,
         # A concentration may be known and the volume still refused — a dose
         # below what a syringe can draw, or above what a push can be. The
         # reason rides along so the GIVE line can say which.
-        why = drug_concentrations.volume_refusal(d.drug, d.dose_mg, confirmed)
+        why = drug_concentrations.volume_refusal(d.drug, d.dose_mg, confirmed,
+                                                 dilution=d.dilution)
         return dc_replace(d, volume_refusal=why) if why else d
     return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc)
 
