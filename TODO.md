@@ -252,22 +252,69 @@ deliberately did NOT touch.
 
 - [ ] **Pediatric IV ketamine needs dilution guidance before it serves a volume.
       Needs an owner decision — content, not format.** At the signed 50 mg/mL
-      vial, the analgesia dose (0.25 mg/kg) is a fraction of a millilitre for
-      any child: 10 kg is 2.5 mg = **0.05 mL**, 25 kg is 6.25 mg = **0.125 mL**,
-      and 40 kg is 10 mg = 0.2 mL. Below
-      10 kg it is refused outright — 5 kg computes 0.025 mL, under the 0.05 mL
-      floor `drug_concentrations.drawable()` enforces — and the medic is told
-      the dose "likely needs a dilution the kit has not declared" without being
-      told what dilution. A draw that small is where a tenfold error lives, and
-      the brief now states it conditionally ("At 50 mg/mL that's 0.125 mL —
-      confirm vial"), which puts the small number on the first screen.
-      **What the card should carry, for the owner to author and sign:** a
-      target concentration for pediatric analgesia, the recipe that reaches it
-      from the signed vial, and the recomputed volume at that concentration —
-      the same shape the push-dose epinephrine card already uses, where the
-      guideline's 10 mcg/mL dilution is stated and the ampoule volume is
-      refused. Until that exists, decide whether the pediatric card should
-      serve any volume at all or stay mg-only.
+      vial, the analgesia dose (0.25 mg/kg) is a fraction of a millilitre at
+      every paediatric weight: 10 kg is 2.5 mg = **0.05 mL**, 25 kg is 6.25 mg =
+      **0.125 mL**, 40 kg is 10 mg = 0.2 mL. Below 10 kg it is refused outright
+      — 5 kg computes 0.025 mL, under the 0.05 mL floor
+      `drug_concentrations.drawable()` enforces — and the medic is told the dose
+      "likely needs a dilution the kit has not declared" without being told
+      which. The brief now states the volume conditionally ("At 50 mg/mL that's
+      0.125 mL — confirm vial"), so the small number is on the first screen.
+
+      **What the corpus states, checked 2026-09-18** (133 ketamine chunks): the
+      only ketamine concentration any guideline in the corpus prepares is
+      **1 mg/mL, and only for infusions** — "250 mg of Ketamine in 250 ml of
+      normal saline" (Pain Anxiety Delirium, p.8) and "MIX 500 mg/500 mL
+      CONCENTRATION 1 mg/mL" (SMOG CY24, p.128). **No guideline in the corpus
+      states a push dilution, a paediatric preparation, or a target
+      concentration for IV push.** So whatever is authored here is an OWNER
+      DECLARATION, not a citation — the `owner_declaration` block, the way
+      ketamine's no-pump sedation entry already is.
+
+      **Recommended shape — mirror push-dose epinephrine exactly.** That entry
+      carries its dilution as CAUTIONS on the dose entry, not as card prose:
+      "DILUTED preparation: prepare 10 mcg/mL by diluting 1 mL of epinephrine
+      0.1 mg/mL in 9 mL of normal saline" and "0.01 mg/kg equals 0.1 mL/kg of
+      that dilution". Two properties worth copying: the card renders it with no
+      new template code, and the **mL/kg** form states the volume without
+      deriving a millilitre from a concentration nobody signed.
+
+      **Recommended concentration: 5 mg/mL** (1 mL of the 50 mg/mL vial + 9 mL
+      NS = 10 mL — the same "1 mL + 9 mL" shape as the epi card). At
+      0.25 mg/kg that is **0.05 mL/kg**: 0.25 mL at 5 kg, 0.5 mL at 10 kg,
+      1.25 mL at 25 kg, 2 mL at 40 kg. Nothing is refused, nothing is a
+      hundredths-of-a-mL read, and the biggest paediatric analgesia draw stays
+      under 3 mL.
+      - **1 mg/mL** is the alternative with the strongest anchor — it is the
+        concentration the two guidelines above actually prepare — but at
+        0.25 mL/kg it is 6.25 mL at 25 kg and 12.5 mL at 50 kg, and the
+        citation is for an infusion, so using it for a push is still an
+        extrapolation the owner declares.
+      - **Do NOT use 10 mg/mL.** WHO lists ketamine as a stocked vial strength
+        at both 10 and 50 mg/mL (`drug_contracts.json`, ketamine forms), so a
+        10 mg/mL syringe is indistinguishable from a stocked vial — the exact
+        confusion the concentration fence exists to prevent.
+
+      **Scope it to the low-mg/kg indications.** 0.25 mg/kg analgesia, and
+      optionally 0.5 mg/kg post-intubation sedation (0.1 mL/kg at 5 mg/mL). NOT
+      1-2 mg/kg — paediatric dissociative sedation and RSI induction already
+      draw 0.2-1.6 mL from the 50 mg/mL vial, and diluting those turns a 1 mL
+      push into a 10 mL one.
+
+      **Do NOT declare the dilution in `drug_concentrations.json`.** It is a
+      prepared syringe, not a vial, and declaring it would (a) make ketamine's
+      signed presentations two, which silently switches off the brief's
+      conditional volume line, and (b) let `audit_volume_lines` accept a
+      "5mg/mL ketamine" GIVE line as a stocked strength.
+
+      **Follow-ons once the entry carries a dilution caution:**
+      - [ ] The brief's conditional volume should say the dilution's volume, or
+            say "dilute first" — otherwise the brief quotes 0.125 mL of the
+            vial while the card underneath says to dilute, which is the
+            contradiction the 2026-09-18 cleanup removed.
+      - [ ] `drawable()`'s refusal text names no dilution ("a dilution the kit
+            has not declared"). Once one is declared for a drug, it should name
+            it.
 
 - [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
       §1, priority entry 9 — "asked for 3 times; does not exist". Entries 0, 26
