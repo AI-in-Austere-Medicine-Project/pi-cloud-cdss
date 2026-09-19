@@ -82,13 +82,16 @@ def test_a_concentration_in_one_sentence_does_not_hide_a_dose_in_another():
 # ── the lexicon itself ───────────────────────────────────────────────────────
 
 def test_the_bank_always_wins():
-    """A lexicon term can never re-point a name or alias the bank owns."""
+    """A lexicon term can never re-point a name or alias the bank owns.
+
+    A drug may be in both: the lexicon lists it so the check recognises it
+    before it has a contract, and the bank takes it over once a draft is
+    added (atropine, #72 then the contract drafts). The bank's mapping wins
+    either way, which is all that matters to the check."""
     bank = dc.alias_index()
     merged = dc.recognised_drug_index()
     for term, generic in bank.items():
         assert merged[term] == generic, term
-    for generic in dc._lexicon_drugs():
-        assert generic not in dc.DRUGS, f"{generic} is in the bank; drop it from the lexicon"
 
 
 def test_every_lexicon_entry_is_well_formed():
@@ -108,10 +111,15 @@ def test_no_lexicon_term_is_too_short_to_be_a_name():
 
 
 def test_a_missing_lexicon_narrows_to_the_bank(monkeypatch, tmp_path):
+    # A lexicon-only drug, chosen at run time: any drug the bank gains
+    # (atropine, in the contract drafts) stops being one.
+    lexicon_only = next(g for g in sorted(dc._lexicon_drugs()) if g not in dc.DRUGS
+                        and len(g.split()) == 1)
+    assert _issues(f"**TREAT**\n- {lexicon_only} 5 mg IV.")
     monkeypatch.setattr(dc, "LEXICON", tmp_path / "absent.json")
     dc._lexicon_drugs.cache_clear()
     try:
         assert dc.recognised_drug_index() == dc.alias_index()
-        assert _issues("**TREAT**\n- Atropine 0.5 mg IV.") == []
+        assert _issues(f"**TREAT**\n- {lexicon_only} 5 mg IV.") == []
     finally:
         dc._lexicon_drugs.cache_clear()
