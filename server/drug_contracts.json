@@ -321,6 +321,14 @@
           "cautions": [
             {
               "tier": "serve",
+              "text": "OWNER-DECLARED dilution for IV push (no guideline states one): 5 mg/mL — 1 mL of ketamine 50 mg/mL in 9 mL of normal saline."
+            },
+            {
+              "tier": "serve",
+              "text": "0.2 mg/kg equals 0.04 mL/kg of that dilution."
+            },
+            {
+              "tier": "serve",
               "text": "Avoid 0.5-0.9 mg/kg IV — emergence phenomena (SMOG: \"feeling of unreality leading to agitation\")."
             },
             {
@@ -338,6 +346,10 @@
             {
               "tier": "detail",
               "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "DILUTION DECLARED by AI-AIM, 2026-09-18 (#65). Every ketamine concentration the corpus prepares is an infusion mix (1 and 3 mg/mL); no guideline states a push dilution, a paediatric preparation or a push concentration. The arithmetic is SMOG CY24 p.71's drug-agnostic dilution table (50 mg in 10 mL = 5 mg/mL, \"1ml drug + 9ml fluid\"). Not 10 mg/mL: WHO lists that as a stocked vial strength, and a diluted syringe must not be mistakable for a vial. Not declared in drug_concentrations.json: it is a prepared syringe, not a stocked presentation."
             }
           ],
           "sources": [
@@ -355,7 +367,16 @@
           "version": "0.1.0",
           "extraction_notes": "SMOG CY24 p.127, PEDIATRIC column, verified against the PDF: \"Analgesia: ... IV: 0.1 – 0.2 mg/kg, repeat q 10-30 prn\"; Contraindications: \"Children <3 mo. age\"; Precautions: \"Dosing between 0.5-0.9 mg/kg IV (and equivalent IM dose) can give patients the feeling of unreality leading to agitation and should be avoided\". Lower than the NASEMSO 0.25 mg/kg all-ages entry, which stays signed and serves adults. SMOG's paediatric IM analgesia (0.5 mg/kg) is NOT entered here.",
           "adjudication": "OWNER RULING 2026-09-18 (#65): for a paediatric patient this entry serves in place of the NASEMSO 0.25 mg/kg adult|peds entry for the same indication and route. NASEMSO is kept, still serves adults, and is named on this entry as the general-EBM alternate under the dual-domain rule. The signed dose is 0.2 mg/kg, the top of SMOG's 0.1-0.2 mg/kg range. A STATED age under 3 months blocks this entry (min_age_months), rather than serving a dose its own contraindication rules out; an unknown age does not.",
-          "adjudicated_on": "2026-09-18"
+          "adjudicated_on": "2026-09-18",
+          "push_dilution": {
+            "concentration_mg_ml": 5.0,
+            "from_concentration_mg_ml": 50.0,
+            "drug_ml": 1.0,
+            "diluent_ml": 9.0,
+            "diluent": "normal saline",
+            "declared_by": "AI-AIM",
+            "declared_on": "2026-09-18"
+          }
         },
         {
           "indication": "agitated or violent patient — dissociative sedation",

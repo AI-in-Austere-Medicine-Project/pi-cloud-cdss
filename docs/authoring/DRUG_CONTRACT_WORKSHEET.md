@@ -189,11 +189,14 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **max_cumulative:** none stated by the cited source
 - **contraindications:** Hypersensitivity
 - **contraindications:** Age < 3 months
+- **cautions:** OWNER-DECLARED dilution for IV push (no guideline states one): 5 mg/mL — 1 mL of ketamine 50 mg/mL in 9 mL of normal saline.
+- **cautions:** 0.2 mg/kg equals 0.04 mL/kg of that dilution.
 - **cautions:** Avoid 0.5-0.9 mg/kg IV — emergence phenomena (SMOG: "feeling of unreality leading to agitation").
 - **cautions:** General-EBM alternate (dual-domain): NASEMSO gives 0.25 mg/kg IV/IO for all ages, max 25 mg initial / 100 mg cumulative (Pain Management, p.94).
 - **cautions:** SMOG CY24 p.127 states the paediatric IV analgesia dose as a range, 0.1-0.2 mg/kg, repeat q 10-30 min PRN. OWNER RULING 2026-09-18: the signed value is 0.2 mg/kg, the top of that range. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** DILUTION DECLARED by AI-AIM, 2026-09-18 (#65). Every ketamine concentration the corpus prepares is an infusion mix (1 and 3 mg/mL); no guideline states a push dilution, a paediatric preparation or a push concentration. The arithmetic is SMOG CY24 p.71's drug-agnostic dilution table (50 mg in 10 mL = 5 mg/mL, "1ml drug + 9ml fluid"). Not 10 mg/mL: WHO lists that as a stocked vial strength, and a diluted syringe must not be mistakable for a vial. Not declared in drug_concentrations.json: it is a prepared syringe, not a stocked presentation. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration: Pediatric, Analgesia, IV; Contraindications; Adverse Reactions / Precautions, p.127 · retrieved 2026-09-18
 - **why no value was written:** SMOG CY24 p.127, PEDIATRIC column, verified against the PDF: "Analgesia: ... IV: 0.1 – 0.2 mg/kg, repeat q 10-30 prn"; Contraindications: "Children <3 mo. age"; Precautions: "Dosing between 0.5-0.9 mg/kg IV (and equivalent IM dose) can give patients the feeling of unreality leading to agitation and should be avoided". Lower than the NASEMSO 0.25 mg/kg all-ages entry, which stays signed and serves adults. SMOG's paediatric IM analgesia (0.5 mg/kg) is NOT entered here.
 

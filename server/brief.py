@@ -37,6 +37,9 @@ it, and that is the only thing that makes it safe to put first:
          drug_concentrations applies to every volume. Zero or several signed
          presentations, or a volume no syringe can draw, keep the card's own
          no-volume reason. The CONFIRM VIAL block is untouched either way.
+         When the entry declares a push dilution made from that vial, the
+         diluted volume follows ("Diluted to 5 mg/mL (…): 1 mL."), or stands
+         alone as "Dilute first — …" when the vial volume cannot be drawn.
 
   Three slots when the response doses: (a) the dose line(s); (b) the card's
      first next action — the first DO THIS step that is neither equipment
@@ -276,22 +279,22 @@ def _indication(item: str) -> str:
     return item[idx + len(" Indication:"):].strip().rstrip(". ").strip() if idx >= 0 else ""
 
 
-def per_kg_basis(drug: str, route: str, value: float, unit: str,
-                 indication: str, weight_kg) -> str:
-    """"(0.25 mg/kg × 25 kg)" when the printed dose IS that product, else "".
+def _line_entry(drug: str, route: str, value: float, unit: str,
+                indication: str, weight_kg):
+    """The signed contract entry this printed dose came from, or None.
 
-    Found from the signed contract entry for this drug, route and indication,
-    recomputed with drug_contracts.resolve_dose at the confirmed weight. Only
-    when the recomputation reproduces the printed number: a capped dose, a
-    different entry, or a generated line whose indication was reworded gets no
-    basis rather than one it does not follow.
+    Matched on drug, route and indication, then recomputed with
+    drug_contracts.resolve_dose at the confirmed weight: only an entry that
+    reproduces the printed number counts. That is also what tells apart two
+    entries sharing an indication and route — ketamine analgesia is SMOG's
+    0.2 mg/kg for a child and NASEMSO's 0.25 mg/kg for an adult.
     """
     if weight_kg is None or not indication:
-        return ""
+        return None
     try:
         import drug_contracts
     except Exception:
-        return ""
+        return None
     for entry in drug_contracts.servable_entries().get(drug, []):
         if entry.get("route") != route or entry.get("indication") != indication:
             continue
@@ -302,19 +305,51 @@ def per_kg_basis(drug: str, route: str, value: float, unit: str,
         if (r.get("display_value") is None or r.get("display_units") != unit
                 or abs(r["display_value"] - value) > 1e-9):
             continue
-        return f"({rng['min']:g} {rng['units']} × {weight_kg:g} kg)"
-    return ""
+        return entry
+    return None
 
 
-def conditional_volume(drug: str, dose_mg: float) -> str:
-    """"At 50 mg/mL that's 0.13 mL — confirm vial", or "" to keep the card's line."""
+def per_kg_basis(drug: str, route: str, value: float, unit: str,
+                 indication: str, weight_kg) -> str:
+    """"(0.25 mg/kg × 25 kg)" when the printed dose IS that product, else "".
+
+    Found from the signed contract entry for this drug, route and indication
+    (_line_entry). Only when the recomputation reproduces the printed number: a
+    capped dose, a different entry, or a generated line whose indication was
+    reworded gets no basis rather than one it does not follow.
+    """
+    entry = _line_entry(drug, route, value, unit, indication, weight_kg)
+    if entry is None:
+        return ""
+    rng = entry["dose_range"]
+    return f"({rng['min']:g} {rng['units']} × {weight_kg:g} kg)"
+
+
+def line_dilution(drug: str, route: str, value: float, unit: str,
+                  indication: str, weight_kg):
+    """The push dilution declared on this dose's entry, or None."""
+    entry = _line_entry(drug, route, value, unit, indication, weight_kg)
+    if entry is None:
+        return None
+    try:
+        import drug_contracts
+    except Exception:
+        return None
+    return drug_contracts.push_dilution(entry)
+
+
+def conditional_volume(drug: str, dose_mg: float, dilution=None) -> str:
+    """"At 50 mg/mL that's 0.13 mL — confirm vial", or "" to keep the card's line.
+
+    With a declared push dilution, the diluted volume too (or instead, when
+    the vial volume cannot be drawn).
+    """
     try:
         import drug_concentrations
     except Exception:
         return ""
-    # The sentence itself lives in drug_concentrations, which owns volumes and
-    # is where the card's TLDR gets the same line.
-    return drug_concentrations.conditional_volume_line(drug, dose_mg)
+    # The sentence itself lives in drug_concentrations, which owns volumes.
+    return drug_concentrations.conditional_volume_line(drug, dose_mg, dilution)
 
 
 def dose_line(item: str, weight_kg=None) -> str:
@@ -324,15 +359,19 @@ def dose_line(item: str, weight_kg=None) -> str:
     head, why = (m.group("head"), m.group("why")) if m else (clause, None)
     parsed = _MG_LINE_RE.match(head) or _DRAW_LINE_RE.match(head)
     out = head
+    dilution = None
     if parsed:
         value, unit = float(parsed.group("value")), parsed.group("unit")
-        basis = per_kg_basis(parsed.group("drug"), parsed.group("route"), value, unit,
-                             _indication(item), weight_kg)
+        key = (parsed.group("drug"), parsed.group("route"), value, unit,
+               _indication(item), weight_kg)
+        basis = per_kg_basis(*key)
         if basis:
             out = f"{head[:-1]} {basis}."
+        dilution = line_dilution(*key)
     if why is not None:
         cond = (conditional_volume(parsed.group("drug"),
-                                   float(parsed.group("value")) * _TO_MG[parsed.group("unit")])
+                                   float(parsed.group("value")) * _TO_MG[parsed.group("unit")],
+                                   dilution)
                 if parsed else "")
         out += " " + (cond or f"No volume — {why}.")
     return out
