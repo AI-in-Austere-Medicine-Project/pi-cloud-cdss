@@ -55,7 +55,7 @@ def test_the_ketamine_brief_is_three_slots(served):
     r = served["ped_ketamine_iv"]
     assert r["brief"].splitlines() == [
         # (a) the GIVE line verbatim, its per-kg basis, and — the undiluted
-        # 0.100 mL being under 0.2 mL — the declared push dilution (#65) alone
+        # 0.1 mL being under 0.2 mL — the declared push dilution (#65) alone
         "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). Dilute first — 5 mg/mL "
         "(1 mL of 50 mg/mL + 9 mL normal saline): 1 mL — confirm vial.",
         # (b) DO THIS step 3: step 1 is equipment preamble, step 2 restates the dose

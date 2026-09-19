@@ -396,7 +396,7 @@ def dose_line(item: str, weight_kg=None) -> str:
 def vial_math_lines(response_text: str, weight_kg=None) -> list:
     """The undiluted vial volumes the brief withheld from this card's doses.
 
-    ["ketamine IV 5 mg: 0.100 mL of 50 mg/mL undiluted — confirm vial."] for
+    ["ketamine IV 5 mg: 0.1 mL of 50 mg/mL undiluted — confirm vial."] for
     each GIVE-type line that printed no volume, whose entry
     declares a push dilution, and whose undiluted draw is under the brief's
     floor (drug_concentrations.vial_math_line). The "Vial math" chip's answer

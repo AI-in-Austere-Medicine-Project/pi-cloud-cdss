@@ -1432,15 +1432,8 @@ def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
         why = d.volume_refusal or CONFIRM_CONCENTRATION_LINE
         return (f"{prefix}{d.drug} {d.route}: {dose_txt}. "
                 f"NO VOLUME — {why}. Indication: {d.indication}.")
-    return (f"{prefix}Draw {_fmt_volume(d.volume_ml)} mL of {d.concentration_mg_ml:g}mg/mL "
+    return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
             f"{d.drug} {d.route} ({dose_txt}). Indication: {d.indication}.")
-
-
-def _fmt_volume(volume_ml_value: float) -> str:
-    """drug_concentrations.format_volume: three decimals under a millilitre."""
-    if drug_concentrations is not None:
-        return drug_concentrations.format_volume(volume_ml_value)
-    return f"{volume_ml_value:g}"
 
 
 def render_dose_summary(d: DoseCandidate, label: str) -> str:
@@ -1472,7 +1465,7 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
         return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "
                 f"Volume not computed — {CONFIRM_CONCENTRATION_LINE}.")
     return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg = "
-            f"{_fmt_volume(d.volume_ml)}mL of {d.concentration_mg_ml:g}mg/mL.")
+            f"{d.volume_ml:g}mL of {d.concentration_mg_ml:g}mg/mL.")
 
 
 def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:

@@ -400,20 +400,6 @@ def draw_precision(true_volume_ml: float) -> int:
     return 4
 
 
-def format_volume(volume_ml_value: float) -> str:
-    """A drawn volume as the medic reads it: "0.100", "0.125", "2.84", "12".
-
-    Under a millilitre it shows THREE decimals, trailing zeros kept (four when
-    draw_precision needed four): 0.1 and 0.100 are the same volume, but "0.1"
-    beside "0.125" on another card reads as the coarser number, and a
-    fraction-of-a-mL push is drawn in a syringe read to the hundredth. A
-    millilitre and above prints as before.
-    """
-    if volume_ml_value >= 1.0:
-        return f"{volume_ml_value:g}"
-    places = 3 if abs(round(volume_ml_value, 3) - volume_ml_value) < 1e-12 else 4
-    return f"{volume_ml_value:.{places}f}"
-
 
 # What a syringe can actually deliver as a push. Below the floor the volume
 # cannot be drawn accurately; above the ceiling it is an infusion, not a bolus.
@@ -570,11 +556,11 @@ def conditional_volume_line(generic_name: str, dose_mg: float,
     if vol is None or (dil_vol is not None and vol < BRIEF_UNDILUTED_FLOOR_ML):
         if dil_vol is None:
             return ""
-        return (f"Dilute first — {dilution_recipe(dil)}: {format_volume(dil_vol)} mL — "
+        return (f"Dilute first — {dilution_recipe(dil)}: {dil_vol:g} mL — "
                 f"confirm vial.")
-    line = f"At {conc:g} mg/mL that's {format_volume(vol)} mL — confirm vial."
+    line = f"At {conc:g} mg/mL that's {vol:g} mL — confirm vial."
     if dil_vol is not None:
-        line += f" Diluted to {dilution_recipe(dil)}: {format_volume(dil_vol)} mL."
+        line += f" Diluted to {dilution_recipe(dil)}: {dil_vol:g} mL."
     return line
 
 
@@ -582,7 +568,7 @@ def vial_math_line(generic_name: str, dose_mg: float,
                    dilution: Optional[dict] = None) -> str:
     """The undiluted vial volume conditional_volume_line left off the brief, or "".
 
-    "0.100 mL of 50 mg/mL undiluted — confirm vial." Only where the
+    "0.1 mL of 50 mg/mL undiluted — confirm vial." Only where the
     brief withheld it — a declared dilution and an undiluted draw under
     BRIEF_UNDILUTED_FLOOR_ML — so the Vial math answer says what the first
     screen did not, and says nothing where the first screen already did.
@@ -594,7 +580,7 @@ def vial_math_line(generic_name: str, dose_mg: float,
     vol, conc = single_signed_volume(generic_name, dose_mg)
     if vol is None or vol >= BRIEF_UNDILUTED_FLOOR_ML:
         return ""
-    return f"{format_volume(vol)} mL of {conc:g} mg/mL undiluted — confirm vial."
+    return f"{vol:g} mL of {conc:g} mg/mL undiluted — confirm vial."
 
 
 def all_signed_strengths(generic_name: str) -> list:

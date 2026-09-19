@@ -193,7 +193,7 @@ def test_a_signed_concentration_produces_a_volume(signed_ketamine):
     # about arithmetic, in the file least likely to be reviewed when it moves.
     expected = round(d.dose_mg / 50.0, 2)
     assert d.volume_ml == expected
-    assert f"Draw {dcn.format_volume(expected)} mL of 50mg/mL" in oc.render_give_line(d)
+    assert f"Draw {expected:g} mL of 50mg/mL" in oc.render_give_line(d)
 
 
 def test_the_volume_moves_with_the_declared_concentration(monkeypatch):

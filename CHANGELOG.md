@@ -27,15 +27,15 @@ is still on the card.
   the vial to be confirmed. The TLDR now gives the mg dose alone. With nothing
   signed, or several presentations signed, the sentence stays. The GIVE line's
   NO VOLUME marker and CONFIRM VIAL are unchanged.
-- **Volumes under 1 mL show three decimals**, trailing zeros kept: 0.100, 0.400,
-  0.800 (`drug_concentrations.format_volume`).
-  - This applies to GIVE lines, the TLDR and the brief.
-  - Four decimals still appear where `draw_precision` needs them. Volumes of
-    1 mL and above are unchanged.
+- **No volume is printed with a trailing zero.** Volumes under 1 mL are still
+  drawn to three decimals (`draw_precision`, #64) and keep their leading zero:
+  "0.125 mL", "0.4 mL", never "0.400 mL". A trailing zero after a decimal point
+  is on the ISMP and Joint Commission do-not-use lists, because "1.0" is misread
+  as "10". A test now holds every volume on the child and adult ketamine and
+  RSI cards and briefs to this rule.
 
-Adult output changes only through the last two items: the adult ketamine TLDR
-loses "Volume not computed", and sub-mL volumes gain trailing zeros (the adult
-RSI post-intubation 0.8 mL now reads 0.800 mL).
+Adult output changes only through the TLDR item: the adult ketamine TLDR loses
+"Volume not computed".
 
 ### The brief reads like a card, not a template — 2026-09-17
 
