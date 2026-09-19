@@ -144,8 +144,10 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: "Children <3 mo. age" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 0 (MIGRATION) — EdgeCDSS pre-contract hardcoded calculator: ketamine_post_intubation_0.5mgkg · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-18
 - **why no value was written:** Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 (ruling 7) selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. A full search of ID61 plus ID91, ID29, ID80, ID39, ID40, ID57, ID63, ID70 and ID73 then found the shape well sourced and the VALUE stated nowhere. OWNER DECLARATION 2026-08-25 (ruling 8) therefore replaces MIGRATED_UNSOURCED: the number is declared on the owner's clinical judgement under OWNER_DECLARED, recorded in owner_declaration, and shown as owner-declared everywhere the dose is served. It is no longer a migrated hardcode awaiting corroboration — it is a value someone signed for by name. OWNER RULINGS 9 and 11, 2026-08-26: the single caution carrying both the repeat interval and the cross-reference was re-authored into two — the interval serves, the cross-reference is detail — and the hand-written declaration banner was deleted as a duplicate of the one serve_cautions() generates from owner_declaration itself. The declaration is re-made on the same value and the same reasoning, dated 2026-08-26.
 
 #### 2. prolonged sedation infusion · adult|peds · IV
@@ -173,8 +175,10 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: "Children <3 mo. age" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-18
 - **why no value was written:** TIER 1 VALUE. NASEMSO gives 0.25 mg/kg IM/IV/IO for moderate to severe pain, capped at 25 mg initial and 100 mg cumulative. This CONFLICTS with the migrated hardcoded contract, which uses 0.3 mg/kg IV with no cap and 2.0 mg/kg IM with no cap. Both entries are kept. The IM divergence is the serious one: for an 80 kg patient the hardcode gives 160 mg IM where NASEMSO caps at 25 mg — roughly SIX TIMES. Adjudicate before signing either.
 
 #### 4. moderate to severe pain / analgesia · peds · IV
@@ -233,7 +237,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **dose_range:** `1.0 mg/kg` (per kg)
 - **max_single:** none stated by the cited source
 - **max_cumulative:** none stated by the cited source
-- **contraindications:** Hypersensitivity  ⚠️ nothing a medic could act on
+- **contraindications:** Hypersensitivity
+- **contraindications:** Age < 3 months
 - **cautions:** NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
@@ -241,6 +246,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-18
 
 #### 8. agitated or violent patient — dissociative sedation · peds · IM
 
@@ -248,7 +254,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **dose_range:** `3.0 mg/kg` (per kg)
 - **max_single:** none stated by the cited source
 - **max_cumulative:** none stated by the cited source
-- **contraindications:** Hypersensitivity  ⚠️ nothing a medic could act on
+- **contraindications:** Hypersensitivity
+- **contraindications:** Age < 3 months
 - **cautions:** NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
@@ -256,6 +263,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-18
 
 #### 9. RSI induction · adult · IV
 
@@ -301,7 +309,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **dose_range:** `2.0 mg/kg` (per kg)
 - **max_single:** none stated by the cited source
 - **max_cumulative:** none stated by the cited source
-- **contraindications:** Hypersensitivity  ⚠️ nothing a medic could act on
+- **contraindications:** Hypersensitivity
+- **contraindications:** Age < 3 months
 - **cautions:** Give BEFORE the paralytic. Confirm weight and route. · _untiered, so it serves_
 - **cautions:** JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING. · _untiered, so it serves_
 - **cautions:** JTS ID39: unstable patients require a reduced dosage of induction agent. · _untiered, so it serves_
@@ -311,6 +320,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 3 Induction, p.28 · retrieved 2026-08-25
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-18
 
 #### 12. ongoing sedation — loading dose (infusion pump available) · adult|peds · IV
 
@@ -327,9 +337,11 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-26: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: "Children <3 mo. age" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Sedation — ketamine loading dose, p.8 · retrieved 2026-08-25
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9 · retrieved 2026-08-25
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-18
 
 #### 13. background pain — low-dose analgesia (prolonged field care) · adult · IV
 

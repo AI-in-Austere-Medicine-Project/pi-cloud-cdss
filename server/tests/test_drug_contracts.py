@@ -1939,6 +1939,7 @@ def test_the_detail_tier_hides_only_these_families():
         "No approved source states a reduced PAEDIATR",
         "If an infusion pump IS available, see ketami",
         "SMOG CY24 p.127 states the paediatric IV ana",
+        "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.",
     }
 
 

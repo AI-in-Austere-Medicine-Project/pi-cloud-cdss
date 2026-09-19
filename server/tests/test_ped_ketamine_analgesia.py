@@ -121,12 +121,62 @@ def test_three_months_and_up_or_unstated_still_doses(age):
     assert "Age < 3 months" in _section(card, "CONTRAINDICATIONS")
 
 
-def test_an_age_floor_is_stated_in_the_contraindications():
-    """The machine-readable floor and the words the medic reads agree."""
+def test_an_age_floor_is_stated_where_the_medic_reads_it():
+    """The machine-readable floor and the words agree. A peds-only entry lists
+    it as a contraindication; an adult|peds entry records it on the detail
+    tier instead, so an adult's card does not carry an infant-only line."""
     for name, entries in dc.servable_entries().items():
         for e in entries:
-            if e.get("min_age_months") is not None:
-                assert f"Age < {e['min_age_months']:g} months" in e["contraindications"], name
+            floor = e.get("min_age_months")
+            if floor is None:
+                continue
+            if e["population"] == "peds":
+                assert f"Age < {floor:g} months" in e["contraindications"], name
+            else:
+                assert any("AGE FLOOR" in c for c in dc.detail_cautions(e)), name
+            assert any(s.get("source_class") == "SMOG" and "p.127" in s["citation"]
+                       for s in e["sources"]), f"{name}: the age floor cites nothing"
+
+
+def test_every_ketamine_entry_a_child_can_be_served_has_the_age_floor():
+    """SMOG's "Children <3 mo. age" is a contraindication to the drug, not to
+    one indication (owner ruling 2026-09-18)."""
+    for e in dc.servable_entries()["ketamine"]:
+        if e["population"] != "adult":
+            assert e.get("min_age_months") == 3, e["indication"]
+
+
+def test_nothing_ketamine_reaches_a_stated_infant_by_any_lookup():
+    age = 2 / 12
+    by_name = dc.signed_entries_for("ketamine", is_pediatric=True, age_years=age)
+    assert [n for n, e in by_name if n == "ketamine"] == []
+    by_ind = dc.signed_entries_by_indication(
+        ["RSI induction", "post-intubation sedation", "ongoing sedation",
+         "dissociative sedation", "pain"], True, age)
+    assert [n for n, e in by_ind if n == "ketamine"] == []
+
+
+def test_the_rsi_card_names_the_age_block_for_an_infant():
+    ctx = oc.PatientContext(confirmed_weight_kg=5.0, weight_source="stated",
+                            route_preference="IV", is_pediatric=True, age_years=2 / 12)
+    card = oc.build_rsi_response(ctx, "RSI 2 month old 5kg ketamine and roc")
+    give = _section(card, "GIVE")
+    assert "ketamine induction: contraindicated under 3 months of age" in give
+    assert "before the paralytic" in give
+    assert "No signed contract" not in card, "the bank is not silent; the patient is ruled out"
+    assert "ketamine post-intubation sedation: contraindicated" in _section(
+        card, "POST-INTUBATION SEDATION")
+    assert "- Do not give ketamine: contraindicated under 3 months" in card.split("**DON'T**")[1]
+    assert not [l for l in card.splitlines() if "ketamine" in l and ("Draw" in l or " mg" in l)], \
+        "a ketamine dose was served"
+
+
+def test_a_3_month_old_still_gets_the_ketamine_rsi_bundle():
+    ctx = oc.PatientContext(confirmed_weight_kg=6.0, weight_source="stated",
+                            route_preference="IV", is_pediatric=True, age_years=0.25)
+    card = oc.build_rsi_response(ctx, "RSI 3 month old 6kg ketamine and roc")
+    assert "contraindicated under 3 months" not in card
+    assert "ketamine" in _section(card, "GIVE") and "RSI induction" in _section(card, "GIVE")
 
 
 def test_a_malformed_age_floor_is_refused():

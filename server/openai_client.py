@@ -3914,15 +3914,16 @@ LEGACY_ANALGESIA_SOURCE = (
     "sedation at a much higher dose and were NOT used")
 
 
-def ketamine_age_exclusions(ctx: PatientContext) -> list:
-    """(name, entry, reason) for signed ketamine analgesia entries the STATED
-    age rules out. Every route: SMOG's "Children <3 mo. age" is a
-    contraindication to the drug, and refusing IV while the IM calculator
-    backfilled a dose would be the same failure by another route."""
+def ketamine_age_exclusions(ctx: PatientContext,
+                            patterns=ANALGESIA_INDICATIONS) -> list:
+    """(name, entry, reason) for signed ketamine entries matching `patterns`
+    that the STATED age rules out. Every route: SMOG's "Children <3 mo. age"
+    is a contraindication to the drug, and refusing IV while the IM
+    calculator backfilled a dose would be the same failure by another route."""
     if drug_contracts is None or ctx.age_years is None:
         return []
     return [(n, e, why) for n, e, why in drug_contracts.age_exclusions(
-                ANALGESIA_INDICATIONS, ctx.is_pediatric, ctx.age_years)
+                patterns, ctx.is_pediatric, ctx.age_years)
             if n == "ketamine"]
 
 
@@ -4161,7 +4162,20 @@ Guideline-based support only. Not a substitute for clinical judgment."""
         # no doses at all.
         return None
 
+    # A role emptied by the patient's stated age is not "nothing signed": the
+    # signed entry rules this patient out, and the line says so rather than
+    # implying the bank is silent (owner ruling 2026-09-18, #65).
+    age_blocked = {
+        role: ketamine_age_exclusions(ctx, pats)
+        for role, pats in (("induction", RSI_INDUCTION_INDICATIONS),
+                           ("post-intubation sedation", RSI_SEDATION_INDICATIONS))}
+
     def _give(d, role):
+        if d is None and age_blocked.get(role):
+            why = age_blocked[role][0][2]
+            then = " before the paralytic" if role == "induction" else ""
+            return (f"- ketamine {role}: {why}. No dose served — choose an "
+                    f"alternative by local protocol{then}.")
         if d is None:
             return f"- No signed contract and no calculator for the {role}. Use local protocol."
         return render_give_line(d)
@@ -4181,6 +4195,9 @@ Guideline-based support only. Not a substitute for clinical judgment."""
     # JTS-cited contracts.
     source_line = served_source_line(
         served, "General Evidence-Based Medicine / deterministic RSI calculator")
+
+    blocked_why = next((b[0][2] for b in age_blocked.values() if b), None)
+    age_dont = (f"- Do not give ketamine: {blocked_why}.\n" if blocked_why else "")
 
     ind_name = ket_ind.drug if ket_ind else "induction agent"
     sed_name = ket_post.drug if ket_post else "sedation"
@@ -4208,7 +4225,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 - Confirm tube with waveform ETCO2 if available. Monitor SpO2, BP, chest rise, and ventilator pressures.
 
 **DON'T**
-- Never give paralytic before induction in a patient with a pulse.
+{age_dont}- Never give paralytic before induction in a patient with a pulse.
 - Avoid succinylcholine in burns/crush/hyperkalemia risk unless specifically indicated by protocol.
 
 **TLDR**

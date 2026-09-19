@@ -335,7 +335,9 @@ deliberately did NOT touch.
       - [x] **Decided 2026-09-18 (#65): its own peds entry.** SMOG CY24 p.127,
             IV **0.2 mg/kg** (the top of its 0.1-0.2 range), "Age < 3 months"
             contraindication — a STATED age under 3 months blocks the dose on
-            every route (`min_age_months`); an unknown age does not — and
+            every route (`min_age_months`), and on every ketamine entry a
+            child can be served (RSI induction, post-intubation and loading
+            sedation, dissociative sedation); an unknown age does not — and
             "avoid 0.5-0.9 mg/kg IV" caution. For a child it
             supersedes NASEMSO's 0.25 mg/kg, which stays signed for adults and
             is named on the peds entry as the general-EBM alternate. SMOG's

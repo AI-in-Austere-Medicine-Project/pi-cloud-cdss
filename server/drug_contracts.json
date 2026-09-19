@@ -101,6 +101,7 @@
           "contraindications": [
             "Hypersensitivity"
           ],
+          "min_age_months": 3,
           "cautions": [
             "After tube confirmed only. Not the induction dose.",
             "Repeat q20-30min. Preferred where there is no pump.",
@@ -119,6 +120,10 @@
             {
               "tier": "detail",
               "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            },
+            {
+              "tier": "detail",
+              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
             }
           ],
           "sources": [
@@ -135,6 +140,13 @@
               "source_class": "NASEMSO",
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-18"
             }
           ],
           "signoff": true,
@@ -245,12 +257,17 @@
           "contraindications": [
             "Hypersensitivity"
           ],
+          "min_age_months": 3,
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             {
               "tier": "detail",
               "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            },
+            {
+              "tier": "detail",
+              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
             }
           ],
           "sources": [
@@ -267,6 +284,13 @@
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
               "source_class": "NASEMSO"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-18"
             }
           ],
           "signoff": true,
@@ -458,8 +482,10 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity"
+            "Hypersensitivity",
+            "Age < 3 months"
           ],
+          "min_age_months": 3,
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
@@ -490,6 +516,13 @@
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
               "source_class": "NASEMSO"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-18"
             }
           ],
           "signoff": true,
@@ -512,8 +545,10 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity"
+            "Hypersensitivity",
+            "Age < 3 months"
           ],
+          "min_age_months": 3,
           "cautions": [
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
@@ -544,6 +579,13 @@
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
               "source_class": "NASEMSO"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-18"
             }
           ],
           "signoff": true,
@@ -685,8 +727,10 @@
           "max_single": null,
           "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity"
+            "Hypersensitivity",
+            "Age < 3 months"
           ],
+          "min_age_months": 3,
           "cautions": [
             "Give BEFORE the paralytic. Confirm weight and route.",
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
@@ -719,6 +763,13 @@
               "source_class": "NASEMSO",
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-18"
             }
           ],
           "signoff": true,
@@ -743,6 +794,7 @@
           "contraindications": [
             "Hypersensitivity"
           ],
+          "min_age_months": 3,
           "cautions": [
             "Give as an IV push over 60 SECONDS. JTS ID61 warns of respiratory depression at doses above 1 mg/kg, especially with fast IV/IO administration.",
             "Followed by an infusion for continuous sedation — this is a loading dose, not a standalone one.",
@@ -763,6 +815,10 @@
             {
               "tier": "detail",
               "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-26: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            },
+            {
+              "tier": "detail",
+              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
             }
           ],
           "sources": [
@@ -786,6 +842,13 @@
               "source_class": "NASEMSO",
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-18"
             }
           ],
           "signoff": true,
