@@ -122,7 +122,7 @@ def test_the_post_check_reads_the_same_numbers_off_the_brief(served):
 
 
 def test_the_specific_ketamine_dose_run_tests_asserts(served):
-    assert "ketamine IV: 6.25 mg" in served["ped_ketamine_iv"]["brief"]
+    assert "ketamine IV: 5 mg" in served["ped_ketamine_iv"]["brief"]
 
 
 def test_a_reworded_dose_is_never_a_brief_line():
@@ -207,7 +207,7 @@ def test_rsi_doses_say_what_each_is_for(served):
 
 
 def test_a_single_dose_is_not_labelled(served):
-    assert served["ped_ketamine_iv"]["brief"].startswith("ketamine IV: 6.25 mg")
+    assert served["ped_ketamine_iv"]["brief"].startswith("ketamine IV: 5 mg")
 
 
 def test_a_dose_label_comes_from_the_card():

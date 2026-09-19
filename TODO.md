@@ -252,22 +252,123 @@ deliberately did NOT touch.
 
 - [ ] **Pediatric IV ketamine needs dilution guidance before it serves a volume.
       Needs an owner decision — content, not format.** At the signed 50 mg/mL
-      vial, the analgesia dose (0.25 mg/kg) is a fraction of a millilitre for
-      any child: 10 kg is 2.5 mg = **0.05 mL**, 25 kg is 6.25 mg = **0.125 mL**,
-      and 40 kg is 10 mg = 0.2 mL. Below
-      10 kg it is refused outright — 5 kg computes 0.025 mL, under the 0.05 mL
-      floor `drug_concentrations.drawable()` enforces — and the medic is told
-      the dose "likely needs a dilution the kit has not declared" without being
-      told what dilution. A draw that small is where a tenfold error lives, and
-      the brief now states it conditionally ("At 50 mg/mL that's 0.125 mL —
-      confirm vial"), which puts the small number on the first screen.
-      **What the card should carry, for the owner to author and sign:** a
-      target concentration for pediatric analgesia, the recipe that reaches it
-      from the signed vial, and the recomputed volume at that concentration —
-      the same shape the push-dose epinephrine card already uses, where the
-      guideline's 10 mcg/mL dilution is stated and the ampoule volume is
-      refused. Until that exists, decide whether the pediatric card should
-      serve any volume at all or stay mg-only.
+      vial, the analgesia dose (0.25 mg/kg) is a fraction of a millilitre at
+      every paediatric weight: 10 kg is 2.5 mg = **0.05 mL**, 25 kg is 6.25 mg =
+      **0.125 mL**, 40 kg is 10 mg = 0.2 mL. Below 10 kg it is refused outright
+      — 5 kg computes 0.025 mL, under the 0.05 mL floor
+      `drug_concentrations.drawable()` enforces — and the medic is told the dose
+      "likely needs a dilution the kit has not declared" without being told
+      which. The brief now states the volume conditionally ("At 50 mg/mL that's
+      0.125 mL — confirm vial"), so the small number is on the first screen.
+
+      **What the corpus states, checked 2026-09-18** (133 ketamine chunks,
+      quotes verified against the source PDFs):
+      - Every ketamine concentration any guideline in the corpus prepares is an
+        **INFUSION** mix: "MIX: 750mg (1.5 vials of 500mg/5mL) in 250mL of
+        normal saline (3mg/mL solution)" (JTS ID61, Appendix B, p.9); "250 mg
+        of Ketamine in 250 ml of normal saline" (Pain Anxiety Delirium, p.8);
+        "MIX 500 mg/500 mL CONCENTRATION 1 mg/mL" (SMOG CY24, p.128).
+      - **No guideline in the corpus states a ketamine PUSH dilution, a
+        paediatric preparation, or a target concentration for push.** The push
+        guidance is a RATE, not a concentration: "IV/IO Push (over 1 min)"
+        (SMOG CY24, p.127), and "Rapid IV administration may cause hypotension,
+        apnea, or laryngospasm" (same page).
+      - The corpus does carry a **drug-agnostic dilution table** whose 50 mg row
+        gives exactly the recipe below: 50 mg into 10 cc = **5 mg/mL**, with
+        "1ml drug + 9ml fluid = 10ml solution" (SMOG CY24, p.71). It names no
+        drug, so it sources the ARITHMETIC, not the choice to apply it to
+        ketamine.
+      - Dilution recipes for other drugs ARE stated and are the precedent for
+        the shape: naloxone "Dilute 0.4mg (1mL) with 9mL normal saline" (JTS
+        ID61, Appendix C, p.10), and push-dose epinephrine, which is already
+        signed and serving.
+
+      So the concentration itself is an OWNER DECLARATION, not a citation — the
+      `owner_declaration` block, the way ketamine's no-pump sedation entry
+      already is.
+
+      **Recommended shape — mirror push-dose epinephrine exactly.** That entry
+      carries its dilution as CAUTIONS on the dose entry, not as card prose:
+      "DILUTED preparation: prepare 10 mcg/mL by diluting 1 mL of epinephrine
+      0.1 mg/mL in 9 mL of normal saline" and "0.01 mg/kg equals 0.1 mL/kg of
+      that dilution". Two properties worth copying: the card renders it with no
+      new template code, and the **mL/kg** form states the volume without
+      deriving a millilitre from a concentration nobody signed.
+
+      **Recommended concentration: 5 mg/mL** (1 mL of the 50 mg/mL vial + 9 mL
+      NS = 10 mL — the same "1 mL + 9 mL" shape as the epi card). At
+      0.25 mg/kg that is **0.05 mL/kg**: 0.25 mL at 5 kg, 0.5 mL at 10 kg,
+      1.25 mL at 25 kg, 2 mL at 40 kg. Nothing is refused, nothing is a
+      hundredths-of-a-mL read, and the biggest paediatric analgesia draw stays
+      under 3 mL.
+      - **1 mg/mL** is the alternative with the strongest anchor — it is the
+        concentration the two guidelines above actually prepare — but at
+        0.25 mL/kg it is 6.25 mL at 25 kg and 12.5 mL at 50 kg, and the
+        citation is for an infusion, so using it for a push is still an
+        extrapolation the owner declares.
+      - **Do NOT use 10 mg/mL.** WHO lists ketamine as a stocked vial strength
+        at both 10 and 50 mg/mL (`drug_contracts.json`, ketamine forms), so a
+        10 mg/mL syringe is indistinguishable from a stocked vial — the exact
+        confusion the concentration fence exists to prevent.
+
+      **Scope it to the low-mg/kg indications.** 0.25 mg/kg analgesia, and
+      optionally 0.5 mg/kg post-intubation sedation (0.1 mL/kg at 5 mg/mL). NOT
+      1-2 mg/kg — paediatric dissociative sedation and RSI induction already
+      draw 0.2-1.6 mL from the 50 mg/mL vial, and diluting those turns a 1 mL
+      push into a 10 mL one.
+
+      **Do NOT declare the dilution in `drug_concentrations.json`.** It is a
+      prepared syringe, not a vial, and declaring it would (a) make ketamine's
+      signed presentations two, which silently switches off the brief's
+      conditional volume line, and (b) let `audit_volume_lines` accept a
+      "5mg/mL ketamine" GIVE line as a stocked strength.
+
+      **Related content question, same sign-off (the DOSE, not the volume).**
+      The served paediatric analgesia dose is NASEMSO's 0.25 mg/kg, which that
+      guideline applies to all ages. SMOG CY24's ketamine monograph (p.127)
+      states a separate PAEDIATRIC column: analgesia **IV 0.1-0.2 mg/kg**,
+      IM 0.5 mg/kg — lower than what is served — plus "Children <3 mo. age" as
+      a contraindication and "Dosing between 0.5-0.9 mg/kg IV ... should be
+      avoided" (emergence phenomenon). None of that is in the contract entry.
+      Decide whether the paediatric analgesia dose stays at 0.25 mg/kg with
+      NASEMSO's all-ages scope, or gets its own peds entry.
+      - [x] **Decided 2026-09-18 (#65): its own peds entry.** SMOG CY24 p.127,
+            IV **0.2 mg/kg** (the top of its 0.1-0.2 range), "Age < 3 months"
+            contraindication — a STATED age under 3 months blocks the dose on
+            every route (`min_age_months`), and on every ketamine entry a
+            child can be served (RSI induction, post-intubation and loading
+            sedation, dissociative sedation); an unknown age does not — and
+            "avoid 0.5-0.9 mg/kg IV" caution. For a child it
+            supersedes NASEMSO's 0.25 mg/kg, which stays signed for adults and
+            is named on the peds entry as the general-EBM alternate. SMOG's
+            paediatric IM 0.5 mg/kg is NOT entered. At 0.2 mg/kg the vial draw
+            is 0.004 mL/kg, refused below 12.5 kg — which is what the dilution
+            above now has to cover, on the peds entry rather than on NASEMSO's.
+
+      **Follow-ons once the entry carries a dilution caution:**
+      - [ ] The brief's conditional volume should say the dilution's volume, or
+            say "dilute first" — otherwise the brief quotes 0.125 mL of the
+            vial while the card underneath says to dilute, which is the
+            contradiction the 2026-09-18 cleanup removed.
+      - [ ] `drawable()`'s refusal text names no dilution ("a dilution the kit
+            has not declared"). Once one is declared for a drug, it should name
+            it.
+
+- [ ] **Weight-only infant guard for ketamine.** Owner decision 2026-09-19
+      (#66). The under-3-months age floor (`min_age_months`) blocks only a
+      STATED age; with no age, a 4 kg infant is dosed and shown "Age < 3
+      months" as a contraindication. Wanted: when the confirmed weight is
+      **< 5 kg and the age is unknown**, hold the peds-only ketamine entries
+      and ask ONE question — the age — before serving; a stated age then
+      either clears the floor or triggers the existing block. Scope: peds-only
+      entries (analgesia, RSI induction, dissociative sedation); the adult|peds
+      entries are enforced by the same floor once the age is known.
+      - Open: where the question lives (a pre-gate beside 2j-0, like the
+        weight and route asks), and whether the < 5 kg threshold should come
+        from a signed source rather than a fixed number.
+      - Tests: 4 kg, no age → one age question, no ketamine dose; then
+        "2 months" → block; then "4 months" → dose. 5 kg, no age → dose as
+        today.
 
 - [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
       §1, priority entry 9 — "asked for 3 times; does not exist". Entries 0, 26

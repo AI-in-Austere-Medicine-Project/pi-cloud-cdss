@@ -342,9 +342,11 @@ def test_every_tier_1_citation_names_a_guideline_and_page():
                     continue
                 c = src["citation"]
                 cls = src.get("source_class")
-                assert cls in ("NASEMSO", "JTS"), f"{name}: tier 1 but {cls!r}"
+                assert cls in ("NASEMSO", "JTS", "SMOG"), f"{name}: tier 1 but {cls!r}"
                 if cls == "NASEMSO":
                     assert "NASEMSO" in c and "v3.0" in c, c
+                elif cls == "SMOG":
+                    assert "SMOG" in c and "CY24" in c, c
                 else:
                     assert "JTS" in c and "CPG ID" in c, c
                     assert re.search(r"\b\d{2} \w{3} \d{4}\b", c), \
@@ -660,8 +662,11 @@ def test_ruling_5_the_mislabelled_im_dose_is_gone():
 
 
 def test_ruling_5_the_two_analgesia_sources_are_no_longer_a_conflict():
+    # The adult-applicable pair. The paediatric SMOG entry (ruling 2026-09-18)
+    # is a population split, not a third source in this conflict.
     analg = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
-             if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict)]
+             if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict)
+             and e["population"] != "peds"]
     assert len(analg) == 2
     for e in analg:
         assert "SOURCE_CONFLICT" not in (e.get("flags") or [])
@@ -1617,6 +1622,7 @@ DOSELESS_CARDS = {
     "build_seizure_response", "build_hypothermic_arrest_response",
     "build_tbi_management_response", "build_mascal_response",
     "build_ketamine_drip_response", "build_cholera_response",
+    "build_ketamine_age_block",
     "build_snake_bite_response", "build_vtach_response",
     "build_txa_sepsis_block", "build_wpw_drug_block",
 }
@@ -1698,11 +1704,22 @@ def test_the_registered_cards_are_actually_registered():
         assert token in covered, f"{name} has no case in DOSE_TEMPLATE_CASES"
 
 
+# Arguments for the doseless cards that render for a patient rather than a
+# topic. The age-floor refusal is exercised on the patient it exists for.
+DOSELESS_CARD_ARGS = {
+    "build_ketamine_age_block": lambda: (_PC(
+        confirmed_weight_kg=5.0, weight_source="stated", route_preference="IV",
+        is_pediatric=True, age_years=2 / 12),),
+}
+
+
 @pytest.mark.parametrize("name", sorted(DOSELESS_CARDS))
 def test_a_doseless_card_states_no_dose(name):
     """If one of these ever grows a number, it becomes a dose surface and has
     to be registered like the rest."""
-    text = getattr(_oc, name)()
+    args = DOSELESS_CARD_ARGS.get(name, lambda: ())()
+    text = getattr(_oc, name)(*args)
+    assert text, f"{name} rendered nothing for its registered arguments"
     offenders = [(v, u, l) for v, u, l in _tokens(text)]
     assert not offenders, (
         f"{name} now states a dose: {offenders}. Either take the number out, or "
@@ -1921,6 +1938,8 @@ def test_the_detail_tier_hides_only_these_families():
         "Neither JTS CPG states a contraindication fo",
         "No approved source states a reduced PAEDIATR",
         "If an infusion pump IS available, see ketami",
+        "SMOG CY24 p.127 states the paediatric IV ana",
+        "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.",
     }
 
 
@@ -1945,7 +1964,10 @@ def test_ruling_9_re_authoring_the_entry_re_signed_and_re_declared_it():
     """Editing what a signed entry says is a change to what was signed."""
     bolus = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
                  if "repeated bolus" in e["indication"])
-    assert bolus["review_date"] == "2026-08-26"
+    # Reviewed no earlier than the declaration it carries. Later reviews that
+    # leave the declared dose alone (the 2026-09-19 age floor, #66) move the
+    # review date, not the declaration.
+    assert bolus["review_date"] >= bolus["owner_declaration"]["declared_on"]
     assert bolus["owner_declaration"]["declared_on"] == "2026-08-26"
     assert bolus["reviewed_by"] in dc.SIGNOFF_AUTHORS
     assert dc.entry_is_servable(bolus)[0]
