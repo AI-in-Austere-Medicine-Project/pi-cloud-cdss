@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+### Brief polish — 2026-09-19
+
+This change is format only. The brief now says less, but everything it drops
+is still on the card.
+
+- **A contraindication is in the brief only if it could apply to this patient.**
+  An age-based contraindication ("Age < 3 months") is left out of the brief
+  when the stated age or the confirmed weight rules it out. It stays in
+  CONTRAINDICATIONS, and that section now folds.
+  - The weight floor is in `brief.AGE_CLEARED_BY_WEIGHT_KG`. For "< 3 months"
+    it is 10 kg: no child that heavy is that young. **Owner review pending.**
+  - With no age and no weight that clears it, the line stays in the brief.
+  - The dose's own age floor (`min_age_months`) is unchanged.
+- **Under 0.2 mL undiluted, the brief shows only the diluted volume.** This
+  applies where the entry declares a push dilution. A 25 kg child's brief now
+  reads "Dilute first — 5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL
+  — confirm vial."
+  - The undiluted 0.1 mL now appears in the **Vial math** chip's answer,
+    next to the which-vial question.
+  - From 0.2 mL up, the brief shows both volumes, as before.
+- **The TLDR no longer says "Volume not computed" when one vial is signed.**
+  With one signed presentation the volume is computed; the card only waits for
+  the vial to be confirmed. The TLDR now gives the mg dose alone. With nothing
+  signed, or several presentations signed, the sentence stays. The GIVE line's
+  NO VOLUME marker and CONFIRM VIAL are unchanged.
+- **No volume is printed with a trailing zero.** Volumes under 1 mL are still
+  drawn to three decimals (`draw_precision`, #64) and keep their leading zero:
+  "0.125 mL", "0.4 mL", never "0.400 mL". A trailing zero after a decimal point
+  is on the ISMP and Joint Commission do-not-use lists, because "1.0" is misread
+  as "10". A test now holds every volume on the child and adult ketamine and
+  RSI cards and briefs to this rule.
+
+Adult output changes only through the TLDR item: the adult ketamine TLDR loses
+"Volume not computed".
+
 ### The brief reads like a card, not a template — 2026-09-17
 
 Format only. No new clinical claim: every sentence is text the card already

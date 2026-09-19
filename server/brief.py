@@ -38,8 +38,10 @@ it, and that is the only thing that makes it safe to put first:
          presentations, or a volume no syringe can draw, keep the card's own
          no-volume reason. The CONFIRM VIAL block is untouched either way.
          When the entry declares a push dilution made from that vial, the
-         diluted volume follows ("Diluted to 5 mg/mL (…): 1 mL."), or stands
-         alone as "Dilute first — …" when the vial volume cannot be drawn.
+         diluted volume follows ("Diluted to 5 mg/mL (…): 2 mL."), or stands
+         alone as "Dilute first — …" when the vial volume cannot be drawn or
+         is under 0.2 mL; that undiluted volume is then the Vial math chip's
+         answer (vial_math_lines), not the first screen's.
 
   Three slots when the response doses: (a) the dose line(s); (b) the card's
      first next action — the first DO THIS step that is neither equipment
@@ -58,7 +60,9 @@ it, and that is the only thing that makes it safe to put first:
   - a CONTRAINDICATIONS item that records something specific to the drug's
     indication. "None recorded" is a gap in the record, and hypersensitivity /
     allergy is boilerplate every drug carries: both stay in the section, which
-    folds, and neither reaches the brief;
+    folds, and neither reaches the brief. Nor does an age-based one ("Age < 3
+    months") the patient's stated age or confirmed weight clears — it could
+    not apply to this patient. With no age and no clearing weight it stays;
   - a DON'T item that says "never", says "contraindicated", or names a drug the
     response is dosing — the generator is told to put a dosed drug's signed
     contraindications in DON'T, so that is where they arrive on that path.
@@ -123,6 +127,18 @@ _DOSE_RE = re.compile(
     r"(?:mg|mcg|µg|g|ml|units?|meq|iu)\b", re.IGNORECASE)
 _NEVER_RE = re.compile(r"\b(?:never|contraindicat\w*)\b", re.IGNORECASE)
 _CONTRA_ITEM_RE = re.compile(r"^(.+?) — .+?: (.+)$")
+# An age-based contraindication: "Age < 3 months", "age under 2 years".
+_AGE_CONTRA_RE = re.compile(
+    r"^age\s*(?:<|under|less than|below)\s*(\d+(?:\.\d+)?)\s*(month|year)s?$",
+    re.IGNORECASE)
+# The weight at and above which a child is plainly past an age threshold, in
+# months. Only thresholds listed here can be cleared by weight; any other is
+# cleared by a stated age alone. 3 months: above the WHO +3 SD weight-for-age
+# at 3 months (about 9 kg), so no child this heavy is that young. OWNER REVIEW
+# PENDING (fix/brief-polish) — presentation only: the line leaves the brief,
+# never the card, and the dose's own age floor (drug_contracts.age_exclusion)
+# is untouched.
+AGE_CLEARED_BY_WEIGHT_KG = {3: 10.0}
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 # Hypersensitivity / allergy: true of every drug, so it tells the medic nothing
 # about THIS patient. It stays in the CONTRAINDICATIONS section.
@@ -377,6 +393,40 @@ def dose_line(item: str, weight_kg=None) -> str:
     return out
 
 
+def vial_math_lines(response_text: str, weight_kg=None) -> list:
+    """The undiluted vial volumes the brief withheld from this card's doses.
+
+    ["ketamine IV 5 mg: 0.1 mL of 50 mg/mL undiluted — confirm vial."] for
+    each GIVE-type line that printed no volume, whose entry
+    declares a push dilution, and whose undiluted draw is under the brief's
+    floor (drug_concentrations.vial_math_line). The "Vial math" chip's answer
+    carries them; everything else it would say, the brief already did.
+    """
+    try:
+        import drug_concentrations
+    except Exception:
+        return []
+    out = []
+    _, sections = parse_sections(response_text)
+    for name, lines in sections:
+        if name not in DOSE_SECTIONS:
+            continue
+        for item in _top_items(lines):
+            m = _NO_VOLUME_RE.match(dose_clause(item))
+            parsed = _MG_LINE_RE.match(m.group("head")) if m else None
+            if not parsed:
+                continue
+            value, unit = float(parsed.group("value")), parsed.group("unit")
+            dilution = line_dilution(parsed.group("drug"), parsed.group("route"),
+                                     value, unit, _indication(item), weight_kg)
+            line = drug_concentrations.vial_math_line(
+                parsed.group("drug"), value * _TO_MG[unit], dilution)
+            if line:
+                label = f"{parsed.group('drug')} {parsed.group('route')} {value:g} {unit}"
+                out.append(f"{label}: {line}")
+    return out
+
+
 def _next_action(sections, dosed):
     """Slot (b): the first real step, else the first thing to watch."""
     for item in _section(sections, ACTION_SECTIONS):
@@ -420,8 +470,29 @@ def _dosed_drugs(clauses, medication_terms):
             if re.search(r"(?<!\w)" + re.escape(t) + r"(?!\w)", text)}
 
 
-def _contraindication_lines(items):
-    """Recorded contraindications, one per drug, in the card's own words."""
+def age_cleared(part: str, age_years=None, weight_kg=None) -> bool:
+    """True when an age-based contraindication cannot apply to this patient.
+
+    A stated age at or over the threshold clears it; so does a confirmed
+    weight at or over AGE_CLEARED_BY_WEIGHT_KG for that threshold (25 kg is
+    not under 3 months). No age and no clearing weight: it stays.
+    """
+    m = _AGE_CONTRA_RE.match(part.strip())
+    if not m:
+        return False
+    months = float(m.group(1)) * (12.0 if m.group(2).lower() == "year" else 1.0)
+    if age_years is not None:
+        return age_years * 12.0 >= months - 1e-9
+    floor_kg = AGE_CLEARED_BY_WEIGHT_KG.get(months)
+    return weight_kg is not None and floor_kg is not None and weight_kg >= floor_kg
+
+
+def _contraindication_lines(items, age_years=None, weight_kg=None):
+    """Recorded contraindications, one per drug, in the card's own words.
+
+    An age-based one this patient's stated age or weight clears is left in the
+    section, which folds, and not put in the brief.
+    """
     by_drug, order = {}, []
     for item in items:
         if item.lower().startswith("none recorded"):
@@ -435,7 +506,8 @@ def _contraindication_lines(items):
         # dilatation"): the boilerplate goes, the rest stays.
         for part in what.split(";"):
             part = part.strip().rstrip(". ")
-            if not part or _BOILERPLATE_CONTRA_RE.search(part):
+            if (not part or _BOILERPLATE_CONTRA_RE.search(part)
+                    or age_cleared(part, age_years, weight_kg)):
                 continue
             if part not in by_drug[drug]:
                 by_drug[drug].append(part)
@@ -465,18 +537,21 @@ def _fit(lead, doses, optional, critical):
     return lead_l + dose_l + list(optional[:room]) + crit_l
 
 
-def build_brief(response_text: str, medication_terms=(), weight_kg=None) -> dict:
+def build_brief(response_text: str, medication_terms=(), weight_kg=None,
+                age_years=None) -> dict:
     """{"brief": str, "critical_sections": [str]} for one served response.
 
     `weight_kg` is the patient's CONFIRMED weight, the one the dose calculators
-    use; it is only ever used to show the per-kg basis of a printed dose.
+    use; it shows the per-kg basis of a printed dose. It and the STATED
+    `age_years` also decide whether an age-based contraindication could apply
+    (age_cleared) — only which lines reach the brief, never what the card says.
     """
-    out = _build(response_text, medication_terms, weight_kg)
+    out = _build(response_text, medication_terms, weight_kg, age_years)
     out["brief"] = "\n".join(_sentence_case(l) for l in out["brief"].split("\n"))
     return out
 
 
-def _build(response_text, medication_terms, weight_kg):
+def _build(response_text, medication_terms, weight_kg, age_years=None):
     preamble, sections = parse_sections(response_text)
     content = [p for p in preamble if not _is_notice(p) and p != DISCLAIMER]
 
@@ -536,7 +611,8 @@ def _build(response_text, medication_terms, weight_kg):
                  for label, line in zip(labels, doses)]
 
     critical, critical_sections = [], []
-    contra = _contraindication_lines(_section(sections, CONTRAINDICATION_SECTIONS))
+    contra = _contraindication_lines(_section(sections, CONTRAINDICATION_SECTIONS),
+                                     age_years, weight_kg)
     if contra:
         critical += contra
     for name, lines in sections:

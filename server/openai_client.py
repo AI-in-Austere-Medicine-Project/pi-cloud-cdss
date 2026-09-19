@@ -1450,8 +1450,18 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
     conditional sentence on the answer is enough, and "Volume not computed"
     beside a GIVE line that says NO VOLUME is the pair a medic already reads
     together. Owner decision 2026-09-18.
+
+    Revised (fix/brief-polish): with exactly one signed presentation the TLDR
+    drops "Volume not computed" altogether and states the mg dose alone. The
+    volume IS computed — the brief quotes it — so the sentence was stale; the
+    card still quotes no volume until the vial is confirmed, and the GIVE
+    line's NO VOLUME and CONFIRM VIAL are unchanged. Zero or several signed
+    presentations keep the sentence: there the volume really is not computed.
     """
     if d.volume_ml is None or d.concentration_mg_ml is None:
+        if (drug_concentrations is not None
+                and len(drug_concentrations.signed_presentations(d.drug)) == 1):
+            return f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg."
         return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "
                 f"Volume not computed — {CONFIRM_CONCENTRATION_LINE}.")
     return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg = "
@@ -4600,9 +4610,10 @@ def attach_brief(result: dict) -> dict:
     served — stripped volumes, notices and holds included — and so no gate,
     override or validator ever sees it. Presentation only: see brief.py.
     """
+    pc = result.get("patient_context") or {}
     out = brief_mod.build_brief(
         result.get("response", ""), MEDICATION_TERMS,
-        weight_kg=(result.get("patient_context") or {}).get("confirmed_weight_kg"))
+        weight_kg=pc.get("confirmed_weight_kg"), age_years=pc.get("age_years"))
     result["brief"] = out["brief"]
     result["critical_sections"] = out["critical_sections"]
     return result
@@ -4975,6 +4986,16 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         gate_action, gate_response = pre_gate(query, patient_ctx, prior_queries)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
+            # The "Vial math" chip lands on the which-vial question. Where the
+            # last card's brief gave only the diluted volume, the undiluted
+            # one it withheld is said here, beside the question it depends on.
+            if (gate_action == "ASK" and conversation_history
+                    and gate_response.startswith("Which ")):
+                withheld = brief_mod.vial_math_lines(
+                    (conversation_history[-1] or {}).get("response") or "",
+                    patient_ctx.confirmed_weight_kg)
+                if withheld:
+                    gate_response += " Vial math — " + " · ".join(withheld)
             return {
                 "response": gate_response,
                 "sources": [],

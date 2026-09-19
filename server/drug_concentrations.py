@@ -400,12 +400,18 @@ def draw_precision(true_volume_ml: float) -> int:
     return 4
 
 
+
 # What a syringe can actually deliver as a push. Below the floor the volume
 # cannot be drawn accurately; above the ceiling it is an infusion, not a bolus.
 # Both are physical facts about syringes, not clinical judgements — which is
 # why this module is allowed to state them.
 MIN_DRAWABLE_ML = 0.05
 MAX_BOLUS_ML = 60.0
+# Where a push dilution is declared, an undiluted draw below this is not put
+# on the brief's first screen: the brief gives the diluted volume alone and
+# the vial volume is one tap away (vial_math_line, the "Vial math" chip).
+# Presentation only — drawable() and its 0.05 mL floor are unchanged.
+BRIEF_UNDILUTED_FLOOR_ML = 0.2
 
 
 def dilution_recipe(dilution: dict) -> str:
@@ -531,9 +537,11 @@ def conditional_volume_line(generic_name: str, dose_mg: float,
 
     With a declared push `dilution` made from the one signed vial, the
     diluted volume is quoted as well — "Diluted to 5 mg/mL (1 mL of 50 mg/mL
-    + 9 mL normal saline): 1 mL." — and when the vial volume is too small to
-    draw, the dilution is the whole line: "Dilute first — …: 0.4 mL — confirm
-    vial." The diluted volume passes the same drawable() bounds and rounding.
+    + 9 mL normal saline): 2 mL." — and when the vial volume is too small to
+    draw, or under BRIEF_UNDILUTED_FLOOR_ML, the dilution is the whole line:
+    "Dilute first — …: 1 mL — confirm vial." The undiluted volume is then the
+    Vial math chip's (vial_math_line). The diluted volume passes the same
+    drawable() bounds and rounding.
     """
     signed = signed_presentations(generic_name)
     vial_conc = signed[0].get("concentration_mg_ml") if len(signed) == 1 else None
@@ -545,7 +553,7 @@ def conditional_volume_line(generic_name: str, dose_mg: float,
             dil_vol = round(true_dil, draw_precision(true_dil))
 
     vol, conc = single_signed_volume(generic_name, dose_mg)
-    if vol is None:
+    if vol is None or (dil_vol is not None and vol < BRIEF_UNDILUTED_FLOOR_ML):
         if dil_vol is None:
             return ""
         return (f"Dilute first — {dilution_recipe(dil)}: {dil_vol:g} mL — "
@@ -554,6 +562,25 @@ def conditional_volume_line(generic_name: str, dose_mg: float,
     if dil_vol is not None:
         line += f" Diluted to {dilution_recipe(dil)}: {dil_vol:g} mL."
     return line
+
+
+def vial_math_line(generic_name: str, dose_mg: float,
+                   dilution: Optional[dict] = None) -> str:
+    """The undiluted vial volume conditional_volume_line left off the brief, or "".
+
+    "0.1 mL of 50 mg/mL undiluted — confirm vial." Only where the
+    brief withheld it — a declared dilution and an undiluted draw under
+    BRIEF_UNDILUTED_FLOOR_ML — so the Vial math answer says what the first
+    screen did not, and says nothing where the first screen already did.
+    """
+    signed = signed_presentations(generic_name)
+    vial_conc = signed[0].get("concentration_mg_ml") if len(signed) == 1 else None
+    if not _dilution_for(dilution, vial_conc):
+        return ""
+    vol, conc = single_signed_volume(generic_name, dose_mg)
+    if vol is None or vol >= BRIEF_UNDILUTED_FLOOR_ML:
+        return ""
+    return f"{vol:g} mL of {conc:g} mg/mL undiluted — confirm vial."
 
 
 def all_signed_strengths(generic_name: str) -> list:

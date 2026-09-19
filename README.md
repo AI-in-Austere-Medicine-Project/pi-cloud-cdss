@@ -244,9 +244,11 @@ which either produces a deterministic line or holds.
 Every answer leads with a **brief**: at most three lines, lifted from the answer
 itself — the dose copied verbatim from its GIVE line with the per-kg basis it was
 computed from, the card's next action, and a contraindication specific to this
-indication (or a hold, which is the whole brief). Where one vial is signed and the
-card is still asking which, the brief says what the dose would be: "At 50 mg/mL
-that's 0.125 mL — confirm vial". The full card is still there, one tap below, with each
+indication that could apply to this patient (or a hold, which is the whole brief).
+Where one vial is signed and the card is still asking which, the brief says what
+the dose would be: "At 50 mg/mL that's 0.125 mL — confirm vial". Where the entry
+declares a push dilution and the undiluted draw is under 0.2 mL, the brief gives
+the diluted volume alone, and the Vial math chip gives the undiluted one. The full card is still there, one tap below, with each
 section under its own heading. A hold, CONFIRM VIAL, DON'T, anything the server
 marks critical, and every warning are never folded. When the brief carries more than
 one dose, each is labelled with what it is for. Under the brief, follow-up chips
