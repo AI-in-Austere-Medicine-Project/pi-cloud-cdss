@@ -55,6 +55,7 @@ header h1 span { color: var(--blue); }
 .badge.warn { color: var(--amber); border-color: var(--amber); }
 .badge.err  { color: var(--red); border-color: var(--red); }
 .badge.time { color: var(--dim); }
+.badge.local { color: var(--blue); border-color: var(--blue); }
 .src {
   font-family: var(--mono); font-size: 10px; color: var(--dim);
   background: var(--panel2); padding: 3px 8px; border-radius: 4px;
@@ -469,6 +470,16 @@ async function refreshStatus() {
 }
 refreshStatus(); setInterval(refreshStatus, 60000);
 
+// The on-device model answered: CDSS_LLM_PROVIDER=local, or the cloud call
+// could not connect and the local model was used instead ("local-fallback").
+// In the always-visible meta row rather than inside SOURCES, which folds.
+function providerBadge(p) {
+  if (p !== 'local' && p !== 'local-fallback') return '';
+  const why = p === 'local' ? 'Answered by the on-device model'
+                            : 'Cloud unreachable; answered by the on-device model';
+  return '<span class="badge local" title="' + why + '">local model · offline</span>';
+}
+
 function validatorBadge(v) {
   if (v === 'SAFE') return '<span class="badge safe">VALIDATOR: SAFE</span>';
   if (v === 'ERROR') return '<span class="badge err">SYSTEM ERROR</span>';
@@ -796,6 +807,7 @@ async function ask(followUp, inputMode) {
     let html = (split.banner ? '<span class="genref">' + esc(split.banner) + '</span>' : '')
              + answerHtml(d, split.body);
     let meta = '<div class="meta">' + validatorBadge(d.validator_result) +
+      providerBadge(d.provider) +
       '<span class="badge time">' + d.processing_time_ms + ' ms</span>';
     meta += '<button class="listen">🔊 listen</button>' + fbControls() + '</div>';
     // Which model and which knowledge source, on every answer. A deterministic

@@ -193,7 +193,8 @@ def _query_response_fields() -> dict:
 # What the client actually reads off a /query response. Adding a render that
 # reads a new field means adding it here.
 CLIENT_READS = ("response", "sources", "processing_time_ms", "validator_result",
-                "model", "source", "patient_context", "brief", "critical_sections")
+                "model", "provider", "source", "patient_context", "brief",
+                "critical_sections")
 
 
 def test_query_response_declares_every_field_the_client_reads():

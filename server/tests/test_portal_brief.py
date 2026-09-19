@@ -260,3 +260,31 @@ def test_a_chip_goes_out_through_the_history_path_tagged_chip(rendered):
     assert [t["query"] for t in chip["conversation_history"]] == \
         ["RSI an 80kg male trauma patient ketamine and rocuronium"]
     assert chip["model"] == typed["model"] and chip["voice_mode"] == typed["voice_mode"]
+
+
+# ── the local-model badge ────────────────────────────────────────────────────
+
+BADGE = "local model · offline"
+
+
+@pytest.mark.parametrize("provider", ["local", "local-fallback"])
+def test_a_local_answer_carries_the_badge(rendered, provider):
+    bubble = rendered[f"provider_{provider}"]["bubble"]
+    assert bubble.count(BADGE) == 1
+    meta = bubble[bubble.index('<div class="meta">', bubble.index("</details>")):]
+    assert BADGE in meta, "the badge is not in the always-visible meta row"
+
+
+@pytest.mark.parametrize("provider", ["openai", "null"])
+def test_a_cloud_or_card_answer_has_no_badge(rendered, provider):
+    # "null": a deterministic card, which no model wrote.
+    assert BADGE not in rendered[f"provider_{provider}"]["bubble"]
+
+
+def test_the_badge_is_the_only_change(rendered):
+    """Nothing else on the page moves: strip the one span and the rest matches."""
+    cloud = rendered["provider_openai"]["bubble"]
+    for provider in ("local", "local-fallback"):
+        bubble = rendered[f"provider_{provider}"]["bubble"]
+        stripped = re.sub(r'<span class="badge local"[^>]*>[^<]*</span>', "", bubble)
+        assert stripped == cloud, provider
