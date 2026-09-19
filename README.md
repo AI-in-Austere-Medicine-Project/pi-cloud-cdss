@@ -342,6 +342,22 @@ CDSS_LOCAL_BASE_URL=http://127.0.0.1:11434/v1     # Ollama, llama.cpp, vLLM
 
 then add a `models` entry with `"provider": "local"`.
 
+**Answering with no internet.** One switch sends both the generator and the
+validator to the on-device model, through the same OpenAI SDK with a `base_url`:
+
+```bash
+CDSS_LLM_PROVIDER=local                        # openai (default) | local
+CDSS_LLM_BASE_URL=http://localhost:11434/v1    # default when local: Ollama on the Jetson
+CDSS_LLM_MODEL=qwen2.5:3b                      # default when local; gpt-4o-mini for openai
+```
+
+With `local` the on-device model answers whatever the dropdown asked for. The
+validator moves with it, because a cloud validator would fail every offline query
+closed. Every response carries `model` and `provider`, and the session log records
+both, plus `validator_provider` (log schema 12). Both are null on a deterministic
+card, which no model wrote. With the variables unset, the cloud request is exactly
+what it was.
+
 **The validator does not follow the dropdown.** It stays on `validator_model` so
 that a cross-model comparison changes one variable. If the generator and the
 validator both moved, a shift in blocked-response rate could not be attributed

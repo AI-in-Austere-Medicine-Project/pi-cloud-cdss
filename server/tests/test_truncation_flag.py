@@ -153,7 +153,7 @@ def test_the_flag_is_logged(monkeypatch):
     r = _run(monkeypatch, True)
     entry = log_and_read(r)
     assert entry["generation_truncated"] is True
-    assert entry["log_schema"] == 11
+    assert entry["log_schema"] >= 11
 
 
 def test_a_card_logs_null_not_false():

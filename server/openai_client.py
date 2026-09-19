@@ -95,6 +95,16 @@ def model_label(model_id: str) -> str:
     spec = providers.MODELS.get(model_id)
     return f"{spec.provider}/{spec.id}" if spec else model_id
 
+def served_label(served) -> str:
+    """providers.last_chat_served() as model_label writes it: 'local/qwen2.5:3b'."""
+    return f"{served[0]}/{served[1]}"
+
+
+def served_provider(served) -> Optional[str]:
+    """The provider that served a call: 'openai', 'local', …, or None."""
+    return served[0] if served else None
+
+
 # Debug flag per deep review §4: never edit fail-closed logic to debug.
 # Set EDGECDSS_DEBUG_WARN_ONLY=1 in the environment to observe generator
 # output with issues appended as text instead of blocking. Defaults to OFF.
@@ -185,7 +195,11 @@ def _get_log_file() -> pathlib.Path:
 # Schema 10 adds `input_mode`: how the query was entered — "typed", "voice", or
 # "chip" for a brief-first follow-up chip. Log hygiene like `synthetic`: it is
 # client-declared, and nothing in the pipeline may branch on it.
-LOG_SCHEMA_VERSION = 11
+# Schema 12 adds `provider` and `validator_provider`: the service that served
+# the generator and the validator — "openai", "local" (the on-device model,
+# CDSS_LLM_PROVIDER=local), "local-fallback" (the cloud call failed to connect
+# and the local model answered), or null when no model was called.
+LOG_SCHEMA_VERSION = 12
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -241,6 +255,11 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             # card is not attributable to a model, and recording one would make
             # cross-model comparison count answers no model wrote.
             "model": result.get("model"),
+            # Which service answered: "openai", "local", "local-fallback", or
+            # null with `model`. The validator's is separate — on a fallback
+            # the two can differ, and an audit has to be able to see that.
+            "provider": result.get("provider"),
+            "validator_provider": result.get("validator_provider"),
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
@@ -4600,7 +4619,12 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     state: dict = {}
     result = _run_pipeline(query, chromadb_client, voice_mode,
                            conversation_history, session_ctx, model, state)
-    return attach_brief(_finalise(result, state.get("patient_ctx")))
+    result = _finalise(result, state.get("patient_ctx"))
+    # Every response carries both, null when no model wrote the text — a
+    # deterministic card is not attributable to a model or a provider.
+    result.setdefault("model", None)
+    result.setdefault("provider", None)
+    return attach_brief(result)
 
 
 def attach_brief(result: dict) -> dict:
@@ -5098,14 +5122,17 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         )
         # Now, before the validator's own chat() overwrites it.
         generation_truncated = providers.last_chat_truncated()
+        generator_served = providers.last_chat_served()
 
         # Step 6: Deterministic post-checks use full history.
         det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
 
         # Step 7: LLM validator with full transcript
         full_transcript = "\n".join(transcript_lines)
+        providers.reset_served()
         llm_result = validate_response(full_transcript, response_text, patient_ctx,
                                        allowed_dose_block, now_ts=now_ts)
+        validator_served = providers.last_chat_served()
 
         # Step 7b: deterministic vitals conflicts. Python owns the explicit rule
         # table (vitals_rules.json); the validator above catches what a table
@@ -5147,7 +5174,11 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "response": final_response,
             "sources": assessment.sources[:3],
             "source_mode": assessment.source_mode,
-            "model": model_label(model),
+            # What actually answered, which is not always what was asked for.
+            "model": (served_label(generator_served) if generator_served
+                      else model_label(model)),
+            "provider": served_provider(generator_served),
+            "validator_provider": served_provider(validator_served),
             "validator_result": outcome.verdict,
             "validator_issues": outcome.issues,
             # Captured straight after the generator call; acted on in _finalise
