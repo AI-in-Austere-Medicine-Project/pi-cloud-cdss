@@ -2926,6 +2926,116 @@ def audit_volume_lines(response_text: str,
     return out, issues
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# FREE-TEXT DOSES — a dose the canonical GIVE line did not carry
+#
+# The ALLOWED_DOSES check above reads only the canonical form, "Draw X mL of
+# Y mg/mL drug route (Z mg)". A model that writes the dose any other way —
+# "1 mg IV fentanyl", "give fentanyl 1 mg" — was checked by nothing but the LLM
+# validator. Measured 2026-09-19 on exactly that text for an 80 kg adult whose
+# contract is fentanyl 80 mcg: gpt-4o-mini UNSAFE 3/3, qwen2.5:3b SAFE 5/5. On
+# the local model the only check between a 12.5x fentanyl dose and the medic
+# said yes. This is the deterministic check it was missing.
+#
+# The rule: in a model-written answer, a mass (mg, mcg, g) stated in the same
+# clause as a drug the contract bank knows must BE an ALLOWED_DOSES value for
+# that drug. Not near it — within 5%, the same band the GIVE check uses, with
+# no absolute floor: the GIVE check's 0.5 mg floor would pass 0.5 mg of fentanyl
+# against 80 mcg. A drug the bank knows with no contract dose here fails too:
+# nothing authorised a number for it.
+#
+# Deliberately not read as a dose:
+#   - a rate or a concentration: "1 mcg/kg", "50 mg/mL", "5 mg / 10 mL";
+#   - a clause that limits or forbids: "max 25 mg", "do not exceed 100 mcg",
+#     "no more than", "up to", "cumulative", "never";
+#   - a preparation: "mix 4 mg norepinephrine in 250 mL NS" is the bag, not
+#     the patient's dose;
+#   - the DON'T and SOURCE sections, which state what not to do and where
+#     the text came from;
+#   - a canonical GIVE line, which the check above already owns.
+# A number is paired with the NEAREST drug named in its clause; a clause that
+# names no drug the bank knows is not attributable and is left alone.
+# ─────────────────────────────────────────────────────────────────────────────
+_FREE_DOSE_SKIP_SECTIONS = frozenset({"DON'T", "DONT", "DO NOT", "SOURCE", "SOURCES"})
+_FREE_DOSE_HEADING_RE = re.compile(r"^\s*(?:⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*")
+_FREE_DOSE_AMOUNT_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*"
+    r"(mg|mcg|µg|ug|micrograms?|milligrams?|g|grams?)\b(?!\s*(?:/|per\b))",
+    re.IGNORECASE)
+_FREE_DOSE_LIMIT_RE = re.compile(
+    r"\b(?:max(?:imum)?|exceed\w*|up to|no more than|cumulative|total dose|"
+    r"not|never|avoid|don'?t|limit|ceiling)\b", re.IGNORECASE)
+# A preparation, not a dose: what goes in the bag or syringe, not the patient.
+# "Mix 4 mg norepinephrine in 250 mL NS" is the recipe the general-reference
+# tier exists to serve; the dose the patient gets is a rate off that bag.
+_FREE_DOSE_PREP_RE = re.compile(
+    r"\b(?:mix|mixed|dilute|diluted|reconstitute|reconstituted|add|added)\b"
+    r"|\bin\s+\d+(?:\.\d+)?\s*m[lL]\b", re.IGNORECASE)
+_FREE_DOSE_CLAUSE_RE = re.compile(r"(?<=[.;:!?])\s+|\s+—\s+|\n")
+_TO_MG_UNIT = {"mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
+               "mcg": 0.001, "µg": 0.001, "ug": 0.001,
+               "microgram": 0.001, "micrograms": 0.001,
+               "g": 1000.0, "gram": 1000.0, "grams": 1000.0}
+
+
+def _drug_spans(clause: str) -> list:
+    """[(start, end, generic)] for every drug the contract bank knows, here."""
+    if drug_contracts is None:
+        return []
+    low = clause.lower()
+    spans = []
+    for term, generic in drug_contracts.alias_index().items():
+        for m in re.finditer(drug_contracts._term_pattern(term), low):
+            spans.append((m.start(), m.end(), generic))
+    # A match inside a longer one ("artemether" in "artemether + lumefantrine")
+    # is the longer one's.
+    return [sp for sp in spans
+            if not any(o[0] <= sp[0] and sp[1] <= o[1] and (o[1] - o[0]) > (sp[1] - sp[0])
+                       for o in spans)]
+
+
+def free_text_dose_issues(response_text: str,
+                          allowed_doses: Optional[List["DoseCandidate"]]) -> list:
+    """Issues for doses stated outside the canonical GIVE line. See above."""
+    allowed = {}
+    for d in allowed_doses or []:
+        allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
+    issues, section = [], ""
+    for line in (response_text or "").splitlines():
+        m = _FREE_DOSE_HEADING_RE.match(line)
+        if m:
+            section = re.sub(r"\s+", " ", m.group(1).replace("’", "'")).strip().upper()
+        if section in _FREE_DOSE_SKIP_SECTIONS:
+            continue
+        if re.search(CANONICAL_GIVE_RE, line, re.IGNORECASE):
+            continue
+        for clause in _FREE_DOSE_CLAUSE_RE.split(line):
+            if (not clause.strip() or _FREE_DOSE_LIMIT_RE.search(clause)
+                    or _FREE_DOSE_PREP_RE.search(clause)):
+                continue
+            drugs = _drug_spans(clause)
+            if not drugs:
+                continue
+            for amt in _FREE_DOSE_AMOUNT_RE.finditer(clause):
+                mid = (amt.start() + amt.end()) / 2
+                drug = min(drugs, key=lambda sp: min(abs(sp[0] - mid), abs(sp[1] - mid)))[2]
+                factor = _TO_MG_UNIT[amt.group(3).lower()]
+                stated = [float(v) * factor for v in amt.group(1, 2) if v]
+                ok = allowed.get(drug.lower(), [])
+                if all(any(abs(x - a) <= a * 0.05 + 1e-9 for a in ok) for x in stated):
+                    continue
+                shown = amt.group(0).strip()
+                if ok:
+                    issues.append(
+                        f"States {drug} {shown}, which is not an ALLOWED_DOSES value "
+                        f"({', '.join(f'{a:g}mg' for a in ok)}).")
+                else:
+                    issues.append(
+                        f"States {drug} {shown}, but ALLOWED_DOSES authorises no "
+                        f"{drug} dose for this patient.")
+    return list(dict.fromkeys(issues))
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
                               allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
@@ -2979,6 +3089,9 @@ def run_deterministic_checks(query: str, response_text: str,
                 issues.append(
                     f"GIVE line states {matched_drug} {stated_mg:g}mg, which does not "
                     f"match any ALLOWED_DOSES value ({allowed_vals}).")
+
+    # ── Doses stated outside the canonical GIVE line ──────────────────────
+    issues.extend(free_text_dose_issues(response_text, allowed_doses))
 
     # ── Pediatric: no dose without confirmed weight ───────────────────────
     if patient_ctx.is_pediatric and not patient_ctx.has_confirmed_weight:
