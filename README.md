@@ -358,6 +358,15 @@ both, plus `validator_provider` (log schema 12). Both are null on a deterministi
 card, which no model wrote. With the variables unset, the cloud request is exactly
 what it was.
 
+**Hybrid fallback.** With `CDSS_LLM_PROVIDER=openai`, each cloud call gets
+`CDSS_LLM_CLOUD_TIMEOUT` seconds (default 8) and no SDK retries.
+- A call that cannot connect (timeout, refused or dropped connection) is re-sent
+  once to the local model, and the answer is stamped `provider: "local-fallback"`.
+  The local model is `CDSS_LLM_FALLBACK_MODEL`, default `qwen2.5:3b`.
+- A call the provider answers with an error (401, 403, 429, 400, 5xx) is **not**
+  retried locally. It surfaces as it always did, because the network worked and
+  something needs fixing.
+
 **The validator does not follow the dropdown.** It stays on `validator_model` so
 that a cross-model comparison changes one variable. If the generator and the
 validator both moved, a shift in blocked-response rate could not be attributed

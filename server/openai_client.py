@@ -96,8 +96,13 @@ def model_label(model_id: str) -> str:
     return f"{spec.provider}/{spec.id}" if spec else model_id
 
 def served_label(served) -> str:
-    """providers.last_chat_served() as model_label writes it: 'local/qwen2.5:3b'."""
-    return f"{served[0]}/{served[1]}"
+    """providers.last_chat_served() as model_label writes it: 'local/qwen2.5:3b'.
+
+    A fallback answer is labelled with the service whose weights wrote it —
+    local — and `provider` says it was a fallback.
+    """
+    provider = "local" if served[0] == providers.FALLBACK_PROVIDER else served[0]
+    return f"{provider}/{served[1]}"
 
 
 def served_provider(served) -> Optional[str]:

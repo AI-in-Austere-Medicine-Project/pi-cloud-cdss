@@ -14,7 +14,6 @@ chat.completions.create() call.
     cd server && ./run_unit_tests.sh
 """
 import os
-import pathlib
 import sys
 import types
 
@@ -134,8 +133,11 @@ def test_openai_is_byte_identical_to_today(monkeypatch, setting):
     assert providers.resolve_model("gpt-4o") == "gpt-4o"
     client, call = _one_call(providers.default_model())
     # The constructor and the request, exactly as providers.chat built them
-    # before the switch existed: no base_url, no extra parameter.
+    # before the switch existed: no base_url, no extra parameter. The one
+    # addition is the hybrid fallback's bound on the cloud attempt, applied
+    # with with_options() so neither of those two changes.
     assert client.init_kwargs == {"api_key": KEY}
+    assert client.options == [{"timeout": 8.0, "max_retries": 0}]
     assert call == {"model": "gpt-4o-mini",
                     "messages": [{"role": "system", "content": "SYSTEM"},
                                  {"role": "user", "content": "Q"}],
@@ -209,3 +211,102 @@ def test_the_http_response_declares_and_passes_provider():
     call = next(n for n in ast.walk(main) if isinstance(n, ast.Call)
                 and isinstance(n.func, ast.Name) and n.func.id == "QueryResponse")
     assert "provider" in {k.arg for k in call.keywords}
+# ── hybrid fallback: an unreachable cloud is retried on the local model ──────
+
+class APIConnectionError(Exception):
+    """Named like the SDK's; is_connectivity_error matches on the name."""
+
+
+class APITimeoutError(APIConnectionError):
+    pass
+
+
+class APIStatusError(Exception):
+    pass
+
+
+class AuthenticationError(APIStatusError):
+    """401 — the network worked and the key was refused."""
+
+
+def _cloud_fails_with(monkeypatch, exc):
+    """The cloud client raises `exc`; the local endpoint answers normally."""
+    original = FakeOpenAI._create
+
+    def create(self, **kwargs):
+        if "base_url" not in self.init_kwargs:
+            self.calls.append(kwargs)
+            raise exc
+        return original(self, **kwargs)
+
+    # Clients are built after this, so their bound _create is this one.
+    monkeypatch.setattr(FakeOpenAI, "_create", create)
+
+
+def _clients():
+    cloud = [c for c in FakeOpenAI.instances if "base_url" not in c.init_kwargs]
+    local = [c for c in FakeOpenAI.instances if "base_url" in c.init_kwargs]
+    return cloud, local
+
+
+@pytest.mark.parametrize("exc", [APIConnectionError("Connection error."),
+                                 APITimeoutError("Request timed out.")])
+def test_a_connection_error_is_answered_by_the_local_model(monkeypatch, exc):
+    _cloud_fails_with(monkeypatch, exc)
+    text = providers.chat("SYSTEM", [{"role": "user", "content": "Q"}],
+                          model="gpt-4o-mini")
+    assert text == GENERATED.strip()
+    assert providers.last_chat_served() == ("local-fallback", "qwen2.5:3b")
+    (cloud,), (local,) = _clients()
+    assert len(cloud.calls) == 1, "the cloud attempt was retried"
+    assert cloud.options == [{"timeout": 8.0, "max_retries": 0}]
+    assert local.init_kwargs["base_url"] == "http://localhost:11434/v1"
+    # The same request, re-sent: only the model differs.
+    (retry,) = local.calls
+    assert retry["messages"] == cloud.calls[0]["messages"]
+    assert {k: v for k, v in retry.items() if k != "model"} == \
+        {k: v for k, v in cloud.calls[0].items() if k != "model"}
+    assert retry["model"] == "qwen2.5:3b"
+
+
+def test_a_401_surfaces_and_nothing_falls_back(monkeypatch):
+    _cloud_fails_with(monkeypatch, AuthenticationError("Error code: 401"))
+    with pytest.raises(AuthenticationError):
+        providers.chat("SYSTEM", [{"role": "user", "content": "Q"}], model="gpt-4o-mini")
+    cloud, local = _clients()
+    assert local == [], "a refused key reached the local model"
+    assert providers.last_chat_served() is None
+
+
+def test_the_cloud_timeout_comes_from_the_environment(monkeypatch):
+    monkeypatch.setenv("CDSS_LLM_CLOUD_TIMEOUT", "3.5")
+    client, _ = _one_call("gpt-4o-mini")
+    assert client.options == [{"timeout": 3.5, "max_retries": 0}]
+    monkeypatch.setenv("CDSS_LLM_CLOUD_TIMEOUT", "8s")
+    assert providers.cloud_timeout_s() == 8.0
+
+
+def test_a_fallback_answer_is_stamped_end_to_end(monkeypatch):
+    _cloud_fails_with(monkeypatch, APIConnectionError("Connection error."))
+    r = _generated(monkeypatch)
+    assert r["provider"] == "local-fallback"
+    assert r["validator_provider"] == "local-fallback"
+    assert r["model"] == "local/qwen2.5:3b"
+    entry = log_and_read(r)
+    assert entry["provider"] == "local-fallback"
+
+
+def test_a_401_end_to_end_is_an_error_not_a_local_answer(monkeypatch):
+    _cloud_fails_with(monkeypatch, AuthenticationError("Error code: 401"))
+    r = oc._query_with_rag_internal(GENERATED_QUERY, _JtsHit())
+    assert r["source_mode"] == "ERROR"
+    assert any("401" in i for i in r["validator_issues"])
+    assert r.get("provider") is None
+
+
+def test_local_mode_never_tries_the_cloud(monkeypatch):
+    monkeypatch.setenv("CDSS_LLM_PROVIDER", "local")
+    client, _ = _one_call(providers.default_model())
+    assert client.options == [], "the local call was bounded as if it were cloud"
+    cloud, _local = _clients()
+    assert cloud == []

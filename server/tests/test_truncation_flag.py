@@ -35,6 +35,10 @@ MSG = [{"role": "user", "content": "hi"}]
 
 def _openai(finish):
     class Client:
+        # The cloud attempt is bounded with with_options(); both SDKs have it.
+        def with_options(self, **kw):
+            return self
+
         class chat:
             class completions:
                 @staticmethod
@@ -48,6 +52,9 @@ def _openai(finish):
 
 def _anthropic(stop):
     class Client:
+        def with_options(self, **kw):
+            return self
+
         class messages:
             @staticmethod
             def create(**kw):

@@ -191,6 +191,50 @@ def local_model_spec(model_id: Optional[str] = None) -> ModelSpec:
     return spec
 
 
+# The hybrid fallback. With CDSS_LLM_PROVIDER=openai, a cloud call that cannot
+# CONNECT — a timeout, a refused or dropped connection, no route — is retried
+# once against the local model, and the answer is stamped "local-fallback". A
+# call that connected and was REFUSED (401, 403, 404, 429, 400, 5xx) is not: the
+# network is fine and something is misconfigured, and serving the local model
+# would hide that until the next outage. Those surface as they always did.
+FALLBACK_PROVIDER = "local-fallback"
+CLOUD_TIMEOUT_DEFAULT_S = 8.0
+# Both SDKs name their transport failures the same way, and APITimeoutError
+# subclasses APIConnectionError in both. Matched by name so neither SDK has to
+# be importable for the check — the offline suite has neither.
+_CONNECTIVITY_ERRORS = frozenset({"APIConnectionError", "APITimeoutError"})
+
+
+def cloud_timeout_s() -> float:
+    """CDSS_LLM_CLOUD_TIMEOUT: seconds before a cloud call counts as unreachable."""
+    raw = (os.getenv("CDSS_LLM_CLOUD_TIMEOUT") or "").strip()
+    if not raw:
+        return CLOUD_TIMEOUT_DEFAULT_S
+    try:
+        value = float(raw)
+        if value > 0:
+            return value
+    except ValueError:
+        pass
+    print(f"⚠️  CDSS_LLM_CLOUD_TIMEOUT={raw!r} is not a positive number of seconds "
+          f"— using {CLOUD_TIMEOUT_DEFAULT_S:g}.")
+    return CLOUD_TIMEOUT_DEFAULT_S
+
+
+def is_connectivity_error(exc: BaseException) -> bool:
+    """A timeout or connection failure — not an error the provider answered with."""
+    return any(cls.__name__ in _CONNECTIVITY_ERRORS for cls in type(exc).__mro__)
+
+
+def fallback_model_id() -> str:
+    """The local model a failed cloud call is retried on.
+
+    CDSS_LLM_MODEL names the CLOUD model while the provider is openai, so the
+    fallback has its own override.
+    """
+    return (os.getenv("CDSS_LLM_FALLBACK_MODEL") or "").strip() or LOCAL_DEFAULT_MODEL
+
+
 def default_model() -> str:
     """The model used when the client asks for none. Env override for A/B runs."""
     if llm_provider() == "local":
@@ -527,8 +571,10 @@ _SERVED = contextvars.ContextVar("edgecdss_chat_served", default=None)
 def last_chat_served() -> Optional[tuple]:
     """(provider, model_id) of the last chat() here, or None if none completed.
 
-    provider is the registry id ("openai", "anthropic", "local"). Read it
-    immediately after the call it describes; the next chat() overwrites it.
+    provider is the registry id ("openai", "anthropic", "local"), or
+    "local-fallback" when a cloud call could not connect and the local model
+    answered instead. Read it immediately after the call it describes; the next
+    chat() overwrites it.
     """
     return _SERVED.get()
 
@@ -567,9 +613,12 @@ def _reset_clients():
 
 
 def _chat_openai_compat(spec: ModelSpec, system: str, messages: list,
-                        temperature: float, max_tokens: int) -> str:
+                        temperature: float, max_tokens: int,
+                        timeout: Optional[float] = None) -> str:
     client = (_local_client() if spec.provider == LOCAL_PROVIDER
               else _openai_client(spec.provider))
+    if timeout is not None:
+        client = client.with_options(timeout=timeout, max_retries=0)
     wire = ([{"role": "system", "content": system}] if system else []) + list(messages)
     kwargs = {"model": spec.id, "messages": wire,
               "max_tokens": max_tokens + spec.reserve_tokens}
@@ -615,8 +664,11 @@ def _anthropic_accepts_temperature() -> bool:
 
 
 def _chat_anthropic(spec: ModelSpec, system: str, messages: list,
-                    temperature: float, max_tokens: int) -> str:
+                    temperature: float, max_tokens: int,
+                    timeout: Optional[float] = None) -> str:
     client = _anthropic_client(spec.provider)
+    if timeout is not None:
+        client = client.with_options(timeout=timeout, max_retries=0)
     kwargs = {"model": spec.id, "messages": list(messages),
               "max_tokens": max_tokens + spec.reserve_tokens}
     if system:
@@ -661,6 +713,32 @@ def chat(system: str, messages: list, *, model: str,
     if adapter is None:
         raise ProviderUnavailable(
             f"provider {spec.provider!r} names an unknown adapter")
-    text = adapter(spec, system, messages, temperature, max_tokens)
+    if spec.provider == LOCAL_PROVIDER or llm_provider() != "openai":
+        text = adapter(spec, system, messages, temperature, max_tokens)
+        _SERVED.set((spec.provider, spec.id))
+        return text
+
+    # A cloud model: bounded, and retried on the local model if unreachable.
+    # max_retries=0 because the SDK's own retries would triple the wait before
+    # the medic gets any answer at all.
+    try:
+        text = adapter(spec, system, messages, temperature, max_tokens,
+                       timeout=cloud_timeout_s())
+    except Exception as cloud_error:
+        if not is_connectivity_error(cloud_error):
+            raise
+        local = local_model_spec(fallback_model_id())
+        print(f"🛰️  {spec.provider}/{spec.id} unreachable "
+              f"({type(cloud_error).__name__}) — retrying on local/{local.id}")
+        _TRUNCATED.set(None)
+        try:
+            text = _chat_openai_compat(local, system, messages, temperature, max_tokens)
+        except Exception as local_error:
+            raise ProviderUnavailable(
+                f"{spec.provider} unreachable ({type(cloud_error).__name__}) and the "
+                f"local fallback failed ({type(local_error).__name__}: "
+                f"{_redact(str(local_error))[:160]})") from local_error
+        _SERVED.set((FALLBACK_PROVIDER, local.id))
+        return text
     _SERVED.set((spec.provider, spec.id))
     return text
