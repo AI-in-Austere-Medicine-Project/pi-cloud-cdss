@@ -80,6 +80,7 @@ import json
 import os
 import pathlib
 import re
+from functools import lru_cache
 from typing import Optional
 
 _DIR = pathlib.Path(__file__).parent
@@ -885,6 +886,37 @@ def alias_index() -> dict:
         for a in drug.get("aliases", []):
             if isinstance(a, str) and a.strip():
                 idx.setdefault(a.strip().lower(), name)
+    return idx
+
+
+LEXICON = pathlib.Path(__file__).parent / "drug_lexicon.json"
+
+
+@lru_cache(maxsize=1)
+def _lexicon_drugs() -> dict:
+    """drug_lexicon.json's drugs, or {} — a missing lexicon narrows the
+    free-text check to the bank, it does not break serving."""
+    try:
+        return json.loads(LEXICON.read_text()).get("drugs") or {}
+    except (OSError, ValueError) as e:
+        print(f"⚠️  {LEXICON.name} unreadable ({e}) — free-text dose check "
+              f"recognises contract-bank drugs only.")
+        return {}
+
+
+def recognised_drug_index() -> dict:
+    """{term: generic} for every drug the free-text dose check recognises.
+
+    The contract bank's alias_index(), then drug_lexicon.json underneath it:
+    a bank name or alias always wins, so a lexicon entry can never re-point a
+    term the bank owns. Recognition only — a lexicon drug has no dose here and
+    nothing serves it; its stated doses are held because no contract signs one.
+    """
+    idx = alias_index()
+    for generic, entry in _lexicon_drugs().items():
+        for term in [generic] + list(entry.get("aliases") or []):
+            if isinstance(term, str) and term.strip():
+                idx.setdefault(term.strip().lower(), generic)
     return idx
 
 
