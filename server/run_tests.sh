@@ -1,6 +1,9 @@
 #!/bin/bash
-API="https://cdss.arcanekg.com/query"
-TOKEN="edgecdss-demo-2026"
+# Defaults are the live public endpoint, as before. Override both to point the
+# suite at a second instance instead, e.g. a local-model benchmark on :8001:
+#   CDSS_TEST_API=http://127.0.0.1:8001/query CDSS_TEST_TOKEN=... ./run_tests.sh
+API="${CDSS_TEST_API:-https://cdss.arcanekg.com/query}"
+TOKEN="${CDSS_TEST_TOKEN:-edgecdss-demo-2026}"
 PASS=0
 FAIL=0
 
