@@ -280,6 +280,10 @@ class FakeOpenAI:
 
         self.chat = type("Chat", (), {"completions": _Completions()})()
 
+    def with_options(self, **kwargs):
+        """The cloud attempt is bounded with this; the real SDK has it."""
+        return self
+
 
 class FakeAnthropic:
     """Records the kwargs the native Anthropic adapter would send."""
@@ -295,6 +299,9 @@ class FakeAnthropic:
                 return type("R", (), {"content": blocks})()
 
         self.messages = _Messages()
+
+    def with_options(self, **kwargs):
+        return self
 
 
 def test_unknown_model_raises_provider_unavailable():

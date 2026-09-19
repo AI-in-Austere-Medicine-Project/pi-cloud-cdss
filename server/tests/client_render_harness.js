@@ -199,6 +199,11 @@ async function briefScenarios(payloads) {
     vm.runInContext("saveSectionPref('WATCH', true)", env.sandbox);
     return JSON.parse(storage.store['edgecdss.sections.v1']);
   });
+  // The same served answer, stamped by each provider the server can report.
+  for (const p of ['local', 'local-fallback', 'openai', null]) {
+    await probe(out, 'provider_' + p, () =>
+      ask(load(queryOnly(base(Object.assign({}, payloads.rsi, { provider: p })))), 'rsi'));
+  }
   return out;
 }
 

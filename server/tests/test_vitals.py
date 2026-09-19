@@ -871,8 +871,15 @@ def test_vitals_reach_the_validator(stub_llm):
     assert "VITALS CONFLICT" in validator_prompt
 
 
+# A generated answer that recommends fentanyl without stating a dose. These
+# tests are about the vitals caution, which keys on the drug. They used to say
+# "Fentanyl 50 mcg IV", a number no contract authorised for this patient (the
+# query names no drug), which free_text_dose_issues now blocks as freelancing.
+FENTANYL_NO_DOSE = "**GIVE**\n- Fentanyl IV for pain.\n"
+
+
 def test_a_conflicting_recommendation_gets_a_visible_caution(stub_llm):
-    stub_llm["reply"] = "**GIVE**\n- Fentanyl 50 mcg IV for pain.\n"
+    stub_llm["reply"] = FENTANYL_NO_DOSE
     result = run("80kg male BP 82/40, analgesia options?")
     assert result["validator_result"] == "NEEDS_HUMAN_REVIEW"
     assert "VITALS CAUTION" in result["response"]
@@ -881,7 +888,7 @@ def test_a_conflicting_recommendation_gets_a_visible_caution(stub_llm):
 
 
 def test_no_caution_when_vitals_and_recommendation_agree(stub_llm):
-    stub_llm["reply"] = "**GIVE**\n- Fentanyl 50 mcg IV for pain.\n"
+    stub_llm["reply"] = FENTANYL_NO_DOSE
     result = run("80kg male BP 130/80, analgesia options?")
     assert result["validator_result"] == "SAFE"
     assert "VITALS CAUTION" not in result["response"]
@@ -932,7 +939,7 @@ def test_vitals_do_not_change_the_dose_contract(stub_llm):
 def test_the_log_records_vitals_state_and_cautions(stub_llm, tmp_path, monkeypatch):
     import json
     import pathlib as _pathlib
-    stub_llm["reply"] = "**GIVE**\n- Fentanyl 50 mcg IV for pain.\n"
+    stub_llm["reply"] = FENTANYL_NO_DOSE
     monkeypatch.setattr(oc, "_LOG_DIR", _pathlib.Path(tmp_path))
     oc.query_with_rag("80kg male BP 82/40, analgesia options?", FakeChroma(),
                       conversation_history=[])
@@ -994,7 +1001,7 @@ def test_a_stated_map_is_logged_as_stated(stub_llm, tmp_path, monkeypatch):
 def test_a_low_map_downgrades_a_safe_verdict(stub_llm):
     """The caution pathway, end to end and unchanged: it appends a visible line
     and softens SAFE. It does not block, and it cannot release."""
-    stub_llm["reply"] = "**GIVE**\n- Fentanyl 50 mcg IV for pain.\n"
+    stub_llm["reply"] = FENTANYL_NO_DOSE
     result = run("80kg male BP 90/30, analgesia options?")
     assert "MAP is 50" in result["response"]
     assert result["validator_result"] == "NEEDS_HUMAN_REVIEW"

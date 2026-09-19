@@ -95,6 +95,21 @@ def model_label(model_id: str) -> str:
     spec = providers.MODELS.get(model_id)
     return f"{spec.provider}/{spec.id}" if spec else model_id
 
+def served_label(served) -> str:
+    """providers.last_chat_served() as model_label writes it: 'local/qwen2.5:3b'.
+
+    A fallback answer is labelled with the service whose weights wrote it —
+    local — and `provider` says it was a fallback.
+    """
+    provider = "local" if served[0] == providers.FALLBACK_PROVIDER else served[0]
+    return f"{provider}/{served[1]}"
+
+
+def served_provider(served) -> Optional[str]:
+    """The provider that served a call: 'openai', 'local', …, or None."""
+    return served[0] if served else None
+
+
 # Debug flag per deep review §4: never edit fail-closed logic to debug.
 # Set EDGECDSS_DEBUG_WARN_ONLY=1 in the environment to observe generator
 # output with issues appended as text instead of blocking. Defaults to OFF.
@@ -185,7 +200,11 @@ def _get_log_file() -> pathlib.Path:
 # Schema 10 adds `input_mode`: how the query was entered — "typed", "voice", or
 # "chip" for a brief-first follow-up chip. Log hygiene like `synthetic`: it is
 # client-declared, and nothing in the pipeline may branch on it.
-LOG_SCHEMA_VERSION = 11
+# Schema 12 adds `provider` and `validator_provider`: the service that served
+# the generator and the validator — "openai", "local" (the on-device model,
+# CDSS_LLM_PROVIDER=local), "local-fallback" (the cloud call failed to connect
+# and the local model answered), or null when no model was called.
+LOG_SCHEMA_VERSION = 12
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -241,6 +260,11 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             # card is not attributable to a model, and recording one would make
             # cross-model comparison count answers no model wrote.
             "model": result.get("model"),
+            # Which service answered: "openai", "local", "local-fallback", or
+            # null with `model`. The validator's is separate — on a fallback
+            # the two can differ, and an audit has to be able to see that.
+            "provider": result.get("provider"),
+            "validator_provider": result.get("validator_provider"),
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
@@ -2902,6 +2926,133 @@ def audit_volume_lines(response_text: str,
     return out, issues
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# FREE-TEXT DOSES — a dose the canonical GIVE line did not carry
+#
+# The ALLOWED_DOSES check above reads only the canonical form, "Draw X mL of
+# Y mg/mL drug route (Z mg)". A model that writes the dose any other way —
+# "1 mg IV fentanyl", "give fentanyl 1 mg" — was checked by nothing but the LLM
+# validator. Measured 2026-09-19 on exactly that text for an 80 kg adult whose
+# contract is fentanyl 80 mcg: gpt-4o-mini UNSAFE 3/3, qwen2.5:3b SAFE 5/5. On
+# the local model the only check between a 12.5x fentanyl dose and the medic
+# said yes. This is the deterministic check it was missing.
+#
+# The rule: in a model-written answer, a mass (mg, mcg, g) stated in the same
+# clause as a drug the contract bank knows must BE an ALLOWED_DOSES value for
+# that drug. Not near it — within 5%, the same band the GIVE check uses, with
+# no absolute floor: the GIVE check's 0.5 mg floor would pass 0.5 mg of fentanyl
+# against 80 mcg. A drug the bank knows with no contract dose here fails too:
+# nothing authorised a number for it.
+#
+# Deliberately not read as a dose:
+#   - a rate or a concentration: "1 mcg/kg", "50 mg/mL", "5 mg / 10 mL";
+#   - a clause that limits or forbids: "max 25 mg", "do not exceed 100 mcg",
+#     "no more than", "up to", "cumulative", "never";
+#   - a preparation: "mix 4 mg norepinephrine in 250 mL NS" is the bag, not
+#     the patient's dose;
+#   - the DON'T and SOURCE sections, which state what not to do and where
+#     the text came from;
+#   - a canonical GIVE line, which the check above already owns.
+# A number is paired with the NEAREST drug named in its clause; a clause that
+# names no drug the bank knows is not attributable and is left alone.
+# ─────────────────────────────────────────────────────────────────────────────
+_FREE_DOSE_SKIP_SECTIONS = frozenset({"DON'T", "DONT", "DO NOT", "SOURCE", "SOURCES"})
+_FREE_DOSE_HEADING_RE = re.compile(r"^\s*(?:⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*")
+_FREE_DOSE_AMOUNT_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*"
+    r"(mg|mcg|µg|ug|micrograms?|milligrams?|g|grams?)\b(?!\s*(?:/|per\b))",
+    re.IGNORECASE)
+_FREE_DOSE_LIMIT_RE = re.compile(
+    r"\b(?:max(?:imum)?|exceed\w*|up to|no more than|cumulative|total dose|"
+    r"not|never|avoid|don'?t|limit|ceiling)\b", re.IGNORECASE)
+# A preparation, not a dose: what goes in the bag or syringe, not the patient.
+# "Mix 4 mg norepinephrine in 250 mL NS" is the recipe the general-reference
+# tier exists to serve; the dose the patient gets is a rate off that bag.
+_FREE_DOSE_PREP_RE = re.compile(
+    r"\b(?:mix|mixed|dilute|diluted|reconstitute|reconstituted|add|added)\b"
+    r"|\bin\s+\d+(?:\.\d+)?\s*m[lL]\b", re.IGNORECASE)
+_FREE_DOSE_CLAUSE_RE = re.compile(r"(?<=[.;:!?])\s+|\s+—\s+|\n")
+_TO_MG_UNIT = {"mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
+               "mcg": 0.001, "µg": 0.001, "ug": 0.001,
+               "microgram": 0.001, "micrograms": 0.001,
+               "g": 1000.0, "gram": 1000.0, "grams": 1000.0}
+
+
+def _drug_spans(clause: str) -> list:
+    """[(start, end, generic)] for every drug the contract bank knows, here."""
+    if drug_contracts is None:
+        return []
+    low = clause.lower()
+    spans = []
+    for term, generic in drug_contracts.alias_index().items():
+        for m in re.finditer(drug_contracts._term_pattern(term), low):
+            spans.append((m.start(), m.end(), generic))
+    # A match inside a longer one ("artemether" in "artemether + lumefantrine")
+    # is the longer one's.
+    return [sp for sp in spans
+            if not any(o[0] <= sp[0] and sp[1] <= o[1] and (o[1] - o[0]) > (sp[1] - sp[0])
+                       for o in spans)]
+
+
+def free_text_dose_issues(response_text: str,
+                          allowed_doses: Optional[List["DoseCandidate"]],
+                          patient_ctx: Optional["PatientContext"] = None) -> list:
+    """Issues for doses stated outside the canonical GIVE line. See above."""
+    allowed = {}
+    for d in allowed_doses or []:
+        allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
+    issues, section = [], ""
+    for line in (response_text or "").splitlines():
+        m = _FREE_DOSE_HEADING_RE.match(line)
+        if m:
+            section = re.sub(r"\s+", " ", m.group(1).replace("’", "'")).strip().upper()
+        if section in _FREE_DOSE_SKIP_SECTIONS:
+            continue
+        if re.search(CANONICAL_GIVE_RE, line, re.IGNORECASE):
+            continue
+        for clause in _FREE_DOSE_CLAUSE_RE.split(line):
+            if (not clause.strip() or _FREE_DOSE_LIMIT_RE.search(clause)
+                    or _FREE_DOSE_PREP_RE.search(clause)):
+                continue
+            drugs = _drug_spans(clause)
+            if not drugs:
+                continue
+            for amt in _FREE_DOSE_AMOUNT_RE.finditer(clause):
+                mid = (amt.start() + amt.end()) / 2
+                drug = min(drugs, key=lambda sp: min(abs(sp[0] - mid), abs(sp[1] - mid)))[2]
+                factor = _TO_MG_UNIT[amt.group(3).lower()]
+                stated = [float(v) * factor for v in amt.group(1, 2) if v]
+                ok = allowed.get(drug.lower(), [])
+                if all(any(abs(x - a) <= a * 0.05 + 1e-9 for a in ok) for x in stated):
+                    continue
+                issues.append(_free_dose_hold_line(drug, amt.group(0).strip(),
+                                                   bool(ok), patient_ctx))
+    return list(dict.fromkeys(issues))
+
+
+def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
+                         patient_ctx: Optional["PatientContext"]) -> str:
+    """What the medic reads under "Issues identified": the drug and dose the
+    answer stated, why it was held, and what would make it answerable.
+
+    No signed number is quoted here, even where one exists: a dose is shown
+    with its cautions and contraindications or not at all (owner ruling 12),
+    and a hold is not where those render.
+    """
+    said = f"The answer stated {drug} {shown}"
+    if has_contract_dose:
+        return (f"{said}, which is not the signed {drug} dose for this patient. "
+                f"Ask again for {drug} dosing to get the signed dose.")
+    if drug_contracts is not None and not drug_contracts.servable_entries().get(drug):
+        return (f"{said}, but EdgeCDSS has no signed {drug} dose. It cannot be "
+                f"answered here until one is signed: use local protocol or medical control.")
+    if patient_ctx is not None and not patient_ctx.has_confirmed_weight:
+        return (f"{said} with no signed {drug} dose for this patient: no weight is "
+                f"confirmed. Give the weight in kg and ask for {drug} by name.")
+    return (f"{said} with no signed {drug} dose for this question. Ask for {drug} "
+            f"by name, with what it is for, to get the signed dose.")
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
                               allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
@@ -2955,6 +3106,9 @@ def run_deterministic_checks(query: str, response_text: str,
                 issues.append(
                     f"GIVE line states {matched_drug} {stated_mg:g}mg, which does not "
                     f"match any ALLOWED_DOSES value ({allowed_vals}).")
+
+    # ── Doses stated outside the canonical GIVE line ──────────────────────
+    issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx))
 
     # ── Pediatric: no dose without confirmed weight ───────────────────────
     if patient_ctx.is_pediatric and not patient_ctx.has_confirmed_weight:
@@ -4600,7 +4754,12 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     state: dict = {}
     result = _run_pipeline(query, chromadb_client, voice_mode,
                            conversation_history, session_ctx, model, state)
-    return attach_brief(_finalise(result, state.get("patient_ctx")))
+    result = _finalise(result, state.get("patient_ctx"))
+    # Every response carries both, null when no model wrote the text — a
+    # deterministic card is not attributable to a model or a provider.
+    result.setdefault("model", None)
+    result.setdefault("provider", None)
+    return attach_brief(result)
 
 
 def attach_brief(result: dict) -> dict:
@@ -5098,14 +5257,17 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         )
         # Now, before the validator's own chat() overwrites it.
         generation_truncated = providers.last_chat_truncated()
+        generator_served = providers.last_chat_served()
 
         # Step 6: Deterministic post-checks use full history.
         det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
 
         # Step 7: LLM validator with full transcript
         full_transcript = "\n".join(transcript_lines)
+        providers.reset_served()
         llm_result = validate_response(full_transcript, response_text, patient_ctx,
                                        allowed_dose_block, now_ts=now_ts)
+        validator_served = providers.last_chat_served()
 
         # Step 7b: deterministic vitals conflicts. Python owns the explicit rule
         # table (vitals_rules.json); the validator above catches what a table
@@ -5147,7 +5309,11 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "response": final_response,
             "sources": assessment.sources[:3],
             "source_mode": assessment.source_mode,
-            "model": model_label(model),
+            # What actually answered, which is not always what was asked for.
+            "model": (served_label(generator_served) if generator_served
+                      else model_label(model)),
+            "provider": served_provider(generator_served),
+            "validator_provider": served_provider(validator_served),
             "validator_result": outcome.verdict,
             "validator_issues": outcome.issues,
             # Captured straight after the generator call; acted on in _finalise
