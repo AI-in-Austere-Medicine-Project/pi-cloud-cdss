@@ -222,6 +222,12 @@ deliberately did NOT touch.
       (17 held) and on the local-model benchmark (4 real holds). Every hold
       below is a correct refusal under the rule. Each item is the content that
       would turn one into an answer.
+      - **Drafted 2026-09-19, awaiting signature:** TXA, fentanyl IV,
+        epinephrine (cardiac arrest), dextrose (oral, neonatal IV), atropine
+        and levetiracetam have `signoff: false` entries with JTS/SMOG
+        citations and verified page numbers. See
+        `docs/authoring/CONTRACT_DRAFTS_2026-09-19.md`. The rest of this item
+        stands until they are signed.
       - **No signed dose at all.** Any number for these is held.
         - `tranexamic acid` (bank entry, 0 servable): TXA 1-2 g stated four times
           (A1-WT-030, A1-WT-031, A1-NOWT-020, A1-DRIP-004). Needs the

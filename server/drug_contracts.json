@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "47 of 96 dose entries across 12 of 32 drugs are signed and servable; 1 of those serves on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "47 of 106 dose entries across 12 of 33 drugs are signed and servable; 1 of those serves on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -1087,18 +1087,61 @@
           "indication": "cardiac arrest",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 1.0,
+            "units": "mg",
+            "rule": "1 mg per dose"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "Cardiac dilatation",
-            "Coronary insufficiency"
+            "Uncontrolled hypertension is a relative contraindication only; otherwise none in cardiac arrest (SMOG CY24 p.114)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "1 mg of the 0.1 mg/mL (1:10,000) syringe — 10 mL — IV/IO every 3-5 minutes until ROSC; follow each dose with a 20 mL flush (SMOG p.114)."
+            },
+            {
+              "tier": "serve",
+              "text": "Not the 1 mg/mL (1:1,000) ampoule undiluted: SMOG p.112 — \"Not for IV use, must first dilute into 10mL NS syringe for Cardiac / IV use.\""
+            },
+            {
+              "tier": "serve",
+              "text": "Hypothermic arrest: JTS Drowning ID64 p.8 — \"Withhold ACLS medications until temperature >30°C (86°F).\" Stated for drowning; OWNER TO RULE whether it applies to every hypothermic arrest."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Epinephrine 1:10,000, Dose and Administration: Adult, Asystole/pulseless arrest, pulseless VT/VF (ARC ALS 2020), p.114",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Cardiac Arrest guideline, p.42",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Drowning Management, CPG ID64, 17 Mar 2025 — Hypothermic cardiac arrest, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Drowning_Management_17_Mar_2025_ID64.pdf",
+              "retrieved_date": "2026-09-19"
+            },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.118",
               "tier": 1,
@@ -1117,28 +1160,61 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO p.118 step 5 says only 'Administer epinephrine during the first or second round of compressions. Prioritize early administration of epinephrine for non-shockable rhythms.' No dose, no concentration, no route detail. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
-          "flags": [
-            "NO_DOSE_IN_SOURCE"
-          ]
+          "version": "0.3.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.114 ADULT: \"Asystole/pulseless arrest, pulseless VT/VF (ARC ALS 2020): IV: 1mg/10mL (0.1mg/mL) pre-filled 10cc Syringe • 1 mg (10cc of 0.1mg/mL) every 3-5 minutes to ROSC, Follow each dose with 20mL flush\". No JTS CPG in the corpus states a cardiac-arrest epinephrine dose; SMOG (tier 1) does. NASEMSO p.118 names the drug and states no dose (kept as a source). PROVENANCE AND CONFLICT NOTES (not shown to the medic): Applies to VF, pulseless VT, asystole and PEA (SMOG p.114 indications; algorithm p.42, \"Epinephrine (every 3-5 min) IV / IO: 1:10,000 1mg (amp)\"). | No cumulative maximum is stated."
         },
         {
           "indication": "cardiac arrest",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.01,
+            "max": 0.01,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 1.0,
+            "units": "mg",
+            "rule": "maximum single dose 1 mg"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "Hypersensitivity",
-            "Cardiac dilatation",
-            "Coronary insufficiency"
+            "Uncontrolled hypertension is a relative contraindication only; otherwise none in cardiac arrest (SMOG CY24 p.114)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "0.01 mg/kg = 0.1 mL/kg of the 0.1 mg/mL (1:10,000) syringe, IV/IO every 3-5 minutes as needed or until ROSC (SMOG p.114)."
+            },
+            {
+              "tier": "serve",
+              "text": "Always reference the Broselow tape (SMOG p.114)."
+            },
+            {
+              "tier": "serve",
+              "text": "Hypothermic arrest: JTS Drowning ID64 p.8 — \"Withhold ACLS medications until temperature >30°C (86°F).\" Stated for drowning; OWNER TO RULE whether it applies to every hypothermic arrest."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Epinephrine 1:10,000, Dose and Administration: Pediatric (ARC ALS 2020), p.114",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Drowning Management, CPG ID64, 17 Mar 2025 — Hypothermic cardiac arrest, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Drowning_Management_17_Mar_2025_ID64.pdf",
+              "retrieved_date": "2026-09-19"
+            },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.121",
               "tier": 1,
@@ -1157,8 +1233,8 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NOT EXTRACTED — DELIBERATELY. NASEMSO p.121 step 11 reads verbatim: 'Administer epinephrine (0.1 mg/kg, maximum dose 1 mg) IV/IO during the first or second round of compressions.' Two problems. (1) 0.1 mg/kg is TEN TIMES the conventional paediatric arrest dose of 0.01 mg/kg; transcribing it would author a 10x overdose. (2) The step sits in a mixed adult/paediatric list (the adjacent step 9 reads 'or 4 J/kg for children'), so even the population it applies to is ambiguous. This needs the owner to adjudicate against the source, not a machine to copy it.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.114 PEDIATRIC: \"Asystole, PEA, pulseless VT/VF, Unresponsive and Symptomatic Bradycardia in Infants (ARC ALS 2020): IV: 0.01 mg/kg (0.1 mL/kg of 1mg/10mL [0.1 mg/mL]) (maximum single dose: 1 mg) every 3-5 minutes as needed or until ROSC\". This is the conventional 0.01 mg/kg — the NASEMSO p.121 figure (0.1 mg/kg) was deliberately NOT extracted, see below. NOT EXTRACTED — DELIBERATELY. NASEMSO p.121 step 11 reads verbatim: 'Administer epinephrine (0.1 mg/kg, maximum dose 1 mg) IV/IO during the first or second round of compressions.' Two problems. (1) 0.1 mg/kg is TEN TIMES the conventional paediatric arrest dose of 0.01 mg/kg; transcribing it would author a 10x overdose. (2) The step sits in a mixed adult/paediatric list (the adjacent step 9 reads 'or 4 J/kg for children'), so even the population it applies to is ambiguous. This needs the owner to adjudicate against the source, not a machine to copy it. PROVENANCE AND CONFLICT NOTES (not shown to the medic): Also: asystole, PEA, pulseless VT/VF and symptomatic bradycardia in infants (SMOG p.114; paediatric bradycardia algorithm p.47, \"Epinephrine 1:10,000 0.01mg/kg IV/IO q3-5min\").",
           "flags": [
             "SUSPECTED_SOURCE_ERROR"
           ]
@@ -2005,7 +2081,11 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is NEEDS_MANUAL_ENTRY because the guideline states a maximum INITIAL dose only."
+          "extraction_notes": "CONFLICT GROUP fentanyl-iv-adult-analgesia (2026-09-19): NASEMSO 1 mcg/kg (max 100 mcg initial) vs JTS PFC ID61 50 mcg fixed (range 25-100) vs SMOG 0.5-1 mcg/kg. Sign one, with an adjudication note. NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is NEEDS_MANUAL_ENTRY because the guideline states a maximum INITIAL dose only.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "fentanyl-iv-adult-analgesia"
         },
         {
           "indication": "acute pain / analgesia",
@@ -2055,7 +2135,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is NEEDS_MANUAL_ENTRY because the guideline states a maximum INITIAL dose only."
+          "extraction_notes": "NO JTS PAEDIATRIC IV DOSE (checked 2026-09-19): no JTS CPG in the corpus states a paediatric IV fentanyl dose; the only 'fentanyl mcg/kg' in the CPGs is the Military Working Dog CPG (ID16). SMOG p.118's paediatric column is misprinted etomidate text and must not be used. PROPOSED BASIS: owner declaration on this NASEMSO value (1 mcg/kg, max 100 mcg initial, Pain Management p.94), the same basis as the signed fentanyl IN entry. NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is NEEDS_MANUAL_ENTRY because the guideline states a maximum INITIAL dose only."
         },
         {
           "indication": "acute pain / analgesia",
@@ -2129,6 +2209,148 @@
           "flags": [
             "NOT_IN_SOURCE"
           ]
+        },
+        {
+          "indication": "acute pain / analgesia — JTS PFC fixed dose",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 50.0,
+            "max": 50.0,
+            "units": "mcg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 100.0,
+            "units": "mcg",
+            "rule": "top of the stated 25-100 mcg range"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypotension (SMOG CY24 p.118)",
+            "Hypoxia (SMOG CY24 p.118)",
+            "Hypoventilation (SMOG CY24 p.118)",
+            "MAOI taken in the past 14 days (SMOG CY24 p.118)",
+            "Hypersensitivity to fentanyl"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Slow IV push over 3-5 minutes: rapid administration may cause chest wall rigidity, impaired ventilation or respiratory arrest; be prepared to manage the airway (SMOG p.118)."
+            },
+            {
+              "tier": "serve",
+              "text": "Head trauma or suspected raised ICP: use with extreme caution (SMOG p.118)."
+            },
+            {
+              "tier": "serve",
+              "text": "Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics (Pain, Anxiety and Delirium ID29 p.7)."
+            },
+            {
+              "tier": "serve",
+              "text": "Repeat every 30 minutes to 2 hours as needed (PFC Analgesia ID61 p.8)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia — alternative opioid, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia and sedation table, p.10",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Burn Care, CPG ID12, 10 Jun 2025 — Burn ICU order set — analgesia, p.24",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Burn_Care_CPG_10_June_2025_ID12.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. PFC Analgesia ID61 p.8: \"ALTERNATIVE opioid: Fentanyl 50μg (range, 25–100μg) IV/IO every 30 minutes to 2 hours PRN (short acting, extremely fast onset, good for severe pain/procedures, greatest risk of respiratory depression)\". p.10 table: \"Fentanyl IV 25μg IV | 25–100μg IV\". Corroborated as a range by Burn Care ID12 p.24 (\"Fentanyl 25-100 mcg IV Q 15 minutes prn pain\") and Pain, Anxiety and Delirium ID29 p.24 (order set, \"25-100 mcg\"). PROVENANCE AND CONFLICT NOTES (not shown to the medic): ID61 p.8 states the dose as 50 mcg with a range of 25-100 mcg; the entry serves 50 mcg.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "fentanyl-iv-adult-analgesia"
+        },
+        {
+          "indication": "acute pain / analgesia — SMOG weight-based",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.5,
+            "max": 1.0,
+            "units": "mcg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypotension (SMOG CY24 p.118)",
+            "Hypoxia (SMOG CY24 p.118)",
+            "Hypoventilation (SMOG CY24 p.118)",
+            "MAOI taken in the past 14 days (SMOG CY24 p.118)",
+            "Hypersensitivity to fentanyl"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Slow IV push over 3-5 minutes: rapid administration may cause chest wall rigidity, impaired ventilation or respiratory arrest; be prepared to manage the airway (SMOG p.118)."
+            },
+            {
+              "tier": "serve",
+              "text": "Head trauma or suspected raised ICP: use with extreme caution (SMOG p.118)."
+            },
+            {
+              "tier": "serve",
+              "text": "Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics (Pain, Anxiety and Delirium ID29 p.7)."
+            },
+            {
+              "tier": "serve",
+              "text": "Repeat every 30-60 minutes as needed (SMOG p.118)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Fentanyl, Dose and Administration: Adult, Pain Management, IV, p.118",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.118 ADULT: \"Pain Management: IV: Slow (Unlabeled) 0.5-1mcg/kg PRN for breakout pain q 30-60 min\"; \"IN/IM: 1mcg/kg\". WARNING — DO NOT CITE SMOG p.118's PEDIATRIC column for fentanyl: it reads \"RSI: IV: 0.2-0.4 mg/kg over 30-60 seconds will produce rapid sedation lasting 10-15 minutes. Max dose: 20 mg … adrenal suppression\", which is the ETOMIDATE monograph text. As fentanyl it would be a 200-400x overdose. Also not citable: SMOG p.57 (\"Fentanyl 2-10 mcg/kg\") is the Military Working Dog protocol. PROVENANCE AND CONFLICT NOTES (not shown to the medic): SMOG gives a RANGE, 0.5-1 mcg/kg; the engine serves the minimum unless the owner rules otherwise (the ketamine precedent signed the top of SMOG's range).",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "fentanyl-iv-adult-analgesia"
         }
       ],
       "proposed_aliases": [
@@ -2664,22 +2886,73 @@
           "max_single": {
             "value": 2.0,
             "units": "g",
-            "rule": "2 g bolus"
+            "rule": "single 2 g bolus; no second dose"
           },
           "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Given more than 3 hours after injury (SMOG CY24 p.158: \"If >3hr from time of injury: DO NOT administer TXA\")",
+            "Non-traumatic subarachnoid haemorrhage (SMOG CY24 p.158)",
+            "Thromboembolic disease — cerebral thrombosis, DVT, PE (SMOG CY24 p.158)",
+            "Hypersensitivity to tranexamic acid"
           ],
           "cautions": [
-            "JTS ID40: give ASAP, or within 3 HOURS of injury.",
-            "JTS ID40 states the 2 g bolus is now FAVOURED over the traditional 1 g prehospital bolus followed by an infusion.",
-            "UNITS ARE GRAMS. The dose builder currently treats every dose_range value as milligrams with no conversion — see the unit note on the calcium and epinephrine entries.",
+            {
+              "tier": "serve",
+              "text": "Give as soon as possible and not later than 3 hours after injury (DCR ID18 p.9; SMOG p.158)."
+            },
+            {
+              "tier": "serve",
+              "text": "Ideally in 100 mL normal saline over 10 minutes; undiluted slow IV push over 10 minutes is acceptable if supplies or the tactical situation prevent the infusion (DCR ID18 p.9)."
+            },
+            {
+              "tier": "serve",
+              "text": "Rapid administration has been infrequently associated with transient hypotension (DCR ID18 p.9)."
+            },
+            {
+              "tier": "serve",
+              "text": "If 1 g was already given and it is under 3 hours from injury, give 1 g more, not 2 g (SMOG p.158)."
+            },
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+              "text": "The cited guideline states no cumulative maximum beyond the single 2 g bolus."
             }
           ],
           "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Damage Control Resuscitation, CPG ID18, 12 Jul 2019 — Hemostatic adjuncts — tranexamic acid, p.9",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Damage_Control_Resuscitation_12_Jul_2019_ID18.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Damage Control Resuscitation, CPG ID18, 12 Jul 2019 — Summary of changes, p.2",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Damage_Control_Resuscitation_12_Jul_2019_ID18.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Tranexamic Acid, Dose and Administration: Adult, Trauma-associated hemorrhage; Contraindications, p.158",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management and Basic Neurosurgery in the Deployed Environment, CPG ID30, 15 Sep 2023 — Tranexamic acid, p.7",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — TBI management — TXA, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-09-19"
+            },
             {
               "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Background / Resuscitation — tranexamic acid, p.2",
               "tier": 1,
@@ -2691,11 +2964,8 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "extraction_notes": "TIER 1 from JTS ID40, and it unblocks rank 8. NASEMSO named TXA in three guidelines and dosed it in none; JTS does. Flagged UNIT_NOT_MG because the value is in grams and the dose builder has no unit conversion yet.",
-          "flags": [
-            "UNIT_NOT_MG"
-          ]
+          "version": "0.4.0-draft",
+          "extraction_notes": "VERIFIED against the PDFs 2026-09-19, printed page == PDF page for every citation. DCR ID18 p.9: \"For eligible casualties, 2 grams of TXA should be administered IV or IO. TXA is ideally administered in 100 ml of normal saline over 10 minutes, but faster administration in more concentrated form can be considered. Administration of undiluted TXA by slow IV push (given over 10 minutes) is acceptable if supplies or tactical situation prevents 100mL IV infusion.\" SMOG CY24 p.158 adult: \"Initial Dose: 2 grams of TXA in 100 cc NS or LR via IV/IO Bolus, or 2 gram IV/IO push (1 gram over 1 minute per push) but NOT later than 3 hours after injury.\" PCC ID91 p.28: \"Administer TXA as single 2gram IV or IO bolus (no second dose required).\" Supersedes the 0.3.0 draft, whose only JTS source (ID40, Anesthesia for Trauma Patients) is not in the corpus; ID40 is kept as a further source. The 0.3.0 caution 'UNITS ARE GRAMS … no unit conversion' is dropped: drug_contracts.resolve_dose now converts g to mg. PROVENANCE AND CONFLICT NOTES (not shown to the medic): DCR ID18 p.2: \"Tranexamic acid (TXA) 2gm bolus is now favored over the traditional 1gm prehospital bolus followed by 1gm infusion over 8 hours.\" | TBI ID30 p.7: \"All patients with evidence of moderate or severe TBI should be administered 2gm of TXA within 3hrs of injury.\" | IV or IO: every source states IV/IO; the entry is filed under IV."
         },
         {
           "indication": "traumatic haemorrhage — maintenance infusion",
@@ -2712,36 +2982,26 @@
           ],
           "sources": [
             {
-              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
-              "tier": 2,
-              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
-              "retrieved_date": "2026-08-24",
-              "source_class": "WHO_EML"
-            }
-          ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
-          "flags": [
-            "NO_DOSE_IN_SOURCE"
-          ]
-        },
-        {
-          "indication": "traumatic haemorrhage",
-          "population": "peds",
-          "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
-          "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
-          ],
-          "cautions": [
-            "NEEDS_MANUAL_ENTRY"
-          ],
-          "sources": [
+              "citation": "JTS Clinical Practice Guideline — Damage Control Resuscitation, CPG ID18, 12 Jul 2019 — Summary of changes, p.2",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Damage_Control_Resuscitation_12_Jul_2019_ID18.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Damage Control Resuscitation in Prolonged Field Care, CPG ID73, 01 Oct 2018 — Summary of changes, p.2",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Damage_Control_Resuscitation_PFC_01_Oct_2018_ID73.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — TBI management — TXA, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-09-19"
+            },
             {
               "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
               "tier": 2,
@@ -2753,11 +3013,76 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
+          "version": "0.2.1-draft",
+          "extraction_notes": "RECOMMEND RETIRE (2026-09-19). DCR ID18 p.2 and DCR-PFC ID73 p.2: \"Tranexamic acid (TXA) 2gm bolus is now favored over the traditional 1gm prehospital bolus followed by 1gm infusion over 8 hours.\" PCC ID91 p.28: \"single 2gram IV or IO bolus (no second dose required)\". No current JTS source supports an adult maintenance infusion. Left unsigned and unchanged; retiring it is the owner's call. NASEMSO names TXA in three guidelines and states NO dose in any of them: General Trauma Management p.210 ('may be considered within three hours of injury and signs of hemorrhagic shock'), Extremity Trauma/External Hemorrhage Management p.226, and Childbirth p.168. It is absent from Appendix III Medications. WHO supplies the 100 mg/mL ampoule strength only. NASEMSO names this drug for this indication but states NO numeric dose — prose only. Extracting a number here would be inventing one.",
           "flags": [
             "NO_DOSE_IN_SOURCE"
           ]
+        },
+        {
+          "indication": "traumatic haemorrhage",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 15.0,
+            "max": 15.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 1.0,
+            "units": "g",
+            "rule": "loading dose maximum 1 g (DCR-PFC ID73 p.12)"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Given more than 3 hours after injury (SMOG CY24 p.158: \"If >3hr from time of injury: DO NOT administer TXA\")",
+            "Non-traumatic subarachnoid haemorrhage (SMOG CY24 p.158)",
+            "Thromboembolic disease — cerebral thrombosis, DVT, PE (SMOG CY24 p.158)",
+            "Hypersensitivity to tranexamic acid"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Within 3 hours of injury (SMOG p.158)."
+            },
+            {
+              "tier": "serve",
+              "text": "DCR-PFC ID73 p.12 gives the loading dose over 10 minutes, followed by 2 mg/kg/h for 8 hours (maximum 1 g). SMOG p.158 gives it as a bolus, goal within 1 minute. The owner rules which administration the card states."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Damage Control Resuscitation in Prolonged Field Care, CPG ID73, 01 Oct 2018 — Pediatric considerations — TXA, p.12",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Damage_Control_Resuscitation_PFC_01_Oct_2018_ID73.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Tranexamic Acid, Dose and Administration: Pediatric, Trauma-associated hemorrhage, p.158",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.42 (10.2 Medicines affecting coagulation)",
+              "tier": 2,
+              "url": "https://iris.who.int/server/api/core/bitstreams/17642505-ecd3-4940-a691-4f1dfa0d835a/content",
+              "retrieved_date": "2026-08-24",
+              "source_class": "WHO_EML"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.3.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. DCR-PFC ID73 p.12: \"TXA is indicated in pediatric casualties. The dose is 15mg/kg TXA loading dose (maximum, 1g) over 10 minutes followed by 2mg/kg/h for 8 hours (maximum, 1g).\" SMOG CY24 p.158 pediatric: \"Initial Dose: 15mg/kg via IV/IO Bolus (goal within 1 minute)\". The two agree on 15 mg/kg and differ on the rate of administration. PROVENANCE AND CONFLICT NOTES (not shown to the medic): The maintenance infusion (2 mg/kg/h × 8 h, max 1 g) is a RATE and is not part of this entry: a rate cannot become a single volume. | There is no pediatric TXA entry in SMOG beyond the initial dose."
         }
       ]
     },
@@ -3301,7 +3626,8 @@
       ],
       "routes": [
         "IV",
-        "IO"
+        "IO",
+        "PO"
       ],
       "tropical_priority": false,
       "discovery_rank": 11,
@@ -3447,23 +3773,43 @@
           "indication": "neonatal hypoglycaemia",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.5,
+            "max": 0.5,
+            "units": "g/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 25.0,
+            "units": "g",
+            "rule": "maximum 25 g per dose"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "Hyperglycaemia",
-            "Anuria",
-            "Diabetic coma",
-            "Intracranial or intraspinal haemorrhage",
-            "Dehydrated patients with delirium",
-            "Glucose-galactose malabsorption syndrome",
-            "Documented hypersensitivity"
+            "Known hyperglycaemia (SMOG CY24 p.105)"
           ],
           "cautions": [
-            "NASEMSO: for neonates and infants under 1 month, use a dextrose concentration of no more than 10%.",
-            "NASEMSO gives newborns 2 mL/kg of 10% dextrose."
+            {
+              "tier": "serve",
+              "text": "5 mL/kg of 10% dextrose (D10) = 0.5 g/kg (SMOG p.105)."
+            },
+            {
+              "tier": "serve",
+              "text": "D10 preparation: 100 mL NS + 25 mL D50 (12.5 g in 125 mL), or 40 mL NS + 10 mL D50 (5 g in 50 mL) (SMOG p.105)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Dextrose, Dose and Administration: Pediatric, Hypoglycemia, IV — Newborns, p.105",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
             {
               "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85",
               "tier": 1,
@@ -3489,11 +3835,120 @@
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO gives '5-10 mL/kg of 10% dextrose (newborns 2 mL/kg)' — a VOLUME of a stated concentration, not a g/kg dose, and the newborn figure is parenthetical to a paediatric range. 2 mL/kg of 10% is 0.2 g/kg, which is well below the 0.5-1 g/kg the same guideline gives for children. Deliberately not converted: the owner should decide whether this entry is dosed in mL/kg of a named concentration rather than in g/kg.",
-          "flags": [
-            "AMBIGUOUS_IN_SOURCE"
-          ]
+          "version": "0.3.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.105 PEDIATRIC: \"IV: Newborns: 5ml/kg D10 (Max 25 G/dose)\". 5 mL/kg × 0.1 g/mL = 0.5 g/kg. NASEMSO's newborn figure (2 mL/kg of 10%, 0.2 g/kg) was deliberately not extracted earlier — see below. The two disagree 2.5-fold. NASEMSO gives '5-10 mL/kg of 10% dextrose (newborns 2 mL/kg)' — a VOLUME of a stated concentration, not a g/kg dose, and the newborn figure is parenthetical to a paediatric range. 2 mL/kg of 10% is 0.2 g/kg, which is well below the 0.5-1 g/kg the same guideline gives for children. Deliberately not converted: the owner should decide whether this entry is dosed in mL/kg of a named concentration rather than in g/kg. PROVENANCE AND CONFLICT NOTES (not shown to the medic): CONFLICT: NASEMSO Hypoglycemia p.85-86 gives newborns 2 mL/kg of 10% (0.2 g/kg). SMOG gives 5 mL/kg of 10% (0.5 g/kg)."
+        },
+        {
+          "indication": "symptomatic hypoglycaemia — alert patient",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": {
+            "min": 4.0,
+            "max": 20.0,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 20.0,
+            "units": "g",
+            "rule": "single dose 4-20 g; may repeat if necessary"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Altered mental status, or unable to swallow and protect the airway — give IV dextrose instead (SMOG CY24 p.34)",
+            "Known hyperglycaemia (SMOG CY24 p.105)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Only a patient with NO altered mental status: \"Hypoglycemic patients must be alert enough to swallow and protect airway\" (SMOG p.34)."
+            },
+            {
+              "tier": "serve",
+              "text": "Oral glucose gel or equivalent until blood glucose is above 70 mg/dL (SMOG p.34)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Dextrose, Dose and Administration: Hypoglycemia, Oral, p.105",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Hyperglycemia/Hypoglycemia guideline — patients with no AMS, p.34",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.105, ADULT and PEDIATRIC columns identical: \"Hypoglycemia: Oral: 4-20 g as a single dose; may repeat if necessary.\" SMOG p.34: \"Patients with NO AMS: Administer oral glucose gel or equivalent until glucose level is >70mg/dL\"; \"Hypoglycemic patients must be alert enough to swallow and protect airway.\" No JTS CPG in the corpus states an oral glucose dose. New entry: the bank had IV dextrose only, and oral glucose questions were held (#70 benchmark, R2-HYPOGLYCAEMIA-ORAL-ROUTE-*). PROVENANCE AND CONFLICT NOTES (not shown to the medic): SMOG p.105 gives a RANGE, 4-20 g; the engine serves the minimum unless the owner rules otherwise. 4 g is a small dose for symptomatic hypoglycaemia — the owner should rule the value to serve. | SMOG states the same oral dose for adults and children."
+        },
+        {
+          "indication": "symptomatic hypoglycaemia — alert patient",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": {
+            "min": 4.0,
+            "max": 20.0,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 20.0,
+            "units": "g",
+            "rule": "single dose 4-20 g; may repeat if necessary"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Altered mental status, or unable to swallow and protect the airway — give IV dextrose instead (SMOG CY24 p.34)",
+            "Known hyperglycaemia (SMOG CY24 p.105)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Only a patient with NO altered mental status: \"Hypoglycemic patients must be alert enough to swallow and protect airway\" (SMOG p.34)."
+            },
+            {
+              "tier": "serve",
+              "text": "Oral glucose gel or equivalent until blood glucose is above 70 mg/dL (SMOG p.34)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Dextrose, Dose and Administration: Hypoglycemia, Oral, p.105",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Hyperglycemia/Hypoglycemia guideline — patients with no AMS, p.34",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.105, ADULT and PEDIATRIC columns identical: \"Hypoglycemia: Oral: 4-20 g as a single dose; may repeat if necessary.\" SMOG p.34: \"Patients with NO AMS: Administer oral glucose gel or equivalent until glucose level is >70mg/dL\"; \"Hypoglycemic patients must be alert enough to swallow and protect airway.\" No JTS CPG in the corpus states an oral glucose dose. New entry: the bank had IV dextrose only, and oral glucose questions were held (#70 benchmark, R2-HYPOGLYCAEMIA-ORAL-ROUTE-*). PROVENANCE AND CONFLICT NOTES (not shown to the medic): SMOG p.105 gives a RANGE, 4-20 g; the engine serves the minimum unless the owner rules otherwise. 4 g is a small dose for symptomatic hypoglycaemia — the owner should rule the value to serve. | SMOG states the same oral dose for adults and children."
         }
       ],
       "notes": "'glucose' is carried as an alias here AND is a component name in the ORS entry — the alias lint checks that pairing."
@@ -3630,50 +4085,212 @@
       "discovery_query_count": 4,
       "dose_entries": [
         {
-          "indication": "seizure — loading dose",
+          "indication": "severe TBI — seizure prophylaxis, loading dose",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1500.0,
+            "max": 1500.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 1500.0,
+            "units": "mg",
+            "rule": "single loading dose"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity to levetiracetam or any component (SMOG CY24 p.132)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Over 15 minutes; then 1000 mg IV every 12 hours (TBI ID30 p.10; TBI-PFC ID63 p.21; SMOG p.132)."
+            },
+            {
+              "tier": "serve",
+              "text": "Severe TBI: give during the initial evaluation and within 30 minutes of arrival (TBI ID30 p.7)."
+            },
+            {
+              "tier": "serve",
+              "text": "May cause CNS depression (SMOG p.132)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management and Basic Neurosurgery in the Deployed Environment, CPG ID30, 15 Sep 2023 — Seizure prophylaxis — preferred agent, p.10",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management and Basic Neurosurgery in the Deployed Environment, CPG ID30, 15 Sep 2023 — Initial management of severe TBI, p.7",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management in Prolonged Field Care, CPG ID63, 06 Dec 2017 (rapid update Apr 2024) — Management: Seizures, p.21",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management in Prolonged Field Care, CPG ID63, 06 Dec 2017 (rapid update Apr 2024) — Rapid update Apr 2024, p.1",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Levetiracetam, Dose and Administration: Adult, Traumatic brain injury (severe acute), p.132",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Head injury / TBI guideline, p.26",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — TBI management — seizure prophylaxis, p.29",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
-          "flags": [
-            "NOT_IN_SOURCE"
-          ]
+          "version": "0.2.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. TBI ID30 p.10: \"Preferred agent: Levetiracetam (Keppra) 1500mg IV loading dose, followed by 1000mg IV BID\"; p.7: \"If severe TBI is suspected, antiepileptics (Keppra, 1500 mg loading dose) should be administered during the initial evaluation and within 30 minutes of arrival.\" TBI-PFC ID63 p.21: \"Levetiracetam 1,500mg IV/IO loading dose over 15 minutes + 1000mg every 12 hours.\" SMOG CY24 p.132: \"Loading dose: 1500 mg over 15 minutes; Maintenance dose: 1000 mg over 15 minutes every 12 hours\"; p.26: \"Levetiracetam 1500mg IV/IO bolus in severe TBI (seizure prophylaxis for transport)\". Four sources agree; PCC ID91 (2021, the oldest) states 1 g. The previous draft was NEEDS_MANUAL_ENTRY because NASEMSO does not name the drug. PROVENANCE AND CONFLICT NOTES (not shown to the medic): Severe dermatologic reactions (TEN, SJS) and haematologic effects are reported (SMOG p.132). | CONFLICT (older source): PCC ID91 p.29 (21 Dec 2021) — \"Administer seizure prophylaxis (1G Levetiracetam), if available.\" TBI ID30 (Sep 2023) and the Apr 2024 rapid update to TBI-PFC ID63 both state 1500 mg; ID63 p.1: \"Rapid Update Apr 2024: Levetiracetam dosing (1500 mg loading dose, 1000 mg BID) … updated to match\"."
         },
         {
-          "indication": "seizure — loading dose",
+          "indication": "status epilepticus, refractory",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 60.0,
+            "max": 60.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 4500.0,
+            "units": "mg",
+            "rule": "4,500 mg maximum"
+          },
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity to levetiracetam or any component (SMOG CY24 p.132)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Over 15 minutes, as a single dose (SMOG p.132)."
+            },
+            {
+              "tier": "serve",
+              "text": "Limited data available (SMOG p.132)."
+            },
+            {
+              "tier": "serve",
+              "text": "Hypertension has been reported in children under 4 years (SMOG p.132)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Levetiracetam, Dose and Administration: Pediatric, Status epilepticus, refractory, p.132",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Seizure guideline — pediatric, p.37",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.2.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.132 PEDIATRIC: \"Status epilepticus, refractory: (Limited data available) Infants, Children, and Adolescents: IV: 60 mg/kg over 15 minutes as a single dose; 4,500mg max dose.\" SMOG p.37: \"Levetiracetam (Keppra) 60mg/kg, single dose.\" No JTS CPG in the corpus states a paediatric dose. PROVENANCE AND CONFLICT NOTES (not shown to the medic): SMOG p.132 paediatric TBI seizure prophylaxis is 20-55 mg/kg/DAY in two divided doses: a daily total, not a single bolus, and not part of this entry."
+        },
+        {
+          "indication": "status epilepticus",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 2000.0,
+            "max": 2000.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 2000.0,
+            "units": "mg",
+            "rule": "single dose"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity to levetiracetam or any component (SMOG CY24 p.132)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Over 15 minutes (SMOG p.132)."
+            },
+            {
+              "tier": "serve",
+              "text": "May cause CNS depression (SMOG p.132)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Levetiracetam, Dose and Administration: Adult, Status epilepticus, p.132",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Seizure guideline, p.37",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
-          "flags": [
-            "NOT_IN_SOURCE"
-          ]
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.132 ADULT: \"Status epilepticus: IV: 2000 mg over 15 minutes\". SMOG p.37 (seizure algorithm): 1500 mg IV over 15 min. No JTS CPG in the corpus states a status-epilepticus dose. PROVENANCE AND CONFLICT NOTES (not shown to the medic): Severe dermatologic reactions (TEN, SJS) and haematologic effects are reported (SMOG p.132). | CONFLICT within SMOG: p.132 gives status epilepticus 2000 mg IV over 15 minutes; the seizure guideline p.37 gives \"Levetiracetam (Keppra) 1500mg IV over 15min; followed by maintenance dosing of 1000mg IV/IO every 12 hours.\""
         }
       ]
     },
@@ -5247,6 +5864,308 @@
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
           "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source."
+        }
+      ]
+    },
+    {
+      "generic_name": "atropine",
+      "aliases": [
+        "atropen"
+      ],
+      "drug_class": "anticholinergic (antimuscarinic)",
+      "forms": [],
+      "routes": [
+        "IV",
+        "IO",
+        "IM"
+      ],
+      "tropical_priority": false,
+      "dose_entries": [
+        {
+          "indication": "symptomatic bradycardia",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 1.0,
+            "units": "mg",
+            "rule": "1 mg per dose"
+          },
+          "max_cumulative": {
+            "value": 3.0,
+            "units": "mg",
+            "rule": "total 3 mg or 0.04 mg/kg"
+          },
+          "contraindications": [
+            "Hypersensitivity to atropine (SMOG CY24 p.100)",
+            "Narrow-angle glaucoma (SMOG CY24 p.100)",
+            "Pyloric stenosis (SMOG CY24 p.100)",
+            "Prostatic hypertrophy (SMOG CY24 p.100)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Every 3-5 minutes; total not to exceed 3 mg or 0.04 mg/kg (SMOG p.100)."
+            },
+            {
+              "tier": "serve",
+              "text": "Doses under 0.1 mg can cause paradoxical bradycardia (SMOG p.100)."
+            },
+            {
+              "tier": "serve",
+              "text": "Pacer pads on every bradycardic patient after initial evaluation (SMOG p.41)."
+            },
+            {
+              "tier": "serve",
+              "text": "For symptomatic sinus bradycardia or nodal AV block (SMOG p.100). Not a treatment for tachycardia."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Atropine, Dose and Administration: Adult, Symptomatic Bradycardia (ARC 2020), p.100",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Bradycardia guideline, p.41",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.100 ADULT: \"Symptomatic Bradycardia IV/IO • 1 mg every 3-5 minutes, not to exceed a total of 3 mg or 0.04 mg/kg (ARC, 2020)\". No JTS CPG in the corpus doses atropine for bradycardia. New drug: atropine was not in the bank, so the free-text check could not see it (#70; the local model gave 0.25 mg for 'tacky cardia', G-DIC-04)."
+        },
+        {
+          "indication": "symptomatic bradycardia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.02,
+            "max": 0.02,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 0.5,
+            "units": "mg",
+            "rule": "maximum single dose 0.5 mg"
+          },
+          "max_cumulative": {
+            "value": 1.0,
+            "units": "mg",
+            "rule": "maximum total dose 1 mg"
+          },
+          "contraindications": [
+            "Hypersensitivity to atropine (SMOG CY24 p.100)",
+            "Narrow-angle glaucoma (SMOG CY24 p.100)",
+            "Pyloric stenosis (SMOG CY24 p.100)",
+            "Prostatic hypertrophy (SMOG CY24 p.100)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "MINIMUM DOSE 0.1 mg: a smaller dose can cause paradoxical bradycardia (SMOG p.100). Below 5 kg, 0.02 mg/kg is under this minimum."
+            },
+            {
+              "tier": "serve",
+              "text": "May repeat once in 3-5 minutes; maximum total 1 mg (SMOG p.100)."
+            },
+            {
+              "tier": "serve",
+              "text": "Always reference the Broselow tape (SMOG p.100)."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Atropine, Dose and Administration: Pediatric, Symptomatic Bradycardia (PALS 2020), p.100",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.100 PEDIATRIC: \"Symptomatic Bradycardia IV/IO • 0.02 mg/kg (Minimum dose is 0.1 mg. Maximum single dose of 0.5 mg. May repeat once in 3-5 minutes. Maximum total dose is 1 mg (PALS, 2020)\". ENGINE GAP: the contract schema has a maximum, not a MINIMUM, single dose. Until it has one, the 0.1 mg floor is a serve caution only, and resolve_dose will compute under-0.1 mg doses below 5 kg.",
+          "flags": [
+            "NEEDS_MINIMUM_DOSE_SUPPORT"
+          ]
+        },
+        {
+          "indication": "nerve agent or organophosphate poisoning — autoinjector",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 2.0,
+            "units": "mg",
+            "rule": "2 mg per autoinjector"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "None in life-threatening organophosphate, carbamate or nerve agent poisoning (SMOG CY24 p.100: \"NO contraindications should prevent use of atropine in setting of life-threatening organophosphate, carbamate, or nerve agent poisoning\")"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Mild symptoms (more than 2 mild symptoms): 2 mg IM once exposure is known or strongly suspected. Severe symptoms (any severe symptom): three 2 mg doses in rapid succession (SMOG p.100)."
+            },
+            {
+              "tier": "serve",
+              "text": "Follow with 2-PAM chloride autoinjector (SMOG p.100). The ATNAA delivers 2.1 mg atropine with pralidoxime (CBRN ID69 p.10)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Atropine, Dose and Administration: Adult, IM (AtroPen), p.100",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Chemical, Biological, Radiological and Nuclear Injury Response Part 2: Medical Management, CPG ID69, 25 Mar 2022 — Nerve agents — autoinjector contents, p.10",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Chemical_Biological_Radiological_Nuclear_Injury_Response_Part_2_Medical_Management_25_Mar_2022_ID69.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.100 ADULT: \"IM (AtroPen®): Follow with 2-Pam Chloride auto injector. • Mild symptoms (>2 mild symptoms): 2 mg once an exposure is known or strongly suspected. • Severe symptoms (>1 severe symptom): Three 2 mg doses in rapid succession.\" CBRN Part 2 ID69 p.10: \"2.1 mg in each ATNAA autoinjector and 2 mg in each separate atropine autoinjector; initial dose 6.1 mg (3 …\". PROVENANCE AND CONFLICT NOTES (not shown to the medic): If 3 ATNAA and 1 CANA are inadequate, JTS gives escalating IV/IO atropine — see the IV entry."
+        },
+        {
+          "indication": "nerve agent poisoning — escalating IV/IO bolus",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 16.0,
+            "units": "mg",
+            "rule": "the escalation stated reaches 16 mg per bolus"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "None in life-threatening organophosphate, carbamate or nerve agent poisoning (SMOG CY24 p.100: \"NO contraindications should prevent use of atropine in setting of life-threatening organophosphate, carbamate, or nerve agent poisoning\")"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "After 3 ATNAA and 1 CANA with an inadequate response: escalating boluses every 3-5 minutes, 2 mg then 4, 8, 16 mg, until symptom control (CBRN ID69 p.28). Scopolamine 0.8 mg IV/IO is the preferred alternative."
+            },
+            {
+              "tier": "serve",
+              "text": "Once controlled, start an atropine drip at 10% of the total bolus dose per hour, including the 6 mg from the 3 ATNAAs (CBRN ID69 p.28)."
+            },
+            {
+              "tier": "serve",
+              "text": "This dose is the FIRST bolus only (2 mg); each later bolus doubles."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Chemical, Biological, Radiological and Nuclear Injury Response Part 2: Medical Management, CPG ID69, 25 Mar 2022 — Nerve agent treatment protocol — atropine escalation, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Chemical_Biological_Radiological_Nuclear_Injury_Response_Part_2_Medical_Management_25_Mar_2022_ID69.pdf",
+              "retrieved_date": "2026-09-19"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Atropine, Dose and Administration: Adult, nerve agent poisoning, p.100",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. CBRN Part 2 ID69 p.28: \"Give bolus dose atropine in escalating doses every 3-5 minutes. Start with 2mg followed by 4mg, 8mg, 16mg. Once symptom control is achieved, start an atropine drip prepared as outlined above with a dose rate at 10% of the bolus dose (including the 6mg of atropine in the 3 initial ATNAAs) per hour.\" PROVENANCE AND CONFLICT NOTES (not shown to the medic): SMOG p.100 (IV/IM, with 2-PAM): initial 1-6 mg, repeat every 3-5 minutes, doubling if no atropinization."
+        },
+        {
+          "indication": "organophosphate or carbamate poisoning",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.05,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "None in life-threatening organophosphate, carbamate or nerve agent poisoning (SMOG CY24 p.100: \"NO contraindications should prevent use of atropine in setting of life-threatening organophosphate, carbamate, or nerve agent poisoning\")"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Repeat every 5-10 minutes as needed; double the dose if the previous one did not produce atropinization (SMOG p.100)."
+            },
+            {
+              "tier": "serve",
+              "text": "Severe nerve agent poisoning: 1 mg IV/IO every 3 minutes, then once improved restrict to 10-20% of the original dose (SMOG p.100)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Atropine, Dose and Administration: Pediatric, Organophosphate or carbamate insecticide, p.100",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-19"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.100 PEDIATRIC: \"Organophosphate or carbamate insecticide: IV/IO: Initial: 0.05-0.1 mg/kg; repeat every 5-10 minutes as needed, double dose if previous dose does not induce atropinization.\" \"Severe Nerve Agent Poisoning: IV/IO 1mg every 3 min.\" PROVENANCE AND CONFLICT NOTES (not shown to the medic): SMOG gives a RANGE, 0.05-0.1 mg/kg; the engine serves the minimum unless the owner rules otherwise."
         }
       ]
     }
