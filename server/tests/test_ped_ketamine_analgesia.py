@@ -227,7 +227,7 @@ def test_an_infant_rsi_brief_leads_with_the_blocked_induction_not_the_paralytic(
     assert "rocuronium" not in lines[0]
     assert "rocuronium" in lines[1] and lines[1].endswith(
         f"— {brief.PARALYTIC_QUALIFIER}.")
-    assert "Draw 0.5 mL of 10mg/mL rocuronium IV (5 mg)" in _section(r["response"], "GIVE")
+    assert "Draw 0.500 mL of 10mg/mL rocuronium IV (5 mg)" in _section(r["response"], "GIVE")
 
 
 def test_the_card_and_the_brief_agree_on_the_blocked_induction_phrasing():

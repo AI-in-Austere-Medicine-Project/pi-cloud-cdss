@@ -51,17 +51,15 @@ def _all_briefs(served):
 def test_the_ketamine_brief_is_three_slots(served):
     """25 kg child, ketamine IV for pain: SMOG's paediatric 0.2 mg/kg. The
     entry's contraindications are Hypersensitivity, which slot (c) drops, and
-    "Age < 3 months", which is specific to this indication and fills it."""
+    "Age < 3 months", which a 25 kg child clears — so slot (c) is empty."""
     r = served["ped_ketamine_iv"]
     assert r["brief"].splitlines() == [
-        # (a) the GIVE line verbatim, its per-kg basis, the conditional volume,
-        # and the entry's declared push dilution (#65)
-        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). At 50 mg/mL that's 0.1 mL — confirm vial. "
-        "Diluted to 5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL.",
+        # (a) the GIVE line verbatim, its per-kg basis, and — the undiluted
+        # 0.100 mL being under 0.2 mL — the declared push dilution (#65) alone
+        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). Dilute first — 5 mg/mL "
+        "(1 mL of 50 mg/mL + 9 mL normal saline): 1 mL — confirm vial.",
         # (b) DO THIS step 3: step 1 is equipment preamble, step 2 restates the dose
         "Reassess pain, airway, respirations q5min.",
-        # (c) the specific contraindication
-        "Contraindicated — ketamine: Age < 3 months.",
     ]
     # The card underneath is untouched: still no volume, still asks the vial.
     assert "ketamine IV: 5 mg. NO VOLUME" in r["response"]
@@ -71,10 +69,9 @@ def test_the_ketamine_brief_is_three_slots(served):
 
 def test_every_line_of_the_ketamine_brief_traces_to_the_card_or_a_computation(served):
     r = served["ped_ketamine_iv"]
-    line_a, line_b, line_c = r["brief"].splitlines()
+    line_a, line_b = r["brief"].splitlines()
     assert "ketamine IV: 5 mg" in r["response"]
     assert line_b in r["response"]
-    assert "Age < 3 months" in r["response"].split("**CONTRAINDICATIONS**")[1]
     # 0.2 mg/kg is the signed paediatric contract's rate for this indication;
     # 25 kg the confirmed weight; their product is the printed dose.
     entry = next(e for e in oc.drug_contracts.servable_entries()["ketamine"]
@@ -85,9 +82,10 @@ def test_every_line_of_the_ketamine_brief_traces_to_the_card_or_a_computation(se
     # The volume is the one the card serves once the medic confirms the vial:
     # resolve_dose_volume goes through drug_concentrations.volume_ml, and with
     # the vial confirmed that returns the same number.
-    assert oc.drug_concentrations.volume_ml("ketamine", 5.0, {"ketamine": 50.0}) == (0.1, 50.0), \
-        "the conditional volume disagrees with the volume the card serves once confirmed"
-    assert "At 50 mg/mL that's 0.1 mL" in line_a
+    # 5 mg at the declared 5 mg/mL dilution is 1 mL.
+    dil = oc.drug_contracts.push_dilution(entry)
+    assert dil["concentration_mg_ml"] == 5.0
+    assert "5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL" in line_a
 
 
 def test_the_dose_line_is_verbatim(served):
@@ -190,12 +188,13 @@ def test_no_brief_says_no_volume_in_capitals(served):
 def test_hypersensitivity_is_in_no_brief(served):
     for name, b in _all_briefs(served).items():
         assert not re.search(r"hypersensitiv|allerg", b, re.IGNORECASE), f"{name}: {b}"
-    # ...and it is still on the card. The section no longer folds for this
-    # card: "Age < 3 months" is a specific contraindication, and a section
-    # carrying one is critical.
+    # ...and it is still on the card. The section folds for this card: its
+    # one specific contraindication, "Age < 3 months", cannot apply to a 25 kg
+    # child, so nothing in it is critical.
     r = served["ped_ketamine_iv"]
     assert "Hypersensitivity" in r["response"]
-    assert "CONTRAINDICATIONS" in r["critical_sections"]
+    assert "Age < 3 months" in r["response"].split("**CONTRAINDICATIONS**")[1]
+    assert "CONTRAINDICATIONS" not in r["critical_sections"]
 
 
 def test_allergy_boilerplate_in_dont_stays_out_of_the_brief():

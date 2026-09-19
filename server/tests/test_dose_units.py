@@ -209,7 +209,7 @@ def test_a_served_volume_still_states_its_concentration(monkeypatch):
                          dose_mg=7.0, display_value=7.0, display_units="mg",
                          source="test"))
     line = oc.render_give_line(cand)
-    assert "0.7 mL of 10mg/mL" in line and "7 mg" in line
+    assert "0.700 mL of 10mg/mL" in line and "7 mg" in line
 
 
 # ═══════════════════════════════════════════════════════════════════════════

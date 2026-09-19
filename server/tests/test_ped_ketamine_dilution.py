@@ -58,16 +58,31 @@ def test_25kg_cautions_carry_the_dilution_and_the_brief_its_volume():
     # CAUTIONS are fixed text; the weight's own volume is the brief's:
     # 0.2 mg/kg x 25 kg = 5 mg, at 5 mg/mL = 1 mL.
     b = brief.build_brief(card, oc.MEDICATION_TERMS, weight_kg=25.0)["brief"]
-    assert "Diluted to 5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL." in b
+    assert "Dilute first — 5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL — confirm vial." in b
 
 
-def test_the_single_vial_brief_volume_is_still_there():
+def test_the_single_vial_volume_moves_to_vial_math_under_0_2_ml():
+    """25 kg: 5 mg is 0.100 mL of the vial — drawable, but under the brief's
+    0.2 mL floor where a dilution is declared. The brief gives the diluted
+    instruction alone; the undiluted volume is the Vial math chip's."""
     card = oc.build_ketamine_analgesia_response(_ctx(25.0))
     assert "ketamine IV: 5 mg. NO VOLUME" in card, "the card now draws from somewhere"
     b = brief.build_brief(card, oc.MEDICATION_TERMS, weight_kg=25.0)["brief"]
-    assert "At 50 mg/mL that's 0.1 mL — confirm vial." in b
+    assert "At 50 mg/mL" not in b and "0.100" not in b and "Diluted to" not in b
+    assert brief.vial_math_lines(card, 25.0) == [
+        "ketamine IV 5 mg: 0.100 mL of 50 mg/mL undiluted — confirm vial."]
     assert dcn.signed_presentations("ketamine") and \
         [p["concentration_mg_ml"] for p in dcn.signed_presentations("ketamine")] == [50.0]
+
+
+def test_at_0_2_ml_and_over_the_brief_keeps_both_volumes():
+    """50 kg: 10 mg is 0.200 mL of the vial — not under the floor, so the brief
+    still says it, then the dilution; Vial math has nothing to add."""
+    card = oc.build_ketamine_analgesia_response(_ctx(50.0))
+    b = brief.build_brief(card, oc.MEDICATION_TERMS, weight_kg=50.0)["brief"]
+    assert ("At 50 mg/mL that's 0.200 mL — confirm vial. Diluted to 5 mg/mL "
+            "(1 mL of 50 mg/mL + 9 mL normal saline): 2 mL.") in b
+    assert brief.vial_math_lines(card, 50.0) == []
 
 
 def test_below_the_vial_floor_the_refusal_names_the_dilution():
@@ -84,7 +99,7 @@ def test_below_the_vial_floor_the_refusal_names_the_dilution():
     card = oc.build_ketamine_analgesia_response(_ctx(10.0))
     b = brief.build_brief(card, oc.MEDICATION_TERMS, weight_kg=10.0)["brief"]
     assert b.startswith("ketamine IV: 2 mg (0.2 mg/kg × 10 kg). Dilute first — "
-                        "5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 0.4 mL — confirm vial.")
+                        "5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 0.400 mL — confirm vial.")
 
 
 def test_an_adult_is_never_told_to_dilute():

@@ -193,7 +193,7 @@ def test_a_signed_concentration_produces_a_volume(signed_ketamine):
     # about arithmetic, in the file least likely to be reviewed when it moves.
     expected = round(d.dose_mg / 50.0, 2)
     assert d.volume_ml == expected
-    assert f"Draw {expected:g} mL of 50mg/mL" in oc.render_give_line(d)
+    assert f"Draw {dcn.format_volume(expected)} mL of 50mg/mL" in oc.render_give_line(d)
 
 
 def test_the_volume_moves_with_the_declared_concentration(monkeypatch):
@@ -575,6 +575,8 @@ def test_the_card_stays_silent_about_an_unconfirmed_volume():
     """The pinned kit signs ONE ketamine vial and the card still asks which, so
     the volume is computable and the BRIEF states it conditionally. The card
     does not: owner decision 2026-09-18, one conditional sentence per answer.
+    Nor does its TLDR say "Volume not computed" (fix/brief-polish): the volume
+    is computed, so that sentence was stale. The TLDR states the mg alone.
     """
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
@@ -582,7 +584,9 @@ def test_the_card_stays_silent_about_an_unconfirmed_volume():
     assert dcn.single_signed_volume("ketamine", 20.0) == (0.4, 50.0), \
         "the volume IS computable on this kit; the point is that the card does not say so"
     assert "confirm vial" not in text.lower().replace("**confirm vial**", "")
-    assert "Volume not computed" in text
+    assert "Volume not computed" not in text
+    tldr = text.split("**TLDR**")[1].split("**")[0]
+    assert "ketamine IV = 20mg." in tldr and "mL" not in tldr
     give = text.split("**GIVE**")[1].split("**")[0]
     assert "NO VOLUME" in give and oc.CONFIRM_CONCENTRATION_LINE in give
     assert "**CONFIRM VIAL**" in text
