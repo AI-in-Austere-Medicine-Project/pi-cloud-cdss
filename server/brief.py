@@ -78,6 +78,16 @@ import re
 
 MAX_LINES = 3
 
+# An RSI card whose induction agent the patient's stated age rules out prints
+# "<drug> induction: contraindicated … No dose served — …" in GIVE (owned by
+# openai_client.build_rsi_response; test_ped_ketamine_analgesia pins the two
+# together). OWNER RULING 2026-09-19 (#66): a brief never leads with a
+# paralytic when the induction agent is blocked. The blocked line is slot 1,
+# and a paralytic dose carries PARALYTIC_QUALIFIER.
+_BLOCKED_INDUCTION_RE = re.compile(
+    r"^\S.*? induction: contraindicated\b.*\bNo dose served\b", re.IGNORECASE)
+PARALYTIC_QUALIFIER = "only after an induction agent is given"
+
 # Owned by openai_client.build_safety_hold. Restated rather than imported so
 # this module stays importable on its own; test_brief pins the two together.
 HOLD_OPENER = "Clinical safety hold. This response was blocked."
@@ -471,6 +481,16 @@ def _build(response_text, medication_terms, weight_kg):
     clauses = [dose_clause(item) for _, item in dose_items]
     dosed = _dosed_drugs(clauses, medication_terms)
     doses = [dose_line(item, weight_kg) for _, item in dose_items]
+
+    # A blocked induction agent is required, and it goes ahead of every dose.
+    blocked = [_clean(item) for name, lines in sections if name in DOSE_SECTIONS
+               for item in _top_items(lines)
+               if _BLOCKED_INDUCTION_RE.match(_clean(item))]
+    if blocked:
+        lead += blocked
+        doses = [f"{line.rstrip('.')} — {PARALYTIC_QUALIFIER}."
+                 if "paralytic" in _indication(item).lower() else line
+                 for line, (_, item) in zip(doses, dose_items)]
     if len(dose_items) > 1:
         labels = [dose_label(name, item) for name, item in dose_items]
         doses = [f"[{label}] {line}" if label else line

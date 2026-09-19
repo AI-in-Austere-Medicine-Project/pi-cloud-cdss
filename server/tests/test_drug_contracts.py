@@ -1964,7 +1964,10 @@ def test_ruling_9_re_authoring_the_entry_re_signed_and_re_declared_it():
     """Editing what a signed entry says is a change to what was signed."""
     bolus = next(e for e in dc.DRUGS["ketamine"]["dose_entries"]
                  if "repeated bolus" in e["indication"])
-    assert bolus["review_date"] == "2026-08-26"
+    # Reviewed no earlier than the declaration it carries. Later reviews that
+    # leave the declared dose alone (the 2026-09-19 age floor, #66) move the
+    # review date, not the declaration.
+    assert bolus["review_date"] >= bolus["owner_declaration"]["declared_on"]
     assert bolus["owner_declaration"]["declared_on"] == "2026-08-26"
     assert bolus["reviewed_by"] in dc.SIGNOFF_AUTHORS
     assert dc.entry_is_servable(bolus)[0]

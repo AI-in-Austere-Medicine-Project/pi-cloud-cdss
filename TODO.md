@@ -354,6 +354,22 @@ deliberately did NOT touch.
             has not declared"). Once one is declared for a drug, it should name
             it.
 
+- [ ] **Weight-only infant guard for ketamine.** Owner decision 2026-09-19
+      (#66). The under-3-months age floor (`min_age_months`) blocks only a
+      STATED age; with no age, a 4 kg infant is dosed and shown "Age < 3
+      months" as a contraindication. Wanted: when the confirmed weight is
+      **< 5 kg and the age is unknown**, hold the peds-only ketamine entries
+      and ask ONE question — the age — before serving; a stated age then
+      either clears the floor or triggers the existing block. Scope: peds-only
+      entries (analgesia, RSI induction, dissociative sedation); the adult|peds
+      entries are enforced by the same floor once the age is known.
+      - Open: where the question lives (a pre-gate beside 2j-0, like the
+        weight and route asks), and whether the < 5 kg threshold should come
+        from a signed source rather than a fixed number.
+      - Tests: 4 kg, no age → one age question, no ketamine dose; then
+        "2 months" → block; then "4 months" → dose. 5 kg, no age → dose as
+        today.
+
 - [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
       §1, priority entry 9 — "asked for 3 times; does not exist". Entries 0, 26
       and 38 all wanted the same thing: BP targets, sedation, vent targets,

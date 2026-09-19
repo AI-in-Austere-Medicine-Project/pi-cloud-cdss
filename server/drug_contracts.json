@@ -123,7 +123,7 @@
             },
             {
               "tier": "detail",
-              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
+              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-19 (#66): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
             }
           ],
           "sources": [
@@ -151,8 +151,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-26",
-          "version": "0.3.1",
+          "review_date": "2026-09-19",
+          "version": "0.4.0",
           "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 (ruling 7) selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. A full search of ID61 plus ID91, ID29, ID80, ID39, ID40, ID57, ID63, ID70 and ID73 then found the shape well sourced and the VALUE stated nowhere. OWNER DECLARATION 2026-08-25 (ruling 8) therefore replaces MIGRATED_UNSOURCED: the number is declared on the owner's clinical judgement under OWNER_DECLARED, recorded in owner_declaration, and shown as owner-declared everywhere the dose is served. It is no longer a migrated hardcode awaiting corroboration — it is a value someone signed for by name. OWNER RULINGS 9 and 11, 2026-08-26: the single caution carrying both the repeat interval and the cross-reference was re-authored into two — the interval serves, the cross-reference is detail — and the hand-written declaration banner was deleted as a duplicate of the one serve_cautions() generates from owner_declaration itself. The declaration is re-made on the same value and the same reasoning, dated 2026-08-26.",
           "flags": [
             "OWNER_DECLARED"
@@ -267,7 +267,7 @@
             },
             {
               "tier": "detail",
-              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
+              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-19 (#66): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
             }
           ],
           "sources": [
@@ -295,8 +295,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0",
+          "review_date": "2026-09-19",
+          "version": "0.3.0",
           "extraction_notes": "TIER 1 VALUE. NASEMSO gives 0.25 mg/kg IM/IV/IO for moderate to severe pain, capped at 25 mg initial and 100 mg cumulative. This CONFLICTS with the migrated hardcoded contract, which uses 0.3 mg/kg IV with no cap and 2.0 mg/kg IM with no cap. Both entries are kept. The IM divergence is the serious one: for an 80 kg patient the hardcode gives 160 mg IM where NASEMSO caps at 25 mg — roughly SIX TIMES. Adjudicate before signing either.",
           "adjudication": "OWNER RULING 2026-08-25: JTS ID61's 0.1-0.2 mg/kg and NASEMSO's 0.25 mg/kg are the same clinical range for sub-dissociative analgesia. Both kept and both cited; this is not a conflict.",
           "adjudicated_on": "2026-08-25"
@@ -527,8 +527,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0",
+          "review_date": "2026-09-19",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
         },
@@ -590,8 +590,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0",
+          "review_date": "2026-09-19",
+          "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
         },
@@ -774,8 +774,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.3.0",
+          "review_date": "2026-09-19",
+          "version": "0.4.0",
           "adjudication": "OWNER RULING 2026-08-25: this is the STANDARD induction dose. The reduced dose for haemodynamic compromise is a separate entry, not a competing value. The 1.5 mg/kg hardcode is retired as unsourced.",
           "adjudicated_on": "2026-08-25"
         },
@@ -818,7 +818,7 @@
             },
             {
               "tier": "detail",
-              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-18 (#65): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
+              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-19 (#66): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
             }
           ],
           "sources": [
@@ -853,8 +853,8 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.3.0",
+          "review_date": "2026-09-19",
+          "version": "0.4.0",
           "adjudication": "OWNER RULING 2026-08-25: ruled for the repeated-bolus shape. This is austere/prehospital transport, where an infusion pump is often not available, so 0.5 mg/kg IV q20-30min is the executable option and is the preferred answer. JTS ID61's load-then-infuse is NOT rejected — it is recorded as the alternate for pump-capable settings and kept as its own entry, so the guidance is there when the equipment is. The two are no longer a conflict: they are one ruling about equipment, not two opinions about a dose.",
           "adjudicated_on": "2026-08-25"
         },

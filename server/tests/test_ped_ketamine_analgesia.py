@@ -140,7 +140,7 @@ def test_an_age_floor_is_stated_where_the_medic_reads_it():
 
 def test_every_ketamine_entry_a_child_can_be_served_has_the_age_floor():
     """SMOG's "Children <3 mo. age" is a contraindication to the drug, not to
-    one indication (owner ruling 2026-09-18)."""
+    one indication (owner ruling 2026-09-19)."""
     for e in dc.servable_entries()["ketamine"]:
         if e["population"] != "adult":
             assert e.get("min_age_months") == 3, e["indication"]
@@ -214,3 +214,84 @@ def test_a_population_specific_entry_supersedes_a_shared_one_only_on_the_same_ro
              ("e", shared_iv)]
     assert dc._prefer_population_specific(pairs) == [
         ("d", shared_im), ("d", peds_iv), ("d", other), ("e", shared_iv)]
+
+
+def test_an_infant_rsi_brief_leads_with_the_blocked_induction_not_the_paralytic():
+    """OWNER RULING 2026-09-19: never lead a brief with a paralytic when the
+    induction agent is blocked. Slot 1 is the blocked line, slot 2 the
+    paralytic with its qualifier; the dose itself stays on the card."""
+    import brief
+    r = _served("RSI a 2 month old 5kg with ketamine and rocuronium")
+    lines = r["brief"].splitlines()
+    assert lines[0].startswith("ketamine induction: contraindicated under 3 months")
+    assert "rocuronium" not in lines[0]
+    assert "rocuronium" in lines[1] and lines[1].endswith(
+        f"— {brief.PARALYTIC_QUALIFIER}.")
+    assert "Draw 0.5 mL of 10mg/mL rocuronium IV (5 mg)" in _section(r["response"], "GIVE")
+
+
+def test_the_card_and_the_brief_agree_on_the_blocked_induction_phrasing():
+    import brief
+    ctx = oc.PatientContext(confirmed_weight_kg=5.0, weight_source="stated",
+                            route_preference="IV", is_pediatric=True, age_years=2 / 12)
+    card = oc.build_rsi_response(ctx, "RSI 2 month old 5kg ketamine and roc")
+    give = [l[2:] for l in _section(card, "GIVE").splitlines() if l.startswith("- ")]
+    assert any(brief._BLOCKED_INDUCTION_RE.match(l) for l in give), give
+
+
+def test_a_paralytic_keeps_its_plain_brief_line_when_induction_is_served():
+    import brief
+    r = _served("RSI a 25 kg child with ketamine and rocuronium")
+    assert brief.PARALYTIC_QUALIFIER not in r["brief"]
+    assert not brief._BLOCKED_INDUCTION_RE.match(r["brief"].splitlines()[0])
+
+
+
+# ── the adult output this PR must not change ─────────────────────────────────
+#
+# OWNER DECISION 2026-09-19: the edited adult|peds entries get a version bump,
+# so the dose's source string changes; what the adult medic reads must not.
+# Pinned: the dose lines, the contraindications and the cautions, as the #65
+# base rendered them. Not pinned: the source/version string.
+# Captured from the #65 base (fe0a2a6) with the deployment kit, 2026-09-19.
+ADULT_BASELINE = {
+    "adult80_pain": {
+        "GIVE": "- ketamine IV: 20 mg. NO VOLUME — confirm concentration to compute volume. Indication: moderate to severe pain / analgesia.",
+        "CONTRAINDICATIONS": "- ketamine — moderate to severe pain / analgesia: Hypersensitivity",
+        "CAUTIONS": "- ketamine — moderate to severe pain / analgesia:\n  - NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.\n  - Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.\n- Ask **\"why this dose?\"** for the citations, the maxima, and anything held back from this list."
+    },
+    "adult80_rsi": {
+        "GIVE": "- ketamine IV: 160 mg. NO VOLUME — confirm concentration to compute volume. Indication: RSI induction.\n- Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg). Indication: RSI paralytic.",
+        "POST-INTUBATION SEDATION": "- ketamine IV: 40 mg. NO VOLUME — confirm concentration to compute volume. Indication: post-intubation sedation — repeated bolus (no infusion pump).",
+        "CONTRAINDICATIONS": "- ketamine — RSI induction: Hypersensitivity",
+        "CAUTIONS": "- ketamine — RSI induction:\n  - Give BEFORE the paralytic. Confirm weight and route.\n  - JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.\n  - JTS ID39: unstable patients require a reduced dosage of induction agent.\n  - Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3 mg/kg IV/IO is listed second line.\n- rocuronium — RSI paralytic:\n  - JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1 mg/kg IV/IO or succinylcholine 1.5 mg/kg IV/IO.\n- ketamine — post-intubation sedation — repeated bolus (no infusion pump):\n  - OWNER-DECLARED dose — not a guideline value.\n  - After tube confirmed only. Not the induction dose.\n  - Repeat q20-30min. Preferred where there is no pump.\n- Ask **\"why this dose?\"** for the citations, the maxima, and anything held back from this list."
+    },
+    "adult80_rsi_pump": {
+        "GIVE": "- ketamine IV: 160 mg. NO VOLUME — confirm concentration to compute volume. Indication: RSI induction.\n- Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg). Indication: RSI paralytic.",
+        "POST-INTUBATION SEDATION": "- ketamine IV: 80 mg. NO VOLUME — confirm concentration to compute volume. Indication: ongoing sedation — loading dose (infusion pump available).",
+        "CONTRAINDICATIONS": "- ketamine — RSI induction: Hypersensitivity",
+        "CAUTIONS": "- ketamine — RSI induction:\n  - Give BEFORE the paralytic. Confirm weight and route.\n  - JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.\n  - JTS ID39: unstable patients require a reduced dosage of induction agent.\n  - Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3 mg/kg IV/IO is listed second line.\n- rocuronium — RSI paralytic:\n  - JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1 mg/kg IV/IO or succinylcholine 1.5 mg/kg IV/IO.\n- ketamine — ongoing sedation — loading dose (infusion pump available):\n  - Give as an IV push over 60 SECONDS. JTS ID61 warns of respiratory depression at doses above 1 mg/kg, especially with fast IV/IO administration.\n  - Followed by an infusion for continuous sedation — this is a loading dose, not a standalone one.\n  - JTS ID61: ketamine is safe for use in TBI and/or eye injury.\n  - Sialorrhea (hypersalivation) can be problematic in an austere setting.\n- Ask **\"why this dose?\"** for the citations, the maxima, and anything held back from this list."
+    }
+}
+
+ADULT_QUERIES = {
+    "adult80_pain": "80 kg adult, ketamine IV for pain",
+    "adult80_rsi": "RSI an 80kg male trauma patient ketamine and rocuronium",
+    "adult80_rsi_pump": "RSI 80kg male ketamine and roc, infusion pump available",
+}
+
+
+@pytest.mark.parametrize("case", sorted(ADULT_QUERIES))
+def test_the_adult_dose_lines_and_cautions_are_unchanged(case):
+    r = _served(ADULT_QUERIES[case])
+    for name, expected in ADULT_BASELINE[case].items():
+        got = r["response"].split(f"**{name}**")[1].split("\n**")[0].strip("\n")
+        assert got == expected, f"{case}: {name} changed"
+
+
+def test_an_edited_adult_entry_differs_only_in_its_version_string():
+    import re
+    ctx = _ctx(80.0, ped=False)
+    d = oc._contract_analgesia_candidate(ctx)
+    assert re.fullmatch(rf"drug_contract:ketamine:{re.escape(ANALGESIA)}:IV:v\d+\.\d+\.\d+",
+                        d.source), d.source
