@@ -996,6 +996,24 @@ if _UNEXPECTED:
           "check that resolve_drugs() picks the one you mean")
 
 
+# A drug CLASS whose name begins with a drug's alias. "calcium channel
+# blocker" is a class of poisons, not calcium gluconate; resolving it as
+# calcium served the hyperkalaemia contract to a CCB overdose and took the
+# query off the general-reference path it belongs on. Masked, span-preserving,
+# before any alias is matched.
+CLASS_PHRASES = (
+    r"\bcalcium[\s-]+channel[\s-]+block\w*",
+)
+
+
+def mask_class_phrases(text: str) -> str:
+    """`text` with every CLASS_PHRASES match blanked, same length, same offsets."""
+    out = text or ""
+    for pattern in CLASS_PHRASES:
+        out = re.sub(pattern, lambda m: " " * len(m.group(0)), out, flags=re.IGNORECASE)
+    return out
+
+
 def resolve_drugs(query: str) -> list:
     """Generic names named in the query, word-anchored, longest match wins.
 
@@ -1004,7 +1022,7 @@ def resolve_drugs(query: str) -> list:
     combination product is never shadowed by one of its own components.
     Order is file order, so the contract is deterministic for a given query.
     """
-    q = (query or "").lower()
+    q = mask_class_phrases((query or "").lower())
     idx = alias_index()
     matched = []
     for term, generic in idx.items():
