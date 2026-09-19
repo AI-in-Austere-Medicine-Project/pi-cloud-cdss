@@ -332,6 +332,18 @@ deliberately did NOT touch.
       avoided" (emergence phenomenon). None of that is in the contract entry.
       Decide whether the paediatric analgesia dose stays at 0.25 mg/kg with
       NASEMSO's all-ages scope, or gets its own peds entry.
+      - [x] **Decided 2026-09-18 (#65): its own peds entry.** SMOG CY24 p.127,
+            IV **0.2 mg/kg** (the top of its 0.1-0.2 range), "Age < 3 months"
+            contraindication — a STATED age under 3 months blocks the dose on
+            every route (`min_age_months`), and on every ketamine entry a
+            child can be served (RSI induction, post-intubation and loading
+            sedation, dissociative sedation); an unknown age does not — and
+            "avoid 0.5-0.9 mg/kg IV" caution. For a child it
+            supersedes NASEMSO's 0.25 mg/kg, which stays signed for adults and
+            is named on the peds entry as the general-EBM alternate. SMOG's
+            paediatric IM 0.5 mg/kg is NOT entered. At 0.2 mg/kg the vial draw
+            is 0.004 mL/kg, refused below 12.5 kg — which is what the dilution
+            above now has to cover, on the peds entry rather than on NASEMSO's.
 
       **Follow-ons once the entry carries a dilution caution:**
       - [ ] The brief's conditional volume should say the dilution's volume, or
@@ -341,6 +353,22 @@ deliberately did NOT touch.
       - [ ] `drawable()`'s refusal text names no dilution ("a dilution the kit
             has not declared"). Once one is declared for a drug, it should name
             it.
+
+- [ ] **Weight-only infant guard for ketamine.** Owner decision 2026-09-19
+      (#66). The under-3-months age floor (`min_age_months`) blocks only a
+      STATED age; with no age, a 4 kg infant is dosed and shown "Age < 3
+      months" as a contraindication. Wanted: when the confirmed weight is
+      **< 5 kg and the age is unknown**, hold the peds-only ketamine entries
+      and ask ONE question — the age — before serving; a stated age then
+      either clears the floor or triggers the existing block. Scope: peds-only
+      entries (analgesia, RSI induction, dissociative sedation); the adult|peds
+      entries are enforced by the same floor once the age is known.
+      - Open: where the question lives (a pre-gate beside 2j-0, like the
+        weight and route asks), and whether the < 5 kg threshold should come
+        from a signed source rather than a fixed number.
+      - Tests: 4 kg, no age → one age question, no ketamine dose; then
+        "2 months" → block; then "4 months" → dose. 5 kg, no age → dose as
+        today.
 
 - [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
       §1, priority entry 9 — "asked for 3 times; does not exist". Entries 0, 26
