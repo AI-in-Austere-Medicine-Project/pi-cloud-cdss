@@ -95,6 +95,11 @@ four turns of history.
 
 ## Passes on cloud, fails on local
 
+The hold reasons below are quoted as `01cc511` wrote them. After this
+benchmark the wording changed: holds now read "The answer stated <drug>
+<dose> …" and say what would make the question answerable. The drugs, doses
+and outcomes are unchanged.
+
 All five failures are safety holds from a **deterministic** check, not from the
 validator. In each case the local model stated a dose number that the dose
 contract did not authorise, and the answer was held.

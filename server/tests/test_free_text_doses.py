@@ -82,8 +82,9 @@ def test_local_1_mg_iv_fentanyl_is_blocked_even_when_the_validator_says_safe(
 def test_the_post_check_alone_blocks_it():
     det = oc.run_deterministic_checks(QUERY, FREELANCE, _ctx(), _allowed())
     assert det.passed is False
-    assert det.issues == ["States fentanyl 1 mg, which is not an ALLOWED_DOSES "
-                          "value (0.08mg)."]
+    assert det.issues == ["The answer stated fentanyl 1 mg, which is not the signed "
+                          "fentanyl dose for this patient. Ask again for fentanyl "
+                          "dosing to get the signed dose."]
 
 
 def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_cloud(
@@ -142,12 +143,50 @@ def test_what_is(text, drug):
 
 def test_a_number_goes_with_the_nearest_drug_in_its_clause():
     text = "**TREAT**\n1. Give fentanyl 80 mcg IN, then ketamine 20 mg IV."
-    issues = oc.free_text_dose_issues(text, _allowed())
-    assert issues == ["States ketamine 20 mg, but ALLOWED_DOSES authorises no "
-                      "ketamine dose for this patient."]
+    issues = oc.free_text_dose_issues(text, _allowed(), _ctx())
+    assert len(issues) == 1 and "stated ketamine 20 mg" in issues[0], issues
 
 
 def test_no_contract_means_no_free_text_dose():
     """SC-6's rule for the canonical line, now for any form of it."""
     issues = oc.free_text_dose_issues("**TREAT**\n1. Fentanyl 50 mcg IV.", [])
-    assert issues and "authorises no fentanyl dose" in issues[0]
+    assert issues and "stated fentanyl 50 mcg with no signed fentanyl dose" in issues[0]
+
+
+# ── what the medic reads ─────────────────────────────────────────────────────
+
+NO_WEIGHT = oc.PatientContext()
+
+
+@pytest.mark.parametrize("text,allowed,ctx,expected", [
+    # A drug with no signed contract at all: not answerable here yet.
+    ("**TREAT**\n- 2g TXA IV/IO over 10 min.", [], _ctx(),
+     "The answer stated tranexamic acid 2g, but EdgeCDSS has no signed tranexamic "
+     "acid dose. It cannot be answered here until one is signed: use local "
+     "protocol or medical control."),
+    # A signed contract exists, but nothing builds without a weight.
+    ("**TREAT**\n- Titrate naloxone 2–4mg to respiratory effort.", [], NO_WEIGHT,
+     "The answer stated naloxone 2–4mg with no signed naloxone dose for this "
+     "patient: no weight is confirmed. Give the weight in kg and ask for "
+     "naloxone by name."),
+    # A signed contract exists; this question did not build it.
+    ("**TREAT**\n- Use lorazepam 4mg IV now.", [], _ctx(),
+     "The answer stated lorazepam 4mg with no signed lorazepam dose for this "
+     "question. Ask for lorazepam by name, with what it is for, to get the "
+     "signed dose."),
+    # The contract was built; the answer stated a different number.
+    ("**TREAT**\n- IN fentanyl 100mcg.", None, _ctx(),
+     "The answer stated fentanyl 100mcg, which is not the signed fentanyl dose "
+     "for this patient. Ask again for fentanyl dosing to get the signed dose."),
+])
+def test_the_hold_names_the_drug_and_dose_and_what_would_answer_it(text, allowed, ctx, expected):
+    allowed = _allowed() if allowed is None else allowed
+    det = oc.run_deterministic_checks("q", text, ctx, allowed)
+    outcome = oc.apply_safety_gate(text, det, {"result": "SAFE", "issues": [],
+                                               "rationale": ""}, ctx, "q")
+    assert outcome.blocked
+    assert outcome.response.startswith("Clinical safety hold.")
+    assert f"- {expected}" in outcome.response, outcome.response
+    # No signed number is quoted in a hold: a dose renders with its cautions.
+    assert "0.08" not in outcome.response and "80 mcg" not in outcome.response
+    assert "ALLOWED_DOSES" not in outcome.response

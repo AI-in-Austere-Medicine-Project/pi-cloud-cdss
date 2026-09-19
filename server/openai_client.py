@@ -2995,7 +2995,8 @@ def _drug_spans(clause: str) -> list:
 
 
 def free_text_dose_issues(response_text: str,
-                          allowed_doses: Optional[List["DoseCandidate"]]) -> list:
+                          allowed_doses: Optional[List["DoseCandidate"]],
+                          patient_ctx: Optional["PatientContext"] = None) -> list:
     """Issues for doses stated outside the canonical GIVE line. See above."""
     allowed = {}
     for d in allowed_doses or []:
@@ -3024,16 +3025,32 @@ def free_text_dose_issues(response_text: str,
                 ok = allowed.get(drug.lower(), [])
                 if all(any(abs(x - a) <= a * 0.05 + 1e-9 for a in ok) for x in stated):
                     continue
-                shown = amt.group(0).strip()
-                if ok:
-                    issues.append(
-                        f"States {drug} {shown}, which is not an ALLOWED_DOSES value "
-                        f"({', '.join(f'{a:g}mg' for a in ok)}).")
-                else:
-                    issues.append(
-                        f"States {drug} {shown}, but ALLOWED_DOSES authorises no "
-                        f"{drug} dose for this patient.")
+                issues.append(_free_dose_hold_line(drug, amt.group(0).strip(),
+                                                   bool(ok), patient_ctx))
     return list(dict.fromkeys(issues))
+
+
+def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
+                         patient_ctx: Optional["PatientContext"]) -> str:
+    """What the medic reads under "Issues identified": the drug and dose the
+    answer stated, why it was held, and what would make it answerable.
+
+    No signed number is quoted here, even where one exists: a dose is shown
+    with its cautions and contraindications or not at all (owner ruling 12),
+    and a hold is not where those render.
+    """
+    said = f"The answer stated {drug} {shown}"
+    if has_contract_dose:
+        return (f"{said}, which is not the signed {drug} dose for this patient. "
+                f"Ask again for {drug} dosing to get the signed dose.")
+    if drug_contracts is not None and not drug_contracts.servable_entries().get(drug):
+        return (f"{said}, but EdgeCDSS has no signed {drug} dose. It cannot be "
+                f"answered here until one is signed: use local protocol or medical control.")
+    if patient_ctx is not None and not patient_ctx.has_confirmed_weight:
+        return (f"{said} with no signed {drug} dose for this patient: no weight is "
+                f"confirmed. Give the weight in kg and ask for {drug} by name.")
+    return (f"{said} with no signed {drug} dose for this question. Ask for {drug} "
+            f"by name, with what it is for, to get the signed dose.")
 
 
 def run_deterministic_checks(query: str, response_text: str,
@@ -3091,7 +3108,7 @@ def run_deterministic_checks(query: str, response_text: str,
                     f"match any ALLOWED_DOSES value ({allowed_vals}).")
 
     # ── Doses stated outside the canonical GIVE line ──────────────────────
-    issues.extend(free_text_dose_issues(response_text, allowed_doses))
+    issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx))
 
     # ── Pediatric: no dose without confirmed weight ───────────────────────
     if patient_ctx.is_pediatric and not patient_ctx.has_confirmed_weight:
