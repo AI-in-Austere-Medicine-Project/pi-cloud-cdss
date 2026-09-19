@@ -19,7 +19,7 @@ is still on the card.
   applies where the entry declares a push dilution. A 25 kg child's brief now
   reads "Dilute first — 5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL
   — confirm vial."
-  - The undiluted 0.100 mL now appears in the **Vial math** chip's answer,
+  - The undiluted 0.1 mL now appears in the **Vial math** chip's answer,
     next to the which-vial question.
   - From 0.2 mL up, the brief shows both volumes, as before.
 - **The TLDR no longer says "Volume not computed" when one vial is signed.**
