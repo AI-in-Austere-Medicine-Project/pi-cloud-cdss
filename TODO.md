@@ -215,6 +215,20 @@ deliberately did NOT touch.
       not the fix; the generator has to stop emitting doses, or the file has to
       start reading them from `drug_contracts.json`.
 
+- [x] **Minimum single dose (`min_single`).** Done 2026-09-20. A source that
+      states a dose FLOOR now gets one: `resolve_dose()` clamps up as well as
+      down, reports `floor_applied`, and the serving path leads the cautions
+      with the sentence that says it happened. An entry flagged
+      `NEEDS_MINIMUM_DOSE_SUPPORT` cannot be signed into service, and a floor
+      above its own cap cannot be signed at all.
+      - **Owed at signing, on the atropine paediatric bradycardia draft:** add
+        `"min_single": {"value": 0.1, "units": "mg", "rule": "a smaller dose
+        can cause paradoxical bradycardia"}` (SMOG CY24 p.100) and delete the
+        `NEEDS_MINIMUM_DOSE_SUPPORT` flag. Until both are done the entry is
+        refused even with `signoff: true`, which is the point.
+      - Not swept: no other entry in the bank declares a floor. Any source
+        text reading "minimum dose" belongs in `min_single`, not in a caution.
+
 - [ ] **Signed dose contracts owed: the drugs the free-text dose check now
       holds. Needs an owner decision on content, not format.** Since #70 a dose
       a model states in free text is held unless it is a signed contract value

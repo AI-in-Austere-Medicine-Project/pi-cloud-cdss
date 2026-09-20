@@ -1232,16 +1232,23 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
             # bolus and must not become a volume.
             continue
 
+        # A floored dose leads its own cautions. The entry's static cautions
+        # may also name the minimum, but they say it in the abstract; this one
+        # says it happened, to this patient, to the number on the screen.
+        cautions = list(drug_contracts.serve_cautions(entry))
+        if resolved.get("floor_applied"):
+            cautions.insert(0, resolved["floor_note"])
+
         out.append(DoseCandidate(
             drug=name, indication=entry["indication"], route=entry["route"],
             dose_mg=round(resolved["dose_mg"], 4),
             display_value=resolved["display_value"],
             display_units=resolved["display_units"],
             source=_contract_source(name, entry),
-            cautions=list(drug_contracts.serve_cautions(entry)),
+            cautions=cautions,
             contraindications=list(drug_contracts.serve_contraindications(entry)),
             dilution=drug_contracts.push_dilution(entry),
-            warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
+            warning="; ".join(cautions) or None,
         ))
     return out
 
