@@ -430,7 +430,12 @@ def test_the_suspected_source_error_was_not_transcribed():
     entry = next(e for e in dc.DRUGS["epinephrine"]["dose_entries"]
                  if e["indication"] == "cardiac arrest"
                  and e["population"] == "peds")
-    assert entry["dose_range"] == dc.NEEDS_MANUAL
+    # 2026-09-19: the entry is now drafted from SMOG CY24 p.114, which states
+    # the conventional 0.01 mg/kg. What this test guards is unchanged: the
+    # NASEMSO figure is still recorded as a suspected error and never the dose.
+    assert entry["dose_range"]["min"] == entry["dose_range"]["max"] == 0.01
+    assert entry["dose_range"]["units"] == "mg/kg"
+    assert entry["signoff"] is False
     assert "SUSPECTED_SOURCE_ERROR" in entry["flags"]
     assert "0.1 mg/kg" in entry["extraction_notes"]
 
@@ -532,12 +537,14 @@ def test_the_visual_only_infusion_rate_was_not_guessed():
 
 
 def test_txa_finally_has_a_dose():
-    """NASEMSO named TXA in three guidelines and dosed it in none. JTS ID40
-    gives 2 g — and the entry is flagged because grams are not milligrams."""
+    """NASEMSO named TXA in three guidelines and dosed it in none. JTS gives
+    2 g (DCR ID18 p.9, and ID40). The entry used to carry UNIT_NOT_MG because
+    the dose builder read every value as milligrams; resolve_dose now converts,
+    so what is pinned is that the grams come out as 2000 mg."""
     e = next(x for x in dc.DRUGS["tranexamic acid"]["dose_entries"]
              if "loading" in x["indication"])
     assert e["dose_range"]["min"] == 2.0 and e["dose_range"]["units"] == "g"
-    assert "UNIT_NOT_MG" in e["flags"]
+    assert dc.resolve_dose(e, None)["dose_mg"] == 2000.0
 
 
 def test_nothing_was_signed_by_the_jts_extraction():
@@ -569,7 +576,12 @@ def test_nothing_was_signed_by_the_jts_extraction():
 
 # Ruling 7 (2026-08-25) closed the last one. The set stays here rather than
 # being deleted, so a NEW unruled conflict has something to fail against.
-STILL_AWAITING_A_RULING = set()
+#
+# 2026-09-19, follow-up (b) to #70: the adult IV fentanyl drafts are three
+# sources that disagree (NASEMSO 1 mcg/kg, JTS PFC ID61 50 mcg, SMOG 0.5-1
+# mcg/kg). They are drafts for the owner to rule on, which is what this set
+# is for; signing one requires an adjudication note, and removes it from here.
+STILL_AWAITING_A_RULING = {"fentanyl-iv-adult-analgesia"}
 
 
 def test_no_source_conflict_is_still_open():
