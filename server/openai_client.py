@@ -1205,8 +1205,13 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
     a syringe volume is skipped rather than served: a mg with no mL is a number
     the medic has to convert under load, which is the error this whole contract
     layer exists to remove.
+
+    With no weight, only fixed-dose entries can resolve: resolve_dose() returns
+    no dose for a per-kg entry without one, and that entry is skipped below.
+    Whether a weightless patient reaches this at all is build_allowed_doses's
+    decision (adults only).
     """
-    if drug_contracts is None or ctx.dosing_weight_kg is None:
+    if drug_contracts is None:
         return []
 
     w = ctx.dosing_weight_kg
@@ -1286,7 +1291,20 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
     lint forbids from shadowing another contracted drug.
     """
     if ctx.dosing_weight_kg is None:
-        return []
+        # A FIXED dose does not depend on a weight, so an adult asking for one
+        # is answered: "naloxone dose" with no weight stated built nothing, and
+        # the signed 0.4 mg sat unused while the generator was told
+        # "ALLOWED_DOSES: none". Only signed fixed-dose entries can come back —
+        # a per-kg entry resolves to nothing without a weight, and the legacy
+        # calculators are all per-kg, so they stay behind it.
+        #
+        # A child still gets nothing without a weight. The paediatric pre-gate
+        # asks for one before dosing, and run_deterministic_checks holds any
+        # paediatric dose served without it; a fixed paediatric entry is no
+        # exception to either.
+        if ctx.is_pediatric:
+            return []
+        return _finish_doses(_contract_dose_candidates(query, ctx), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
@@ -2982,7 +3000,7 @@ def _drug_spans(clause: str) -> list:
     """[(start, end, generic)] for every drug the contract bank knows, here."""
     if drug_contracts is None:
         return []
-    low = clause.lower()
+    low = drug_contracts.mask_class_phrases(clause.lower())
     spans = []
     for term, generic in drug_contracts.alias_index().items():
         for m in re.finditer(drug_contracts._term_pattern(term), low):

@@ -258,10 +258,11 @@ deliberately did NOT touch.
           a decision that IN is the only fentanyl route served.
       - **Signed, but not built for that question.** No new content needed;
         the behaviour needs deciding.
-        - `naloxone` (3 servable, 2 fixed-dose): "naloxone dose" with no weight
-          built nothing (A1-NOWT-013), because the dose builder builds nothing
-          without a confirmed weight, even for a fixed dose. Decide whether a
-          fixed-dose entry should build without one.
+        - [x] `naloxone` (3 servable, 2 fixed-dose): "naloxone dose" with no
+          weight built nothing (A1-NOWT-013), because the dose builder built
+          nothing without a confirmed weight, even for a fixed dose. **Fixed:**
+          signed fixed-dose entries now build for an adult with no weight. A
+          child and per-kg entries still need one.
         - `lorazepam` (2 servable): given as a substitute when midazolam was
           asked for (A1-WT-012).
         - `ketamine` (12 servable): a range for "pain meds" with no drug named
