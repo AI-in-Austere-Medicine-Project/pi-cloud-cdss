@@ -2138,9 +2138,76 @@ def asks_for_wpw_contraindicated_drug(query: str) -> bool:
     ])
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# DCR PRE-GATE — haemorrhage with shock physiology, or an ID18 injury pattern
+#
+# JTS Damage Control Resuscitation CPG ID18 (12 Jul 2019), p.10, "Recognition
+# of Patients Requiring DCR": "In a patient with serious injuries, the presence
+# of 3 of the 4 features below indicates a 70% predicted risk of MT and 85%
+# risk if all 4 are present: Systolic blood pressure < 100 mm Hg; Heart rate >
+# 100 bpm; Hematocrit < 32%; pH < 7.25." Other risk factors it lists: "Injury
+# pattern (above-the-knee traumatic leg amputation especially if pelvic injury
+# is present, multiamputation, clinically obvious penetrating injury to chest or
+# abdomen)".
+#
+# In the field there is no haematocrit or pH, so the gate reads what the medic
+# can say. Shock is ANY of: a stated shock word; SBP < 100; HR > 100 with a
+# bleeding term; shock index (HR / SBP) >= 0.9; and an ID18 injury pattern, or
+# a stated MASSIVE haemorrhage (ID18's own population, "massively hemorrhaging
+# casualties"), fires the gate on its own. A STATED BP NEVER SUPPRESSES IT: before
+# 2026-09-24 the gate used has_hypotension_or_shock(), where a measured BP of
+# 100/60 or above meant "not shock" whatever else was said, and HR was never
+# read. "80 kg male, GSW left thigh, tourniquet on 20 min, HR 118, BP 104/68" —
+# shock index 1.13 — was answered from general knowledge with no TXA.
+#
+# The wider bleeding vocabulary below is the DCR gate's own. has_clear_hemorrhage
+# is not widened: the TXA-in-hypothermia and sepsis gates hold when it is FALSE,
+# so widening it would release TXA in more cases.
+# ─────────────────────────────────────────────────────────────────────────────
+_DCR_BLEEDING_RE = re.compile(
+    r"\b(?:bleed\w*|hemorrhag\w*|haemorrhag\w*|exsanguinat\w*|blood loss|gsw|"
+    r"gunshot|shot|stab(?:s|bed|bing)?|tourniquet\w*|tqs?|amputat\w*|blast|penetrating|"
+    r"massive transfusion)\b", re.IGNORECASE)
+_DCR_SHOCK_WORD_RE = re.compile(
+    r"\b(?:shock\w*|hypotensi\w*|poor perfusion|exsanguinat\w*)\b", re.IGNORECASE)
+_DCR_INJURY_PATTERN_RE = re.compile(
+    # multiamputation / above-the-knee amputation
+    r"\b(?:bilateral|double|multiple|two|both|triple)\b[^.;]{0,30}\bamputat\w*"
+    r"|\bamputations\b"
+    r"|\babove[- ]?(?:the[- ]?)?knee\b[^.;]{0,20}\bamputat\w*|\baka\b"
+    # clinically obvious penetrating injury to chest or abdomen
+    r"|\b(?:penetrating|gsw|gunshot|stab(?:s|bed|bing)?|shot|frag\w*)\b[^.;]{0,40}"
+    r"\b(?:chest|thorax|thoracic|abdomen|abdominal|belly|torso|flank|pelvi\w*)\b"
+    r"|\b(?:chest|abdomen|abdominal|torso)\b[^.;]{0,15}\b(?:gsw|gunshot|stab(?:s|bed|bing)?)\b"
+    # junctional haemorrhage
+    r"|\bjunctional\b|\b(?:groin|axilla\w*|inguinal)\b[^.;]{0,25}\b(?:bleed\w*|wound|hemorrhag\w*)\b"
+    # ID18's own population: "massively hemorrhaging casualties"
+    r"|\bmassive(?:ly)?\b[^.;]{0,15}\b(?:hemorrhag\w*|haemorrhag\w*|bleed\w*|blood loss)\b",
+    re.IGNORECASE)
+
+
+def _dcr_shock_physiology(q: str) -> bool:
+    """SBP < 100, HR > 100, a shock index >= 0.9, or a shock word. The HR rule
+    needs a bleeding term; the caller requires one for every rule."""
+    if _DCR_SHOCK_WORD_RE.search(q) or has_hypotension_or_shock(q):
+        return True
+    v = vitals_mod.parse_vitals(q)
+    v = v[0] if isinstance(v, tuple) else v
+    hr = v.get("hr").value if v and v.get("hr") else None
+    sbp = v.get("sbp").value if v and v.get("sbp") else None
+    if sbp is not None and sbp < 100:
+        return True
+    if hr is not None and hr > 100:
+        return True
+    return bool(hr and sbp and hr / sbp >= 0.9)
+
+
 def looks_like_hemorrhagic_shock(query: str) -> bool:
     q = (query or "").lower()
-    return has_clear_hemorrhage(q) and has_hypotension_or_shock(q)
+    if _DCR_INJURY_PATTERN_RE.search(q):
+        return True
+    bleeding = has_clear_hemorrhage(q) or _DCR_BLEEDING_RE.search(q) is not None
+    return bleeding and _dcr_shock_physiology(q)
 
 
 SEPSIS_DCR_REFUSAL = """Sepsis suspected — do not initiate DCR/TXA/LTOWB unless hemorrhage is clearly present.
@@ -2502,6 +2569,43 @@ def retrieval_cosine(top_score: float) -> float:
     reason about next to the number the thresholds use.
     """
     return (top_score + 1.0) / 2.0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CANINE DOCUMENTS ARE NOT RETRIEVED FOR A HUMAN QUERY
+#
+# The corpus carries six Military Working Dog CPGs (635 chunks) and SMOG CY24's
+# MWD section, pp.56-63 (22 chunks). Found 2026-09-24 (A1): for "massive
+# hemorrhage, tourniquet applied" the top two hits were MWD CPG p.35. A canine
+# dose or physiology is a wrong answer for a person, and retrieval has no way to
+# know which it has, so the documents are filtered at query time unless the
+# conversation names a dog. Filtered on the chunks' existing `file` and `page`
+# metadata: nothing in the index is rewritten, so there is nothing to migrate on
+# deploy.
+# ─────────────────────────────────────────────────────────────────────────────
+CANINE_FILES = (
+    "Arachnid_Snake_Envenomation_MWD_CPG_c11_29_Mar_2025_v1.1.pdf",
+    "Heat_Injury_MWD_CPG_c9_29_Mar_2025.pdf",
+    "K9_Euthanasia_MWD_CPG_c21_03_Apr_2025.pdf",
+    "MWD_CPG_12_Dec_2018_ID16_v1.3.pdf",
+    "Normal_Clinical_Parameters_MWD_c2_05_May_2025_v1.1.pdf",
+    "Transfusion_in_Military_Working_Dog_10_Dec_2019_ID77.pdf",
+)
+SMOG_FILE = "SMOG_CY24_REVISION_FINAL.pdf"
+SMOG_CANINE_PAGES = (56, 63)
+HUMAN_ONLY_WHERE = {"$and": [
+    {"file": {"$nin": list(CANINE_FILES)}},
+    {"$or": [{"file": {"$ne": SMOG_FILE}},
+             {"page": {"$lt": SMOG_CANINE_PAGES[0]}},
+             {"page": {"$gt": SMOG_CANINE_PAGES[1]}}]},
+]}
+_NAMES_A_DOG_RE = re.compile(
+    r"\b(?:dog|dogs|k-?9s?|mwds?|canines?|working dog|puppy|pup)\b", re.IGNORECASE)
+
+
+def retrieval_species_filter(text: str) -> Optional[dict]:
+    """HUMAN_ONLY_WHERE unless the conversation names a dog."""
+    return None if _NAMES_A_DOG_RE.search(text or "") else HUMAN_ONLY_WHERE
 
 
 def classify_retrieval(results: dict) -> RetrievalAssessment:
@@ -5295,7 +5399,9 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             except Exception as e:
                 print(f"Router error: {e}")
 
-        raw_results = chromadb_client.query(search_query, n_results=_env_number("CDSS_RAG_TOP_K", 10, int))
+        raw_results = chromadb_client.query(
+            search_query, n_results=_env_number("CDSS_RAG_TOP_K", 10, int),
+            where=retrieval_species_filter(full_query_history))
         assessment = classify_retrieval(raw_results)
         print(f"📚 {assessment.source_mode} (top: {assessment.top_score}, "
               f"cos {retrieval_cosine(assessment.top_score):.2f})")

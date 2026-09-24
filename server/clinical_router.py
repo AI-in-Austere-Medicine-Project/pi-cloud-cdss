@@ -175,8 +175,32 @@ class ClinicalRouter:
         with open(path) as f:
             return json.load(f)
 
+    # Routing terms curated here rather than in protocol_index.json, which
+    # tools/build_protocol_index.py regenerates from the PDFs: a hand edit there
+    # is lost on the next build. Merged into each protocol's search_terms at
+    # load. Keep this short and dated.
+    #
+    # 2026-09-24 (A1): the DCR entry held nine terms, none of them the medic's.
+    # "80 kg male, GSW left thigh, tourniquet on 20 min, HR 118, BP 104/68"
+    # matched no protocol, retrieval scored 0.000, and it was answered from
+    # general knowledge with no TXA.
+    ROUTING_TERM_SUPPLEMENTS = {
+        "damage_control_resuscitation": [
+            # Not "TQ": a two-character token must never route alone
+            # (test_no_alias_key_of_two_characters_or_less_yields_high_confidence_alone).
+            "GSW", "gunshot", "gunshot wound", "tourniquet", "bleeding",
+            "hemorrhage", "haemorrhage", "exsanguination", "penetrating",
+            "amputation",
+        ],
+    }
+
     def _build_lookup_index(self):
         """Build reverse lookup: term → protocol_id list."""
+        for pid, extra in self.ROUTING_TERM_SUPPLEMENTS.items():
+            if pid in self.protocol_index:
+                meta = self.protocol_index[pid]
+                meta["search_terms"] = list(dict.fromkeys(
+                    list(meta.get("search_terms", [])) + extra))
         self.term_to_protocols = {}
         # Which of a protocol's terms are DRUG NAMES, kept per protocol rather
         # than as one global set: "calcium" is a medication of Damage Control

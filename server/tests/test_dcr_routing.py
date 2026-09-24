@@ -92,6 +92,9 @@ def test_each_shock_criterion_triggers_the_gate(query, why):
     ("HR 110 after the run, BP 130/80, no injuries", "tachycardia without a bleeding term"),
     ("GSW to the forearm, bleeding controlled, HR 84, BP 126/80, SI 0.67", "bleeding term, normal physiology"),
     ("single below-knee amputation stump, well healed, routine check", "one old amputation is not the pattern"),
+    # Found in the A1 replay: "stab" matched inside "stable".
+    ("21 year-old male with stable vitals, fractured femur, HR 120, BP 130/100, ketamine drip for pain",
+     "'stable' is not a stab wound"),
 ])
 def test_what_does_not_trigger_the_gate(query, why):
     assert not oc.looks_like_hemorrhagic_shock(query), why
@@ -112,7 +115,9 @@ def test_medic_phrasing_routes_to_dcr(query):
 # ── (c) canine pages are not retrieved for a human query ─────────────────────
 
 @pytest.mark.parametrize("query", [
-    "massive hemorrhage, tourniquet applied, what next",
+    # A human query that reaches retrieval. ("massive hemorrhage, tourniquet
+    # applied" was the case that surfaced this, but it now takes the DCR card.)
+    "how long can a tourniquet stay on before conversion",
     "GSW thigh, how do I manage the bleeding",
 ])
 def test_a_human_query_excludes_the_canine_documents(no_model, query):

@@ -201,7 +201,7 @@ class FakeChroma:
     def __init__(self, distance=0.99):
         self.distance = distance
 
-    def query(self, text, n_results=5):
+    def query(self, text, n_results=5, where=None):
         return {"documents": [["unrelated protocol text"]],
                 "metadatas": [[{"source": "JTS Burn Care", "page": 3}]],
                 "distances": [[self.distance]]}
@@ -255,7 +255,10 @@ def test_end_to_end_dose_question_does_not_fall_back(stub_llm, query, expected_m
 
 
 def test_end_to_end_good_retrieval_is_untouched(stub_llm):
-    result = run("massive hemorrhage management", stub_llm, distance=0.2)
+    # Was "massive hemorrhage management", which since A1 (2026-09-24) takes the
+    # deterministic DCR card before retrieval: a stated massive haemorrhage is
+    # DCR ID18's own population.
+    result = run("tension pneumothorax management", stub_llm, distance=0.2)
     assert result["source_mode"] == "JTS_GROUNDED"
     assert not gr.has_banner(result["response"])
 

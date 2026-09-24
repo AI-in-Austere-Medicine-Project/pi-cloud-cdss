@@ -33,13 +33,13 @@ class ChromaDBClient:
             ids=ids
         )
 
-    def query(self, query_text: str, n_results: int = 5) -> Dict:
-        """Query the vector database"""
-        results = self.collection.query(
-            query_texts=[query_text],
-            n_results=n_results
-        )
-        return results
+    def query(self, query_text: str, n_results: int = 5, where: Dict = None) -> Dict:
+        """Query the vector database. `where` is a Chroma metadata filter; the
+        pipeline passes one to keep canine documents out of human queries."""
+        kwargs = {"query_texts": [query_text], "n_results": n_results}
+        if where:
+            kwargs["where"] = where
+        return self.collection.query(**kwargs)
 
     def get_collection_count(self) -> int:
         """Get number of documents in collection"""

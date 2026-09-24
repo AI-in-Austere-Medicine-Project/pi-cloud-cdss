@@ -915,7 +915,7 @@ def test_the_same_query_falls_through_while_the_card_is_pending(monkeypatch, tmp
     reached = []
 
     class _Chroma:
-        def query(self, text, n_results=5):
+        def query(self, text, n_results=5, where=None):
             reached.append(text)
             return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
@@ -968,7 +968,7 @@ def test_the_pipeline_does_not_ask_while_every_card_is_pending(monkeypatch, tmp_
     reached = []
 
     class _Chroma:
-        def query(self, text, n_results=5):
+        def query(self, text, n_results=5, where=None):
             reached.append(text)
             return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
