@@ -2956,7 +2956,8 @@ def audit_volume_lines(response_text: str,
 # said yes. This is the deterministic check it was missing.
 #
 # The rule: in a model-written answer, a mass (mg, mcg, g) stated in the same
-# clause as a drug the contract bank knows must BE an ALLOWED_DOSES value for
+# clause as a RECOGNISED drug — the contract bank, or drug_lexicon.json for the
+# drugs the bank does not carry — must BE an ALLOWED_DOSES value for
 # that drug. Not near it — within 5%, the same band the GIVE check uses, with
 # no absolute floor: the GIVE check's 0.5 mg floor would pass 0.5 mg of fentanyl
 # against 80 mcg. A drug the bank knows with no contract dose here fails too:
@@ -2968,11 +2969,12 @@ def audit_volume_lines(response_text: str,
 #     "no more than", "up to", "cumulative", "never";
 #   - a preparation: "mix 4 mg norepinephrine in 250 mL NS" is the bag, not
 #     the patient's dose;
+#   - a concentration in words: "for every milliliter ... there are 10 mg";
 #   - the DON'T and SOURCE sections, which state what not to do and where
 #     the text came from;
 #   - a canonical GIVE line, which the check above already owns.
 # A number is paired with the NEAREST drug named in its clause; a clause that
-# names no drug the bank knows is not attributable and is left alone.
+# names no recognised drug is not attributable and is left alone.
 # ─────────────────────────────────────────────────────────────────────────────
 _FREE_DOSE_SKIP_SECTIONS = frozenset({"DON'T", "DONT", "DO NOT", "SOURCE", "SOURCES"})
 _FREE_DOSE_HEADING_RE = re.compile(r"^\s*(?:⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*")
@@ -2989,6 +2991,13 @@ _FREE_DOSE_LIMIT_RE = re.compile(
 _FREE_DOSE_PREP_RE = re.compile(
     r"\b(?:mix|mixed|dilute|diluted|reconstitute|reconstituted|add|added)\b"
     r"|\bin\s+\d+(?:\.\d+)?\s*m[lL]\b", re.IGNORECASE)
+# A concentration said in words: "for every milliliter of solution, there are
+# 10 mg of levetiracetam". The "/mL" form is already not a dose; this is the
+# same statement spelled out, and a local model wrote exactly it (G-ADV-10,
+# held in the #70 benchmark as "levetiracetam 10 mg").
+_FREE_DOSE_PER_VOLUME_RE = re.compile(
+    r"\b(?:per|every|each|a)\s+(?:single\s+)?(?:milli ?lit(?:er|re)s?|ml|cc)\b",
+    re.IGNORECASE)
 _FREE_DOSE_CLAUSE_RE = re.compile(r"(?<=[.;:!?])\s+|\s+—\s+|\n")
 _TO_MG_UNIT = {"mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
                "mcg": 0.001, "µg": 0.001, "ug": 0.001,
@@ -2997,12 +3006,13 @@ _TO_MG_UNIT = {"mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
 
 
 def _drug_spans(clause: str) -> list:
-    """[(start, end, generic)] for every drug the contract bank knows, here."""
+    """[(start, end, generic)] for every drug the check recognises, here:
+    the contract bank, then drug_lexicon.json (drug_contracts.recognised_drug_index)."""
     if drug_contracts is None:
         return []
     low = drug_contracts.mask_class_phrases(clause.lower())
     spans = []
-    for term, generic in drug_contracts.alias_index().items():
+    for term, generic in drug_contracts.recognised_drug_index().items():
         for m in re.finditer(drug_contracts._term_pattern(term), low):
             spans.append((m.start(), m.end(), generic))
     # A match inside a longer one ("artemether" in "artemether + lumefantrine")
@@ -3030,7 +3040,8 @@ def free_text_dose_issues(response_text: str,
             continue
         for clause in _FREE_DOSE_CLAUSE_RE.split(line):
             if (not clause.strip() or _FREE_DOSE_LIMIT_RE.search(clause)
-                    or _FREE_DOSE_PREP_RE.search(clause)):
+                    or _FREE_DOSE_PREP_RE.search(clause)
+                    or _FREE_DOSE_PER_VOLUME_RE.search(clause)):
                 continue
             drugs = _drug_spans(clause)
             if not drugs:

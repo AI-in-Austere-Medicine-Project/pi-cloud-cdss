@@ -1,0 +1,765 @@
+{
+  "_comment": [
+    "EdgeCDSS — drug lexicon for the free-text dose check.",
+    "",
+    "Names that are drugs but are NOT in drug_contracts.json. The free-text dose",
+    "check (openai_client.free_text_dose_issues) recognises a drug from the",
+    "contract bank or from this list; a mass dose stated beside a recognised",
+    "drug with no signed contract dose is held (fail-closed). A word on neither",
+    "list is not a drug to the check and passes.",
+    "",
+    "Recognition only. Nothing here is a dose, and nothing here can be served.",
+    "Adding a drug to drug_contracts.json supersedes its entry here.",
+    "",
+    "jts_corpus_chunks: how many of the 8,559 corpus chunks name the drug or an",
+    "alias, counted 2026-09-19. Evidence that the name occurs in the material the",
+    "generator retrieves, not a filter: a drug the corpus never names is still",
+    "listed, because a model can name it anyway."
+  ],
+  "drugs": {
+    "acetaminophen": {
+      "aliases": [
+        "paracetamol",
+        "tylenol"
+      ],
+      "jts_corpus_chunks": 58
+    },
+    "acetylcysteine": {
+      "aliases": [
+        "mucomyst"
+      ],
+      "jts_corpus_chunks": 6
+    },
+    "acyclovir": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "adenosine": {
+      "aliases": [],
+      "jts_corpus_chunks": 19
+    },
+    "albendazole": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "albuterol": {
+      "aliases": [
+        "salbutamol"
+      ],
+      "jts_corpus_chunks": 40
+    },
+    "alteplase": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "amikacin": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "amiodarone": {
+      "aliases": [],
+      "jts_corpus_chunks": 23
+    },
+    "amoxicillin": {
+      "aliases": [],
+      "jts_corpus_chunks": 13
+    },
+    "amphotericin": {
+      "aliases": [],
+      "jts_corpus_chunks": 10
+    },
+    "ampicillin": {
+      "aliases": [],
+      "jts_corpus_chunks": 7
+    },
+    "antivenom": {
+      "aliases": [],
+      "jts_corpus_chunks": 46
+    },
+    "aspirin": {
+      "aliases": [],
+      "jts_corpus_chunks": 23
+    },
+    "atovaquone": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "atropine": {
+      "aliases": [],
+      "jts_corpus_chunks": 49
+    },
+    "azithromycin": {
+      "aliases": [],
+      "jts_corpus_chunks": 6
+    },
+    "botulism antitoxin": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "bupivacaine": {
+      "aliases": [],
+      "jts_corpus_chunks": 10
+    },
+    "buprenorphine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "butorphanol": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "calcium chloride": {
+      "aliases": [],
+      "jts_corpus_chunks": 23
+    },
+    "calcium edta": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "carboprost": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "cefepime": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "cefotaxime": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "cefotetan": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "cefoxitin": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "ceftazidime": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "celecoxib": {
+      "aliases": [
+        "celebrex"
+      ],
+      "jts_corpus_chunks": 0
+    },
+    "cephalexin": {
+      "aliases": [
+        "keflex"
+      ],
+      "jts_corpus_chunks": 2
+    },
+    "cetirizine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "chloroquine": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "ciprofloxacin": {
+      "aliases": [
+        "cipro"
+      ],
+      "jts_corpus_chunks": 15
+    },
+    "cisatracurium": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "clindamycin": {
+      "aliases": [
+        "cleocin"
+      ],
+      "jts_corpus_chunks": 25
+    },
+    "clopidogrel": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "codeine": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "daptomycin": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "deferoxamine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "desmopressin": {
+      "aliases": [
+        "ddavp"
+      ],
+      "jts_corpus_chunks": 4
+    },
+    "dexamethasone": {
+      "aliases": [
+        "decadron"
+      ],
+      "jts_corpus_chunks": 40
+    },
+    "dexmedetomidine": {
+      "aliases": [
+        "precedex"
+      ],
+      "jts_corpus_chunks": 10
+    },
+    "diazepam": {
+      "aliases": [
+        "valium"
+      ],
+      "jts_corpus_chunks": 32
+    },
+    "diclofenac": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "digoxin": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "diltiazem": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "dimercaprol": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "diphenhydramine": {
+      "aliases": [
+        "benadryl"
+      ],
+      "jts_corpus_chunks": 27
+    },
+    "dobutamine": {
+      "aliases": [],
+      "jts_corpus_chunks": 14
+    },
+    "dopamine": {
+      "aliases": [],
+      "jts_corpus_chunks": 22
+    },
+    "doxycycline": {
+      "aliases": [],
+      "jts_corpus_chunks": 22
+    },
+    "droperidol": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "enoxaparin": {
+      "aliases": [
+        "lovenox"
+      ],
+      "jts_corpus_chunks": 32
+    },
+    "ephedrine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "erythromycin": {
+      "aliases": [],
+      "jts_corpus_chunks": 17
+    },
+    "erythromycin ophthalmic": {
+      "aliases": [],
+      "jts_corpus_chunks": 7
+    },
+    "esmolol": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "etomidate": {
+      "aliases": [],
+      "jts_corpus_chunks": 9
+    },
+    "famotidine": {
+      "aliases": [
+        "pepcid"
+      ],
+      "jts_corpus_chunks": 3
+    },
+    "fluconazole": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "flumazenil": {
+      "aliases": [],
+      "jts_corpus_chunks": 9
+    },
+    "fomepizole": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "fosphenytoin": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "furosemide": {
+      "aliases": [
+        "lasix"
+      ],
+      "jts_corpus_chunks": 11
+    },
+    "gentamicin": {
+      "aliases": [],
+      "jts_corpus_chunks": 7
+    },
+    "glucagon": {
+      "aliases": [],
+      "jts_corpus_chunks": 19
+    },
+    "glycopyrrolate": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "haloperidol": {
+      "aliases": [
+        "haldol"
+      ],
+      "jts_corpus_chunks": 17
+    },
+    "heparin": {
+      "aliases": [],
+      "jts_corpus_chunks": 67
+    },
+    "hydralazine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "hydrocodone": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "hydrocortisone": {
+      "aliases": [
+        "solu-cortef"
+      ],
+      "jts_corpus_chunks": 10
+    },
+    "hydromorphone": {
+      "aliases": [
+        "dilaudid"
+      ],
+      "jts_corpus_chunks": 39
+    },
+    "hydroxocobalamin": {
+      "aliases": [
+        "cyanokit"
+      ],
+      "jts_corpus_chunks": 43
+    },
+    "hydroxyzine": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "hypertonic saline": {
+      "aliases": [],
+      "jts_corpus_chunks": 57
+    },
+    "ibuprofen": {
+      "aliases": [
+        "motrin",
+        "advil"
+      ],
+      "jts_corpus_chunks": 25
+    },
+    "imipenem": {
+      "aliases": [],
+      "jts_corpus_chunks": 6
+    },
+    "insulin": {
+      "aliases": [],
+      "jts_corpus_chunks": 35
+    },
+    "ipratropium": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "ivermectin": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "ketorolac": {
+      "aliases": [
+        "toradol"
+      ],
+      "jts_corpus_chunks": 6
+    },
+    "labetalol": {
+      "aliases": [],
+      "jts_corpus_chunks": 10
+    },
+    "levofloxacin": {
+      "aliases": [],
+      "jts_corpus_chunks": 40
+    },
+    "lidocaine": {
+      "aliases": [
+        "xylocaine"
+      ],
+      "jts_corpus_chunks": 51
+    },
+    "linezolid": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "loratadine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "magnesium sulfate": {
+      "aliases": [
+        "magnesium"
+      ],
+      "jts_corpus_chunks": 47
+    },
+    "mannitol": {
+      "aliases": [],
+      "jts_corpus_chunks": 44
+    },
+    "mefloquine": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "meloxicam": {
+      "aliases": [
+        "mobic"
+      ],
+      "jts_corpus_chunks": 8
+    },
+    "meperidine": {
+      "aliases": [
+        "demerol"
+      ],
+      "jts_corpus_chunks": 2
+    },
+    "mepivacaine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "meropenem": {
+      "aliases": [],
+      "jts_corpus_chunks": 8
+    },
+    "methadone": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "methylene blue": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "methylergonovine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "methylprednisolone": {
+      "aliases": [
+        "solu-medrol"
+      ],
+      "jts_corpus_chunks": 34
+    },
+    "metoclopramide": {
+      "aliases": [
+        "reglan"
+      ],
+      "jts_corpus_chunks": 8
+    },
+    "metoprolol": {
+      "aliases": [],
+      "jts_corpus_chunks": 10
+    },
+    "metronidazole": {
+      "aliases": [
+        "flagyl"
+      ],
+      "jts_corpus_chunks": 19
+    },
+    "misoprostol": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "moxifloxacin ophthalmic": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "nafcillin": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "nalbuphine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "naproxen": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "neostigmine": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "nicardipine": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "nitroglycerin": {
+      "aliases": [],
+      "jts_corpus_chunks": 12
+    },
+    "octreotide": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "olanzapine": {
+      "aliases": [],
+      "jts_corpus_chunks": 7
+    },
+    "omeprazole": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "ondansetron": {
+      "aliases": [
+        "zofran"
+      ],
+      "jts_corpus_chunks": 40
+    },
+    "oseltamivir": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "oxacillin": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "oxycodone": {
+      "aliases": [],
+      "jts_corpus_chunks": 10
+    },
+    "oxytocin": {
+      "aliases": [
+        "pitocin"
+      ],
+      "jts_corpus_chunks": 1
+    },
+    "pantoprazole": {
+      "aliases": [
+        "protonix"
+      ],
+      "jts_corpus_chunks": 8
+    },
+    "penicillin": {
+      "aliases": [],
+      "jts_corpus_chunks": 12
+    },
+    "phenobarbital": {
+      "aliases": [],
+      "jts_corpus_chunks": 9
+    },
+    "phenylephrine": {
+      "aliases": [],
+      "jts_corpus_chunks": 15
+    },
+    "phenytoin": {
+      "aliases": [
+        "dilantin"
+      ],
+      "jts_corpus_chunks": 17
+    },
+    "physostigmine": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "piperacillin": {
+      "aliases": [
+        "zosyn"
+      ],
+      "jts_corpus_chunks": 3
+    },
+    "potassium chloride": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "potassium iodide": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "pralidoxime": {
+      "aliases": [
+        "2-pam"
+      ],
+      "jts_corpus_chunks": 24
+    },
+    "praziquantel": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "prednisone": {
+      "aliases": [],
+      "jts_corpus_chunks": 4
+    },
+    "primaquine": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "procainamide": {
+      "aliases": [],
+      "jts_corpus_chunks": 9
+    },
+    "prochlorperazine": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "promethazine": {
+      "aliases": [
+        "phenergan"
+      ],
+      "jts_corpus_chunks": 12
+    },
+    "proparacaine": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "protamine": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "prussian blue": {
+      "aliases": [],
+      "jts_corpus_chunks": 3
+    },
+    "quetiapine": {
+      "aliases": [],
+      "jts_corpus_chunks": 6
+    },
+    "rabies immune globulin": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "racemic epinephrine": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "remifentanil": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "rifampin": {
+      "aliases": [],
+      "jts_corpus_chunks": 9
+    },
+    "ropivacaine": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "sodium bicarbonate": {
+      "aliases": [
+        "bicarbonate"
+      ],
+      "jts_corpus_chunks": 66
+    },
+    "sodium nitrite": {
+      "aliases": [],
+      "jts_corpus_chunks": 7
+    },
+    "sodium thiosulfate": {
+      "aliases": [],
+      "jts_corpus_chunks": 9
+    },
+    "sufentanil": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "sugammadex": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "sulfamethoxazole": {
+      "aliases": [],
+      "jts_corpus_chunks": 9
+    },
+    "tenecteplase": {
+      "aliases": [],
+      "jts_corpus_chunks": 1
+    },
+    "terbutaline": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "terbutaline sulfate": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "tetanus immune globulin": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "tetanus toxoid": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "tetracaine": {
+      "aliases": [],
+      "jts_corpus_chunks": 8
+    },
+    "thiamine": {
+      "aliases": [],
+      "jts_corpus_chunks": 7
+    },
+    "ticagrelor": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "tobramycin": {
+      "aliases": [],
+      "jts_corpus_chunks": 6
+    },
+    "tramadol": {
+      "aliases": [],
+      "jts_corpus_chunks": 7
+    },
+    "trimethoprim": {
+      "aliases": [
+        "bactrim"
+      ],
+      "jts_corpus_chunks": 12
+    },
+    "valproate": {
+      "aliases": [],
+      "jts_corpus_chunks": 0
+    },
+    "vancomycin": {
+      "aliases": [],
+      "jts_corpus_chunks": 26
+    },
+    "vasopressin": {
+      "aliases": [],
+      "jts_corpus_chunks": 43
+    },
+    "vecuronium": {
+      "aliases": [],
+      "jts_corpus_chunks": 16
+    },
+    "verapamil": {
+      "aliases": [],
+      "jts_corpus_chunks": 5
+    },
+    "vitamin k": {
+      "aliases": [],
+      "jts_corpus_chunks": 2
+    },
+    "voriconazole": {
+      "aliases": [],
+      "jts_corpus_chunks": 6
+    }
+  }
+}

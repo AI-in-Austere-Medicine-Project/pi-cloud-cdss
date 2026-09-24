@@ -268,14 +268,15 @@ deliberately did NOT touch.
         - `ketamine` (12 servable): a range for "pain meds" with no drug named
           (H-SESS-013), and 24 mg against a contract list (A1-DRIP-001).
           Freelanced numbers, not missing content.
-      - **Coverage limit of the check itself.** It knows only drugs in the
-        contract bank. Free-text "atropine 0.5 mg" or "clindamycin 900 mg" is
-        not checked by it. Adding a drug to the bank, even with no servable
-        entry, is what brings its free-text doses under the check.
-      - **Known false positive.** A concentration restated in words ("for
-        every milliliter ... there are 10 mg of levetiracetam", G-ADV-10) is
-        read as a dose. It was left unfixed in #70 so the benchmark would not
-        be tuned; fix it with a regression test built from that answer.
+      - [x] **Coverage limit of the check itself.** It knew only drugs in the
+        contract bank, so free-text "atropine 0.5 mg" or "clindamycin 900 mg"
+        passed it. **Fixed:** `drug_lexicon.json` lists 167 drugs the bank
+        does not carry, and a stated dose of any of them now holds. A word on
+        neither list still passes.
+      - [x] **Known false positive.** A concentration restated in words ("for
+        every milliliter ... there are 10 mg of levetiracetam", G-ADV-10) was
+        read as a dose. **Fixed**, with that answer verbatim as a must-not-hold
+        test.
 
 ### Safety gate
 
