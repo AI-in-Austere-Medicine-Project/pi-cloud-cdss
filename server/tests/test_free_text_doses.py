@@ -63,9 +63,12 @@ def recorded(monkeypatch):
 # ── the regression, end to end on the local path ─────────────────────────────
 
 def test_the_contract_is_what_the_regression_assumes():
-    fentanyl = [d for d in _allowed() if d.drug == "fentanyl"]
-    assert fentanyl and all(abs(d.dose_mg - 0.08) < 1e-9 for d in fentanyl), \
-        "the 80 kg fentanyl contract moved; re-derive the 12.5x case"
+    # 1 mcg/kg IN at 80 kg (NASEMSO), and since 2026-09-24 the 50 mcg IV fixed
+    # dose (JTS PFC ID61). 1 mg is 12.5x the first and 20x the second.
+    fentanyl = {(d.route, round(d.dose_mg, 6)) for d in _allowed() if d.drug == "fentanyl"}
+    assert fentanyl == {("IN", 0.08), ("IV", 0.05)}, \
+        f"the 80 kg fentanyl contract moved; re-derive the 12.5x case: {fentanyl}"
+    assert all(1.0 / mg >= 12.5 for _, mg in fentanyl)
 
 
 def test_local_1_mg_iv_fentanyl_is_blocked_even_when_the_validator_says_safe(
@@ -160,9 +163,9 @@ NO_WEIGHT = oc.PatientContext()
 
 @pytest.mark.parametrize("text,allowed,ctx,expected", [
     # A drug with no signed contract at all: not answerable here yet.
-    ("**TREAT**\n- 2g TXA IV/IO over 10 min.", [], _ctx(),
-     "The answer stated tranexamic acid 2g, but EdgeCDSS has no signed tranexamic "
-     "acid dose. It cannot be answered here until one is signed: use local "
+    ("**TREAT**\n- 2g cefazolin IV for the open fracture.", [], _ctx(),
+     "The answer stated cefazolin 2g, but EdgeCDSS has no signed cefazolin "
+     "dose. It cannot be answered here until one is signed: use local "
      "protocol or medical control."),
     # A signed contract exists, but nothing builds without a weight.
     ("**TREAT**\n- Titrate naloxone 2–4mg to respiratory effort.", [], NO_WEIGHT,

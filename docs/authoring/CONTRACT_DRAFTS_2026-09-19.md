@@ -39,6 +39,32 @@ This page is a reading guide. The canonical text is in `server/drug_contracts.js
 
 Already signed and unchanged: dextrose IV adult 25 g and peds 0.5-1 g/kg (NASEMSO). SMOG p.105 corroborates both (adult 10-25 g; children 2 mL/kg D25 = 0.5 g/kg, max 25 g).
 
+## Decisions, 2026-09-24
+Signer: Andrew Azelton, under signer role `AI-AIM`, through `tools/set_contract.py`. Each ruling is recorded in the entry's `adjudication`. Numbers are the review packet's ([`REVIEW_PACKET_2026-09-24.md`](REVIEW_PACKET_2026-09-24.md)); this page's own numbers are in brackets.
+
+| Packet # | Entry | Decision |
+|---|---|---|
+| 1 [18] | Levetiracetam, severe TBI loading · adult IV | **Signed** as drafted, 1500 mg. PCC ID91's 1 g is superseded. |
+| 2 [19] | Levetiracetam, status epilepticus · adult IV | **Signed** 2000 mg per SMOG p.132. The p.37 1500 mg conflict is recorded. |
+| 3 [20] | Levetiracetam, refractory status · peds IV | **Signed** as drafted. |
+| 4 [1] | TXA loading · adult IV | **Signed** as drafted. |
+| 5 [2] | TXA maintenance infusion · adult IV | **Retired.** |
+| 6 [3] | TXA · peds IV | **Signed**, given over 10 min per ID73. SMOG's 1 minute is noted. |
+| 7 [4] | Fentanyl, JTS PFC fixed dose · adult IV | **Signed**, 50 mcg. Caution added: "Severe TBI: 25–50 mcg (ID63 p.7, p.20)". The conflict group is settled on this entry. |
+| 8 [5] | Fentanyl, SMOG weight-based · adult IV | **Retired as served**, kept in `retired_entries` as a documented alternate. |
+| 9 [6] | Fentanyl, NASEMSO · adult IV | **Retired as served**, kept in `retired_entries` as a documented alternate. |
+| 10 [7] | Fentanyl · peds IV | **Signed as an owner declaration** citing NASEMSO p.94, with entry 7's contraindications. |
+| 11 [8] | Epinephrine, cardiac arrest · adult IV | **Signed.** The hypothermia caution applies to any arrest with a stated core temperature below 30 °C. |
+| 12 [9] | Epinephrine, cardiac arrest · peds IV | **Signed.** NASEMSO p.121 is recorded as a suspected source error. The same hypothermia caution applies. |
+| 13 [10] | Oral glucose · adult PO | **Signed at 15 g**, owner-ruled within SMOG's 4-20 g. NASEMSO's 25 g is noted. |
+| 14 [11] | Oral glucose · peds PO | **Signed at 0.5 g/kg, max 15 g**, an owner ruling reconciling SMOG and NASEMSO. |
+| 15 [12] | Dextrose, neonatal · peds IV | **Deferred**; not signed. |
+| 16 [13] | Atropine, bradycardia · adult IV | **Signed.** |
+| 17 [14] | Atropine, bradycardia · peds IV | **Signed** with `min_single` 0.1 mg. |
+| 18 [15] | Atropine, autoinjector · adult IM | **Signed.** |
+| 19 [16] | Atropine, escalating bolus · adult IV | **Signed** per CBRN ID69. No maximum total; titrate to atropinization. SMOG noted. |
+| 20 [17] | Atropine, organophosphate · peds IV | **Signed**, serving 0.05 mg/kg initial, doubled per protocol. The p.39 misprint is noted. |
+
 ## Corrections, 2026-09-24
 A re-check of every quote against its PDF page found five citation errors and six dose conflicts the drafts did not record. All are fixed in `server/drug_contracts.json` (`CORRECTED 2026-09-24` and `CONFLICT (found 2026-09-24)` in each entry's `extraction_notes`). Nothing was signed.
 
