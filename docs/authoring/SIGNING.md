@@ -39,11 +39,24 @@ Your review packet for one entry has three parts:
 
 Notes marked `CORRECTED <date>` record a citation that was wrong and has been fixed. Read them: they tell you which checks have already failed once.
 
+## Citation convention
+
+Every page reference, in a `sources[]` citation and in `extraction_notes`, follows one rule:
+
+- **Cite the page number printed on the page.** That is the number a reader holding the document will look for.
+- **When the PDF's own page index differs, add it in parentheses:** `p.37 (PDF p.42)`. When the two are the same, give the printed page alone: `p.105`.
+- **A page that prints no number** is cited by its PDF page, marked as such: `PDF p.12`.
+- **A range** follows the same rule at both ends: `p.85-86`.
+
+Why: PDF viewers jump to the PDF index, while a printed copy or a colleague's reference uses the printed number. Giving both where they differ is how a reader gets to the same page either way. The WHO EML is the case in this corpus: its printed page is 5 lower than its PDF page throughout.
+
+A citation that gives only the PDF page where the two differ is an error. Correct it, with a `CORRECTED <date>:` line in the notes, before you sign.
+
 ## 2. Check every citation yourself
 
 Do not sign on the strength of the notes. For **each** source record:
 
-1. **Open the cited page.** The page in a citation is the number **printed on the page**. Where the PDF's own page index differs, the citation says so, e.g. `p.37 (PDF p.42)`. Confirm the page prints the number cited.
+1. **Open the cited page.** Following the [citation convention](#citation-convention), the page in a citation is the number **printed on the page**, with the PDF page in parentheses where it differs. Confirm the page prints the number cited.
 2. **Read the quote against the page, word by word.**
    - A quote may leave text out only where it shows `…`.
    - `[sic]` marks a typo that is printed in the source and kept on purpose.
@@ -75,7 +88,7 @@ The notes list the conflicts the author found. Look for more before you sign:
 
 **Record what you find before signing,** in its own pull request:
 - Add a line to the entry's `extraction_notes` in this form: `CONFLICT (found <date>): <source> p.<n>: "<verbatim quote>". <what differs, and what needs ruling>.`
-- Add the source to `sources[]` with its citation, tier, `source_class`, `url` and `retrieved_date`.
+- Add the source to `sources[]` with its citation (page numbers per the [citation convention](#citation-convention)), tier, `source_class`, `url` and `retrieved_date`.
 - Fix any citation error the same way, with a `CORRECTED <date>:` line that says what was wrong.
 - Then regenerate the worksheet (step 6). Leave `signoff` false.
 
