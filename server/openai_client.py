@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 18 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 19 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -47,7 +47,7 @@ import re
 import json
 import time
 from dataclasses import dataclass, field, asdict, replace as dc_replace
-from typing import Literal, Optional, List
+from typing import Literal, Optional, List, Tuple
 import brief as brief_mod
 import general_reference
 import providers
@@ -2219,17 +2219,15 @@ PREP_RECIPE_NUMBERS = {
     "epi_infusion_prep": ("1 mg",),
 }
 
-# What the push-dose card said before it was routed through the contract
-# engine, kept for the case where the contract engine has nothing to say —
-# an unsigned bank, or drug_contracts failing to import. It is a LEGACY
-# BACKFILL and the SOURCE line says so when it is what got served.
+# There is no fallback dose. The epinephrine cards used to keep the numbers
+# they printed before the contract engine existed — 5-20 mcg push, 2-10
+# mcg/min drip — for the case where the engine had nothing to say: an unsigned
+# bank, or drug_contracts failing to import. Neither number has a citation in
+# the bank. Unsigning the push-dose entries on 2026-09-24 would have put the
+# uncited 5 mcg floor back in front of a medic, with no contraindications,
+# because this card fires ahead of every gate that would have caught it.
 #
-# It is not the signed number. NASEMSO Bradycardia p.36 puts the push-dose
-# window at 10-20 mcg; this card's 5 mcg floor is the widely-taught
-# push-dose-pressor start and has no citation in the bank. Where a signed entry
-# applies, the signed entry wins and this string is never reached.
-LEGACY_PUSH_DOSE_EPI_GIVE = "- Administer 0.5-2 mL (5-20 mcg) IV push q2-5min. Titrate to effect."
-LEGACY_EPI_INFUSION_GIVE = "- Start at 2-10 mcg/min (30-150 mL/hr). Titrate to MAP target."
+# A missing contract holds. It never serves an uncited value.
 
 LEGACY_PREP_SOURCE = ("General Evidence-Based Medicine / deterministic preparation "
                       "card — no signed contract covered this request")
@@ -2344,30 +2342,36 @@ def render_range_line(s: ServedEntry, prefix: str = "- ") -> str:
             f"Indication: {s.indication}.")
 
 
-def _prep_give_block(served: List[ServedEntry], note: Optional[str],
-                     legacy_line: str) -> str:
-    """What goes under GIVE: contracts, or a refusal, or the legacy line.
-
-    The legacy line is reached ONLY when the contract engine had nothing to say
-    at all — an unsigned bank or a failed import. It is never reached because a
-    signed entry for a DIFFERENT indication existed and was declined: that case
-    produces the note, because "the bank does not cover your question" and
-    "here is an unsourced number" are different answers and the medic is owed
-    the first one.
-    """
+def _prep_give_block(served: List[ServedEntry], note: Optional[str]) -> str:
+    """What goes under GIVE: the signed entries, or the note saying which
+    question the signed entries do not cover. Never called with neither — that
+    case is a hold (fixed_prep_outcome)."""
     if served:
         lines = [render_range_line(s) for s in served]
         if note:
             lines.append(note)
         return "\n".join(lines)
-    if note:
-        return note
-    return legacy_line
+    return note
+
+
+def _prep_hold_issue(what: str) -> str:
+    return (f"EdgeCDSS has no signed {what} dose for this request, so no dose "
+            f"is given. It cannot be answered here until one is signed: use "
+            f"local protocol or medical control.")
 
 
 def build_fixed_prep_response(query: str,
                               ctx: Optional[PatientContext] = None) -> Optional[str]:
-    """Preparation cards. The RECIPE is authored here; the DOSE is not.
+    """The text of fixed_prep_outcome(): the card, or the hold that replaces it."""
+    outcome = fixed_prep_outcome(query, ctx)
+    return outcome[0] if outcome else None
+
+
+def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
+                       ) -> Optional[Tuple[str, List[str]]]:
+    """(text, hold_issues) for a preparation question, or None if it is not one.
+
+    Preparation cards. The RECIPE is authored here; the DOSE is not.
 
     This card fires at step 2a — earlier than any other pre-gate, ahead of the
     weight and route gates — because a preparation question does not need a
@@ -2376,13 +2380,18 @@ def build_fixed_prep_response(query: str,
     validator downstream, because none of them ever run. It said 5-20 mcg while
     the signed entry said 10-20 mcg, and being first meant being the answer.
 
-    So the recipe stays and the dose comes from the bank.
+    So the recipe stays and the dose comes from the bank. When the bank has
+    nothing to say — no signed entry and no note, as with an unsigned bank or a
+    failed import — the card is a safety hold and hold_issues is non-empty.
     """
     q = query.lower()
     if _prep_term_present(q, ["push dose epi", "push-dose epi",
                               "push dose epinephrine", "dirty epi"]):
         served, note = _epi_entries(EPI_PUSH_DOSE_INDICATIONS, q, ctx)
-        give = _prep_give_block(served, note, LEGACY_PUSH_DOSE_EPI_GIVE)
+        if not served and not note:
+            issue = _prep_hold_issue("push-dose epinephrine")
+            return build_safety_hold([issue], ""), [issue]
+        give = _prep_give_block(served, note)
         return (
             "**PUSH-DOSE EPINEPHRINE PREP**\n"
             "- Make 10 mcg/mL epinephrine.\n"
@@ -2401,7 +2410,7 @@ def build_fixed_prep_response(query: str,
             "- 1 mL of 1:10,000 epi plus 9 mL NS = 10 mcg/mL push-dose epi.\n\n"
             f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
-        )
+        ), []
     if _prep_term_present(q, ["epi drip", "epinephrine drip"]):
         served, note = _epi_entries(EPI_INFUSION_INDICATIONS, q, ctx)
         # The flat 2-10 mcg/min the card used to print is not in the bank in
@@ -2409,7 +2418,10 @@ def build_fixed_prep_response(query: str,
         # own mcg/kg/min, and the mL/hr is NOT computed from the bag above:
         # that would be a volume derived from a concentration nobody signed,
         # which is the rule resolve_dose_volume exists to hold.
-        give = _prep_give_block(served, note, LEGACY_EPI_INFUSION_GIVE)
+        if not served and not note:
+            issue = _prep_hold_issue("epinephrine infusion")
+            return build_safety_hold([issue], ""), [issue]
+        give = _prep_give_block(served, note)
         return (
             "**EPINEPHRINE INFUSION PREP (Dirty Epi Drip)**\n"
             "- Mix 1 mg epinephrine (1:10,000, 10 mL) in 250 mL NS = 4 mcg/mL.\n\n"
@@ -2425,7 +2437,7 @@ def build_fixed_prep_response(query: str,
             "- 1mg epi in 250mL NS = 4 mcg/mL. Titrate to MAP target.\n\n"
             f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
-        )
+        ), []
     return None
 
 
@@ -4705,7 +4717,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    eighteen early returns before retrieval — count them with the source_mode
+    nineteen early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -4889,8 +4901,21 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         # REQUIRE a patient — a prep question asked with an empty context still
         # gets its recipe, which is why this gate is still ahead of the weight
         # gate.
-        fixed_prep = build_fixed_prep_response(query, patient_ctx)
-        if fixed_prep:
+        prep = fixed_prep_outcome(query, patient_ctx)
+        if prep and prep[1]:
+            # No signed entry behind the dose this card would give: a hold,
+            # in the same shape as every other deterministic pre-gate block.
+            print(f"🛑 FIXED_PREP HOLD — no signed contract: {query[:40]}")
+            return {
+                "response": prep[0],
+                "sources": [],
+                "source_mode": "DETERMINISTIC_PRE_GATE",
+                "validator_result": "UNSAFE",
+                "validator_issues": prep[1],
+                "patient_context": patient_ctx.to_dict()
+            }
+        if prep:
+            fixed_prep = prep[0]
             print(f"🔧 FIXED_PREP: {query[:40]}")
             return {
                 "response": fixed_prep,

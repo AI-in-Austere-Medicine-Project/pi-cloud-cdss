@@ -1018,7 +1018,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1027,8 +1027,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "anaphylaxis",
@@ -1070,7 +1071,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1079,9 +1080,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0",
-          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. | CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "cardiac arrest",
@@ -1323,7 +1324,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1332,8 +1333,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "symptomatic bradycardia — push dose",
@@ -1374,7 +1376,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1383,8 +1385,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "shock unresponsive to IV fluids — infusion",
@@ -1424,7 +1427,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1433,8 +1436,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "shock — push dose",
@@ -1475,7 +1479,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1484,8 +1488,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "neonatal resuscitation — HR below 60 despite ventilation",
@@ -1526,7 +1531,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1535,8 +1540,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "croup with stridor at rest — nebulised",
@@ -1577,7 +1583,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1586,8 +1592,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
         {
           "indication": "bronchiolitis with severe respiratory distress — nebulised",
@@ -1628,7 +1635,7 @@
               "source_class": "NASEMSO"
             },
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
               "tier": 1,
               "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
               "retrieved_date": "2026-08-24",
@@ -1637,8 +1644,9 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
-          "version": "0.2.0"
+          "review_date": "2026-09-24",
+          "version": "0.2.1",
+          "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         }
       ],
       "notes": "Highest-traffic UNCONTRACTED drug in the discovery run. Also the drug behind the look-alike concentration probe (1:1000 vs 1:10000) and the norepi-vs-epi collision probe — 5 of its 19 queries were collision probes."

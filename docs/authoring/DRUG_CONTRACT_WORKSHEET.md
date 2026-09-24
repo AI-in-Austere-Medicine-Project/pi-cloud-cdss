@@ -396,7 +396,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO lists 'concentration of epinephrine in relation to route' as an explicit patient-safety consideration. · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 2. anaphylaxis · peds · IM
 
@@ -413,8 +414,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose. · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
-- **why no value was written:** Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1.
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. | CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 3. cardiac arrest · adult · IV
 
@@ -489,7 +490,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 8. symptomatic bradycardia — push dose · adult · IV
 
@@ -506,7 +508,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 9. shock unresponsive to IV fluids — infusion · adult|peds · IV
 
@@ -522,7 +525,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 10. shock — push dose · peds · IV
 
@@ -538,7 +542,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Repeat every 3-5 minutes, titrated to goal MAP. · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 11. neonatal resuscitation — HR below 60 despite ventilation · peds · IV
 
@@ -555,7 +560,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Neonatal Resuscitation, p.160 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 12. croup with stridor at rest — nebulised · peds · NEB
 
@@ -572,7 +578,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Croup), p.156 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 #### 13. bronchiolitis with severe respiratory distress — nebulised · peds · NEB
 
@@ -589,7 +596,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Bronchiolitis), p.151 · retrieved 2026-08-24
-- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.381 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
+- **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
 
 ### rocuronium  — discovery rank #3, 17 dose queries
 
