@@ -52,6 +52,18 @@ Why: PDF viewers jump to the PDF index, while a printed copy or a colleague's re
 
 A citation that gives only the PDF page where the two differ is an error. Correct it, with a `CORRECTED <date>:` line in the notes, before you sign.
 
+## Write nothing the dose check reads as a dose
+
+The deterministic dose check reads every **number followed by a mass unit** as a dose, whatever the word means where you wrote it. That covers mg, mcg, µg, μg, ug, g, microgram(s), milligram(s) and gram(s), in any case, with or without a space, and ranges such as "25-100". It also reads a mass per kg ("2 mg/kg") as a dose. It does not read a rate ("mg/kg/hr") or a concentration ("50 mg/mL").
+
+So in cards, cautions, notes and any contract text a medic sees:
+
+- **Write "14 gauge", never "14G" or "14g".** The check reads "14G" as 14 grams. The tension-pneumothorax card first shipped with "14G 8cm", and the doseless-card test caught it as a stated dose of 14 g.
+- **Avoid any other token that looks like a number and a unit:** "18G cannula" (write "18 gauge"), "G2P1", a model or part number ending in "g" or "mg".
+- **A number that is not a dose must not sit beside a mass unit.** Rewrite "a 20 g needle" as "a 20 gauge needle", and "5g of sugar in the drink" as "a teaspoon of sugar" unless it is the dose.
+
+Why it matters: in a card, a false dose fails the registry test. In served text, it is held as an unsigned dose, which is the right failure but costs the medic an answer.
+
 ## 2. Check every citation yourself
 
 Do not sign on the strength of the notes. For **each** source record:
