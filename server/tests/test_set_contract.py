@@ -190,6 +190,35 @@ def test_a_migrated_unsourced_entry_is_refused(sandbox, capsys):
     assert "MIGRATED_UNSOURCED" in capsys.readouterr().out
 
 
+def test_the_paediatric_atropine_draft_is_refused_for_its_minimum(sandbox, capsys):
+    """The draft as #73 shipped it, not a mutated copy: SMOG states a 0.1 mg
+    floor the entry does not carry, so the engine will not serve it and the
+    tool must not sign it."""
+    e = _entry(sandbox, "atropine", "symptomatic bradycardia", "peds", "IV")
+    assert dc.NEEDS_MINIMUM in e["flags"], \
+        "premise is stale: the draft no longer carries the minimum-dose flag"
+    assert dc.NEEDS_MINIMUM in sc.sign_refusal(e)
+    assert sc.cmd_sign(Args(drug="atropine",
+                            indication="symptomatic bradycardia",
+                            population="peds", route="IV")) == 1
+    assert dc.NEEDS_MINIMUM in capsys.readouterr().out
+    assert _entry(sandbox, "atropine", "symptomatic bradycardia", "peds",
+                  "IV")["signoff"] is False
+
+
+def test_a_new_engine_flag_is_refused_without_touching_the_tool(sandbox,
+                                                                 monkeypatch):
+    """The tool reads the engine's flag predicate, so a flag the engine learns
+    to refuse is refused at signing with no edit here."""
+    real = dc.flag_refusal
+    monkeypatch.setattr(dc, "flag_refusal", lambda e: (
+        "flagged SOME_FUTURE_FLAG" if "SOME_FUTURE_FLAG" in (e.get("flags") or [])
+        else real(e)))
+    e = _mutate(sandbox, "ketamine", "RSI induction", "adult", "IV",
+                flags=["SOME_FUTURE_FLAG"])
+    assert "SOME_FUTURE_FLAG" in sc.sign_refusal(e)
+
+
 def test_a_tier_1_citation_on_another_field_does_not_source_the_dose(sandbox):
     """WHY THE FLAG AND NOT THE TIER CHECK.
 

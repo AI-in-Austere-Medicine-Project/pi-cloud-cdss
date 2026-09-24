@@ -43,7 +43,26 @@ guess", which are different pieces of work.
 
 A null `max_single` / `max_cumulative` is NOT a sentinel. It means the cited
 source states no maximum for that entry, which is a fact about the source and
-is allowed to be signed.
+is allowed to be signed. The same is true of an absent `min_single`.
+
+`min_single` IS A DOSE FLOOR, AND IT RAISES THE DOSE
+────────────────────────────────────────────────────
+Some sources state a minimum as well as a maximum, and the minimum is a
+dosing instruction rather than a warning: paediatric atropine is 0.02 mg/kg
+with a floor of 0.1 mg, because a smaller dose can cause the paradoxical
+bradycardia the drug is being given to treat. Under the floor the guideline
+does not want the arithmetic — it wants the floor.
+
+So `min_single` is symmetric with `max_single` and resolve_dose() applies it
+the same way, by clamping. The floor is applied AFTER the cap, and an entry
+whose floor sits above its own cap cannot be signed: that is an authoring
+error with no safe reading, not a dose.
+
+A clamped dose is never served silently. resolve_dose() returns
+`floor_applied` and the sentence the medic reads, and the serving path puts it
+in the cautions beside the dose, because a 3 kg infant who is given 0.1 mg of
+a 0.02 mg/kg drug is receiving 1.7x the per-kg dose on purpose and the medic
+has to be told that it was on purpose.
 
 WHAT A MEDIC READS NOW, AND WHAT THE RECORD KEEPS
 ────────────────────────────────────────────────
@@ -176,6 +195,13 @@ VALID_POPULATIONS = ("adult", "peds", "weight-based", "adult|peds")
 #                                  never open.
 OWNER_DECLARED = "OWNER_DECLARED"
 MIGRATED_UNSOURCED = "MIGRATED_UNSOURCED"
+
+# A source states a dose FLOOR the schema could not hold. Set by the author
+# when the extraction found a minimum and there was nowhere to put it; cleared
+# by authoring `min_single`. A signed entry still carrying it cannot serve,
+# for the same reason MIGRATED_UNSOURCED cannot: the flag says the entry is
+# known to compute a dose its own source forbids.
+NEEDS_MINIMUM = "NEEDS_MINIMUM_DOSE_SUPPORT"
 
 _DECLARATION_KEYS =("basis", "declared_by", "declared_on", "justification",
                      "declared_value", "supporting_doctrine")
@@ -739,13 +765,31 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
 
     declared = is_owner_declared(entry)
 
-    if MIGRATED_UNSOURCED in (entry.get("flags") or []):
-        return False, ("flagged MIGRATED_UNSOURCED: the DOSE came from the "
-                       "pre-contract hardcode and no approved source "
-                       "corroborates it. A citation supporting another field "
-                       "does not change that — clear the flag only when the "
-                       "dose itself has a tier 1 or tier 2 source, or when the "
-                       "owner declares the value under OWNER_DECLARED")
+    why = flag_refusal(entry)
+    if why:
+        return False, why
+
+    # A floor above the entry's own cap has no safe reading — one of the two
+    # numbers was misread, and serving either is serving a misreading.
+    floor = entry.get("min_single")
+    if isinstance(floor, dict):
+        if not isinstance(floor.get("value"), (int, float)):
+            return False, "min_single is authored but its value is not a number"
+        # Checked at both ends of the weight range, not at one weight. A
+        # fixed floor under a per-kg cap is the case that bites, and it bites
+        # only at low weight: 0.1 mg against a 0.5 mg/kg cap is fine at 70 kg
+        # and impossible at 0.1 kg. One sample would call that entry signable.
+        for w in _LIMIT_CHECK_WEIGHTS_KG:
+            f_mg, why = _limit_mg(floor, w)
+            if why:
+                return False, f"min_single unit is unusable: {why}"
+            c_mg, why = _limit_mg(entry.get("max_single"), w)
+            if why:
+                return False, f"max_single unit is unusable: {why}"
+            if f_mg is not None and c_mg is not None and f_mg > c_mg:
+                return False, (f"min_single ({floor['value']:g} {floor['units']}) "
+                               f"is above max_single at {w:g} kg — one of the "
+                               "two was misread")
 
     # Three bases, not two. A tier 1 citation, a tier 2 citation, or the
     # owner's declaration — and the third one holds for THIS entry only,
@@ -772,16 +816,49 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
         return False, f"population {entry.get('population')!r} is not one of " \
                       f"{', '.join(VALID_POPULATIONS)}"
 
+    return True, ""
+
+
+def flag_refusal(entry: dict) -> str:
+    """Why this entry's flags forbid serving it, or "" if they do not.
+
+    Every flag-driven refusal lives here and nowhere else, because two callers
+    must agree on it: entry_is_servable() refuses to SERVE on it, and the
+    signing tool refuses to SIGN on it. A second copy of this list in the tool
+    is how the tool came to sign what the engine would not serve — a new
+    engine flag landed and the copy did not grow with it. A flag added here is
+    refused at signing by construction.
+    """
+    flags = entry.get("flags") or []
+
+    if NEEDS_MINIMUM in flags:
+        return (f"flagged {NEEDS_MINIMUM}: the source states a MINIMUM "
+                "single dose that this entry does not carry, so the "
+                "weight-based dose computes under its own floor at low "
+                "weights. Author `min_single` with the source's value "
+                "and units, then clear the flag. A serve caution "
+                "naming the minimum is not a substitute: it tells a "
+                "medic under load to override the number printed "
+                "beside it")
+
+    if MIGRATED_UNSOURCED in flags:
+        return ("flagged MIGRATED_UNSOURCED: the DOSE came from the "
+                "pre-contract hardcode and no approved source "
+                "corroborates it. A citation supporting another field "
+                "does not change that — clear the flag only when the "
+                "dose itself has a tier 1 or tier 2 source, or when the "
+                "owner declares the value under OWNER_DECLARED")
+
     # A conflict the owner signed through must say how it was adjudicated.
     # Signing one of two conflicting entries IS the adjudication; recording it
     # is what stops the next reader from re-opening the same question.
-    if "SOURCE_CONFLICT" in (entry.get("flags") or []):
+    if "SOURCE_CONFLICT" in flags:
         adj = str(entry.get("adjudication") or "").strip()
         if not adj or adj in SENTINELS:
-            return False, ("entry is flagged SOURCE_CONFLICT and signed but "
-                           "carries no adjudication note")
+            return ("entry is flagged SOURCE_CONFLICT and signed but "
+                    "carries no adjudication note")
 
-    return True, ""
+    return ""
 
 
 def unhonoured_signatures() -> list:
@@ -1147,6 +1224,31 @@ def to_mg(value: float, mass_unit: str) -> float:
     return value * _MASS_TO_MG[mass_unit]
 
 
+def _limit_mg(limit, weight_kg: Optional[float]) -> tuple:
+    """(milligrams, why_unusable) for a max_single / min_single block.
+
+    (None, "") means the entry states no such limit, which is a fact about the
+    source and not a fault. (None, why) means it states one this module will
+    not guess at, and the caller must refuse the whole dose rather than serve
+    it unlimited — an unreadable cap is not an absent cap.
+
+    A per-kg limit with no weight also returns (None, ""): the limit cannot be
+    computed, but a fixed dose that never needed a weight must not be refused
+    because a limit beside it wanted one.
+    """
+    if not isinstance(limit, dict) or not isinstance(limit.get("value"), (int, float)):
+        return None, ""
+    units = limit.get("units")
+    kind, mass_unit, why = classify_units(units, str(units or "").endswith("/kg"))
+    if kind == MASS:
+        return to_mg(limit["value"], mass_unit), ""
+    if kind == MASS_PER_KG:
+        if weight_kg is None:
+            return None, ""
+        return to_mg(limit["value"] * weight_kg, mass_unit), ""
+    return None, why or f"{units!r} is not a mass"
+
+
 def resolve_dose(entry: dict, weight_kg: Optional[float]) -> dict:
     """Turn a dose_entry into something servable, or say why not.
 
@@ -1155,7 +1257,8 @@ def resolve_dose(entry: dict, weight_kg: Optional[float]) -> dict:
     this module does not recognise.
     """
     out = {"kind": UNKNOWN, "dose_mg": None, "display_value": None,
-           "display_units": None, "reason": ""}
+           "display_units": None, "reason": "",
+           "floor_applied": False, "floor_note": ""}
     rng = entry.get("dose_range")
     if not isinstance(rng, dict):
         out["reason"] = "dose_range is not authored"
@@ -1191,18 +1294,32 @@ def resolve_dose(entry: dict, weight_kg: Optional[float]) -> dict:
 
     dose_mg = to_mg(value, mass_unit)
 
-    cap = entry.get("max_single")
-    if isinstance(cap, dict) and isinstance(cap.get("value"), (int, float)):
-        ck, cu, cwhy = classify_units(cap.get("units"),
-                                      str(cap.get("units", "")).endswith("/kg"))
-        if ck == MASS:
-            dose_mg = min(dose_mg, to_mg(cap["value"], cu))
-        elif ck == MASS_PER_KG and weight_kg is not None:
-            dose_mg = min(dose_mg, to_mg(cap["value"] * weight_kg, cu))
-        elif ck == UNKNOWN:
-            out["kind"] = UNKNOWN
-            out["reason"] = f"max_single unit is unusable: {cwhy}"
-            return out
+    cap_mg, why = _limit_mg(entry.get("max_single"), weight_kg)
+    if why:
+        out["kind"] = UNKNOWN
+        out["reason"] = f"max_single unit is unusable: {why}"
+        return out
+    if cap_mg is not None:
+        dose_mg = min(dose_mg, cap_mg)
+
+    # The floor goes on AFTER the cap. Order only matters for an entry whose
+    # floor is above its own cap, which entry_is_servable() refuses to sign;
+    # this way round, such an entry at least errs toward the stated minimum
+    # rather than toward a dose the source calls too small to work.
+    floor_mg, why = _limit_mg(entry.get("min_single"), weight_kg)
+    if why:
+        out["kind"] = UNKNOWN
+        out["reason"] = f"min_single unit is unusable: {why}"
+        return out
+    if floor_mg is not None and dose_mg < floor_mg:
+        floor = entry["min_single"]
+        out["floor_applied"] = True
+        out["floor_note"] = (
+            f"MINIMUM DOSE {floor['value']:g} {floor['units']}: the weight-based "
+            f"dose is below the minimum this source states, so the minimum is "
+            f"what is given"
+            + (f" — {floor['rule']}" if str(floor.get("rule") or "").strip() else ""))
+        dose_mg = floor_mg
 
     out["dose_mg"] = dose_mg
     # Back into the unit the SOURCE stated, so the medic reads the guideline's
@@ -1258,6 +1375,12 @@ def range_text(entry: dict) -> Optional[str]:
 # silenced.
 DOSE_MAGNITUDE_FACTOR = 1000.0
 _LINT_WEIGHT_KG = 70.0
+
+# The weights a min_single / max_single pair is checked against. The floor
+# matters at the bottom of the range and the cap at the top, so an entry that
+# mixes a fixed limit with a per-kg one has to hold at both. 2 kg is a
+# newborn, which is the smallest patient the paediatric entries admit.
+_LIMIT_CHECK_WEIGHTS_KG = (2.0, 70.0)
 
 
 def lint_dose_magnitude() -> list:

@@ -249,6 +249,14 @@ def sign_refusal(entry: dict) -> str:
                 "owner is prepared to put a name to the number — declare it "
                 f"under {dc.OWNER_DECLARED} with a full owner_declaration")
 
+    # The engine's own flag predicate, not a list copied from it. The checks
+    # above give the tool's fuller wording for flags it already knew; this one
+    # catches every flag the engine refuses to serve, including any added
+    # after this tool was last touched.
+    why = dc.flag_refusal(entry)
+    if why:
+        return why
+
     return ""
 
 

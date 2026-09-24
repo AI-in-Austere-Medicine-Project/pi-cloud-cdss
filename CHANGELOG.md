@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+### Minimum single dose — 2026-09-20
+
+The dose contract could hold a maximum and not a minimum. Some sources state
+both, and the minimum is an instruction rather than a warning: paediatric
+atropine is 0.02 mg/kg with a floor of 0.1 mg, because a smaller dose can
+cause the paradoxical bradycardia the drug is being given to treat. Below 5 kg
+the arithmetic computed under that floor.
+
+- **`min_single` raises the dose.** Symmetric with `max_single`, same shape
+  (`{value, units, rule}`), and applied after the cap. Absent means the source
+  states no minimum, so every entry authored before this resolves exactly as
+  it did.
+- **A raised dose is never raised silently.** `resolve_dose()` returns
+  `floor_applied` and a sentence naming the minimum and the reason, and the
+  serving path puts it first in the cautions beside the dose. A 3 kg infant
+  given 0.1 mg of a 0.02 mg/kg drug is getting 1.7x the per-kg dose on
+  purpose, and the medic reads that it was on purpose.
+- **An entry flagged `NEEDS_MINIMUM_DOSE_SUPPORT` cannot serve, signed or
+  not.** The flag says the entry is known to compute a dose its own source
+  forbids; it is cleared by authoring the floor, not by signing over it.
+- **A floor above the entry's own cap cannot be signed.** Checked at 2 kg and
+  at 70 kg, because a fixed floor under a per-kg cap only fails at the bottom
+  of the weight range.
+
+No dose changes for any currently signed entry: nothing in the bank declares
+a floor yet. The one entry that needs one is the unsigned paediatric atropine
+bradycardia draft.
+
 ### Brief polish — 2026-09-19
 
 This change is format only. The brief now says less, but everything it drops
