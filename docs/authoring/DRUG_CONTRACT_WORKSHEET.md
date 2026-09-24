@@ -23,7 +23,7 @@ A signed entry carrying `PENDING_CLINICAL_SIGNOFF` or `NEEDS_MANUAL_ENTRY` **any
 - **Tier 1 — NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)**
   - retrieved 2026-08-24 from a local copy at sources/National_Model_EMS_Clinical_Guidelines_Version_3.pdf (407 pages, text layer intact, printed page == PDF page). Extracted into this file as DRAFT tier 1 values.
 - **Tier 2 — WHO — The selection and use of essential medicines 2025: WHO Model List of Essential Medicines, 24th list**
-  - retrieved 2026-08-24, 74 pages, text layer intact
+  - retrieved 2026-08-24, 74 pages, text layer intact; printed page = PDF page - 5 (PDF p.42 prints 37). Citations give the printed page, with the PDF page in parentheses.
   - ⚠️ The EML is a MEDICINES LIST, not a dosing guideline. It supplies dosage forms, strengths and indication-scope statements. It states essentially no mg/kg regimens, so almost every dose_range sourced only to Tier 2 is NEEDS_MANUAL_ENTRY by necessity.
 
 ## Concentrations — sign these too, and separately
@@ -1672,8 +1672,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (PDF p.29) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.24 (PDF p.29).
 
 #### 2. severe malaria · peds · IV
 
@@ -1683,8 +1683,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (PDF p.29) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.24 (PDF p.29).
 
 #### 3. severe malaria — pre-referral only · adult|peds · PR
 
@@ -1694,8 +1694,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (PDF p.29) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.24 (PDF p.29).
 
 ### artemether  — tropical/austere subset
 
@@ -1713,8 +1713,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (PDF p.29) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.24 (PDF p.29).
 
 ### artemether + lumefantrine  — tropical/austere subset
 
@@ -1732,8 +1732,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (PDF p.29) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.24 (PDF p.29).
 
 #### 2. uncomplicated P. falciparum malaria · peds · PO
 
@@ -1743,8 +1743,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.29 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (PDF p.29) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.24 (PDF p.29).
 
 ### quinine  — tropical/austere subset
 
@@ -1762,8 +1762,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.25 (PDF p.30) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.25 (PDF p.30).
 
 #### 2. severe malaria · peds · IV
 
@@ -1773,8 +1773,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.30 (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.25 (PDF p.30) (6.5.3.1 Antimalarial medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.25 (PDF p.30).
 
 ### antivenom immunoglobulin  — tropical/austere subset
 
@@ -1793,8 +1793,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.55 (19.2 Sera, immunoglobulins) · retrieved 2026-08-24
-- **why no value was written:** NASEMSO mentions antivenom in the Bites and Envenomations guideline (p.292) but states no dose and defers to the specific product. WHO states 'exact type to be defined locally'. NEITHER approved source can ever fill this entry — it can only come from the local product insert.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.50 (PDF p.55) (19.2 Sera, immunoglobulins) · retrieved 2026-08-24
+- **why no value was written:** NASEMSO mentions antivenom in the Bites and Envenomations guideline (p.292) but states no dose and defers to the specific product. WHO states 'exact type to be defined locally'. NEITHER approved source can ever fill this entry — it can only come from the local product insert. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.50 (PDF p.55).
 
 ### oral rehydration salts  — tropical/austere subset
 
@@ -1813,8 +1813,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.1 Oral rehydration) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.48 (PDF p.53) (17.5.1 Oral rehydration) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.48 (PDF p.53).
 
 ### zinc sulfate  — tropical/austere subset
 
@@ -1832,8 +1832,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.53 (17.5.2 Medicines for diarrhoea) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.48 (PDF p.53) (17.5.2 Medicines for diarrhoea) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.48 (PDF p.53).
 
 ### isoniazid  — tropical/austere subset
 
@@ -1851,8 +1851,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.18 (PDF p.23) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.18 (PDF p.23).
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
 
@@ -1862,8 +1862,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.18 (PDF p.23) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.18 (PDF p.23).
 
 ### rifampicin  — tropical/austere subset
 
@@ -1881,8 +1881,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.18 (PDF p.23) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.18 (PDF p.23).
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
 
@@ -1892,8 +1892,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.18 (PDF p.23) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.18 (PDF p.23).
 
 ### pyrazinamide  — tropical/austere subset
 
@@ -1911,8 +1911,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.19 (PDF p.24) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.19 (PDF p.24).
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
 
@@ -1922,8 +1922,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.24 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.19 (PDF p.24) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.19 (PDF p.24).
 
 ### ethambutol  — tropical/austere subset
 
@@ -1941,8 +1941,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.18 (PDF p.23) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.18 (PDF p.23).
 
 #### 2. drug-susceptible tuberculosis — first-line · peds · PO
 
@@ -1952,8 +1952,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.18 (PDF p.23) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.18 (PDF p.23).
 
 ### ethambutol + isoniazid + pyrazinamide + rifampicin  — tropical/austere subset
 
@@ -1971,8 +1971,8 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.23 (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
-- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source.
+- **source:** tier 2 (WHO_EML) — WHO Model List of Essential Medicines, 24th list (2025), in: The selection and use of essential medicines 2025 — p.18 (PDF p.23) (6.2.5 Antituberculosis medicines) · retrieved 2026-08-24
+- **why no value was written:** Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Expected: NASEMSO is a US prehospital EMS model guideline and does not cover tropical or austere disease burden. The WHO form/strength and scope facts already on this entry are retained and remain the only source. | CORRECTED 2026-09-24: the WHO EML citation gave the PDF page; it now gives the printed page, p.18 (PDF p.23).
 
 ---
 
