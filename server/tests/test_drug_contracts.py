@@ -435,7 +435,9 @@ def test_the_suspected_source_error_was_not_transcribed():
     # NASEMSO figure is still recorded as a suspected error and never the dose.
     assert entry["dose_range"]["min"] == entry["dose_range"]["max"] == 0.01
     assert entry["dose_range"]["units"] == "mg/kg"
-    assert entry["signoff"] is False
+    # Signed 2026-09-24 on the owner's ruling, with the NASEMSO figure recorded
+    # as a suspected source error and not served.
+    assert "suspected source error" in entry["adjudication"]
     assert "SUSPECTED_SOURCE_ERROR" in entry["flags"]
     assert "0.1 mg/kg" in entry["extraction_notes"]
 
@@ -581,7 +583,10 @@ def test_nothing_was_signed_by_the_jts_extraction():
 # sources that disagree (NASEMSO 1 mcg/kg, JTS PFC ID61 50 mcg, SMOG 0.5-1
 # mcg/kg). They are drafts for the owner to rule on, which is what this set
 # is for; signing one requires an adjudication note, and removes it from here.
-STILL_AWAITING_A_RULING = {"fentanyl-iv-adult-analgesia"}
+#
+# 2026-09-24: ruled. The JTS PFC fixed dose is signed; the other two are retired
+# as served and kept as documented alternates.
+STILL_AWAITING_A_RULING = set()
 
 
 def test_no_source_conflict_is_still_open():
@@ -1040,6 +1045,9 @@ def test_the_declared_list_is_short_and_named():
     assert declared == {
         ("ketamine",
          "post-intubation sedation — repeated bolus (no infusion pump)"),
+        # Owner ruling 2026-09-24: no JTS or SMOG paediatric IV dose exists;
+        # declared on NASEMSO p.94.
+        ("fentanyl", "acute pain / analgesia"),
     }
 
 

@@ -190,13 +190,13 @@ def test_a_migrated_unsourced_entry_is_refused(sandbox, capsys):
     assert "MIGRATED_UNSOURCED" in capsys.readouterr().out
 
 
-def test_the_paediatric_atropine_draft_is_refused_for_its_minimum(sandbox, capsys):
-    """The draft as #73 shipped it, not a mutated copy: SMOG states a 0.1 mg
-    floor the entry does not carry, so the engine will not serve it and the
-    tool must not sign it."""
-    e = _entry(sandbox, "atropine", "symptomatic bradycardia", "peds", "IV")
-    assert dc.NEEDS_MINIMUM in e["flags"], \
-        "premise is stale: the draft no longer carries the minimum-dose flag"
+def test_an_entry_missing_its_minimum_is_refused(sandbox, capsys):
+    """Paediatric atropine as #73 drafted it: SMOG states a 0.1 mg floor the
+    entry did not carry, so the engine would not serve it and the tool must not
+    sign it. The shipped entry now carries min_single (owner ruling 2026-09-24),
+    so the drafted state is rebuilt here."""
+    e = _mutate(sandbox, "atropine", "symptomatic bradycardia", "peds", "IV",
+                flags=[dc.NEEDS_MINIMUM], min_single=None)
     assert dc.NEEDS_MINIMUM in sc.sign_refusal(e)
     assert sc.cmd_sign(Args(drug="atropine",
                             indication="symptomatic bradycardia",
