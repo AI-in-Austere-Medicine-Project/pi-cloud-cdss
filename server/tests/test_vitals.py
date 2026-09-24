@@ -831,7 +831,7 @@ class FakeChroma:
     def __init__(self, distance=0.2):
         self.distance = distance
 
-    def query(self, text, n_results=5):
+    def query(self, text, n_results=5, where=None):
         return {"documents": [["JTS analgesia protocol text"]],
                 "metadatas": [[{"source": "JTS Analgesia", "page": 4}]],
                 "distances": [[self.distance]]}

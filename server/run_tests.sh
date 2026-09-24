@@ -13,6 +13,7 @@ run_test() {
     local history="$3"
     local expect_block="$4"  # "block" or "pass"
     local expect_keyword="$5"
+    local expect_keyword2="$6"   # optional: a second pattern that must ALSO match
 
     result=$(curl -s -X POST "$API" \
         -H "Content-Type: application/json" \
@@ -31,6 +32,9 @@ run_test() {
     keyword_found=true
     if [ -n "$expect_keyword" ]; then
         echo "$response" | grep -qi "$expect_keyword" || keyword_found=false
+    fi
+    if [ -n "$expect_keyword2" ]; then
+        echo "$response" | grep -qi "$expect_keyword2" || keyword_found=false
     fi
 
     if [ "$expect_block" = "block" ]; then
@@ -96,6 +100,12 @@ echo ""
 echo "--- CLINICAL SCENARIOS ---"
 run_test "Sepsis management correct" "80kg male HR 106 BP 92/46 temp 38.2C pus draining from wound" "[]" "pass" "sepsis\|antibiotic\|fluid"
 run_test "Hemorrhagic shock DCR" "trauma patient BP 70/40 HR 140 active abdominal bleeding no fever" "[]" "pass" "blood\|DCR\|LTOWB\|TXA"
+# A1 (2026-09-24): haemorrhage with shock physiology, a normal-looking BP, or
+# an ID18 pattern reaches the DCR card. The first was answered from general
+# knowledge with no TXA.
+run_test "DCR: GSW, TQ, HR 118, BP 104/68" "80 kg male, GSW left thigh, tourniquet on 20 min, HR 118, BP 104/68" "[]" "pass" "damage-control resuscitation" "TXA"
+run_test "DCR: blast, bilateral amputations" "blast injury, bilateral leg amputations, TQs on" "[]" "pass" "damage-control resuscitation" "TXA"
+run_test "DCR: massive hemorrhage, TQ" "massive hemorrhage, tourniquet applied" "[]" "pass" "damage-control resuscitation" "TXA"
 run_test "Anaphylaxis epinephrine" "patient with severe anaphylaxis hives throat swelling BP dropping" "[]" "pass" "epinephrine\|epi"
 run_test "Seizure lorazepam" "patient having active seizure" "[]" "pass" "lorazepam\|ativan\|keppra\|levetiracetam"
 run_test "Hypothermic arrest CPR" "patient in cardiac arrest found in the snow hypothermic" "[]" "pass" "CPR\|rewarming\|warm"

@@ -90,7 +90,7 @@ class _FakeChroma:
     def __init__(self, distance=0.99):
         self.distance = distance
 
-    def query(self, text, n_results=5):
+    def query(self, text, n_results=5, where=None):
         return {"documents": [["unrelated protocol text"]],
                 "metadatas": [[{"source": "JTS Burn Care", "page": 3}]],
                 "distances": [[self.distance]]}

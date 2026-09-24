@@ -120,7 +120,7 @@ def _run(monkeypatch, generator_truncated, verdict="SAFE"):
         return CUT_OFF
 
     monkeypatch.setattr(oc.providers, "chat", fake_chat)
-    return oc._query_with_rag_internal("tension pneumothorax, trachea deviated, what now",
+    return oc._query_with_rag_internal("how do I manage a tension pneumothorax in the field",
                                        JtsHit())
 
 

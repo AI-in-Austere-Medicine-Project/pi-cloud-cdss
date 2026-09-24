@@ -1462,6 +1462,22 @@ DOSE_TEMPLATE_CASES = [
         "backfill": [],
         "weight": None,
     },
+    # The DCR card serves the signed TXA entry since 2026-09-24 (it said
+    # "Consider TXA"): adult 2 g, and 15 mg/kg for a child with a weight.
+    {
+        "name": "dcr_card_adult_txa",
+        "render": lambda: _oc.build_hemorrhagic_shock_dcr_response(_oc.PatientContext()),
+        "contract": lambda: _oc._txa_entries(_oc.PatientContext()),
+        "backfill": [],
+        "weight": None,
+    },
+    {
+        "name": "dcr_card_paediatric_txa",
+        "render": lambda: _oc.build_hemorrhagic_shock_dcr_response(_analgesia_ctx("IV", 20.0, True)),
+        "contract": lambda: _oc._txa_entries(_analgesia_ctx("IV", 20.0, True)),
+        "backfill": [],
+        "weight": 20.0,
+    },
     {
         "name": "push_dose_epi_bradycardia",
         "render": lambda: _oc.build_fixed_prep_response("push dose epi for bradycardia HR 38"),
@@ -1568,6 +1584,12 @@ def test_the_source_line_follows_what_was_actually_served(case):
     if "**SOURCE**" not in text:
         pytest.skip("no SOURCE line on this surface")
     source = text.split("**SOURCE**:")[1].strip().splitlines()[0]
+    # A card may cite the guideline its protocol lines come from ahead of the
+    # dose provenance: "JTS CPG ID18 ... · doses: <provenance>" (the DCR card,
+    # 2026-09-24). The dose part is held to exactly the rules below.
+    if " · doses: " in source:
+        guideline, source = source.split(" · doses: ", 1)
+        assert guideline.startswith("JTS CPG ID"), guideline
 
     served = case["contract"]()
     from_contract = [_oc.dose_is_from_contract(s) for s in served]
@@ -1637,7 +1659,7 @@ def test_the_retired_analgesia_hardcode_is_gone_from_the_iv_path():
 # of these name a drug whose dose IS signed and deliberately leave the number
 # to the protocol.
 DOSELESS_CARDS = {
-    "build_cico_response", "build_hemorrhagic_shock_dcr_response",
+    "build_cico_response", "build_tension_pneumothorax_response",
     "build_sepsis_management_response", "build_anaphylaxis_response",
     "build_seizure_response", "build_hypothermic_arrest_response",
     "build_tbi_management_response", "build_mascal_response",
@@ -1654,7 +1676,7 @@ NOT_A_DOSE_CARD = {
     "build_patient_block", "build_source_block", "build_system_prompt",
     "build_safety_hold", "build_full_query_history", "build_general_case_response",
     "build_fixed_prep_response", "build_ketamine_analgesia_response",
-    "build_rsi_response",
+    "build_rsi_response", "build_hemorrhagic_shock_dcr_response",
 }
 
 # Cards that render the RECORD behind a dose already served. They print
@@ -1671,7 +1693,8 @@ PROVENANCE_CARDS = {
 # DOSE_TEMPLATE_CASES instead; this set exists so the classification is total.
 _REGISTERED_BUILDERS = {"build_fixed_prep_response",
                         "build_ketamine_analgesia_response",
-                        "build_rsi_response"}
+                        "build_rsi_response",
+                        "build_hemorrhagic_shock_dcr_response"}
 
 
 def test_every_response_builder_is_classified():
@@ -1719,7 +1742,8 @@ def test_the_registered_cards_are_actually_registered():
     covered = " ".join(c["name"] for c in DOSE_TEMPLATE_CASES)
     for name, token in (("build_rsi_response", "rsi_bundle"),
                         ("build_ketamine_analgesia_response", "ketamine_analgesia"),
-                        ("build_fixed_prep_response", "epi")):
+                        ("build_fixed_prep_response", "epi"),
+                        ("build_hemorrhagic_shock_dcr_response", "dcr_card")):
         assert name in _REGISTERED_BUILDERS
         assert token in covered, f"{name} has no case in DOSE_TEMPLATE_CASES"
 
