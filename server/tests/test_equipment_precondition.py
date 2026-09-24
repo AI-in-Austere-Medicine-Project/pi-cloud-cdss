@@ -151,5 +151,7 @@ def test_uncontracted_dose_outside_canonical_form_stays_blocked():
     assert ("post-intubation sedation — repeated bolus (no infusion pump)",
             "IV", 40.0) in signed(allowed)
     assert not any(d.drug == "midazolam" for d in allowed)
-    assert det.passed, "fixture drifted: the deterministic check now catches this"
+    # 2026-09-24: the deterministic check now reads a dose across a label's
+    # colon ("midazolam IV: 5 mg"), so it catches this as well as the gate.
+    assert not det.passed and any("midazolam 5 mg" in i for i in det.issues), det.issues
     assert outcome.blocked

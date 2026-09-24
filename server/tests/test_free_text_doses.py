@@ -118,7 +118,6 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
 @pytest.mark.parametrize("text", [
     "**GIVE**\n- Give fentanyl 80 mcg IN.",                     # the contract dose
     "**TREAT**\n1. Give fentanyl 0.08 mg.",                      # same, in mg
-    "**TREAT**\n1. Fentanyl 1 mcg/kg IV.",                       # a rate
     "**PREP**\n- Fentanyl 50 mcg/mL ampoule.",                   # a concentration
     "**CAUTIONS**\n- Max fentanyl 200 mcg cumulative.",          # a limit
     "**TREAT**\n1. Do not exceed fentanyl 300 mcg.",             # a limit
@@ -130,6 +129,17 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
 ])
 def test_what_is_not_a_freelanced_dose(text):
     assert oc.free_text_dose_issues(text, _allowed()) == [], text
+
+
+def test_a_per_kg_dose_is_checked_at_the_patients_weight():
+    """1 mcg/kg is a per-kg DOSE, not a rate (G-MTN-03, benchmark run 2). At
+    80 kg it is 80 mcg, the signed IN dose, and passes; with no weight it cannot
+    be matched to anything signed, and holds. A per-kg RATE is still not a dose."""
+    text = "**TREAT**\n1. Fentanyl 1 mcg/kg IV."
+    assert oc.free_text_dose_issues(text, _allowed(), _ctx()) == []
+    assert oc.free_text_dose_issues(text, _allowed(), NO_WEIGHT) != []
+    assert oc.free_text_dose_issues("**TREAT**\n1. Fentanyl infusion 1 mcg/kg/hr.",
+                                    _allowed(), NO_WEIGHT) == []
 
 
 @pytest.mark.parametrize("text,drug", [

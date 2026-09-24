@@ -2991,15 +2991,40 @@ def audit_volume_lines(response_text: str,
 #   - a concentration in words: "for every milliliter ... there are 10 mg";
 #   - the DON'T and SOURCE sections, which state what not to do and where
 #     the text came from;
-#   - a canonical GIVE line, which the check above already owns.
-# A number is paired with the NEAREST drug named in its clause; a clause that
-# names no recognised drug is not attributable and is left alone.
+#   - a canonical GIVE line, which the check above already owns;
+#   - a threshold: ">0.3 mg/kg", "above 2 mg".
+# A number is paired with the NEAREST drug named in its clause. A clause that
+# names no drug takes the drug last named EARLIER IN THE SAME LINE: a list
+# label ("**Fentanyl**: Can be added at a dose of 25-100μg") and a second
+# sentence ("... of ketamine ... For IM administration, 80-160mg") both put the
+# drug and its dose in different clauses. A line that names no recognised drug
+# is not attributable and is left alone.
+#
+# A per-kg amount ("1.0-2.0mg/kg of ketamine") IS a dose: it is checked at the
+# patient's dosing weight, and with no weight it cannot be matched to anything
+# signed, so it holds. Only a per-kg RATE ("0.5 mg/kg/hr") is left alone.
+#
+# 2026-09-24, benchmark run 2, G-MTN-03: a 6-year-old, 20 kg, was served
+# ketamine 1.0-2.0 mg/kg and IM 80-160 mg, fentanyl 25-100 μg and midazolam
+# 1-4 mg, and this check read none of them — the per-kg dose as a rate, the
+# other three as unattributable, and "Can be added" as a preparation. Nothing
+# about the child mattered; the same text passed for an adult.
 # ─────────────────────────────────────────────────────────────────────────────
 _FREE_DOSE_SKIP_SECTIONS = frozenset({"DON'T", "DONT", "DO NOT", "SOURCE", "SOURCES"})
 _FREE_DOSE_HEADING_RE = re.compile(r"^\s*(?:⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*")
 _FREE_DOSE_AMOUNT_RE = re.compile(
     r"(?<![\d.])(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*"
-    r"(mg|mcg|µg|ug|micrograms?|milligrams?|g|grams?)\b(?!\s*(?:/|per\b))",
+    r"(mg|mcg|µg|μg|ug|micrograms?|milligrams?|g|grams?)\b(?!\s*(?:/|per\b))",
+    re.IGNORECASE)
+# A per-kg dose: mass per kg, and NOT then per unit time (that is a rate).
+_FREE_DOSE_PER_KG_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*"
+    r"(mg|mcg|µg|μg|ug|micrograms?|milligrams?|g|grams?)\s*(?:/|per\s+)\s*kg\b"
+    r"(?!\s*(?:/|per\b))",
+    re.IGNORECASE)
+# A threshold, not a dose: ">0.3 mg/kg", "above 2 mg", "greater than 1 g".
+_FREE_DOSE_THRESHOLD_RE = re.compile(
+    r"(?:[<>≤≥]|\b(?:above|below|over|under|greater than|less than|more than))\s*$",
     re.IGNORECASE)
 _FREE_DOSE_LIMIT_RE = re.compile(
     r"\b(?:max(?:imum)?|exceed\w*|up to|no more than|cumulative|total dose|"
@@ -3007,8 +3032,15 @@ _FREE_DOSE_LIMIT_RE = re.compile(
 # A preparation, not a dose: what goes in the bag or syringe, not the patient.
 # "Mix 4 mg norepinephrine in 250 mL NS" is the recipe the general-reference
 # tier exists to serve; the dose the patient gets is a rate off that bag.
+#
+# "Add" is a preparation only when something is added TO or INTO a vehicle:
+# "add 1 mg epinephrine to a 250 mL bag". "Can be added at a dose of 25 μg" is
+# an add-on drug, and reading it as a recipe is how G-MTN-03's fentanyl and
+# midazolam doses went unchecked.
 _FREE_DOSE_PREP_RE = re.compile(
-    r"\b(?:mix|mixed|dilute|diluted|reconstitute|reconstituted|add|added)\b"
+    r"\b(?:mix|mixed|dilute|diluted|reconstitute|reconstituted)\b"
+    r"|\badd(?:ed)?\b[^.;]*?\b(?:to|into)\b[^.;]*?"
+    r"(?:\d+(?:\.\d+)?\s*(?:m[lL]|L)\b|\b(?:bag|syringe|saline|NS|LR|D5W)\b)"
     r"|\bin\s+\d+(?:\.\d+)?\s*m[lL]\b", re.IGNORECASE)
 # A concentration said in words: "for every milliliter of solution, there are
 # 10 mg of levetiracetam". The "/mL" form is already not a dose; this is the
@@ -3019,7 +3051,7 @@ _FREE_DOSE_PER_VOLUME_RE = re.compile(
     re.IGNORECASE)
 _FREE_DOSE_CLAUSE_RE = re.compile(r"(?<=[.;:!?])\s+|\s+—\s+|\n")
 _TO_MG_UNIT = {"mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
-               "mcg": 0.001, "µg": 0.001, "ug": 0.001,
+               "mcg": 0.001, "µg": 0.001, "μg": 0.001, "ug": 0.001,
                "microgram": 0.001, "micrograms": 0.001,
                "g": 1000.0, "gram": 1000.0, "grams": 1000.0}
 
@@ -3048,6 +3080,7 @@ def free_text_dose_issues(response_text: str,
     allowed = {}
     for d in allowed_doses or []:
         allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
+    weight = patient_ctx.dosing_weight_kg if patient_ctx is not None else None
     issues, section = [], ""
     for line in (response_text or "").splitlines():
         m = _FREE_DOSE_HEADING_RE.match(line)
@@ -3057,21 +3090,43 @@ def free_text_dose_issues(response_text: str,
             continue
         if re.search(CANONICAL_GIVE_RE, line, re.IGNORECASE):
             continue
+        last_drug = None  # the drug last named earlier in this line
         for clause in _FREE_DOSE_CLAUSE_RE.split(line):
-            if (not clause.strip() or _FREE_DOSE_LIMIT_RE.search(clause)
+            if not clause.strip():
+                continue
+            drugs = _drug_spans(clause)
+            inherited = last_drug
+            if drugs:
+                last_drug = max(drugs, key=lambda sp: sp[1])[2]
+            if (_FREE_DOSE_LIMIT_RE.search(clause)
                     or _FREE_DOSE_PREP_RE.search(clause)
                     or _FREE_DOSE_PER_VOLUME_RE.search(clause)):
                 continue
-            drugs = _drug_spans(clause)
-            if not drugs:
+            if not drugs and inherited is None:
                 continue
-            for amt in _FREE_DOSE_AMOUNT_RE.finditer(clause):
+
+            def attribute(amt):
+                if not drugs:
+                    return inherited
                 mid = (amt.start() + amt.end()) / 2
-                drug = min(drugs, key=lambda sp: min(abs(sp[0] - mid), abs(sp[1] - mid)))[2]
+                return min(drugs, key=lambda sp: min(abs(sp[0] - mid), abs(sp[1] - mid)))[2]
+
+            found = [(amt, 1.0) for amt in _FREE_DOSE_AMOUNT_RE.finditer(clause)]
+            found += [(amt, None) for amt in _FREE_DOSE_PER_KG_RE.finditer(clause)]
+            for amt, per_kg_weight in found:
+                if _FREE_DOSE_THRESHOLD_RE.search(clause[:amt.start()]):
+                    continue
+                drug = attribute(amt)
                 factor = _TO_MG_UNIT[amt.group(3).lower()]
-                stated = [float(v) * factor for v in amt.group(1, 2) if v]
+                values = [float(v) * factor for v in amt.group(1, 2) if v]
                 ok = allowed.get(drug.lower(), [])
-                if all(any(abs(x - a) <= a * 0.05 + 1e-9 for a in ok) for x in stated):
+                if per_kg_weight is None:
+                    # A per-kg dose is only a number once there is a weight.
+                    stated = [v * weight for v in values] if weight else None
+                else:
+                    stated = values
+                if stated is not None and all(
+                        any(abs(x - a) <= a * 0.05 + 1e-9 for a in ok) for x in stated):
                     continue
                 issues.append(_free_dose_hold_line(drug, amt.group(0).strip(),
                                                    bool(ok), patient_ctx))
