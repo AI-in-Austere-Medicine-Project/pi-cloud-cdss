@@ -61,8 +61,8 @@ Run ids: `cdss-eval/runs/local-llm-cloud-30` and `local-llm-local-30`.
 |---|---|---|---|---|
 | 30-scenario JTS set: answered, not held | cloud · gpt-4o-mini | **29/30 (97%)** | 2.6 s | 3.7 s |
 | 30-scenario JTS set: answered, not held | local · qwen2.5:3b | **25/30 (83%)** | 12.0 s | 41.0 s |
-| 30-scenario JTS set: `score.py` correctness | cloud | 30/30 (100%) | | |
-| 30-scenario JTS set: `score.py` correctness | local | 30/30 (100%) | | |
+| 30-scenario JTS set: `score.py`: served-or-held as expected | cloud | 30/30 (100%) | | |
+| 30-scenario JTS set: `score.py`: served-or-held as expected | local | 30/30 (100%) | | |
 | `run_tests.sh` (24 cases) | cloud · gpt-4o-mini | 24/24 (100%) | 0.0 s | 0.1 s |
 | `run_tests.sh` (24 cases) | local · qwen2.5:3b | 24/24 (100%) | 0.0 s | 0.1 s |
 
@@ -167,7 +167,7 @@ The same 30 scenarios and the same 24 `run_tests.sh` cases, rerun against
 `main` as it stands, to see whether the 2026-09-19 numbers hold. Planned as 3
 repeats. The 2026-09-19 row is copied from [Results](#results) for comparison.
 
-| Date | Run | Code | Ollama · power · kernel | 30-set answered, not held (cloud / local) | 30-set `score.py` (cloud / local) | 30-set median / p95 (cloud · local) | `run_tests.sh` (cloud / local) |
+| Date | Run | Code | Ollama · power · kernel | 30-set answered, not held (cloud / local) | 30-set `score.py`: served-or-held as expected (cloud / local) | 30-set median / p95 (cloud · local) | `run_tests.sh` (cloud / local) |
 |---|---|---|---|---|---|---|---|
 | 2026-09-19 | baseline | `01cc511` | 0.34.2 · 25W · — | 29/30 / 25/30 | 30/30 / 30/30 | 2.6 / 3.7 s · 12.0 / 41.0 s | 24/24 / 24/24 |
 | 2026-09-24 | repeat 1 of 3 | `main` at `b4350c6` | 0.34.2 · 25W · 6.8.12-1021-tegra | 29/30 / 25/30 | 30/30 / 30/30 | 3.1 / 5.7 s · 14.0 / 42.7 s | 24/24 / **23/24** |
