@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 19 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 20 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -2186,28 +2186,184 @@ _DCR_INJURY_PATTERN_RE = re.compile(
     re.IGNORECASE)
 
 
-def _dcr_shock_physiology(q: str) -> bool:
-    """SBP < 100, HR > 100, a shock index >= 0.9, or a shock word. The HR rule
-    needs a bleeding term; the caller requires one for every rule."""
-    if _DCR_SHOCK_WORD_RE.search(q) or has_hypotension_or_shock(q):
+# A stated control of the bleeding: the HR and shock-index rules do not fire
+# on it (owner ruling 4, 2026-09-24). SBP < 100, a shock word and an ID18
+# pattern still do — a controlled bleed with hypotension is still shock.
+_DCR_CONTROLLED_RE = re.compile(
+    r"\b(?:bleed\w*|hemorrhag\w*|haemorrhag\w*)\s+(?:is\s+|now\s+|has\s+been\s+)?"
+    r"(?:controlled|stopped|under control)\b"
+    r"|\bhemostasis\b|\bhaemostasis\b"
+    r"|\b(?:tq|tourniquet)s?\s+(?:is\s+|are\s+)?(?:effective|working)\b",
+    re.IGNORECASE)
+
+# Paediatric thresholds, cited (owner ruling 3, 2026-09-24): SMOG CY24 pp.49-50,
+# "PEDIATRIC TACHYCARDIA" (PALS). "Typical HR/min: Newborn 85 - 205; 3mth -
+# 2y/o 100 - 190; 2y/o - 10y/o 60 - 140; >10 y/o 60 - 100". "Hypotension: 1-10
+# y/o lower limit = 70+(years old x 2)mmHg; >10 y/o lower limit = 90mmHg".
+# ID18's HR > 100 and SBP < 100 are adult figures and are not used under 16;
+# the adult shock index is not used for a child either, since nothing cited
+# states a paediatric one.
+_PAEDIATRIC_AGE = 16
+
+
+def _paediatric_hr_upper(age: float) -> float:
+    if age < 0.25:
+        return 205
+    if age < 2:
+        return 190
+    if age <= 10:
+        return 140
+    return 100
+
+
+def _paediatric_sbp_lower(age: float) -> Optional[float]:
+    if 1 <= age <= 10:
+        return 70 + 2 * age
+    if age > 10:
+        return 90
+    return None  # under 1 year: SMOG's formula does not cover it
+
+
+def _dcr_shock_physiology(q: str, age: Optional[float] = None,
+                          paediatric: bool = False,
+                          bleeding_for_vitals: bool = True) -> bool:
+    """Shock physiology for the DCR gate.
+
+    Adult: a shock word; SBP < 100 (or has_hypotension_or_shock); HR > 100;
+    shock index >= 0.9. Under 16: a shock word; SMOG's age-specific
+    hypotension and tachycardia. The HR and shock-index rules need
+    `bleeding_for_vitals`, which is False when the bleeding is stated to be
+    controlled.
+    """
+    if _DCR_SHOCK_WORD_RE.search(q):
         return True
     v = vitals_mod.parse_vitals(q)
     v = v[0] if isinstance(v, tuple) else v
     hr = v.get("hr").value if v and v.get("hr") else None
     sbp = v.get("sbp").value if v and v.get("sbp") else None
-    if sbp is not None and sbp < 100:
+    if paediatric or (age is not None and age < _PAEDIATRIC_AGE):
+        if age is None:
+            return False  # no cited threshold without an age
+        low = _paediatric_sbp_lower(age)
+        if sbp is not None and low is not None and sbp < low:
+            return True
+        return bool(bleeding_for_vitals and hr is not None
+                    and hr > _paediatric_hr_upper(age))
+    if has_hypotension_or_shock(q) or (sbp is not None and sbp < 100):
         return True
+    if not bleeding_for_vitals:
+        return False
     if hr is not None and hr > 100:
         return True
     return bool(hr and sbp and hr / sbp >= 0.9)
 
 
+# Owner ruling 2, 2026-09-24: an injury pattern ALONE does not fire the DCR
+# card when the query asks something else specific — another drug, a vent
+# setup, a procedure. Those are questions with their own answers ("ertapenem
+# dose for penetrating abdominal injury"; "penetrating chest injury intubated,
+# vent setup"; "junctional groin wound ... what packing and pressure sequence").
+# TXA, blood products and calcium are DCR's own and do not count.
+_DCR_OWN_DRUGS = frozenset({"tranexamic acid", "calcium chloride", "calcium gluconate"})
+_SPECIFIC_PROCEDURE_RE = re.compile(
+    r"\bhow (?:do|should|can|would) (?:i|we|you)\b|\bhow to\b"
+    r"|\bwhat (?:packing|pressure|technique|sequence|steps|size|site)\b"
+    r"|\b(?:technique|sequence|step[- ]by[- ]step|procedure)\b",
+    re.IGNORECASE)
+_VENT_OR_AIRWAY_RE = re.compile(
+    r"\b(?:intubat\w*|on the vent|vent setup|vent settings|ventilat\w*|"
+    r"tidal volume|peep)\b", re.IGNORECASE)
+
+
+def _asks_something_else_specific(q: str) -> bool:
+    if _VENT_OR_AIRWAY_RE.search(q) or is_vent_settings_query(q):
+        return True
+    if _SPECIFIC_PROCEDURE_RE.search(q):
+        return True
+    drugs = {generic for _, _, generic in _drug_spans(q)} - _DCR_OWN_DRUGS
+    return bool(drugs)
+
+
+def _patient_age(q: str) -> tuple:
+    """(age_years, paediatric) as the context extractor reads them."""
+    try:
+        ctx = extract_patient_context(q)
+    except Exception:
+        return None, False
+    return ctx.age_years, bool(ctx.is_pediatric)
+
+
 def looks_like_hemorrhagic_shock(query: str) -> bool:
     q = (query or "").lower()
-    if _DCR_INJURY_PATTERN_RE.search(q):
+    if _DCR_INJURY_PATTERN_RE.search(q) and not _asks_something_else_specific(q):
         return True
     bleeding = has_clear_hemorrhage(q) or _DCR_BLEEDING_RE.search(q) is not None
-    return bleeding and _dcr_shock_physiology(q)
+    if not bleeding:
+        return False
+    age, paediatric = _patient_age(q)
+    return _dcr_shock_physiology(q, age, paediatric,
+                                 bleeding_for_vitals=not _DCR_CONTROLLED_RE.search(q))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TENSION PNEUMOTHORAX — needle decompression, before the DCR card
+#
+# Owner ruling 1, 2026-09-24. Found by the A1 replay: "penetrating chest wound,
+# absent breath sounds on the right, JVD, hypotensive" took the DCR card, which
+# has no decompression. JTS Wartime Thoracic Injury CPG ID74 (26 Dec 2018),
+# p.5: "Absent or markedly decreased breath sounds in a patient with known
+# thoracic trauma indicate the need for intervention without additional
+# diagnostic testing." With shock physiology as well, this card fires FIRST and
+# carries the DCR reassessment line, so the bleeding is not lost.
+# ─────────────────────────────────────────────────────────────────────────────
+_TENSION_SIGN_RES = (
+    re.compile(r"\b(?:absent|decreased|diminished|reduced|no|markedly decreased)\s+"
+               r"(?:air\s+entry|breath\s+sounds)\b", re.IGNORECASE),
+    re.compile(r"\bjvd\b|\bjugular\s+venous\s+distension\b|\bdistended\s+neck\s+veins\b",
+               re.IGNORECASE),
+    re.compile(r"\btrache(?:a|al)\b[^.;]{0,20}\bdeviat\w*|\bdeviated\s+trachea\b",
+               re.IGNORECASE),
+    re.compile(r"\bhyper-?reson\w*", re.IGNORECASE),
+)
+_THORACIC_TRAUMA_RE = re.compile(
+    r"\b(?:chest|thora\w*|rib|ribs)\b[^.;]{0,30}\b(?:trauma|wound|injur\w*|gsw|stab\w*|blast|shot)\b"
+    r"|\b(?:penetrating|gsw|gunshot|stab(?:s|bed|bing)?|shot|blast|blunt)\b[^.;]{0,30}\b(?:chest|thora\w*)\b"
+    r"|\bpneumothorax\b",
+    re.IGNORECASE)
+
+
+def looks_like_tension_pneumothorax(query: str) -> bool:
+    """Tension SIGNS in front of the medic: two of them, or one after chest
+    trauma. The name alone ("how do I manage a tension pneumothorax") is a
+    question, not a presentation, and keeps its own path."""
+    q = query or ""
+    signs = sum(1 for r in _TENSION_SIGN_RES if r.search(q))
+    return signs >= 2 or (signs >= 1 and _THORACIC_TRAUMA_RE.search(q) is not None)
+
+
+def build_tension_pneumothorax_response(with_dcr: bool = False) -> str:
+    reassess = ("\n**THEN**\n- After decompression, then reassess for hemorrhage — DCR "
+                "(damage-control resuscitation) if shock persists: control bleeding, blood "
+                "products, TXA within 3 hours.\n") if with_dcr else ""
+    return f"""**DO THIS**
+1. Needle decompression now, on the affected side: large bore (14 gauge or larger) 3.25in/8cm catheter in the 4th or 5th intercostal space, anterior axillary line.
+2. Alternate site: 2nd intercostal space, mid-clavicular line (the primary site in children).
+3. Follow with tube thoracostomy as soon as feasible and safe. If it is delayed, be ready to repeat needle decompression.
+
+**WATCH**
+- Breathing, SpO2, BP and breath sounds after decompression; recurrence.
+- No improvement after two needle decompressions most likely means another diagnosis.
+
+**DON'T**
+- Do not use short (5 cm) venous-access catheters: they rarely reach the chest cavity.
+- Do not wait for imaging: absent or markedly decreased breath sounds after chest trauma indicate intervention without further testing.
+{reassess}
+**TLDR**
+- Suspected tension pneumothorax: needle decompress, 14 gauge 8cm catheter, 4th/5th ICS anterior axillary line, then tube thoracostomy.
+
+**SOURCE**: JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018), p.5 (recognition), p.8 (needle decompression)
+
+Guideline-based support only. Not a substitute for clinical judgment."""
 
 
 SEPSIS_DCR_REFUSAL = """Sepsis suspected — do not initiate DCR/TXA/LTOWB unless hemorrhage is clearly present.
@@ -2357,6 +2513,12 @@ def _epi_entries(patterns, query: str,
                     "what this patient needs.")
         pairs = narrowed
 
+    return _served_from_pairs(pairs, ctx), note
+
+
+def _served_from_pairs(pairs, ctx: Optional[PatientContext]) -> List["ServedEntry"]:
+    """(drug, signed entry) pairs as ServedEntry, the range as the source wrote
+    it and, for a per-kg entry with a weight, the resolved dose beside it."""
     out = []
     for name, entry in pairs:
         text = drug_contracts.range_text(entry)
@@ -2392,7 +2554,19 @@ def _epi_entries(patterns, query: str,
             contraindications=list(drug_contracts.serve_contraindications(entry)),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None,
             resolved_note=resolved_note))
-    return out, note
+    return out
+
+
+def _txa_entries(ctx: Optional[PatientContext]) -> List["ServedEntry"]:
+    """The signed tranexamic acid entry for this patient's population, served
+    verbatim. Empty when none is signed: the card then states no number."""
+    if drug_contracts is None:
+        return []
+    ped = bool(ctx and ctx.is_pediatric)
+    age = ctx.age_years if ctx else None
+    pairs = [(n, e) for n, e in drug_contracts.signed_entries_by_indication(
+        ("traumatic haemorrhage",), ped, age) if n == "tranexamic acid"]
+    return _served_from_pairs(pairs, ctx)
 
 
 def render_range_line(s: ServedEntry, prefix: str = "- ") -> str:
@@ -4630,14 +4804,37 @@ def build_wpw_drug_block() -> str:
     )
 
 
-def build_hemorrhagic_shock_dcr_response() -> str:
-    return """**DO THIS**
+DCR_ID18_SOURCE = ("JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019): p.3 (DCR "
+                   "algorithm), p.4 and p.11 (limit crystalloid; blood products first), "
+                   "p.10 (recognition)")
+
+
+def build_hemorrhagic_shock_dcr_response(ctx: Optional[PatientContext] = None) -> str:
+    """The DCR card. Its TXA line is the SIGNED entry for this patient, served
+    verbatim with its contraindications and cautions (owner ruling 12), and
+    none when no entry is signed: a missing contract states no number.
+    SOURCE is ID18 by printed page, plus the contract's own citation for the
+    dose (2026-09-24; it read "General Evidence-Based Medicine / TCCC" and
+    "Consider TXA")."""
+    served = _txa_entries(ctx)
+    if served:
+        give = "\n".join(render_range_line(x) for x in served)
+    else:
+        give = ("- TXA: no signed tranexamic acid dose applies here. Use local protocol "
+                "or medical control.")
+    return f"""**DO THIS**
 1. Control hemorrhage immediately: pressure, tourniquet, wound packing, pelvic binder if indicated.
 2. Treat as hemorrhagic shock. Start damage-control resuscitation.
 3. Use LTOWB or blood products if available and within protocol. Evacuate urgently.
 
 **GIVE**
-- Consider TXA for traumatic hemorrhagic shock only if within 3 hours of injury and within local protocol.
+{give}
+
+**CONTRAINDICATIONS**
+{served_contraindications_block(served)}
+
+**CAUTIONS**
+{served_cautions_block(served)}
 
 **WATCH**
 - Mental status, radial pulse, BP trend, ongoing bleeding, hypothermia, and response to blood products.
@@ -4646,12 +4843,12 @@ def build_hemorrhagic_shock_dcr_response() -> str:
 - Do not give large-volume crystalloid for hemorrhagic shock if blood products are available.
 
 **EVAC IF**
-- Persistent hypotension, abdominal bleeding, altered mental status, or ongoing hemorrhage.
+- Persistent hypotension, ongoing hemorrhage, or altered mental status.
 
 **TLDR**
-- Active abdominal bleeding with hypotension is hemorrhagic shock: hemorrhage control, DCR, LTOWB/blood if available, consider TXA if within 3 hours.
+- Hemorrhage with shock: control the bleeding, damage-control resuscitation with blood products, TXA within 3 hours of injury.
 
-**SOURCE**: General Evidence-Based Medicine / TCCC damage-control resuscitation principles
+**SOURCE**: {DCR_ID18_SOURCE} · doses: {served_source_line(served, "no signed dose")}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
@@ -4876,7 +5073,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    nineteen early returns before retrieval — count them with the source_mode
+    twenty early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -5174,21 +5371,9 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "patient_context": patient_ctx.to_dict()
             }
 
-        # Step 2g: Hemorrhagic shock/DCR deterministic response
-        if (
-            looks_like_hemorrhagic_shock(query)
-            and not looks_like_sepsis(query)
-            and not looks_like_poisoning(query)
-        ):
-            print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
-            return {
-                "response": build_hemorrhagic_shock_dcr_response(),
-                "sources": [],
-                "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "DETERMINISTIC_CHECKED",
-                "validator_issues": [],
-                "patient_context": patient_ctx.to_dict()
-            }
+        # Step 2g moved (owner ruling 2, 2026-09-24): the DCR card now runs
+        # after the vent card and the dose paths, as Step 2k-iv. Tension
+        # pneumothorax is Step 2i-ii.
 
         # Step 2h: Sepsis management deterministic response
         #
@@ -5231,6 +5416,24 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             print("📌 COMMON CASE PRE-GATE")
             return {
                 "response": general_response,
+                "sources": [],
+                "source_mode": "DETERMINISTIC_PRE_GATE",
+                "validator_result": "DETERMINISTIC_CHECKED",
+                "validator_issues": [],
+                "patient_context": patient_ctx.to_dict()
+            }
+
+        # Step 2i-ii: Tension pneumothorax — needle decompression (ID74), before
+        # the DCR card and before RSI and the vent cards: a ventilated patient
+        # can tension. After Step 2i so MASCAL triage keeps its card. With shock
+        # physiology as well, the card carries the DCR reassessment line (owner
+        # ruling 1, 2026-09-24).
+        if looks_like_tension_pneumothorax(query):
+            age, paediatric = _patient_age(query.lower())
+            with_dcr = _dcr_shock_physiology(query.lower(), age, paediatric)
+            print("🫁 TENSION PNEUMOTHORAX PRE-GATE" + (" (+ DCR reassess)" if with_dcr else ""))
+            return {
+                "response": build_tension_pneumothorax_response(with_dcr=with_dcr),
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
                 "validator_result": "DETERMINISTIC_CHECKED",
@@ -5357,6 +5560,27 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "sources": [],
                 "source_mode": "VENT_GATE",
                 "validator_result": "SKIPPED_SAFE_GATE",
+                "validator_issues": [],
+                "patient_context": patient_ctx.to_dict()
+            }
+
+        # Step 2k-iv: Hemorrhagic shock/DCR deterministic response. After the
+        # vent card and the dose paths (owner ruling 2, 2026-09-24): a vent
+        # setup or a ketamine analgesia request is answered as asked. Before
+        # the standard weight/route pre-gate, so a TXA question is not asked
+        # for a weight the signed 2 g does not need.
+        if (
+            looks_like_hemorrhagic_shock(query)
+            and not looks_like_tension_pneumothorax(query)
+            and not looks_like_sepsis(query)
+            and not looks_like_poisoning(query)
+        ):
+            print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
+            return {
+                "response": build_hemorrhagic_shock_dcr_response(patient_ctx),
+                "sources": [],
+                "source_mode": "DETERMINISTIC_PRE_GATE",
+                "validator_result": "DETERMINISTIC_CHECKED",
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }

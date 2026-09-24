@@ -85,7 +85,10 @@ def test_tension_signs_without_shock_take_the_tension_card_alone():
 # ── 2. a specific question is answered, not replaced by the DCR card ─────────
 
 def test_intubated_vent_setup_reaches_the_vent_card():
-    r = run("penetrating chest injury intubated, vent setup, 80kg male 180cm")
+    # The replayed query, verbatim. With a weight and height added it takes the
+    # RSI pre-gate instead — an already-intubated patient given the RSI
+    # bundle, which is work item A3 and happens on main too.
+    r = run("penetrating chest injury intubated, vent setup")
     assert DCR_MARK not in r["response"]
     assert r["source_mode"] in ("VENT_CARD", "VENT_GATE"), r["source_mode"]
 

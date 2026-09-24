@@ -286,7 +286,7 @@ def test_the_pipeline_docstrings_agree_with_the_pipeline():
     actual = len(re.findall(r'"source_mode":\s*"[A-Z_]+"', before_rag))
 
     words = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen",
-             17: "seventeen", 18: "eighteen", 19: "nineteen"}
+             17: "seventeen", 18: "eighteen", 19: "nineteen", 20: "twenty"}
     assert f"{actual} deterministic pre-gates" in src, (
         f"the module docstring does not say {actual} deterministic pre-gates")
     assert f"{words[actual]} early returns" in src, (

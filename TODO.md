@@ -495,6 +495,14 @@ deliberately did NOT touch.
 ### Retrieval (scoped for the eval-harness phase — do not tune thresholds ad hoc)
 Measured 2026-08-21 against the live 8,559-chunk corpus, re-embedded with the
 same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/RETRIEVAL_DIAGNOSIS_2026-08-21.md`.
+- [ ] **Content gap: no human field heat-injury CPG in the corpus** (found 2026-09-24, A1).
+      With the canine documents filtered out of human retrieval, "heat stroke
+      management in the field" falls from JTS_GROUNDED (0.661, on the MWD Heat
+      Injury CPG) to GENERAL_MEDICAL (0.233). It had been grounded on a dog
+      guideline. A human heat-injury source (e.g. a JTS or TCCC heat
+      illness guideline, or SMOG's human heat section if it has one) needs to be
+      added and signed. Same pattern, smaller: snake envenomation leaned on the
+      MWD snake CPG ("how much antivenom for a viper bite", 0.554 -> 0.318).
 - [ ] **Narrative dilution is the real failure.** Clean burn queries retrieve
       burn CPG chunks at 0.40–0.51 (well inside JTS_GROUNDED). The live queries
       were conversational and multi-topic — *"his Tesla rear ended a semi and

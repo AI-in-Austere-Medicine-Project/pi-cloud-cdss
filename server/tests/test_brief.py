@@ -312,7 +312,7 @@ def generated_pipeline(monkeypatch):
 
     def run():
         return oc._query_with_rag_internal(
-            "tension pneumothorax, trachea deviated, what now", JtsHit())
+            "how do I manage a tension pneumothorax in the field", JtsHit())
     return state, run
 
 
