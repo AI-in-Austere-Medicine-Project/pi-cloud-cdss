@@ -765,15 +765,9 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
 
     declared = is_owner_declared(entry)
 
-    if NEEDS_MINIMUM in (entry.get("flags") or []):
-        return False, (f"flagged {NEEDS_MINIMUM}: the source states a MINIMUM "
-                       "single dose that this entry does not carry, so the "
-                       "weight-based dose computes under its own floor at low "
-                       "weights. Author `min_single` with the source's value "
-                       "and units, then clear the flag. A serve caution "
-                       "naming the minimum is not a substitute: it tells a "
-                       "medic under load to override the number printed "
-                       "beside it")
+    why = flag_refusal(entry)
+    if why:
+        return False, why
 
     # A floor above the entry's own cap has no safe reading — one of the two
     # numbers was misread, and serving either is serving a misreading.
@@ -796,14 +790,6 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
                 return False, (f"min_single ({floor['value']:g} {floor['units']}) "
                                f"is above max_single at {w:g} kg — one of the "
                                "two was misread")
-
-    if MIGRATED_UNSOURCED in (entry.get("flags") or []):
-        return False, ("flagged MIGRATED_UNSOURCED: the DOSE came from the "
-                       "pre-contract hardcode and no approved source "
-                       "corroborates it. A citation supporting another field "
-                       "does not change that — clear the flag only when the "
-                       "dose itself has a tier 1 or tier 2 source, or when the "
-                       "owner declares the value under OWNER_DECLARED")
 
     # Three bases, not two. A tier 1 citation, a tier 2 citation, or the
     # owner's declaration — and the third one holds for THIS entry only,
@@ -830,16 +816,49 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
         return False, f"population {entry.get('population')!r} is not one of " \
                       f"{', '.join(VALID_POPULATIONS)}"
 
+    return True, ""
+
+
+def flag_refusal(entry: dict) -> str:
+    """Why this entry's flags forbid serving it, or "" if they do not.
+
+    Every flag-driven refusal lives here and nowhere else, because two callers
+    must agree on it: entry_is_servable() refuses to SERVE on it, and the
+    signing tool refuses to SIGN on it. A second copy of this list in the tool
+    is how the tool came to sign what the engine would not serve — a new
+    engine flag landed and the copy did not grow with it. A flag added here is
+    refused at signing by construction.
+    """
+    flags = entry.get("flags") or []
+
+    if NEEDS_MINIMUM in flags:
+        return (f"flagged {NEEDS_MINIMUM}: the source states a MINIMUM "
+                "single dose that this entry does not carry, so the "
+                "weight-based dose computes under its own floor at low "
+                "weights. Author `min_single` with the source's value "
+                "and units, then clear the flag. A serve caution "
+                "naming the minimum is not a substitute: it tells a "
+                "medic under load to override the number printed "
+                "beside it")
+
+    if MIGRATED_UNSOURCED in flags:
+        return ("flagged MIGRATED_UNSOURCED: the DOSE came from the "
+                "pre-contract hardcode and no approved source "
+                "corroborates it. A citation supporting another field "
+                "does not change that — clear the flag only when the "
+                "dose itself has a tier 1 or tier 2 source, or when the "
+                "owner declares the value under OWNER_DECLARED")
+
     # A conflict the owner signed through must say how it was adjudicated.
     # Signing one of two conflicting entries IS the adjudication; recording it
     # is what stops the next reader from re-opening the same question.
-    if "SOURCE_CONFLICT" in (entry.get("flags") or []):
+    if "SOURCE_CONFLICT" in flags:
         adj = str(entry.get("adjudication") or "").strip()
         if not adj or adj in SENTINELS:
-            return False, ("entry is flagged SOURCE_CONFLICT and signed but "
-                           "carries no adjudication note")
+            return ("entry is flagged SOURCE_CONFLICT and signed but "
+                    "carries no adjudication note")
 
-    return True, ""
+    return ""
 
 
 def unhonoured_signatures() -> list:
