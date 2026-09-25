@@ -4759,13 +4759,24 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 # _contract_analgesia_candidate like everything else.
 
 
+# Widened 2026-09-24 (A3, feedback review section 1): "ventilator rate" and
+# "being ventilated" were not vent questions, so entries 36 and 38 took the
+# RSI bundle. "rate of N" counts only beside a vent or intubation word, so a
+# heart rate is not a vent question.
+_VENT_SETTINGS_RE = re.compile(
+    r"\b(?:vent|ventilator)\s+rate\b|\bbeing\s+ventilated\b|\bminute\s+ventilation\b"
+    r"|\bi\s*:\s*e\b|\bplateau\b|\bdriving\s+pressure\b"
+    r"|\b(?:vent\w*|intubat\w*)\b[^.]{0,40}\brate\s+of\s+\d+",
+    re.IGNORECASE)
+
+
 def is_vent_settings_query(text: str) -> bool:
     q = (text or "").lower()
     return any(x in q for x in [
         "vent setting", "ventilator setting", "tidal volume", "respiratory rate",
         "peep", "fio2", "need vent", "set the vent", "vent the patient",
         "start the vent", "vent management", "mechanical ventilation"
-    ])
+    ]) or _VENT_SETTINGS_RE.search(q) is not None
 
 
 def is_rsi_or_post_intubation_context(text: str) -> bool:
@@ -4791,7 +4802,12 @@ def should_use_rsi_pregate(text: str) -> bool:
     This is the single dispatch decision; both call sites use it so the
     regression tests assert the real condition rather than a copy of it.
     """
-    return is_rsi_or_post_intubation_context(text) and not is_vent_settings_query(text)
+    # A3, 2026-09-24: a completed airway never gets the induction-and-paralytic
+    # bundle, whatever else the query says. The review's point was that the
+    # vent-vocabulary chase is the wrong shape of fix; this is the right one.
+    return (is_rsi_or_post_intubation_context(text)
+            and not is_vent_settings_query(text)
+            and not already_intubated(text))
 
 
 def rsi_bundle_should_resume(query: str, prior_queries: str,
@@ -5130,10 +5146,32 @@ _GCS_WORDS = {"three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8
 _GCS_RE = re.compile(
     r"\bgcs\s*(?:is|of|=|:|was|now)?\s*(\d{1,2}|" + "|".join(_GCS_WORDS) + r")\s*t?\b",
     re.IGNORECASE)
-_ALREADY_INTUBATED_RE = re.compile(
-    r"\balready\s+intubated\b|\bis\s+intubated\b|\b(?:was|been|now)\s+intubated\b|\bintubated\b"
-    r"|\btube\s+is\s+in\b|\bett\s+(?:is\s+)?in\b|\b(?:we\s+)?rsi'?d\b|\bon\s+the\s+vent\b"
-    r"|\bbeing\s+ventilated\b|\bpost[- ]intubation\b|\bgcs\s*\d{1,2}\s*t\b",
+# A COMPLETED airway (A3, 2026-09-24). Feedback review 2026-09-03 section 1:
+# four field reports of a patient whose tube was already in getting the
+# induction-and-paralytic bundle. A planned or in-progress airway ("about to
+# RSI", "needs to be intubated", "being intubated") is not completed: the RSI
+# card is for exactly that patient.
+_AIRWAY_DONE_STRONG_RE = re.compile(
+    r"\balready\s+(?:intubated|tubed|on\s+(?:the|a)\s+vent\w*)"
+    r"|\b(?:have|has|had|got)\s+(?:him|her|them|the\s+patient|the\s+pt|pt)\s+intubated\b"
+    r"|\b(?:is|was|been|now)\s+intubated\b"
+    r"|\btube\s*(?:is|'s|’s)\s+in\b|\bett\s+(?:is\s+)?in\b|\btube\s+confirmed\b"
+    r"|\brsi(?:'|’)?d\b|\bsuccessfully\s+rsi\w*|\brsi\s+(?:is\s+)?(?:done|complete\w*)\b"
+    r"|\bbeing\s+ventilated\b|\bventilated\s+at\b|\bgcs\s*\d{1,2}\s*t\b",
+    re.IGNORECASE)
+# Weak: these name the post-airway phase, which a medic also mentions while
+# PLANNING an RSI ("I need to RSI ... a ketamine drip for him post intubation",
+# a live query that the first cut of A3 wrongly took off the RSI card). They
+# count only when no plan to intubate is stated.
+_AIRWAY_DONE_WEAK_RE = re.compile(
+    r"(?<!\bbe\s)(?<!being\s)\bintubated\b|\bpost[- ]?(?:intubation|rsi)\b"
+    r"|\bon\s+(?:the|a)\s+vent(?:ilator)?\b",
+    re.IGNORECASE)
+_AIRWAY_PLANNED_RE = re.compile(
+    r"\b(?:need|needs|going|about|plan|planning|prepare|preparing|want|wants|ready)\s+to\s+"
+    r"(?:do\s+(?:an?\s+)?)?(?:rsi|intubate|tube)\b"
+    r"|\bwill\s+(?:be\s+)?(?:rsi|intubat)\w*|\bbefore\s+(?:we\s+)?(?:rsi|intubat)\w*"
+    r"|\bprior\s+to\s+(?:rsi|intubat)\w*",
     re.IGNORECASE)
 _RSI_REQUEST_RE = re.compile(
     r"\brsi\b|\brapid\s+sequence\b|\bintubate\b|\binduction\b|\bparalytic\b",
@@ -5153,8 +5191,12 @@ def _stated_gcs(q: str) -> Optional[int]:
 
 
 def already_intubated(query: str) -> bool:
-    """A completed airway. Shared with A3, which widens the vocabulary."""
-    return _ALREADY_INTUBATED_RE.search(query or "") is not None
+    """A completed airway: the tube is in, or the patient is on a ventilator.
+    Suppresses the RSI pre-gate (A3) and drops the TBI card's airway line (A2)."""
+    q = query or ""
+    if _AIRWAY_DONE_STRONG_RE.search(q):
+        return True
+    return bool(_AIRWAY_DONE_WEAK_RE.search(q)) and not _AIRWAY_PLANNED_RE.search(q)
 
 
 def looks_like_severe_tbi(query: str) -> bool:

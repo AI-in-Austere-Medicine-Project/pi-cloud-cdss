@@ -26,9 +26,11 @@ import providers  # noqa: E402
 
 RSI_MARK = "Pre-oxygenate and prepare suction"
 
+# entry 38, 2026-08-22. Not a completed-airway phrasing ("an RSI patient" is
+# also how a medic asks for RSI); it is kept off RSI by the vent vocabulary.
+ENTRY_38 = "Standard ventilator rate for an RSI patient with a TBI he is 54 and 150 pounds I’ve established"
+
 COMPLETED_AIRWAY = [
-    # entry 38, 2026-08-22
-    "Standard ventilator rate for an RSI patient with a TBI he is 54 and 150 pounds I’ve established",
     # entry 36, 2026-08-22
     "Patient is being ventilated at a rate of 12. He’s already intubated and he is not 450 his 150.",
     # entry 26, 2026-08-20
@@ -52,6 +54,10 @@ PRE_INTUBATION = [
     # entry 6, 2026-07-19
     "have a 56kg patient with 3rd degree burns. I need to RSI. IV is established",
     "RSI a TBI patient 80kg male",
+    # live 2026: a plan that mentions the post-airway phase. The first cut of
+    # A3 read "post intubation" here as a completed airway.
+    ("have a 6 year old TBI I need to RSI. Will be giving Ketamine and Rocuronium. Have IV. "
+     "Pt weighs 35kg. I will then also need a ketamine drip for him post intubation"),
 ]
 
 
@@ -77,9 +83,12 @@ def test_a_completed_airway_never_gets_the_rsi_bundle(query):
     assert RSI_MARK not in run(query)["response"]
 
 
-@pytest.mark.parametrize("query", COMPLETED_AIRWAY[:2])
-def test_the_vent_questions_reach_the_vent_path(query):
-    assert run(query)["source_mode"] in ("VENT_CARD", "VENT_GATE")
+def test_entry_38_is_a_vent_question_and_reaches_the_vent_path():
+    assert oc.is_vent_settings_query(ENTRY_38)
+    assert not oc.should_use_rsi_pregate(ENTRY_38)
+    r = run(ENTRY_38)
+    assert RSI_MARK not in r["response"]
+    assert r["source_mode"] in ("VENT_CARD", "VENT_GATE"), r["source_mode"]
 
 
 @pytest.mark.parametrize("query", PRE_INTUBATION)
