@@ -204,7 +204,9 @@ def _get_log_file() -> pathlib.Path:
 # the generator and the validator — "openai", "local" (the on-device model,
 # CDSS_LLM_PROVIDER=local), "local-fallback" (the cloud call failed to connect
 # and the local model answered), or null when no model was called.
-LOG_SCHEMA_VERSION = 12
+# Schema 13 adds `fallbacks`: one entry per call that fell back to the local
+# model, with the model that was requested and the timeout it was given.
+LOG_SCHEMA_VERSION = 13
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -265,6 +267,9 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             # the two can differ, and an audit has to be able to see that.
             "provider": result.get("provider"),
             "validator_provider": result.get("validator_provider"),
+            # Every call that fell back to the local model: role, the model that
+            # was requested, the one that served, the error and the timeout.
+            "fallbacks": result.get("fallbacks") or [],
             "validator_result": result.get("validator_result", "UNKNOWN"),
             "validator_issues": result.get("validator_issues", []),
             "override_fired": result.get("override_fired"),
@@ -5319,6 +5324,8 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     # deterministic card is not attributable to a model or a provider.
     result.setdefault("model", None)
     result.setdefault("provider", None)
+    result.setdefault("fallbacks", [])
+    result.setdefault("fallback_from", None)
     return attach_brief(result)
 
 
@@ -5352,6 +5359,9 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
     5. Deterministic dose candidates from full_query_history.
     6. Post-checks + validator + safety gate.
     """
+    # What the medic asked for, before it resolves: a model they selected is
+    # waited for; the default keeps the fast fallback (generator_timeout_s).
+    requested_model = model
     model = providers.resolve_model(model)
     try:
         # Step 1: canonical history and patient context
@@ -5874,13 +5884,15 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         transcript_lines.append(f"CURRENT USER: {query}")
 
         providers.reset_truncation()
-        response_text = providers.chat(
-            system_prompt, messages,
-            model=model, temperature=0.2, max_tokens=700,
-        )
+        with providers.cloud_timeout_for(providers.generator_timeout_s(requested_model)):
+            response_text = providers.chat(
+                system_prompt, messages,
+                model=model, temperature=0.2, max_tokens=700,
+            )
         # Now, before the validator's own chat() overwrites it.
         generation_truncated = providers.last_chat_truncated()
         generator_served = providers.last_chat_served()
+        generator_fallback = providers.last_chat_fallback()
 
         # Step 6: Deterministic post-checks use full history.
         det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
@@ -5891,6 +5903,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         llm_result = validate_response(full_transcript, response_text, patient_ctx,
                                        allowed_dose_block, now_ts=now_ts)
         validator_served = providers.last_chat_served()
+        validator_fallback = providers.last_chat_fallback()
 
         # Step 7b: deterministic vitals conflicts. Python owns the explicit rule
         # table (vitals_rules.json); the validator above catches what a table
@@ -5937,6 +5950,12 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
                       else model_label(model)),
             "provider": served_provider(generator_served),
             "validator_provider": served_provider(validator_served),
+            # Every local fallback, with the model that was asked for. The
+            # generator's requested model is what the portal names above the brief.
+            "fallbacks": [dict(role=role, **fb) for role, fb in
+                          (("generator", generator_fallback), ("validator", validator_fallback))
+                          if fb],
+            "fallback_from": generator_fallback["requested"] if generator_fallback else None,
             "validator_result": outcome.verdict,
             "validator_issues": outcome.issues,
             # Captured straight after the generator call; acted on in _finalise
