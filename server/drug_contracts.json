@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "63 of 103 dose entries across 15 of 33 drugs are signed and servable; 2 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "64 of 104 dose entries across 16 of 34 drugs are signed and servable; 2 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -6114,6 +6114,98 @@
           "adjudication": "OWNER RULING 2026-09-24 (Andrew Azelton): served 0.05 mg/kg initial, doubled per protocol (SMOG p.100). SMOG p.39's \"0.02mg/\" is a misprint, noted and not served."
         }
       ]
+    },
+    {
+      "generic_name": "sodium chloride 3%",
+      "aliases": [
+        "hypertonic saline",
+        "3% saline",
+        "3% nacl",
+        "3% sodium chloride"
+      ],
+      "drug_class": "osmotic agent (hypertonic crystalloid)",
+      "forms": [
+        {
+          "description": "3% sodium chloride solution (30 mg/mL)",
+          "concentration_mg_ml": 30.0,
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management in Prolonged Field Care, CPG ID63, 06 Dec 2017 (rapid update Apr 2024) — ICP management — Best (osmotic therapy), p.7",
+              "tier": 1,
+              "url": "local:server/data/jts_protocols/Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+              "retrieved_date": "2026-09-25"
+            }
+          ]
+        }
+      ],
+      "routes": [
+        "IV",
+        "IO"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "dose_entries": [
+        {
+          "indication": "severe TBI — signs of herniation, bolus",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 7.5,
+            "max": 7.5,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 7.5,
+            "units": "g",
+            "rule": "one 250 mL bolus of 3% NaCl (30 mg/mL)"
+          },
+          "max_cumulative": null,
+          "contraindications": [],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "= 250 mL of 3% NaCl as a bolus, over 10-15 minutes (ID30 p.9) or 20 minutes (ID63 p.7)."
+            },
+            {
+              "tier": "serve",
+              "text": "For signs of herniation or concern for elevated ICP; repeat every 3 hours as needed (ID63 p.7)."
+            },
+            {
+              "tier": "serve",
+              "text": "Peripheral IV or intraosseous access (ID63 p.7)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management and Basic Neurosurgery in the Deployed Environment, CPG ID30, 15 Sep 2023 — Hypertonic saline, p.9",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+              "retrieved_date": "2026-09-25"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Traumatic Brain Injury Management in Prolonged Field Care, CPG ID63, 06 Dec 2017 (rapid update Apr 2024) — ICP management — Best (osmotic therapy), p.7",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+              "retrieved_date": "2026-09-25"
+            }
+          ],
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-09-25",
+          "version": "0.1.0",
+          "extraction_notes": "VERIFIED 2026-09-25. TBI ID30 p.9: \"250ml bolus of 3% saline administered over 10-15 minutes or a 30cc bolus of 23.4% saline.\" TBI-PFC ID63 p.7: \"Hypertonic saline (HTS): 3% NaCl 250mL bolus over 20 minutes; repeat every 3 hours as needed when concerned for elevated ICP.\" and \"administer osmotic therapy via peripheral intravenous (IV) or intraosseous (IO) access\". DOSE IN GRAMS: the engine serves mass doses only, so the 250 mL bolus is signed as its sodium chloride content, 250 mL x 30 mg/mL (3%) = 7,500 mg = 7.5 g, the same shape as the signed dextrose entries; the volume is the first serve caution. PROVENANCE AND CONFLICT NOTES (not shown to the medic): the two sources differ on rate, 10-15 minutes (ID30 p.9) against 20 minutes (ID63 p.7); both are served, not ruled. The 23.4% 30 cc alternative (ID30 p.9) and the 3% infusion at 50-100 mL/hr (ID30 p.9) are not part of this entry. The cited guidelines state no contraindication for this bolus; contraindications is left empty rather than invented.",
+          "adjudication": "OWNER RULING 2026-09-25 (Andrew Azelton): 3% NaCl 250 mL IV bolus for signs of herniation in severe TBI, adult, citing ID30 p.9 and ID63 p.7; signed in grams (7.5 g) like dextrose, with the volume in a serve caution."
+        }
+      ],
+      "notes": "Added 2026-09-25 for the severe-TBI card (A2). Not 'saline' as an alias: normal saline is not this drug."
     }
   ],
   "retired_entries": [

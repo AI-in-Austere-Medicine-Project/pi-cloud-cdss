@@ -88,14 +88,25 @@ def test_the_levetiracetam_line_is_the_signed_entry_verbatim():
         assert c in t, f"a serve-tier caution of the signed entry is missing: {c}"
 
 
-def test_hypertonic_saline_is_named_and_held_while_unsigned():
-    assert not any("saline" in n or "sodium chloride" in n for n in dc.servable_entries()), \
-        "premise: no hypertonic saline entry is signed; if one is, serve it"
+def test_hypertonic_saline_is_the_signed_entry_verbatim():
+    """Signed 2026-09-25 (owner): 3% NaCl 250 mL bolus, served in grams like
+    dextrose, with the volume as its first caution."""
+    served = oc._hypertonic_saline_entries(oc.PatientContext())
+    assert len(served) == 1, "premise: one signed adult hypertonic saline entry"
+    t = run(HARNESS)["response"]
+    give = t.split("**GIVE**")[1].split("\n\n")[0]
+    assert oc.render_range_line(served[0]) in give, give
+    assert "sodium chloride 3% IV: 7.5 g" in give
+    assert "= 250 mL of 3% NaCl as a bolus" in t
+
+
+def test_with_the_saline_entry_unsigned_the_line_is_held(monkeypatch):
+    for e in dc.DRUGS["sodium chloride 3%"]["dose_entries"]:
+        monkeypatch.setitem(e, "signoff", False)
     t = run(HARNESS)["response"]
     hts = [l for l in t.splitlines() if "hypertonic saline" in l.lower() and l.startswith("- ")]
-    assert hts, "the hypertonic saline line is missing"
-    assert not re.search(r"\d+\s*(?:mL|ml|cc|%)?\s*(?:bolus|over)", hts[0]) and "250" not in hts[0], hts[0]
-    assert "no signed" in hts[0].lower(), hts[0]
+    assert hts and "no signed" in hts[0].lower(), hts
+    assert "7.5 g" not in t and "250" not in hts[0]
 
 
 # ── already intubated: same card, airway line suppressed ─────────────────────
