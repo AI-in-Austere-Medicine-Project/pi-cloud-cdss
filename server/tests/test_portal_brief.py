@@ -281,10 +281,38 @@ def test_a_cloud_or_card_answer_has_no_badge(rendered, provider):
     assert BADGE not in rendered[f"provider_{provider}"]["bubble"]
 
 
+FALLBACK_RE = r'<div class="fallback"[^>]*>.*?</div>'
+
+
 def test_the_badge_is_the_only_change(rendered):
-    """Nothing else on the page moves: strip the one span and the rest matches."""
+    """Nothing else on the page moves: strip the badge (and, on a fallback, the
+    banner above the brief) and the rest matches."""
     cloud = rendered["provider_openai"]["bubble"]
     for provider in ("local", "local-fallback"):
         bubble = rendered[f"provider_{provider}"]["bubble"]
         stripped = re.sub(r'<span class="badge local"[^>]*>[^<]*</span>', "", bubble)
+        stripped = re.sub(FALLBACK_RE, "", stripped, flags=re.S)
         assert stripped == cloud, provider
+
+
+# ── a fallback says so where the medic reads, not only in the footer ─────────
+
+def test_a_fallback_answer_says_so_above_the_brief(rendered):
+    """Run 3: 20 of 25 Opus answers were the on-device model, and only the
+    footer said so. The banner names the model that was asked for and sits
+    before the brief, where the answer is read."""
+    bubble = rendered["provider_local-fallback"]["bubble"]
+    m = re.search(FALLBACK_RE, bubble, flags=re.S)
+    assert m, "no fallback banner"
+    assert m.start() < bubble.index('<div class="brief">'), "the banner is not above the brief"
+    banner = m.group(0)
+    assert "anthropic/claude-opus-5" in banner, "the banner does not name the requested model"
+    assert "on-device model" in banner
+    assert bubble.count(BADGE) == 1, "the footer badge is still there, once"
+
+
+@pytest.mark.parametrize("provider", ["local", "openai", "null"])
+def test_no_banner_unless_it_was_a_fallback(rendered, provider):
+    """provider=local is the operator's choice (CDSS_LLM_PROVIDER=local), not a
+    substitution: the footer badge covers it."""
+    assert not re.search(FALLBACK_RE, rendered[f"provider_{provider}"]["bubble"], flags=re.S)
