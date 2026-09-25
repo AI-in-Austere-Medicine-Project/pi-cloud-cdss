@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 20 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 21 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -4925,20 +4925,177 @@ def build_hypothermic_arrest_response() -> str:
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_tbi_management_response() -> str:
-    return """**SEVERE TBI**
+# ─────────────────────────────────────────────────────────────────────────────
+# SEVERE TBI CARD (A2, 2026-09-24)
+#
+# Generated TBI answers left out the specifics in about 4 of 5 runs even with
+# correct retrieval, and on the local model the harness case was held for a
+# levetiracetam dose nobody asked for. This card is deterministic. Every line
+# is JTS text:
+#   JTS CPG ID30, TBI Management and Basic Neurosurgery in the Deployed
+#     Environment (15 Sep 2023): p.7 "For casualties with GCS <= 8, manage
+#     hypotension by maintaining systolic blood pressure greater than 110 mmHg";
+#     "EtCO2 of 35-45 mmHg"; "DO NOT hyperventilate"; "Steroids should be
+#     avoided in brain-injured patients"; p.8 avoid long-lasting sedation or
+#     paralysis before neurosurgical assessment; p.10 and p.11 head of bed 30-45
+#     degrees.
+#   JTS CPG ID63, TBI Management in Prolonged Field Care (06 Dec 2017, rapid
+#     update Apr 2024): p.6 "If GCS score is <=8 ... a definitive airway is
+#     most likely needed"; p.7 impending herniation ("unresponsive patient with
+#     unilateral dilated pupil, presence of Cushing's triad"): EtCO2 35 for no
+#     more than 20 minutes and expert consultation; "evacuate to neurosurgical
+#     care at the earliest opportunity"; p.20 SpO2 > 93%.
+# The doses come only from signed entries, verbatim: levetiracetam today.
+# Hypertonic saline has no entry in the bank, so its line names the treatment
+# and states no number until one is signed. A child gets SMOG's paediatric
+# hypotension limit (pp.49-50) in place of the adult 110 mmHg, and the
+# levetiracetam line is held while no paediatric TBI entry is signed.
+# ─────────────────────────────────────────────────────────────────────────────
+_HEAD_INJURY_RE = re.compile(
+    r"\btbi\b|\bhead\s+(?:injur\w*|trauma|wound|gsw|strike)|\bbrain\s+injur\w*"
+    r"|\bskull\s+fracture|\bhit\s+(?:his|her|their|the)\s+head\b|\bstruck\s+(?:his|her|their|the)\s+head\b"
+    r"|\b(?:gsw|gunshot|shot|blast|fragment\w*)\b[^.;]{0,20}\bhead\b|\bblown\s+pupil|\bintracranial\b",
+    re.IGNORECASE)
+_SEVERE_TBI_WORDS_RE = re.compile(
+    r"\bsevere\s+(?:tbi|head\s+injur\w*|traumatic\s+brain\s+injur\w*|brain\s+injur\w*)",
+    re.IGNORECASE)
+_GCS_WORDS = {"three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+              "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15}
+_GCS_RE = re.compile(
+    r"\bgcs\s*(?:is|of|=|:|was|now)?\s*(\d{1,2}|" + "|".join(_GCS_WORDS) + r")\s*t?\b",
+    re.IGNORECASE)
+_ALREADY_INTUBATED_RE = re.compile(
+    r"\balready\s+intubated\b|\bis\s+intubated\b|\b(?:was|been|now)\s+intubated\b|\bintubated\b"
+    r"|\btube\s+is\s+in\b|\bett\s+(?:is\s+)?in\b|\b(?:we\s+)?rsi'?d\b|\bon\s+the\s+vent\b"
+    r"|\bbeing\s+ventilated\b|\bpost[- ]intubation\b|\bgcs\s*\d{1,2}\s*t\b",
+    re.IGNORECASE)
+_RSI_REQUEST_RE = re.compile(
+    r"\brsi\b|\brapid\s+sequence\b|\bintubate\b|\binduction\b|\bparalytic\b",
+    re.IGNORECASE)
+
+
+def _stated_gcs(q: str) -> Optional[int]:
+    v = vitals_mod.parse_vitals(q.lower())
+    v = v[0] if isinstance(v, tuple) else v
+    if v and v.get("gcs"):
+        return int(v["gcs"].value)
+    m = _GCS_RE.search(q)
+    if not m:
+        return None
+    g = m.group(1).lower()
+    return int(g) if g.isdigit() else _GCS_WORDS[g]
+
+
+def already_intubated(query: str) -> bool:
+    """A completed airway. Shared with A3, which widens the vocabulary."""
+    return _ALREADY_INTUBATED_RE.search(query or "") is not None
+
+
+def looks_like_severe_tbi(query: str) -> bool:
+    """GCS <= 8 with a head injury, or a stated severe TBI."""
+    q = query or ""
+    if _SEVERE_TBI_WORDS_RE.search(q):
+        return True
+    if not _HEAD_INJURY_RE.search(q):
+        return False
+    gcs = _stated_gcs(q)
+    return gcs is not None and gcs <= 8
+
+
+def _levetiracetam_tbi_entries(ctx: Optional[PatientContext]) -> List["ServedEntry"]:
+    if drug_contracts is None:
+        return []
+    ped = bool(ctx and ctx.is_pediatric)
+    age = ctx.age_years if ctx else None
+    pairs = [(n, e) for n, e in drug_contracts.signed_entries_by_indication(
+        ("severe TBI",), ped, age) if n == "levetiracetam"]
+    return _served_from_pairs(pairs, ctx)
+
+
+def _hypertonic_saline_entries(ctx: Optional[PatientContext]) -> List["ServedEntry"]:
+    """Signed hypertonic saline for raised ICP / herniation, if the bank has one.
+    It has none today, so the card names the treatment and states no number."""
+    if drug_contracts is None:
+        return []
+    ped = bool(ctx and ctx.is_pediatric)
+    age = ctx.age_years if ctx else None
+    pairs = [(n, e) for n, e in drug_contracts.signed_entries_by_indication(
+        ("herniation", "intracranial", "raised ICP", "cerebral edema", "cerebral oedema"), ped, age)
+        if "saline" in n or "sodium chloride" in n]
+    return _served_from_pairs(pairs, ctx)
+
+
+def build_tbi_management_response(ctx: Optional[PatientContext] = None,
+                                  intubated: bool = False) -> str:
+    ctx = ctx or PatientContext()
+    child = bool(ctx.is_pediatric or (ctx.age_years is not None and ctx.age_years < 16))
+    lev = _levetiracetam_tbi_entries(ctx)
+    hts = _hypertonic_saline_entries(ctx)
+    served = lev + hts
+
+    give = [render_range_line(x) for x in lev] or [
+        "- levetiracetam: no signed " + ("paediatric " if child else "") + "dose for TBI seizure "
+        "prophylaxis here. Use local protocol or medical control."]
+    give += [render_range_line(x) for x in hts] or [
+        "- 3% hypertonic saline for signs of herniation: no signed dose here. Use local "
+        "protocol or medical control."]
+
+    if child:
+        low = _paediatric_sbp_lower(ctx.age_years) if ctx.age_years is not None else None
+        sbp = (f"Avoid hypotension: keep SBP at or above {low:g} mmHg, SMOG's lower limit for "
+               f"age {ctx.age_years:g}." if low is not None else
+               "Avoid hypotension: keep SBP at or above SMOG's lower limit for age "
+               "(70 + 2 x age in years for 1-10 years; 90 mmHg over 10).")
+        sbp_tldr = "no hypotension for age"
+    else:
+        sbp = "Keep SBP above 110 mmHg; SpO2 above 93%."
+        sbp_tldr = "SBP > 110"
+
+    steps = []
+    if not intubated:
+        steps.append("Airway: with GCS 8 or less a definitive airway is most likely needed.")
+    steps += [sbp,
+              "Ventilate to EtCO2 35-45 mmHg.",
+              "Head of bed 30-45° (reverse Trendelenburg if spine injury is suspected).",
+              "Signs of herniation (unresponsive with a unilateral dilated pupil, Cushing's "
+              "triad): hypertonic saline below, and seek expert consultation immediately."]
+    do_this = "\n".join(f"{i}. {t}" for i, t in enumerate(steps, 1))
+
+    source = ("JTS CPG ID30, TBI Management and Basic Neurosurgery in the Deployed "
+              "Environment (15 Sep 2023): p.7, p.8, p.10, p.11; JTS CPG ID63, TBI "
+              "Management in Prolonged Field Care (06 Dec 2017): p.6, p.7, p.20"
+              + ("; SMOG CY24 pp.49-50 (paediatric hypotension)" if child else ""))
+    give_text = "\n".join(give)
+    return f"""**SEVERE TBI**
 
 **DO THIS**
-1. Protect airway and oxygenation; avoid hypoxia and hypotension.
-2. Give fluid/blood per protocol to maintain perfusion.
-3. Monitor for ICP/herniation signs and evacuate urgently.
+{do_this}
+
+**GIVE**
+{give_text}
+
+**CONTRAINDICATIONS**
+{served_contraindications_block(served)}
+
+**CAUTIONS**
+{served_cautions_block(served)}
+
+**WATCH**
+- GCS, pupils, SBP, SpO2 and EtCO2; seizure activity; signs of herniation.
 
 **DON'T**
-- No steroids (no dexamethasone, methylprednisolone, solu-medrol, or any corticosteroid) — increases mortality per CRASH trial.
-- No albumin. Avoid routine hyperventilation unless active herniation signs.
+- Never give steroids: they increase mortality in severe brain injury.
+- DO NOT hyperventilate. Only for impending herniation, as a last resort: EtCO2 35 mmHg for no more than 20 minutes.
+- Avoid long-lasting sedation or paralysis before a neurosurgical assessment where you can.
+
+**EVAC**
+- Evacuate to neurosurgical care at the earliest opportunity; seek medical direction as soon as possible.
+- Transport with the head of the bed at 30-45°.
 
 **TLDR**
-- Severe TBI: airway, fluid/perfusion, evacuate. Never give steroids.
+- Severe TBI: {"" if intubated else "airway, "}{sbp_tldr}, EtCO2 35-45, head up 30-45°, seizure prophylaxis, no hyperventilation, no steroids, evacuate to neurosurgery.
+
+**SOURCE**: {source} · doses: {served_source_line(served, "no signed dose")}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
@@ -5041,11 +5198,10 @@ def build_general_case_response(query: str) -> Optional[str]:
         return build_seizure_response()
     if "cardiac arrest" in q and any(x in q for x in ["hypothermic", "snow", "cold", "frozen"]):
         return build_hypothermic_arrest_response()
-    # TBI intentionally NOT dispatched to a fixed card (decision 2026-07-18):
-    # severe TBI routes through RAG for guideline-grounded specifics
-    # (SBP floor, hypertonic saline, seizure prophylaxis). To revert, re-add:
-    #   if any(x in q for x in ["severe tbi", "gcs 6", "traumatic brain injury"]):
-    #       return build_tbi_management_response()
+    # Severe TBI is not dispatched here: it has its own step (2i-iii, A2,
+    # 2026-09-24), a card that carries the ID30/ID63 specifics and the signed
+    # levetiracetam dose. The 2026-07-18 decision to route it through RAG was
+    # reversed because generated answers dropped the specifics in ~4 of 5 runs.
     if "mascal" in q:
         return build_mascal_response()
     if "ketamine drip" in q and any(x in q for x in ["intubated", "on the vent", "ventilator"]):
@@ -5073,7 +5229,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    twenty early returns before retrieval — count them with the source_mode
+    twenty-one early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -5440,6 +5596,27 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
+
+        # Step 2i-iii: Severe TBI card (A2, 2026-09-24). After tension (breathing
+        # before the head), before the RSI and vent steps so an already-
+        # intubated TBI patient gets this card with the airway line dropped
+        # rather than the RSI bundle. An explicit RSI request, a vent-settings
+        # question and haemorrhagic shock (MARCH: massive haemorrhage first,
+        # Step 2k-iv) keep their own cards.
+        if looks_like_severe_tbi(query):
+            intubated = already_intubated(query)
+            if not (looks_like_hemorrhagic_shock(query)
+                    or is_vent_settings_query(query)
+                    or (_RSI_REQUEST_RE.search(query) and not intubated)):
+                print("🧠 SEVERE TBI CARD" + (" (intubated)" if intubated else ""))
+                return {
+                    "response": build_tbi_management_response(patient_ctx, intubated=intubated),
+                    "sources": [],
+                    "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "DETERMINISTIC_CHECKED",
+                    "validator_issues": [],
+                    "patient_context": patient_ctx.to_dict()
+                }
 
         # Step 2j-0: Ketamine analgesia for a stated age under the signed entry's
         # age floor — refused before the weight and route questions, which

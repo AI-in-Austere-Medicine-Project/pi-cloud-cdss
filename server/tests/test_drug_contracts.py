@@ -1478,6 +1478,29 @@ DOSE_TEMPLATE_CASES = [
         "backfill": [],
         "weight": 20.0,
     },
+    # The severe-TBI card (A2, 2026-09-24) serves the signed levetiracetam
+    # entry; a child's line is held while no paediatric TBI entry is signed.
+    {
+        "name": "tbi_card_adult_levetiracetam",
+        "render": lambda: _oc.build_tbi_management_response(_oc.PatientContext()),
+        "contract": lambda: _oc._levetiracetam_tbi_entries(_oc.PatientContext()),
+        "backfill": [],
+        "weight": None,
+    },
+    {
+        "name": "tbi_card_intubated",
+        "render": lambda: _oc.build_tbi_management_response(_oc.PatientContext(), intubated=True),
+        "contract": lambda: _oc._levetiracetam_tbi_entries(_oc.PatientContext()),
+        "backfill": [],
+        "weight": None,
+    },
+    {
+        "name": "tbi_card_paediatric",
+        "render": lambda: _oc.build_tbi_management_response(_analgesia_ctx("IV", 20.0, True)),
+        "contract": lambda: _oc._levetiracetam_tbi_entries(_analgesia_ctx("IV", 20.0, True)),
+        "backfill": [],
+        "weight": 20.0,
+    },
     {
         "name": "push_dose_epi_bradycardia",
         "render": lambda: _oc.build_fixed_prep_response("push dose epi for bradycardia HR 38"),
@@ -1606,6 +1629,13 @@ def test_the_source_line_follows_what_was_actually_served(case):
         assert source not in (_oc.SOURCE_ALL_CONTRACT, _oc.SOURCE_MIXED), (
             f"{case['name']}: nothing came from a contract and the SOURCE line "
             f"claims one did: {source!r}")
+        if source == "no signed dose":
+            # A card that holds every dose line (the paediatric TBI card, A2)
+            # serves no number at all. Say so only if that is true.
+            give = text.split("**GIVE**")[1].split("\n\n")[0] if "**GIVE**" in text else ""
+            assert not _oc._FREE_DOSE_AMOUNT_RE.search(give), (
+                f"{case['name']}: SOURCE says no signed dose and GIVE states one: {give!r}")
+            return
         assert "calculator" in source.lower() or "preparation" in source.lower(), (
             f"{case['name']}: an unsourced number must SAY it is unsourced: "
             f"{source!r}")
@@ -1662,7 +1692,7 @@ DOSELESS_CARDS = {
     "build_cico_response", "build_tension_pneumothorax_response",
     "build_sepsis_management_response", "build_anaphylaxis_response",
     "build_seizure_response", "build_hypothermic_arrest_response",
-    "build_tbi_management_response", "build_mascal_response",
+    "build_mascal_response",
     "build_ketamine_drip_response", "build_cholera_response",
     "build_ketamine_age_block",
     "build_snake_bite_response", "build_vtach_response",
@@ -1677,6 +1707,7 @@ NOT_A_DOSE_CARD = {
     "build_safety_hold", "build_full_query_history", "build_general_case_response",
     "build_fixed_prep_response", "build_ketamine_analgesia_response",
     "build_rsi_response", "build_hemorrhagic_shock_dcr_response",
+    "build_tbi_management_response",
 }
 
 # Cards that render the RECORD behind a dose already served. They print
@@ -1694,7 +1725,8 @@ PROVENANCE_CARDS = {
 _REGISTERED_BUILDERS = {"build_fixed_prep_response",
                         "build_ketamine_analgesia_response",
                         "build_rsi_response",
-                        "build_hemorrhagic_shock_dcr_response"}
+                        "build_hemorrhagic_shock_dcr_response",
+                        "build_tbi_management_response"}
 
 
 def test_every_response_builder_is_classified():
@@ -1743,7 +1775,8 @@ def test_the_registered_cards_are_actually_registered():
     for name, token in (("build_rsi_response", "rsi_bundle"),
                         ("build_ketamine_analgesia_response", "ketamine_analgesia"),
                         ("build_fixed_prep_response", "epi"),
-                        ("build_hemorrhagic_shock_dcr_response", "dcr_card")):
+                        ("build_hemorrhagic_shock_dcr_response", "dcr_card"),
+                        ("build_tbi_management_response", "tbi_card")):
         assert name in _REGISTERED_BUILDERS
         assert token in covered, f"{name} has no case in DOSE_TEMPLATE_CASES"
 
