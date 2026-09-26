@@ -5157,7 +5157,28 @@ _AIRWAY_DONE_STRONG_RE = re.compile(
     r"|\b(?:is|was|been|now)\s+intubated\b"
     r"|\btube\s*(?:is|'s|’s)\s+in\b|\bett\s+(?:is\s+)?in\b|\btube\s+confirmed\b"
     r"|\brsi(?:'|’)?d\b|\bsuccessfully\s+rsi\w*|\brsi\s+(?:is\s+)?(?:done|complete\w*)\b"
-    r"|\bbeing\s+ventilated\b|\bventilated\s+at\b|\bgcs\s*\d{1,2}\s*t\b",
+    r"|\bbeing\s+ventilated\b|\bventilated\s+at\b|\bgcs\s*\d{1,2}\s*t\b"
+    # How medics say it (#86 review, owner 2026-09-26).
+    r"|\b(?:we|i|they)\s+(?:just\s+)?tubed\b"
+    r"|\btubed\s+(?:him|her|them|the\s+patient|the\s+pt|pt)\b"
+    r"|\bett\s+(?:is\s+)?in\s+place\b"
+    r"|\bairway\s+(?:is\s+|was\s+|now\s+)?secured\b|\bsecured\s+(?:the|his|her|an?)\s+airway\b"
+    r"|\bcric(?:'|’)?(?:e)?d\b",
+    re.IGNORECASE)
+# A negated or failed airway is not a completed one (#86 review, owner
+# 2026-09-26). "has not been intubated" matched the strong "been intubated" and
+# "not intubated" the weak bare "intubated", so a patient who still needs the
+# tube lost the RSI card. These spans are removed before the markers are read;
+# a later completed airway in the same query ("failed intubation, cric'd him")
+# still counts.
+_AIRWAY_NEGATION = r"(?:not|never|cannot|(?:is|was|has|have|had|did|do|does|could|can|would|wo)n(?:'|’)?t)"
+_AIRWAY_NEGATED_RE = re.compile(
+    r"\b" + _AIRWAY_NEGATION + r"\s+(?:yet\s+)?(?:been\s+|be\s+)?(?:able\s+to\s+)?"
+    r"(?:(?:get|got|gotten)\s+(?:him|her|them|the\s+patient|the\s+pt|pt)\s+)?"
+    r"(?:intubat\w*|tubed?|rsi(?:'|’)?d)\b"
+    r"|\bunable\s+to\s+(?:get\s+(?:him|her|them|the\s+patient|the\s+pt|pt)\s+)?(?:intubat\w*|tubed?)\b"
+    r"|\bfailed\s+(?:to\s+)?(?:intubat\w*|tube\w*|rsi|airway)\b"
+    r"|\b(?:intubation|tube)\s+failed\b",
     re.IGNORECASE)
 # Weak: these name the post-airway phase, which a medic also mentions while
 # PLANNING an RSI ("I need to RSI ... a ketamine drip for him post intubation",
@@ -5193,7 +5214,7 @@ def _stated_gcs(q: str) -> Optional[int]:
 def already_intubated(query: str) -> bool:
     """A completed airway: the tube is in, or the patient is on a ventilator.
     Suppresses the RSI pre-gate (A3) and drops the TBI card's airway line (A2)."""
-    q = query or ""
+    q = _AIRWAY_NEGATED_RE.sub(" ", query or "")
     if _AIRWAY_DONE_STRONG_RE.search(q):
         return True
     return bool(_AIRWAY_DONE_WEAK_RE.search(q)) and not _AIRWAY_PLANNED_RE.search(q)
