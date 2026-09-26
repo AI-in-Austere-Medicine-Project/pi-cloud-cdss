@@ -40,14 +40,15 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A2 | Deterministic severe-TBI card | **done**: #84, merged and deployed |
 | A0 | Context isolation on patient reset | **done**: #90, merged and deployed |
 | A1b | Dose check matches indication, not only value | **done**: #91, merged and deployed |
-| A3 | Already-intubated patients receiving the RSI bundle | in review: #86 (**next**) |
-| A4 | Depressed-GCS oral route | after A3 |
+| A3 | Already-intubated patients receiving the RSI bundle | approved 2026-09-26 after the review fix; owner merging #86 |
+| A4 | Depressed-GCS oral route | **next**, after A3 |
 | A5 | Hold text for fixed doses | after A4 |
 | A6 | Contraindicated procedures (design only) | after A5 |
 | A7 | GCS parser | after A6 |
 | A8 | "status post" must not match status epilepticus | after A7 |
 | A9 | Active-seizure phrasings reach the signed entry | after A8 |
-| D5a | Full-answer logging | after A9 |
+| A10 | CICO card must not fire on a completed surgical airway | after A9 |
+| D5a | Full-answer logging | after A10 |
 | D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
 | D6 | Training toolchain (Mac) | after D5 |
@@ -68,7 +69,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them.
 
-**Execution order (owner, 2026-09-26, fifth statement; replaces the earlier four):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → D5a → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0 and A1b are done (#90, #91; main at 894ffd9, deployed and restarted on it).
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0 and A1b are done (#90, #91; main at 894ffd9, deployed and restarted on it).
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -177,6 +178,14 @@ Failing tests first. Negatives: "status post", "post-status" and "status: stable
 - "actively seizing", "seizing now", "still seizing" and "in status" must reach the active-seizure entry the same as "active seizure" does.
 - Add the phrases to the lexicon, with a failing test per phrase first.
 - Report any other seizure phrasing in the stored queries that gets no signed dose today.
+
+### A10: the CICO card must not fire on a completed surgical airway (owner, 2026-09-26; found in #86)
+
+The CICO check is a substring match with no state (`"cric" in q`, `openai_client.py:4580`). Live on the #86 branch, "80kg male, cric'd, what do I give after RSI" was served "Declare CICO … Perform surgical airway / cricothyrotomy now" for a patient whose cric was already in.
+
+Same class as A8: a substring match with no state. One bug per PR, so it is not in #86.
+
+Failing tests first: "cric'd", "cric is in" and "surgical airway in place" must not get the CICO card. A genuine CICO request ("Help me do a cric", "failed intubation, failed i-gel, sats are 71") still must.
 
 ### B1: source-mode labelling
 
@@ -367,6 +376,7 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 
 ## Found along the way, not yet placed
 
+- **The validator holds a correct post-tube sedation answer** (found in #86, live on the branch). "80kg male, we tubed him, what do I give after RSI" went to gpt-4o-mini, and the validator held it: "recommends post-intubation sedation with ketamine without confirming the tube is in place". It doesn't read "we tubed him" as the tube being in. It fails safe, so it isn't fixed now (owner, 2026-09-26). Revisit when the validator wording is looked at as a whole, together with run-3 finding 6 (TXA held for plain haemorrhage).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
