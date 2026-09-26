@@ -1038,6 +1038,79 @@ RSI_PARALYTIC_INDICATIONS = ("RSI paralytic",)
 RSI_SEDATION_INDICATIONS = ("post-intubation sedation", "ongoing sedation")
 SEIZURE_INDICATIONS = ("active seizure",)
 
+# ── A1b: the indication a seizing patient's dose must be for ────────────────
+#
+# Run 3, H-S3: "Have a TBI patient that is having ststus SZ, maxed out on
+# versed". The query named midazolam, so the builder offered every signed
+# midazolam entry that resolves without a weight: 5 mg for a behavioural
+# emergency and 0.5 mg for prolonged-field-care sedation. Four arms served the
+# 5 mg to the seizing patient, labelled "agitated or violent patient", and the
+# dose check passed it because 5 mg is a signed VALUE. A signed value is
+# signed FOR something; a dose for another indication is not this patient's.
+#
+# "SZ" is how medics write it, and it matched none of the builder's seizure
+# words. The words here are anchored; "status" alone is not one of them
+# ("altered mental status").
+SEIZURE_TREATMENT_INDICATIONS = ("active seizure", "status epilepticus")
+_ACTIVE_SEIZURE_RE = re.compile(
+    r"\b(?:seizures?|seizing|szs?|convulsing|convulsions?|status\s+epilepticus)\b")
+# In the same clause, before the word: not a seizure happening now.
+_NOT_ACTIVE_SEIZURE_RE = re.compile(
+    r"\b(?:no|not|denies|without|negative for|rule out|history of|hx of|h/o|"
+    r"prior|previous|past|prophylaxis|prophylactic|prevent\w*)\b")
+_CLAUSE_START_RE = re.compile(r"[,;.:!?\n—]")
+
+
+def is_active_seizure_query(text: str) -> bool:
+    """True when the text says a patient is seizing now.
+
+    Prophylaxis is not a seizure: "severe TBI, levetiracetam for seizure
+    prophylaxis" is the TBI loading dose, and treating it as a seizure would
+    take that dose away.
+    """
+    q = (text or "").lower()
+    if re.search(r"\bprophyla\w*", q):
+        return False
+    for m in _ACTIVE_SEIZURE_RE.finditer(q):
+        starts = [c.end() for c in _CLAUSE_START_RE.finditer(q, 0, m.start())]
+        clause = q[starts[-1] if starts else 0:m.start()]
+        if not _NOT_ACTIVE_SEIZURE_RE.search(clause):
+            return True
+    return False
+
+
+def is_seizure_treatment_indication(indication: str) -> bool:
+    i = (indication or "").lower()
+    return (any(p in i for p in SEIZURE_TREATMENT_INDICATIONS)
+            and "prophyla" not in i)
+
+
+def _drugs_signed_for_seizure() -> set:
+    if drug_contracts is None:
+        return set()
+    return {name for name, entries in drug_contracts.servable_entries().items()
+            if any(is_seizure_treatment_indication(e.get("indication"))
+                   for e in entries)}
+
+
+def indication_matched(query: str, doses: list) -> list:
+    """The doses whose indication fits this query.
+
+    For a seizing patient, a drug that has a signed seizure entry is offered
+    for seizure only: its other entries are another patient's dose. A drug
+    with no signed seizure entry is left alone — whether it belongs in a
+    seizure answer is not a question about its indication label. Used by the
+    builder AND by the check, so the check stays indication-specific even when
+    it is handed a list the builder did not make.
+    """
+    if not doses or not is_active_seizure_query(query):
+        return list(doses or [])
+    seizure_drugs = _drugs_signed_for_seizure() | {
+        d.drug for d in doses if is_seizure_treatment_indication(d.indication)}
+    return [d for d in doses
+            if d.drug not in seizure_drugs
+            or is_seizure_treatment_indication(d.indication)]
+
 
 def _contract_source(name: str, entry: dict) -> str:
     """The provenance string that travels with a contract dose.
@@ -1317,7 +1390,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         # exception to either.
         if ctx.is_pediatric:
             return []
-        return _finish_doses(_contract_dose_candidates(query, ctx), ctx)
+        return _finish_doses(
+            indication_matched(query, _contract_dose_candidates(query, ctx)), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
@@ -1341,7 +1415,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
 
     is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
     is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
-    is_seizure = any(x in q for x in ['seizure', 'seizing', 'status'])
+    is_seizure = (any(x in q for x in ['seizure', 'seizing', 'status'])
+                  or is_active_seizure_query(q))
     has_ketamine = 'ketamine' in named and 'ketamine' not in superseded
     has_roc = 'rocuronium' in named and 'rocuronium' not in superseded
     has_succ = 'succinylcholine' in named and 'succinylcholine' not in superseded
@@ -1379,7 +1454,10 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
                 doses.append(rocuronium_rsi(w, ped))
 
         doses.extend(contract)
-        doses.extend(_contract_dose_candidates(query, ctx))
+        # The bundle is filled by role; only the drug-named extras are held to
+        # the query's indication (A1b). A seizing patient being intubated
+        # still gets the bundle's sedation slot.
+        doses.extend(indication_matched(query, _contract_dose_candidates(query, ctx)))
         return _finish_doses(doses, ctx)
 
     if has_ketamine:
@@ -1442,7 +1520,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
-    return _finish_doses(doses, ctx)
+    return _finish_doses(indication_matched(query, doses), ctx)
 
 
 CONFIRM_CONCENTRATION_LINE = "confirm concentration to compute volume"
@@ -3417,6 +3495,51 @@ def free_text_dose_issues(response_text: str,
     return list(dict.fromkeys(issues))
 
 
+_INDICATION_LABEL_RE = re.compile(r"\bindication:\s*([^.\n]+)", re.IGNORECASE)
+
+
+def indication_label_issues(response_text: str,
+                            allowed_doses: Optional[List["DoseCandidate"]]) -> list:
+    """Issues for a dose line whose "Indication:" names another signed indication.
+
+    The value checks cannot see this: at 50 kg the seizure dose of midazolam is
+    5 mg, the same number as its behavioural-emergency dose, so a line serving
+    "5 mg … Indication: agitated or violent patient" to a seizing patient
+    passes on value. A label is only judged when it names a signed indication
+    of a drug that IS in the allowed list; a paraphrase that names none, or a
+    drug that was not built at all, is the value checks' to hold.
+    """
+    if drug_contracts is None:
+        return []
+    built = {}
+    for d in allowed_doses or []:
+        built.setdefault(d.drug.lower(), set()).add((d.indication or "").lower())
+    signed = drug_contracts.servable_entries()
+    issues, section = [], ""
+    for line in (response_text or "").splitlines():
+        m = _FREE_DOSE_HEADING_RE.match(line)
+        if m:
+            section = re.sub(r"\s+", " ", m.group(1).replace("’", "'")).strip().upper()
+        if section in _FREE_DOSE_SKIP_SECTIONS:
+            continue
+        for lab in _INDICATION_LABEL_RE.finditer(line):
+            label = re.sub(r"\s+", " ", lab.group(1)).strip().lower()
+            spans = [sp for sp in _drug_spans(line[:lab.start()])]
+            if not label or not spans:
+                continue
+            drug = max(spans, key=lambda sp: sp[1])[2]
+            named = {(e.get("indication") or "").lower()
+                     for e in signed.get(drug, [])}
+            names = {i for i in named if i and (i in label or label in i)}
+            built_for = built.get(drug.lower())
+            if not names or not built_for or names & built_for:
+                continue
+            issues.append(f"The answer gave {drug} for \"{lab.group(1).strip()}\", which is "
+                          f"not this patient's indication: the {drug} dose for this "
+                          f"question is for {'; '.join(sorted(built_for))}.")
+    return list(dict.fromkeys(issues))
+
+
 def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
                          patient_ctx: Optional["PatientContext"]) -> str:
     """What the medic reads under "Issues identified": the drug and dose the
@@ -3451,7 +3574,10 @@ def run_deterministic_checks(query: str, response_text: str,
     issues = []
     r = response_text.lower()
     q = query.lower()
-    allowed_doses = allowed_doses or []
+    # A1b: a dose is checked against the entries for THIS indication, not
+    # every entry the list happens to carry — the same filter the builder
+    # applies, so a list built elsewhere cannot widen what passes.
+    allowed_doses = indication_matched(query, allowed_doses or [])
 
     # ── ALLOWED_DOSES contract enforcement (implemented 2026-07-18) ───────
     # Parse canonical GIVE lines ("Draw X mL of Ymg/mL drug ... (Zmg)") and
@@ -3496,6 +3622,9 @@ def run_deterministic_checks(query: str, response_text: str,
 
     # ── Doses stated outside the canonical GIVE line ──────────────────────
     issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx))
+
+    # ── A dose labelled for an indication it was not built for (A1b) ──────
+    issues.extend(indication_label_issues(response_text, allowed_doses))
 
     # ── Pediatric: no dose without confirmed weight ───────────────────────
     if patient_ctx.is_pediatric and not patient_ctx.has_confirmed_weight:
