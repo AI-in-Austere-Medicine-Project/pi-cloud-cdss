@@ -31,29 +31,29 @@ Rules the owner added on later items:
 
 ## Order
 
-Items are listed by clinical consequence. They are done in this order unless the owner reorders them.
+Items are listed in the owner's execution order (2026-09-26, below), done items first. They are done in this order unless the owner reorders them.
 
 | # | Item | Status |
 |---|---|---|
 | — | Live fix: explicitly selected model waited for 60 s; fallback bannered | **done**: #88, merged and deployed |
-| A0 | Context isolation on patient reset | in review: #90 |
-| A1b | Dose check matches indication, not only value | in review: #91 |
 | A1 | DCR routing failure | **done**: #82, merged and deployed |
 | A2 | Deterministic severe-TBI card | **done**: #84, merged and deployed |
+| A0 | Context isolation on patient reset | in review: #90 |
+| A1b | Dose check matches indication, not only value | in review: #91 |
 | A3 | Already-intubated patients receiving the RSI bundle | in review: #86 |
-| A7 | GCS parser | after A3 |
-| A4 | Depressed-GCS oral route | open |
-| A5 | Hold text for fixed doses | open |
-| A6 | Contraindicated procedures (design only) | open |
-| B1 | Source-mode labelling | open |
-| B2 | Generator section headers | open |
-| C1 | Feedback instrument | open |
-| D1 | Evaluation hygiene | open |
-| D5 | Distillation dataset builder | **next**, after A1b; see the open question under D5 |
+| A4 | Depressed-GCS oral route | after A3 |
+| A5 | Hold text for fixed doses | after A4 |
+| A6 | Contraindicated procedures (design only) | after A5 |
+| A7 | GCS parser | after A6 |
+| D5 | Distillation dataset builder | after A7, and not before A0 and A1b are merged and deployed |
 | D6 | Training toolchain (Mac) | after D5 |
-| D2 | Prompt layout for prefix caching | after D6 |
+| B1 | Source-mode labelling | after D6 |
+| B2 | Generator section headers | after B1 |
+| C1 | Feedback instrument | after B2 |
+| D2 | Prompt layout for prefix caching | after C1 |
 | D3 | Retrieval trim to 4 chunks | after D2 |
 | D4 | Show the deterministic part first | after D3 |
+| D1 | Evaluation hygiene | open; not placed in the stated order |
 
 Owner asks outside the lettered items:
 
@@ -64,7 +64,9 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them.
 
-**Execution order (owner, 2026-09-26, revised the same day):** A1b → D5 → D6 → D2 → D3 → D4. Same rules; stop for review on each. Where A7 and the later A, B and C items fall relative to the D series has not been stated.
+**Execution order (owner, 2026-09-26, third statement; replaces the earlier two):** A1b → A3 (#86) → A4 → A5 → A6 → A7 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4.
+
+Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each. D1 is not in the stated order.
 
 ## Items
 
@@ -129,7 +131,7 @@ This was the subject of 4 field reports (feedback review §1). A completed-airwa
 
 Tests: the real queries from the review route away from RSI, and a genuine pre-intubation RSI request still routes to it.
 
-### A7: GCS parser (added 2026-09-25, a separate PR after A3)
+### A7: GCS parser (added 2026-09-25; a separate PR, after A6 per the 2026-09-26 order)
 
 The GCS parser reads "GCS is seven", "GCS 3T", "GCS of 6" and "G6", with a test for each.
 
@@ -235,6 +237,8 @@ Add a test that a held response never shows any model-written dose.
 
 Script: `tools/build_distill_dataset.py`.
 
+**Waits for (owner, 2026-09-26):** A0 and A1b merged and deployed. The dataset is built from replay against the main that contains both. The refuse-to-run check below is A1b's indication matcher: D5 imports it and does not reimplement it.
+
 **Source:** stored production queries whose answer:
 - came from a cloud model;
 - passed the validator and the dose check;
@@ -252,6 +256,12 @@ Script: `tools/build_distill_dataset.py`.
 
 Print the counts per scenario and per drug.
 
+**Single patient, no prior history (owner, 2026-09-26):** every training row is one turn, one patient, no conversation history. Rows whose source query had history are excluded, not truncated. This keeps the A0 leak class out of the training set by construction.
+
+**Format (owner, 2026-09-26):** identical to `~/edgecdss-train/data-dryrun/{train,valid}.jsonl` (messages triples: system, user, assistant), so the existing D6 Makefile targets run on it unchanged. Add a test that loads one row from each and asserts the same keys and roles.
+
+**Coverage report, not a filter (owner, 2026-09-26):** print row counts for the ten most common scenario types, and warn if any has fewer than 20 rows. Do not drop or rebalance rows to hit a target.
+
 **Refuse to run** if any row contains a dose that is not the signed value for that drug and indication.
 
 **Open question (found 2026-09-26, for the owner):** production session logs keep only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`). Of 894 logged turns, about 143 name a cloud model. The stored queries are there, but the assistant text a training row needs isn't. The ways through are to:
@@ -260,6 +270,10 @@ Print the counts per scenario and per drug.
 - (c) start logging full answers and build the set later.
 
 Nothing is inferred here.
+
+The owner's 2026-09-26 answer settled when D5 runs and what it is checked against (above). It did not choose between (a), (b) and (c); that is still open.
+
+**Found 2026-09-26:** `~/edgecdss-train` is on the Mac and is not present on the Jetson, so the format test cannot read the dry-run files from the Jetson checkout as written. How the test reaches a reference row is not yet decided.
 
 ### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson)
 
@@ -281,7 +295,10 @@ Commit under `tools/distill/`:
   2. scp the Q4 file;
   3. write the Modelfile and `ollama create`;
   4. run one single-line ketamine probe on the Jetson over ssh, with no multi-line quoted prompt.
-- **`bench`:** run the 30-scenario local arm against the new tag and print the before/after table.
+- **`bench` (owner, 2026-09-26):**
+  1. run `run_tests.sh` against the new tag; 27/27 must hold;
+  2. run the 30-scenario local arm against the new tag and print the before/after table;
+  3. write the results to a new dated file, `docs/DISTILL_BENCH_<tag>.md`, linked from this work order. Do not append to `LOCAL_LLM_BENCHMARK.md`, which stays a measurement record of the base model.
 
 **Rules:**
 - Install only with `pip install -r requirements.txt`.
@@ -291,6 +308,12 @@ Commit under `tools/distill/`:
 1. Never `-U` the foundation libraries in this venv.
 2. Copy the tokenizer files after fuse.
 3. Quantize on the Mac, and probe on the Jetson directly.
+
+## Distillation bench results
+
+Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here.
+
+- None yet.
 
 ## Findings placement (benchmark run 3, docs/MULTI_MODEL_BENCHMARK_2026-09-25.md)
 
