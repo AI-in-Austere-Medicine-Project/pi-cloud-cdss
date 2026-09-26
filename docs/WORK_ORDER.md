@@ -37,7 +37,7 @@ Items are listed by clinical consequence. They are done in this order unless the
 |---|---|---|
 | — | Live fix: explicitly selected model waited for 60 s; fallback bannered | **done**: #88, merged and deployed |
 | A0 | Context isolation on patient reset | in review: #90 |
-| A1b | Dose check matches indication, not only value | **next** |
+| A1b | Dose check matches indication, not only value | in review: #91 |
 | A1 | DCR routing failure | **done**: #82, merged and deployed |
 | A2 | Deterministic severe-TBI card | **done**: #84, merged and deployed |
 | A3 | Already-intubated patients receiving the RSI bundle | in review: #86 |
@@ -50,7 +50,7 @@ Items are listed by clinical consequence. They are done in this order unless the
 | C1 | Feedback instrument | open |
 | D1 | Evaluation hygiene | open |
 | D2–D4 | not yet specified | owner to supply |
-| D5 | Distillation dataset (no training) | after A0 and A1b are merged and deployed |
+| D5 | Distillation dataset (no training) | **next**, once #90 and #91 are merged and deployed |
 | D6 | Training toolchain on the Mac | after D5 starts; may be built in parallel with it |
 
 Owner asks outside the lettered items:
