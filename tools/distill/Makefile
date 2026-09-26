@@ -17,7 +17,8 @@ STRICT := set -euo pipefail;
 HERE      := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 REPO      := $(abspath $(HERE)/../..)
 WORK      ?= $(HOME)/edgecdss-train
-VENV      ?= $(WORK)/.venv
+# Built only from requirements.txt. The older ~/edgecdss-train/.venv no longer matches the pins.
+VENV      ?= $(WORK)/.venv-fresh
 PY        := $(VENV)/bin/python
 LLAMA_CPP ?= $(HOME)/llama.cpp
 JETSON    ?= jetson
