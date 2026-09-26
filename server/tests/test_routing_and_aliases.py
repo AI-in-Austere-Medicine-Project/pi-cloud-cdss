@@ -66,15 +66,19 @@ def test_rsi_query_still_routes_to_rsi():
         assert should_use_rsi_pregate(query) is True, query
 
 
-def test_post_intubation_vent_phrasing_still_rsi():
-    """Why the fix is a guard, not deletion of "ventilator" from the RSI terms.
-
-    Deleting the term would break these; the guard keeps them.
+def test_a_post_intubation_sedation_request_does_not_get_the_rsi_bundle():
+    """Reversed 2026-09-24 (A3). This test pinned these queries TO the RSI
+    pre-gate, and on main the first two were served the whole bundle —
+    "ketamine IV: 160 mg ... Indication: RSI induction" and "rocuronium IV
+    (96 mg) ... RSI paralytic" — for a patient already intubated who asked for
+    sedation. That is the feedback review's section-1 harm: a dose bundle for
+    an indication that has passed. A completed airway now suppresses the RSI
+    pre-gate; the ketamine-drip phrasing keeps its own card (Step 2i).
     """
     for query in ["patient on the vent post intubation needs sedation 80kg",
                   "post-intubation sedation for an 80kg male",
                   "patient intubated need a ketamine drip for sedation 80kg male"]:
-        assert should_use_rsi_pregate(query) is True, query
+        assert should_use_rsi_pregate(query) is False, query
 
 
 def test_vent_settings_terms_are_not_rsi_terms():
