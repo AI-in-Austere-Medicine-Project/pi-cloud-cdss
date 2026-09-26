@@ -45,7 +45,10 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A5 | Hold text for fixed doses | after A4 |
 | A6 | Contraindicated procedures (design only) | after A5 |
 | A7 | GCS parser | after A6 |
-| D1 | Evaluation hygiene | after A7 |
+| A8 | "status post" must not match status epilepticus | after A7 |
+| A9 | Active-seizure phrasings reach the signed entry | after A8 |
+| D5a | Full-answer logging | after A9 |
+| D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
 | D6 | Training toolchain (Mac) | after D5 |
 | B1 | Source-mode labelling | after D6 |
@@ -65,7 +68,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them.
 
-**Execution order (owner, 2026-09-26, fourth statement; replaces the earlier three):** A3 (#86) → A4 → A5 → A6 → A7 → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0 and A1b are done (#90, #91; main at 894ffd9, deployed and restarted on it).
+**Execution order (owner, 2026-09-26, fifth statement; replaces the earlier four):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → D5a → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0 and A1b are done (#90, #91; main at 894ffd9, deployed and restarted on it).
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -159,6 +162,22 @@ DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advic
 
 Report the proposed table, the matching approach, the false-positive risks, and how it would be signed like a contract. Wait for the owner's go.
 
+### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91)
+
+The dose builder's seizure trigger is the substring `'status'`. "159lb male unable to ventilate effectively status post oral trauma" (H-SESS-002, also in the live logs) is offered lorazepam 4 mg for active seizure: a non-seizure patient offered a seizure dose.
+
+This is the same class as "stab" in "stable" and "14G" read as grams: a lexical match firing on a substring.
+
+Failing tests first. Negatives: "status post", "post-status" and "status: stable" must not reach the seizure entry.
+
+### A9: active-seizure phrasings reach the signed entry (owner, 2026-09-26; found in #91)
+
+"80kg male actively seizing" never reaches the dose builder. The fixed ACTIVE SEIZURE card answers "benzodiazepine per local protocol" with no signed dose, even with a weight and a signed entry.
+
+- "actively seizing", "seizing now", "still seizing" and "in status" must reach the active-seizure entry the same as "active seizure" does.
+- Add the phrases to the lexicon, with a failing test per phrase first.
+- Report any other seizure phrasing in the stored queries that gets no signed dose today.
+
 ### B1: source-mode labelling
 
 A response whose served dose comes from a JTS-cited signed contract is JTS-grounded, regardless of retrieval score. The SOURCE line must carry the contract's citation. The evidence is a fentanyl IV query labelled "general" with ID61 chips showing. Test with that query. Format only.
@@ -236,6 +255,16 @@ The gates, the signed dose line and the card header are computed in code in abou
 
 Add a test that a held response never shows any model-written dose.
 
+### D5a: full-answer logging (owner, 2026-09-26; its own PR, before D1 and D5)
+
+Logging starts as soon as this deploys, so the next dataset comes from real serving.
+
+- Failing test first: schema 14, with the full answer present on every served and every held response.
+- Replay unchanged.
+- Same retention and access rules as the existing query logs. The full answer is no more sensitive than the query already stored.
+- A disk estimate: mean answer length × current daily query volume.
+- Log rotation set so the Jetson can't fill up.
+
 ### D5: distillation dataset builder
 
 Script: `tools/build_distill_dataset.py`.
@@ -246,7 +275,7 @@ Script: `tools/build_distill_dataset.py`.
 
 **(a) Regenerate now.**
 - Take the stored production queries that pass the D5 filters: single patient, no history, model-reaching.
-- Replay each through the live prompt path against **claude-opus-5** as the teacher, with the cloud timeout at 120 s.
+- Replay each through the live prompt path against **`claude-opus-5`** as the teacher, with the cloud timeout at 120 s. This is the exact model string the run-3 Opus arm sent: `providers.json` id `claude-opus-5`, passed unchanged as `model` by the Anthropic adapter at 580836e (`mm3t120-claude-opus-5-p1`, `model_requested` and `model_used` `anthropic/claude-opus-5`). The 77% specifics figure belongs to it. The teacher must be the model that was measured; do not substitute one that wasn't in run 3.
 - Use the production gpt-4o-mini validator and the free-text dose check exactly as deployed.
 - Keep only rows that are served, not held, and that pass the A1b indication check.
 - Every row's metadata records the teacher model, the snapshot commit and the contract bank version.
@@ -254,9 +283,7 @@ Script: `tools/build_distill_dataset.py`.
 
 **(b) is out.** The 30-scenario set and the 27 `run_tests.sh` queries are the evaluation set. No query from either may appear in train or valid. This is a hard exclusion in the builder, with a test.
 
-**(c) Log full answers from now on,** so the next dataset comes from real serving:
-- bump the log schema;
-- keep the same retention and access rules as the existing query logs. The full answer is no more sensitive than the query already stored.
+**(c) Log full answers from now on:** its own item and PR, D5a, before D5 (below).
 
 **Exclude:**
 - every held card;
@@ -343,8 +370,6 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
-- From #91: the builder's seizure trigger is the substring `'status'`, so "status post oral trauma" (H-SESS-002) is offered lorazepam 4 mg for active seizure. A non-seizure patient offered a seizure dose. Reported, not fixed.
-- From #91: "80kg male actively seizing" never reaches the builder. The fixed ACTIVE SEIZURE card answers "benzodiazepine per local protocol" with no signed dose.
 
 ## Deferred (do not touch)
 
