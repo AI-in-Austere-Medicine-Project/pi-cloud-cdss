@@ -38,14 +38,15 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | — | Live fix: explicitly selected model waited for 60 s; fallback bannered | **done**: #88, merged and deployed |
 | A1 | DCR routing failure | **done**: #82, merged and deployed |
 | A2 | Deterministic severe-TBI card | **done**: #84, merged and deployed |
-| A0 | Context isolation on patient reset | in review: #90 |
-| A1b | Dose check matches indication, not only value | in review: #91 |
-| A3 | Already-intubated patients receiving the RSI bundle | in review: #86 |
+| A0 | Context isolation on patient reset | **done**: #90, merged and deployed |
+| A1b | Dose check matches indication, not only value | **done**: #91, merged and deployed |
+| A3 | Already-intubated patients receiving the RSI bundle | in review: #86 (**next**) |
 | A4 | Depressed-GCS oral route | after A3 |
 | A5 | Hold text for fixed doses | after A4 |
 | A6 | Contraindicated procedures (design only) | after A5 |
 | A7 | GCS parser | after A6 |
-| D5 | Distillation dataset builder | after A7, and not before A0 and A1b are merged and deployed |
+| D1 | Evaluation hygiene | after A7 |
+| D5 | Distillation dataset builder | after D1 |
 | D6 | Training toolchain (Mac) | after D5 |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
@@ -53,20 +54,20 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D2 | Prompt layout for prefix caching | after C1 |
 | D3 | Retrieval trim to 4 chunks | after D2 |
 | D4 | Show the deterministic part first | after D3 |
-| D1 | Evaluation hygiene | open; not placed in the stated order |
 
 Owner asks outside the lettered items:
 
 | Item | Status |
 |---|---|
 | 3% NaCl contract, signed at 7.5 g | in review: #85 |
-| Multi-model benchmark run 3 | in review: #87 |
+| Multi-model benchmark run 3 | **done**: #87, merged |
+| This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them.
 
-**Execution order (owner, 2026-09-26, third statement; replaces the earlier two):** A1b → A3 (#86) → A4 → A5 → A6 → A7 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4.
+**Execution order (owner, 2026-09-26, fourth statement; replaces the earlier three):** A3 (#86) → A4 → A5 → A6 → A7 → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0 and A1b are done (#90, #91; main at 894ffd9, deployed and restarted on it).
 
-Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each. D1 is not in the stated order.
+Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
 ## Items
 
@@ -74,7 +75,7 @@ Every open A item finishes before any D item starts. Safety before speed, no exc
 
 When a user explicitly selects a model, the cloud timeout is 60 s, not 8. The 8 s fast fallback applies only to the default model. Any local-fallback answer shows the badge prominently in the brief area, not just the footer. Every fallback is logged with the model that was requested. Both paths are tested.
 
-### A0: context isolation on patient reset (added 2026-09-25, ahead of A3)
+### A0: context isolation on patient reset (done, #90)
 
 Benchmark run 3, finding 3 (G-MTN-05):
 - After an explicit "different patient now", the patient context reset.
@@ -83,7 +84,7 @@ Benchmark run 3, finding 3 (G-MTN-05):
 
 Requirement: after "new patient" or "different patient", ALLOWED_DOSES, vitals, weight and history must be empty. Test that a previous patient's dose can never appear in the next patient's allowed list. Failing test first.
 
-### A1b: the dose check matches indication, not only value (added 2026-09-25, ahead of A3)
+### A1b: the dose check matches indication, not only value (done, #91)
 
 Benchmark run 3, finding 2 (H-S3):
 - The query was "status SZ, maxed out on versed".
@@ -176,6 +177,8 @@ Headers drift in brief mode: "SEVERE TBI", "TREAT", "EVAC IF", and both "SOURCE"
 
 ### D1: evaluation hygiene (one PR)
 
+**Placement (owner, 2026-09-26):** after A7 and before D5. D1 is measurement only. Run on deployed main after every A item is done, it gives the clean pre-training baseline that the D6 bench compares against. Same snapshot rule as run 3.
+
 - **(a)** run_tests.sh gains:
   - the DCR case (A1);
   - the 6-year-old 20 kg ketamine case, asserting 4 mg, the 5 mg/mL dilution and the SMOG source;
@@ -237,12 +240,23 @@ Add a test that a held response never shows any model-written dose.
 
 Script: `tools/build_distill_dataset.py`.
 
-**Waits for (owner, 2026-09-26):** A0 and A1b merged and deployed. The dataset is built from replay against the main that contains both. The refuse-to-run check below is A1b's indication matcher: D5 imports it and does not reimplement it.
+**Waits for (owner, 2026-09-26):** A0 and A1b merged and deployed (met: 894ffd9), and D1 done. The dataset is built from replay against the main that contains both. The refuse-to-run check below is A1b's indication matcher: D5 imports it and does not reimplement it.
 
-**Source:** stored production queries whose answer:
-- came from a cloud model;
-- passed the validator and the dose check;
-- passes the current replay against main, so retired contracts drop out automatically.
+**Source (owner, 2026-09-26): (a) regenerate now, and (c) log full answers from now on. Not (b).**
+
+**(a) Regenerate now.**
+- Take the stored production queries that pass the D5 filters: single patient, no history, model-reaching.
+- Replay each through the live prompt path against **claude-opus-5** as the teacher, with the cloud timeout at 120 s.
+- Use the production gpt-4o-mini validator and the free-text dose check exactly as deployed.
+- Keep only rows that are served, not held, and that pass the A1b indication check.
+- Every row's metadata records the teacher model, the snapshot commit and the contract bank version.
+- **Before the run,** report the row count and the cost estimate. **Stop for approval if the estimate is over $40.**
+
+**(b) is out.** The 30-scenario set and the 27 `run_tests.sh` queries are the evaluation set. No query from either may appear in train or valid. This is a hard exclusion in the builder, with a test.
+
+**(c) Log full answers from now on,** so the next dataset comes from real serving:
+- bump the log schema;
+- keep the same retention and access rules as the existing query logs. The full answer is no more sensitive than the query already stored.
 
 **Exclude:**
 - every held card;
@@ -258,22 +272,16 @@ Print the counts per scenario and per drug.
 
 **Single patient, no prior history (owner, 2026-09-26):** every training row is one turn, one patient, no conversation history. Rows whose source query had history are excluded, not truncated. This keeps the A0 leak class out of the training set by construction.
 
-**Format (owner, 2026-09-26):** identical to `~/edgecdss-train/data-dryrun/{train,valid}.jsonl` (messages triples: system, user, assistant), so the existing D6 Makefile targets run on it unchanged. Add a test that loads one row from each and asserts the same keys and roles.
+**Format (owner, 2026-09-26):** identical to `~/edgecdss-train/data-dryrun/{train,valid}.jsonl` (messages triples: system, user, assistant), so the D6 Makefile targets run on it unchanged.
+- The reference is a one-row synthetic fixture, `tools/distill/fixtures/format_example.jsonl`. It is written by hand with placeholder content, not copied from data-dryrun.
+- The Jetson-side test and the D6 Makefile's preflight both check against that same file.
+- data-dryrun stays where it is, on the Mac.
 
 **Coverage report, not a filter (owner, 2026-09-26):** print row counts for the ten most common scenario types, and warn if any has fewer than 20 rows. Do not drop or rebalance rows to hit a target.
 
 **Refuse to run** if any row contains a dose that is not the signed value for that drug and indication.
 
-**Open question (found 2026-09-26, for the owner):** production session logs keep only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`). Of 894 logged turns, about 143 name a cloud model. The stored queries are there, but the assistant text a training row needs isn't. The ways through are to:
-- (a) regenerate each answer from a cloud model now, and keep those that pass;
-- (b) take the answers from the benchmark runs, which keep full text;
-- (c) start logging full answers and build the set later.
-
-Nothing is inferred here.
-
-The owner's 2026-09-26 answer settled when D5 runs and what it is checked against (above). It did not choose between (a), (b) and (c); that is still open.
-
-**Found 2026-09-26:** `~/edgecdss-train` is on the Mac and is not present on the Jetson, so the format test cannot read the dry-run files from the Jetson checkout as written. How the test reaches a reference row is not yet decided.
+**Resolved (2026-09-26):** production session logs kept only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`), so they could not supply training answers. The owner chose (a) and (c) above.
 
 ### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson)
 
@@ -299,6 +307,8 @@ Commit under `tools/distill/`:
   1. run `run_tests.sh` against the new tag; 27/27 must hold;
   2. run the 30-scenario local arm against the new tag and print the before/after table;
   3. write the results to a new dated file, `docs/DISTILL_BENCH_<tag>.md`, linked from this work order. Do not append to `LOCAL_LLM_BENCHMARK.md`, which stays a measurement record of the base model.
+
+**Preflight (owner, 2026-09-26):** the Makefile checks the training data against `tools/distill/fixtures/format_example.jsonl`, the same fixture the Jetson-side D5 test uses.
 
 **Rules:**
 - Install only with `pip install -r requirements.txt`.
@@ -333,6 +343,8 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
+- From #91: the builder's seizure trigger is the substring `'status'`, so "status post oral trauma" (H-SESS-002) is offered lorazepam 4 mg for active seizure. A non-seizure patient offered a seizure dose. Reported, not fixed.
+- From #91: "80kg male actively seizing" never reaches the builder. The fixed ACTIVE SEIZURE card answers "benzodiazepine per local protocol" with no signed dose.
 
 ## Deferred (do not touch)
 
