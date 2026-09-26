@@ -1,0 +1,343 @@
+# Work order: EdgeCDSS safety and routing
+
+The owner's work order of 2026-09-24, with the additions and rulings since.
+The owner's wording is kept where it was given. This file is the plan of record.
+Session notes are not.
+
+Status is as of 2026-09-26. The owner updates it, or it is updated in the PR that
+closes an item.
+
+## Global rules
+
+- **One work item per PR.** Stop for the owner's review after each. Never merge.
+- **Safety items (A-series):**
+  - The failing test is committed FIRST, on its own, then the fix.
+  - Never loosen a gate.
+  - The dose check stays indication-specific.
+- **After every safety change, replay the served answers** (537 at the time of the order) and report:
+  - newly held, each one read and classified as a true or false positive;
+  - newly released, which must be zero;
+  - cloud regressions, which must be zero.
+- **Every PR reports** the files touched, the suite count, and the live-harness result against a second uvicorn, never against the live service.
+- **Never restart the live service or touch its `.env`.**
+- **Every benchmark row records** the git commit, the signed-entry count, the Ollama version, the power mode and the kernel.
+- **Format and label changes must not change** what is decided, held or dosed.
+- **Report format per item:** what changed, why it was wrong, the failing test and what it proves, the replay delta, and anything found that isn't on this list.
+
+Rules the owner added on later items:
+- Do not merge an unsigned state; re-sign in the same PR.
+- A missing contract must hold; never serve an uncited value.
+- Benchmarks: if a key is missing or a model errors, record it and skip. Do not substitute.
+
+## Order
+
+Items are listed in the owner's execution order (2026-09-26, below), done items first. They are done in this order unless the owner reorders them.
+
+| # | Item | Status |
+|---|---|---|
+| — | Live fix: explicitly selected model waited for 60 s; fallback bannered | **done**: #88, merged and deployed |
+| A1 | DCR routing failure | **done**: #82, merged and deployed |
+| A2 | Deterministic severe-TBI card | **done**: #84, merged and deployed |
+| A0 | Context isolation on patient reset | in review: #90 |
+| A1b | Dose check matches indication, not only value | in review: #91 |
+| A3 | Already-intubated patients receiving the RSI bundle | in review: #86 |
+| A4 | Depressed-GCS oral route | after A3 |
+| A5 | Hold text for fixed doses | after A4 |
+| A6 | Contraindicated procedures (design only) | after A5 |
+| A7 | GCS parser | after A6 |
+| D5 | Distillation dataset builder | after A7, and not before A0 and A1b are merged and deployed |
+| D6 | Training toolchain (Mac) | after D5 |
+| B1 | Source-mode labelling | after D6 |
+| B2 | Generator section headers | after B1 |
+| C1 | Feedback instrument | after B2 |
+| D2 | Prompt layout for prefix caching | after C1 |
+| D3 | Retrieval trim to 4 chunks | after D2 |
+| D4 | Show the deterministic part first | after D3 |
+| D1 | Evaluation hygiene | open; not placed in the stated order |
+
+Owner asks outside the lettered items:
+
+| Item | Status |
+|---|---|
+| 3% NaCl contract, signed at 7.5 g | in review: #85 |
+| Multi-model benchmark run 3 | in review: #87 |
+
+**Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them.
+
+**Execution order (owner, 2026-09-26, third statement; replaces the earlier two):** A1b → A3 (#86) → A4 → A5 → A6 → A7 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4.
+
+Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each. D1 is not in the stated order.
+
+## Items
+
+### Live fix: the 8 s fallback substituted qwen for slow cloud models (done, #88)
+
+When a user explicitly selects a model, the cloud timeout is 60 s, not 8. The 8 s fast fallback applies only to the default model. Any local-fallback answer shows the badge prominently in the brief area, not just the footer. Every fallback is logged with the model that was requested. Both paths are tested.
+
+### A0: context isolation on patient reset (added 2026-09-25, ahead of A3)
+
+Benchmark run 3, finding 3 (G-MTN-05):
+- After an explicit "different patient now", the patient context reset.
+- ALLOWED_DOSES still held the previous patient's lorazepam 4 mg for active seizure.
+- gemini-3.1-pro served that dose inside a tension-pneumothorax answer. The validator said SAFE.
+
+Requirement: after "new patient" or "different patient", ALLOWED_DOSES, vitals, weight and history must be empty. Test that a previous patient's dose can never appear in the next patient's allowed list. Failing test first.
+
+### A1b: the dose check matches indication, not only value (added 2026-09-25, ahead of A3)
+
+Benchmark run 3, finding 2 (H-S3):
+- The query was "status SZ, maxed out on versed".
+- ALLOWED_DOSES held midazolam 5 mg (agitated or violent patient) and 0.5 mg (PFC sedation).
+- It did not hold the signed midazolam *active seizure* entry.
+- Four arms served "midazolam IV 5 mg … Indication: agitated or violent patient" to a seizing patient. The check passed it because 5 mg is a signed value.
+
+Requirement: a signed seizure entry must be offered for a seizure query, and a 5 mg "agitated patient" midazolam must hold when the indication is seizure. Failing tests first.
+
+### A1: DCR routing failure (P1) (done, #82)
+
+"80 kg male, GSW left thigh, tourniquet on 20 min, HR 118, BP 104/68" returned GENERAL MEDICAL REFERENCE, not DCR ID18. It had no TXA, no blood-product priority and generic first aid, and the validator said SAFE.
+
+- **Step 1 (diagnose only):** report the router match and score, the top-5 retrieval hits and distances, the classify_retrieval result, and the exact reason DCR was not selected. Run these variants and report the routing for each:
+  - "gunshot wound thigh bleeding controlled with TQ";
+  - "penetrating trauma, hemorrhagic shock";
+  - "massive hemorrhage, tourniquet applied";
+  - "blast injury, bilateral leg amputations, TQs on".
+- **Step 2 (after the owner's go):** the smallest fix. Do NOT regenerate protocol_index.json. Add the original query and 2 variants to run_tests.sh, asserting DCR and TXA in the output.
+
+**Rulings on the false positives (2026-09-24):**
+1. **Tension pneumothorax signs** (absent or decreased breath sounds, JVD, tracheal deviation, hyperresonance) route to needle decompression and thoracic injury (ID74), never to the DCR card. If both shock physiology and tension signs are present, the tension card fires first and carries "then reassess for hemorrhage — DCR". Test both orders.
+2. **Injury pattern alone does not fire DCR** when the query asks something else specific: another drug, a vent setup or a procedure. The DCR check moves after the vent card and the dose paths.
+3. **No HR > 100 rule under age 16.** Use age-appropriate tachycardia only if a paediatric threshold is cited (SMOG, PALS).
+4. **"Bleeding controlled", "hemorrhage controlled" and "TQ effective"** are not bleeding terms for the HR and shock-index rules.
+- Also: the DCR card's SOURCE line is ID18 with its printed page, and the TXA line serves the signed 2 g dose verbatim. Keep the canine filter. The heat-stroke corpus gap is a TODO content item.
+
+### A2: deterministic severe-TBI card (done, #84)
+
+A card for GCS ≤ 8 with a head injury:
+- the SBP target (ID30);
+- the levetiracetam 1500 mg load from the signed contract;
+- 3% hypertonic saline for herniation signs from the signed entry, held if unsigned;
+- EtCO2 35–45;
+- head of bed raised;
+- DON'T hyperventilate;
+- evacuation criteria;
+- SOURCE lines to ID30 and ID63 with printed pages.
+
+An already-intubated patient gets the same card with the airway lines suppressed. The brief follows the 3-slot rule. A child routes to the card with the levetiracetam line held unless a paediatric entry is signed.
+
+### A3: already-intubated patients receiving the RSI bundle (in review, #86)
+
+This was the subject of 4 field reports (feedback review §1). A completed-airway detector ("already intubated", "tube is in", "we RSI'd", "on the vent", "being ventilated") suppresses should_use_rsi_pregate regardless of other content, and the is_vent_settings_query vocabulary is widened.
+
+Tests: the real queries from the review route away from RSI, and a genuine pre-intubation RSI request still routes to it.
+
+### A7: GCS parser (added 2026-09-25; a separate PR, after A6 per the 2026-09-26 order)
+
+The GCS parser reads "GCS is seven", "GCS 3T", "GCS of 6" and "G6", with a test for each.
+
+### A4: depressed-GCS oral route
+
+Oral-route advice with GCS < 13, or "unresponsive", "altered" or "obtunded", must hold. That covers "encourage fluid intake", "sips of water", "PO", "by mouth", "oral glucose" and similar.
+
+Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase passes.
+
+**Run 3 finding 4, placed here:** the oral-intake hold fires on correct "nothing by mouth" answers. In the 120 s pass, every held cloud answer on R2-DEPRESSED-GCS said nothing by mouth.
+
+### A5: hold text for fixed doses
+
+A fixed-dose hold must never say "no weight confirmed". The hold text names the actual reason and what makes the question answerable. Test: 4 fixed-dose hold cases.
+
+### A6: contraindicated procedures (design only)
+
+DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advice, starting with a small signed table of procedure, contraindicating condition and source:
+- LP in raised ICP;
+- NG tube in basilar skull fracture;
+- nasal airway in midface or basilar fracture;
+- oral intake with depressed GCS (overlaps A4);
+- succinylcholine with hyperkalaemia, burns over 24 h, or crush.
+
+Report the proposed table, the matching approach, the false-positive risks, and how it would be signed like a contract. Wait for the owner's go.
+
+### B1: source-mode labelling
+
+A response whose served dose comes from a JTS-cited signed contract is JTS-grounded, regardless of retrieval score. The SOURCE line must carry the contract's citation. The evidence is a fentanyl IV query labelled "general" with ID61 chips showing. Test with that query. Format only.
+
+### B2: generator section headers
+
+Headers drift in brief mode: "SEVERE TBI", "TREAT", "EVAC IF", and both "SOURCE" and "SOURCES". Normalise them at parse time to the canonical set: DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE. Unknown headers fold into the nearest canonical section. Test on 3 captured generator outputs. Format only.
+
+### C1: feedback instrument (feedback review §5)
+
+- A persistent session id (sessionStorage, try/catch).
+- `/feedback` carries the query id, the conversation history used, model, provider, validator_result and source_mode.
+- The comment field actually posts.
+- Propose, don't apply, a re-derived ISSUE_TAGS list from the 22 flagged entries.
+- Tests for the schema.
+
+### D1: evaluation hygiene (one PR)
+
+- **(a)** run_tests.sh gains:
+  - the DCR case (A1);
+  - the 6-year-old 20 kg ketamine case, asserting 4 mg, the 5 mg/mL dilution and the SMOG source;
+  - the fentanyl label case (B1).
+- **(b)** Reconcile the 30-scenario runner set against docs/EdgeCDSS_JTS_Evaluation_Set_30, the authored set with pre-written failure criteria. Report the differences; don't change either yet.
+- **(c)** Write the benchmark protocol into the doc:
+  - ethernet, Wi-Fi and LTE physically disconnected;
+  - a timestamped connectivity probe before, during and after, saved next to the results;
+  - full response text;
+  - 3 local passes.
+
+### Rules for the D series (owner, 2026-09-26)
+
+The global rules above apply, as for the A items:
+- One change per commit.
+- The failing test comes first wherever a test applies.
+- Never loosen a gate.
+
+**After every D item, the replay must show:**
+- 0 newly held;
+- 0 newly released;
+- byte-identical deterministic answers.
+
+**Each D item ends with a before/after table** on the 30-scenario set. It gives the median latency, p95 latency and prompt tokens, for the local arm and one cloud arm.
+
+### D2: prompt layout for prefix caching
+
+Reorder the LLM prompt so that:
+- everything fixed comes first: system instructions, card format, tone rules;
+- everything per-query comes last: retrieved chunks, patient state, the question.
+
+Ollama reuses the KV cache when the prefix is identical. Measure prefill time before and after, using `eval_count` and `prompt_eval_duration` from the Ollama response.
+
+Assert that the rendered prompt is otherwise unchanged: the same content in a different order. Specifics-present and the free-text dose check must be unaffected.
+
+### D3: retrieval trim
+
+Cut the number of chunks passed to the model from the current top-k to 4. Use a reranker or a score threshold, whichever is cheaper on the Jetson. The canine filter stays.
+
+**Gate:**
+- the replay is unchanged;
+- specifics-present on the cloud arm is not worse than the run-3 figure;
+- the DCR and TBI routing tests still pass.
+
+Report the prompt tokens saved per query.
+
+### D4: show the deterministic part first
+
+The gates, the signed dose line and the card header are computed in code in about 40 ms. Render them immediately, and fill in the model's prose when it arrives.
+
+**Hard rules:**
+- No model-written text containing a number reaches the screen until the free-text dose check has passed on the complete response.
+- No streaming of partial prose.
+- If the check holds the response, the deterministic part stays and the hold message replaces the prose.
+
+Add a test that a held response never shows any model-written dose.
+
+### D5: distillation dataset builder
+
+Script: `tools/build_distill_dataset.py`.
+
+**Waits for (owner, 2026-09-26):** A0 and A1b merged and deployed. The dataset is built from replay against the main that contains both. The refuse-to-run check below is A1b's indication matcher: D5 imports it and does not reimplement it.
+
+**Source:** stored production queries whose answer:
+- came from a cloud model;
+- passed the validator and the dose check;
+- passes the current replay against main, so retired contracts drop out automatically.
+
+**Exclude:**
+- every held card;
+- every answer a fallback substituted (the `fallbacks` field is non-empty);
+- every deterministic-only answer. Those never need a model.
+
+**Output:**
+- Messages-format JSONL (system, user, assistant), built with the exact live prompt path, not a re-rendered copy, so the training distribution equals the serving distribution.
+- A 90/10 split by scenario id, not by row, so no scenario appears in both.
+- Written to `data/distill/train.jsonl` and `data/distill/valid.jsonl`. Both are untracked.
+
+Print the counts per scenario and per drug.
+
+**Single patient, no prior history (owner, 2026-09-26):** every training row is one turn, one patient, no conversation history. Rows whose source query had history are excluded, not truncated. This keeps the A0 leak class out of the training set by construction.
+
+**Format (owner, 2026-09-26):** identical to `~/edgecdss-train/data-dryrun/{train,valid}.jsonl` (messages triples: system, user, assistant), so the existing D6 Makefile targets run on it unchanged. Add a test that loads one row from each and asserts the same keys and roles.
+
+**Coverage report, not a filter (owner, 2026-09-26):** print row counts for the ten most common scenario types, and warn if any has fewer than 20 rows. Do not drop or rebalance rows to hit a target.
+
+**Refuse to run** if any row contains a dose that is not the signed value for that drug and indication.
+
+**Open question (found 2026-09-26, for the owner):** production session logs keep only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`). Of 894 logged turns, about 143 name a cloud model. The stored queries are there, but the assistant text a training row needs isn't. The ways through are to:
+- (a) regenerate each answer from a cloud model now, and keep those that pass;
+- (b) take the answers from the benchmark runs, which keep full text;
+- (c) start logging full answers and build the set later.
+
+Nothing is inferred here.
+
+The owner's 2026-09-26 answer settled when D5 runs and what it is checked against (above). It did not choose between (a), (b) and (c); that is still open.
+
+**Found 2026-09-26:** `~/edgecdss-train` is on the Mac and is not present on the Jetson, so the format test cannot read the dry-run files from the Jetson checkout as written. How the test reaches a reference row is not yet decided.
+
+### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson)
+
+Commit under `tools/distill/`:
+
+**`requirements.txt`**, pinned from `pip freeze` of the working venv: mlx-lm, mlx, transformers, tokenizers and huggingface_hub < 2.0.
+
+**A Makefile with these targets:**
+- **`train ADAPTER=name`:** `mlx_lm.lora` on Qwen2.5-3B-Instruct-4bit. The defaults are 600 iters and lr 1e-4, and both can be overridden.
+- **`fuse`:**
+  1. `mlx_lm.fuse --dequantize` against the full-precision base;
+  2. copy `tokenizer.json`, `tokenizer_config.json`, `vocab.json` and `merges.txt` from the base snapshot over the fused folder.
+- **`gguf`:**
+  1. llama.cpp `convert_hf_to_gguf.py` to f16;
+  2. `llama-quantize` to Q4_K_M;
+  3. delete the f16. Never ship f16.
+- **`ship`:**
+  1. refuse if the Jetson has under 3 GB free;
+  2. scp the Q4 file;
+  3. write the Modelfile and `ollama create`;
+  4. run one single-line ketamine probe on the Jetson over ssh, with no multi-line quoted prompt.
+- **`bench` (owner, 2026-09-26):**
+  1. run `run_tests.sh` against the new tag; 27/27 must hold;
+  2. run the 30-scenario local arm against the new tag and print the before/after table;
+  3. write the results to a new dated file, `docs/DISTILL_BENCH_<tag>.md`, linked from this work order. Do not append to `LOCAL_LLM_BENCHMARK.md`, which stays a measurement record of the base model.
+
+**Rules:**
+- Install only with `pip install -r requirements.txt`.
+- The string `-U` must not appear anywhere in the Makefile or the README.
+
+**The README lists the three gotchas:**
+1. Never `-U` the foundation libraries in this venv.
+2. Copy the tokenizer files after fuse.
+3. Quantize on the Mac, and probe on the Jetson directly.
+
+## Distillation bench results
+
+Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here.
+
+- None yet.
+
+## Findings placement (benchmark run 3, docs/MULTI_MODEL_BENCHMARK_2026-09-25.md)
+
+| Finding | Placed in |
+|---|---|
+| 1. The hybrid fallback silently substituted qwen for slow cloud models | Live fix, #88 (done) |
+| 2. A seizing patient was served a behavioural-emergency midazolam dose (H-S3) | **A1b** |
+| 3. A previous patient's dose crossed an explicit reset (G-MTN-05) | **A0** |
+| 4. The oral-intake hold fires on correct refusals (R2-DEPRESSED-GCS) | **A4** |
+| 5. Uncited numbers served unheld: crystalloid volumes and rates (H-IM-06), cefazolin 20–30 mg/kg (G-ADV-03), levetiracetam concentrations (G-ADV-10) | **the free-text dose check** |
+| 6. The validator holds TXA for plain haemorrhage (H-S2, H-S1-a, G-MTN-01) | **the TXA validator hold** |
+
+Findings 5 and 6 have been placed but not yet given an item letter.
+
+## Found along the way, not yet placed
+
+- A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
+- A unitless weight ("he is 150") silently skips the RSI card.
+- gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
+
+## Deferred (do not touch)
+
+- neonatal dextrose;
+- the fentanyl adult label rename;
+- voice;
+- the local-model portal toggle;
+- the Go sentinel.
