@@ -1,0 +1,1 @@
+{"messages": [{"role": "system", "content": "PLACEHOLDER system prompt. Replace with a row from the D5 builder once data/distill exists."}, {"role": "user", "content": "PLACEHOLDER user turn: allowed doses line\nQuestion: placeholder question"}, {"role": "assistant", "content": "BRIEF: placeholder\nGIVE: placeholder\nWATCH: placeholder\nDON'T: placeholder"}]}
