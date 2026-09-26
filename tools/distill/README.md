@@ -5,11 +5,13 @@ This toolchain trains a LoRA adapter on Qwen2.5-3B-Instruct from the D5 distilla
 ## Install
 
 ```
-python3.12 -m venv ~/edgecdss-train/.venv
-~/edgecdss-train/.venv/bin/pip install -r tools/distill/requirements.txt
+python3.12 -m venv ~/edgecdss-train/.venv-fresh
+~/edgecdss-train/.venv-fresh/bin/pip install -r tools/distill/requirements.txt
 ```
 
-Install only this way. `requirements.txt` is pinned from `pip freeze` of the working venv: mlx, mlx-lm, transformers, tokenizers, huggingface_hub (< 2.0) and their direct dependencies. `make train` refuses to run if the venv has drifted from these pins.
+Install into a fresh venv with pip install -r requirements.txt; verified on 2026-09-26 with make train ITERS=50 on the dry-run data.
+
+Install only this way. `requirements.txt` pins the full set pip resolves for mlx, mlx-lm, transformers, tokenizers, huggingface_hub (< 2.0) and torch. torch is used only by llama.cpp's converter in `make gguf`. The Makefile uses `~/edgecdss-train/.venv-fresh` by default, and `make train` refuses to run if the venv has drifted from these pins.
 
 ## Targets
 
@@ -47,6 +49,4 @@ The fixture is a placeholder in the shape of `~/edgecdss-train/data-dryrun/train
 
 ## Open
 
-- **`requirements.txt` does not install into a fresh venv.** mlx-lm 0.31.3 declares `transformers>=5.0.0`, but the working venv has transformers 4.57.6, so `pip install -r requirements.txt` fails with `ResolutionImpossible`. llama.cpp's converter requirements pin transformers 4.57.6, and that install appears to be how the venv got it. `pip check` in the working venv reports the same conflict.
-- **`make gguf` needs torch** (`convert_hf_to_gguf.py` imports it). torch is in the working venv but outside the set `requirements.txt` is restricted to.
 - **The bench is not linked from the work order yet.** Each `make bench` writes `docs/DISTILL_BENCH_<tag>.md`. Adding the link to the work order is left to the work order's owner.
