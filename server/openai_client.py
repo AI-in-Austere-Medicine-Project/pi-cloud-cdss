@@ -42,6 +42,7 @@ v3.4 additions (EdgeCDSS_openai_py_issue_recommendations_2.docx):
   - normalize_validator_result() — UNSAFE with empty issues → NEEDS_HUMAN_REVIEW
 """
 
+import copy
 import os
 import re
 import json
@@ -4324,8 +4325,37 @@ def rebuild_patient_context_from_history(
     Replays prior user turns into PatientContext before applying the current query.
     This fixes stateless API calls where the current turn is only "IV" or "IM".
     """
+    return _replay_patient(query, conversation_history, session_ctx, now_ts)[0]
+
+
+def current_patient_history(
+    query: str,
+    conversation_history: Optional[list] = None,
+    session_ctx: Optional[PatientContext] = None,
+    now_ts=None
+) -> list:
+    """The turns of `conversation_history` that belong to the CURRENT patient.
+
+    A0 (benchmark run 3, G-MTN-05): the context reset at a boundary, but the
+    pipeline went on building ALLOWED_DOSES, the generator's messages and the
+    validator's transcript from the whole conversation, so a previous
+    patient's lorazepam was in the next patient's allowed list. Everything the
+    pipeline reads about "this patient" starts at the last boundary: the turns
+    from the boundary turn on, or none when the current query is the boundary.
+    The same replay as rebuild_patient_context_from_history, so the two cannot
+    disagree about where the patient changed.
+    """
+    # On a copy: the replay folds turns into the context it is given, in place.
+    start = _replay_patient(query, conversation_history,
+                            copy.deepcopy(session_ctx), now_ts)[1]
+    return list((conversation_history or [])[start:])
+
+
+def _replay_patient(query, conversation_history, session_ctx, now_ts):
+    """(context, index of the current patient's first turn in the history)."""
     ctx = session_ctx or PatientContext()
     prev_ts = None
+    start = 0
 
     if conversation_history:
         # Durable patient facts (weight/age/route/access) replay over the FULL
@@ -4337,18 +4367,20 @@ def rebuild_patient_context_from_history(
         # history on every request, so a reset applied only to the current turn
         # is undone on the next request when the earlier turns replay again.
         # Pinned by test_boundary_reset_survives_full_replay.
-        for turn in conversation_history:
+        for i, turn in enumerate(conversation_history):
             prior_q = turn.get("query", "")
             if not prior_q:
                 continue
             turn_ts = turn.get("ts")
             if detect_patient_boundary(prior_q, ctx, prev_ts=prev_ts, now_ts=turn_ts):
                 ctx = PatientContext()
+                start = i
             ctx = extract_patient_context(prior_q, prior_ctx=ctx, turn_ts=turn_ts)
             prev_ts = turn_ts or prev_ts
 
     reason = detect_patient_boundary(query, ctx, prev_ts=prev_ts, now_ts=now_ts)
     if reason:
+        start = len(conversation_history or [])
         # F-9: the reset is free and stays unconditional. The NOTICE is what
         # needs something to have been cleared. 15 notices fired across the
         # eval bank and 10 of them were on turns with no conversation history
@@ -4366,7 +4398,7 @@ def rebuild_patient_context_from_history(
     # is called on a context whose field is already clear, so this cannot leak
     # from a boundary that happened earlier in the replay.
     ctx.boundary_reset_reason = reason
-    return ctx
+    return ctx, start
 
 
 def build_full_query_history(query: str, conversation_history: Optional[list] = None) -> tuple[str, str]:
@@ -5364,16 +5396,17 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
     requested_model = model
     model = providers.resolve_model(model)
     try:
-        # Step 1: canonical history and patient context
-        prior_queries, full_query_history = build_full_query_history(query, conversation_history)
-
+        # Step 1: patient context, then the canonical history — of THIS patient.
         now_ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        patient_ctx = rebuild_patient_context_from_history(
-            query,
-            conversation_history=conversation_history,
-            session_ctx=session_ctx,
-            now_ts=now_ts
-        )
+        # One replay gives both the context and where this patient began.
+        patient_ctx, patient_start = _replay_patient(
+            query, conversation_history, session_ctx, now_ts)
+        # A0: from here on the conversation is the current patient's turns
+        # only (see current_patient_history). Every gate, the dose builder, the
+        # generator's messages and the validator's transcript read it, so a
+        # previous patient's drug, dose or vitals cannot reach them.
+        conversation_history = list((conversation_history or [])[patient_start:])
+        prior_queries, full_query_history = build_full_query_history(query, conversation_history)
         if state is not None:
             # The live context, not its dict form: _finalise needs the
             # VitalReading objects the caution table reads.
