@@ -202,6 +202,8 @@ header h1 span { color: var(--blue); }
   border-left: 3px solid var(--blue); padding: 2px 0 2px 12px; margin-bottom: 10px;
 }
 .brief.hold { border-left-color: var(--red); }
+.fallback { border: 1px solid var(--amber); border-left-width: 4px; color: var(--amber);
+            padding: 6px 10px; margin-bottom: 8px; font-weight: 600; }
 .pre { margin-bottom: 8px; }
 details.sect { border-top: 1px solid var(--border); }
 details.sect > summary {
@@ -478,6 +480,17 @@ function providerBadge(p) {
   const why = p === 'local' ? 'Answered by the on-device model'
                             : 'Cloud unreachable; answered by the on-device model';
   return '<span class="badge local" title="' + why + '">local model · offline</span>';
+}
+
+// A fallback is a substitution the medic did not choose: the cloud model they
+// asked for did not answer, and the on-device model did. Said above the brief,
+// where the answer is read; the footer badge alone was missed (run 3).
+function fallbackBanner(d) {
+  if (d.provider !== 'local-fallback') return '';
+  const asked = d.fallback_from ? esc(d.fallback_from) : 'The cloud model';
+  return '<div class="fallback" role="alert">\u26a0 ' + asked +
+    ' could not be reached in time. This answer is from the on-device model ' +
+    '(' + esc(d.model || 'local') + '). Check it against local protocol.</div>';
 }
 
 function validatorBadge(v) {
@@ -804,7 +817,8 @@ async function ask(followUp, inputMode) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const split = splitBanner(d.response);
-    let html = (split.banner ? '<span class="genref">' + esc(split.banner) + '</span>' : '')
+    let html = fallbackBanner(d)
+             + (split.banner ? '<span class="genref">' + esc(split.banner) + '</span>' : '')
              + answerHtml(d, split.body);
     let meta = '<div class="meta">' + validatorBadge(d.validator_result) +
       providerBadge(d.provider) +

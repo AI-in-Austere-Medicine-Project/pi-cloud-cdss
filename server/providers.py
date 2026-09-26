@@ -33,6 +33,7 @@ as a top-level parameter rather than a message, and current Claude models reject
 the ModelSpec flags that describe them.
 """
 
+import contextlib
 import contextvars
 import json
 import os
@@ -199,6 +200,10 @@ def local_model_spec(model_id: Optional[str] = None) -> ModelSpec:
 # would hide that until the next outage. Those surface as they always did.
 FALLBACK_PROVIDER = "local-fallback"
 CLOUD_TIMEOUT_DEFAULT_S = 8.0
+# A model the medic picked from the menu is waited for. Benchmark run 3
+# (2026-09-25): at 8 s, 20 of 25 Opus and 24 of 25 gemini-3.1-pro answers were
+# the local model's. The 8 s fast fallback is for the default model only.
+SELECTED_TIMEOUT_DEFAULT_S = 60.0
 # Both SDKs name their transport failures the same way, and APITimeoutError
 # subclasses APIConnectionError in both. Matched by name so neither SDK has to
 # be importable for the check — the offline suite has neither.
@@ -219,6 +224,39 @@ def cloud_timeout_s() -> float:
     print(f"⚠️  CDSS_LLM_CLOUD_TIMEOUT={raw!r} is not a positive number of seconds "
           f"— using {CLOUD_TIMEOUT_DEFAULT_S:g}.")
     return CLOUD_TIMEOUT_DEFAULT_S
+
+
+def selected_model_timeout_s() -> float:
+    """CDSS_LLM_SELECTED_TIMEOUT: seconds to wait for a model the medic selected."""
+    raw = (os.getenv("CDSS_LLM_SELECTED_TIMEOUT") or "").strip()
+    if not raw:
+        return SELECTED_TIMEOUT_DEFAULT_S
+    try:
+        value = float(raw)
+        if value > 0:
+            return value
+    except ValueError:
+        pass
+    print(f"⚠️  CDSS_LLM_SELECTED_TIMEOUT={raw!r} is not a positive number of seconds "
+          f"— using {SELECTED_TIMEOUT_DEFAULT_S:g}.")
+    return SELECTED_TIMEOUT_DEFAULT_S
+
+
+def is_explicit_selection(requested: Optional[str]) -> bool:
+    """Did the request name a model other than the default?
+
+    The portal always sends its dropdown's value, which starts on the default,
+    so "selected" means a model that is not the default: choosing the default
+    is the same request as choosing nothing. An unknown model resolves to the
+    default and is not a selection.
+    """
+    return (llm_provider() == "openai" and bool(requested)
+            and requested in MODELS and requested != default_model())
+
+
+def generator_timeout_s(requested: Optional[str]) -> float:
+    """The cloud timeout for the generator call of a request that asked for `requested`."""
+    return selected_model_timeout_s() if is_explicit_selection(requested) else cloud_timeout_s()
 
 
 def is_connectivity_error(exc: BaseException) -> bool:
@@ -567,6 +605,32 @@ _TRUNCATED = contextvars.ContextVar("edgecdss_chat_truncated", default=None)
 # straight after the call.
 _SERVED = contextvars.ContextVar("edgecdss_chat_served", default=None)
 
+# The last chat()'s fallback, if it fell back: what was requested, what served,
+# why, and after how long. None otherwise. Same ContextVar reasoning.
+_FALLBACK = contextvars.ContextVar("edgecdss_chat_fallback", default=None)
+
+
+# The cloud bound for chat() calls made inside cloud_timeout_for(); None is
+# CDSS_LLM_CLOUD_TIMEOUT. A ContextVar rather than a chat() argument so the
+# many stand-ins for chat() in the suite keep their signature.
+_TIMEOUT = contextvars.ContextVar("edgecdss_chat_timeout", default=None)
+
+
+@contextlib.contextmanager
+def cloud_timeout_for(seconds: float):
+    """Bound the cloud calls made inside the block at `seconds`."""
+    token = _TIMEOUT.set(seconds)
+    try:
+        yield
+    finally:
+        _TIMEOUT.reset(token)
+
+
+def last_chat_fallback() -> Optional[dict]:
+    """{"requested", "served", "error", "timeout_s"} if the last chat() here fell
+    back to the local model, else None. Read it straight after the call."""
+    return _FALLBACK.get()
+
 
 def last_chat_served() -> Optional[tuple]:
     """(provider, model_id) of the last chat() here, or None if none completed.
@@ -582,6 +646,7 @@ def last_chat_served() -> Optional[tuple]:
 def reset_served() -> None:
     """Forget which provider served the last call, before one that may not run."""
     _SERVED.set(None)
+    _FALLBACK.set(None)
 
 
 def last_chat_truncated() -> Optional[bool]:
@@ -703,9 +768,15 @@ def chat(system: str, messages: list, *, model: str,
 
     `temperature` is a request, not a guarantee: models that reject sampling
     parameters (Claude Opus 5, Sonnet 5) drop it. See models[].supports_temperature.
+
+    A cloud call is bounded by CDSS_LLM_CLOUD_TIMEOUT before the local
+    fallback, or by the bound set with cloud_timeout_for(); the pipeline sets
+    generator_timeout_s() around the generator call, so a model the medic
+    selected is waited for.
     """
     _TRUNCATED.set(None)
     _SERVED.set(None)
+    _FALLBACK.set(None)
     spec = MODELS.get(model)
     if spec is None:
         raise ProviderUnavailable(f"unknown model {model!r}")
@@ -721,15 +792,18 @@ def chat(system: str, messages: list, *, model: str,
     # A cloud model: bounded, and retried on the local model if unreachable.
     # max_retries=0 because the SDK's own retries would triple the wait before
     # the medic gets any answer at all.
+    timeout = _TIMEOUT.get()
+    if timeout is None:
+        timeout = cloud_timeout_s()
     try:
         text = adapter(spec, system, messages, temperature, max_tokens,
-                       timeout=cloud_timeout_s())
+                       timeout=timeout)
     except Exception as cloud_error:
         if not is_connectivity_error(cloud_error):
             raise
         local = local_model_spec(fallback_model_id())
         print(f"🛰️  {spec.provider}/{spec.id} unreachable "
-              f"({type(cloud_error).__name__}) — retrying on local/{local.id}")
+              f"({type(cloud_error).__name__} after {timeout:g} s) — retrying on local/{local.id}")
         _TRUNCATED.set(None)
         try:
             text = _chat_openai_compat(local, system, messages, temperature, max_tokens)
@@ -739,6 +813,9 @@ def chat(system: str, messages: list, *, model: str,
                 f"local fallback failed ({type(local_error).__name__}: "
                 f"{_redact(str(local_error))[:160]})") from local_error
         _SERVED.set((FALLBACK_PROVIDER, local.id))
+        _FALLBACK.set({"requested": f"{spec.provider}/{spec.id}",
+                       "served": f"{LOCAL_PROVIDER}/{local.id}",
+                       "error": type(cloud_error).__name__, "timeout_s": timeout})
         return text
     _SERVED.set((spec.provider, spec.id))
     return text

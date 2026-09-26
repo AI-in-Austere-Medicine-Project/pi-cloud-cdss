@@ -200,9 +200,12 @@ async function briefScenarios(payloads) {
     return JSON.parse(storage.store['edgecdss.sections.v1']);
   });
   // The same served answer, stamped by each provider the server can report.
+  // A fallback also says which model was asked for (fallback_from).
   for (const p of ['local', 'local-fallback', 'openai', null]) {
+    const stamp = { provider: p,
+                    fallback_from: p === 'local-fallback' ? 'anthropic/claude-opus-5' : null };
     await probe(out, 'provider_' + p, () =>
-      ask(load(queryOnly(base(Object.assign({}, payloads.rsi, { provider: p })))), 'rsi'));
+      ask(load(queryOnly(base(Object.assign({}, payloads.rsi, stamp)))), 'rsi'));
   }
   return out;
 }

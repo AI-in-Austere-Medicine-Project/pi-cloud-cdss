@@ -112,6 +112,8 @@ class QueryResponse(BaseModel):
     model: str = ""            # provider/model that produced the text, "" if deterministic
     # Which service answered: "openai", "local", "local-fallback", … "" if deterministic.
     provider: str = ""
+    # On a local fallback, the model the medic asked for ("anthropic/claude-opus-5").
+    fallback_from: str = ""
     source: str = ""           # "jts" | "general"
     # What the system believes about the patient, returned on EVERY response so
     # the client can render it. S-1 was stale context nobody could see; the fix
@@ -219,6 +221,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             validator_issues=result.get("validator_issues", []),
             model=result.get("model") or "",
             provider=result.get("provider") or "",
+            fallback_from=result.get("fallback_from") or "",
             source=result.get("source", ""),
             patient_context=result.get("patient_context") or {},
             vitals_cautions=result.get("vitals_cautions", []),
