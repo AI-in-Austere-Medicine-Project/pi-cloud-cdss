@@ -1483,14 +1483,16 @@ DOSE_TEMPLATE_CASES = [
     {
         "name": "tbi_card_adult_levetiracetam",
         "render": lambda: _oc.build_tbi_management_response(_oc.PatientContext()),
-        "contract": lambda: _oc._levetiracetam_tbi_entries(_oc.PatientContext()),
+        "contract": lambda: (_oc._levetiracetam_tbi_entries(_oc.PatientContext())
+                             + _oc._hypertonic_saline_entries(_oc.PatientContext())),
         "backfill": [],
         "weight": None,
     },
     {
         "name": "tbi_card_intubated",
         "render": lambda: _oc.build_tbi_management_response(_oc.PatientContext(), intubated=True),
-        "contract": lambda: _oc._levetiracetam_tbi_entries(_oc.PatientContext()),
+        "contract": lambda: (_oc._levetiracetam_tbi_entries(_oc.PatientContext())
+                             + _oc._hypertonic_saline_entries(_oc.PatientContext())),
         "backfill": [],
         "weight": None,
     },
@@ -2135,8 +2137,11 @@ def test_the_thin_contraindication_lint_makes_the_thinness_visible():
     rows = dc.lint_thin_contraindications()
     live = [r for r in rows if r[-1]]
     assert live, "no thin contraindications — update this test, the work is done"
+    # sodium chloride 3% (signed 2026-09-25): neither ID30 p.9 nor ID63 p.7
+    # states a contraindication for the bolus, so none is recorded — thin by
+    # the source, not by omission, and listed here so it stays visible.
     assert {r[0] for r in live} == {"fentanyl", "ketamine", "naloxone",
-                                    "rocuronium"}, \
+                                    "rocuronium", "sodium chloride 3%"}, \
         f"the thin set moved: {sorted({r[0] for r in live})}"
     assert {r[4] for r in live} == {"no contraindications recorded",
                                     "only trivial: Hypersensitivity"}
