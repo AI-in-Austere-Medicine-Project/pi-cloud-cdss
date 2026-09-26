@@ -171,7 +171,9 @@ def test_the_reset_itself_is_unchanged():
     is free, and because a boundary that resets sometimes is worse than one
     that always does."""
     import inspect
-    source = inspect.getsource(oc.rebuild_patient_context_from_history)
+    # The replay moved into _replay_patient (A0), shared with
+    # current_patient_history; the reset logic it pins is unchanged.
+    source = inspect.getsource(oc._replay_patient)
     assert "ctx = PatientContext()" in source
     assert source.index("if not context_holds_anything(ctx):") < \
            source.index("ctx = PatientContext()\n\n    ctx = extract_patient_context")
