@@ -153,14 +153,14 @@ def test_the_check_holds_it_even_when_the_allowed_list_carries_the_entry():
     assert not r.passed, r.issues
 
 
-def test_a_seizure_value_labelled_for_agitation_holds():
-    """At 50 kg the seizure dose (0.1 mg/kg) is also 5 mg. The value matches a
-    signed seizure dose; the line still says it is for a behavioural emergency,
-    which is not what this patient has."""
-    q = "50kg female actively seizing, versed"
+def test_the_seizure_value_labelled_for_agitation_holds():
+    """The value is the signed seizure dose (0.1 mg/kg, capped at 4 mg); the
+    line says it is for a behavioural emergency, which is not what this patient
+    has. Value checks pass it; the label is what is wrong."""
+    q = "80kg female actively seizing, versed"
     seizure = candidate(q, SEIZURE_IND)
-    assert seizure.dose_mg == 5.0, "premise: 0.1 mg/kg at 50 kg is 5 mg"
-    r = check(q, served_give("midazolam", 5, AGITATION_IND), [seizure])
+    assert seizure.dose_mg == 4.0, "premise: 0.1 mg/kg at 80 kg, capped at 4 mg"
+    r = check(q, served_give("midazolam", 4, AGITATION_IND), [seizure])
     assert not r.passed, r.issues
 
 
