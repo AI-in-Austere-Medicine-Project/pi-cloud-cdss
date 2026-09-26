@@ -120,3 +120,55 @@ def test_the_completed_airway_detector(text, expected):
 ])
 def test_the_vent_settings_vocabulary(text, expected):
     assert oc.is_vent_settings_query(text) is expected, text
+
+
+# #86 review (owner, 2026-09-26): a negated or failed airway is not a completed
+# one. "has not been intubated" matched the strong "been intubated", and "not
+# intubated" the weak bare "intubated": a patient who still needs the tube was
+# read as already tubed and lost the RSI card.
+NEGATED_AIRWAY = [
+    "patient is not intubated",
+    "he is not yet intubated",
+    "he has not been intubated",
+    "we were unable to intubate",
+    "we couldn't get him intubated",
+    "we couldn’t get him intubated",
+    "failed intubation",
+]
+
+
+@pytest.mark.parametrize("phrase", NEGATED_AIRWAY)
+def test_a_negated_or_failed_airway_is_not_completed(phrase):
+    assert oc.already_intubated(phrase) is False, phrase
+
+
+@pytest.mark.parametrize("phrase", NEGATED_AIRWAY)
+def test_a_negated_or_failed_airway_with_an_rsi_request_still_gets_the_rsi_card(phrase):
+    query = f"RSI drugs for an 80kg male, {phrase}"
+    assert oc.already_intubated(query) is False, query
+    assert oc.should_use_rsi_pregate(query), query
+    assert RSI_MARK in run(query)["response"], query
+
+
+# How medics say it (owner, 2026-09-26): more often than "already intubated".
+MEDIC_AIRWAY_DONE = [
+    "we tubed him",
+    "tubed him ten minutes ago",
+    "we tubed",
+    "ETT in place",
+    "airway secured",
+    "cric'd",
+    "cric’d",
+]
+
+
+@pytest.mark.parametrize("phrase", MEDIC_AIRWAY_DONE)
+def test_medic_phrasing_of_a_completed_airway(phrase):
+    assert oc.already_intubated(phrase) is True, phrase
+
+
+@pytest.mark.parametrize("phrase", MEDIC_AIRWAY_DONE)
+def test_medic_phrasing_of_a_completed_airway_never_gets_the_rsi_bundle(phrase):
+    query = f"80kg male, {phrase}, what do I give after RSI"
+    assert not oc.should_use_rsi_pregate(query), query
+    assert RSI_MARK not in run(query)["response"], query
