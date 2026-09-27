@@ -106,7 +106,10 @@ def test_the_sourced_rows_cite_their_pages(pc):
     p3 = " ".join(s["citation"] for s in by_id["P3"]["sources"])
     p5 = " ".join(s["citation"] for s in by_id["P5"]["sources"])
     assert "ID80" in p3 and "p.18" in p3
-    assert "ID39" in p5 and "p.28" in p5 and "ID40" in p5 and "p.3" in p5
+    # ID40 p.3 alone: the 2026 ID39 p.28 doses succinylcholine but lists no
+    # contraindication (checked against the PDF, #100).
+    assert "ID40" in p5 and "p.3" in p5 and "ID39" not in p5
+    assert "ID39" not in by_id["P5"]["hold_text"]
     assert by_id["P1"]["sources"] == [] and by_id["P2"]["sources"] == []
 
 
