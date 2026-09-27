@@ -919,18 +919,12 @@ def has_ams_descriptor(text: str) -> bool:
 
 def _gcs_below_15_or_unread(q: str) -> bool:
     """A4: a stated GCS is a number, not a word. "GCS 15" is not altered
-    mental status; any GCS below 15, or one the parser cannot read ("3T",
-    "unknown", A7's forms), still is. Every mention counts, so an earlier
+    mental status; any GCS below 15, or one the parser cannot read ("GCS
+    unknown", "E3 VT M5"), still is. Every mention counts, so an earlier
     "GCS 15" does not mask a later "now GCS 9", and a negation elsewhere in
-    the text ("no pupils recorded, GCS 6") does not reach it."""
-    for m in re.finditer(r"\bgcs\b", q):
-        read = _GCS_RE.match(q, m.start())
-        if not read:
-            return True
-        g = read.group(1).lower()
-        if (int(g) if g.isdigit() else _GCS_WORDS[g]) < 15:
-            return True
-    return False
+    the text ("no pupils recorded, GCS 6") does not reach it. A7: the forms
+    are read by vitals.gcs_mentions(), the same parser as the recorded vital."""
+    return any(g is None or g < 15 for g in vitals_mod.gcs_mentions(q))
 
 
 # ── A6: contraindicated procedures ────────────────────────────────────────
@@ -5434,11 +5428,6 @@ _HEAD_INJURY_RE = re.compile(
 _SEVERE_TBI_WORDS_RE = re.compile(
     r"\bsevere\s+(?:tbi|head\s+injur\w*|traumatic\s+brain\s+injur\w*|brain\s+injur\w*)",
     re.IGNORECASE)
-_GCS_WORDS = {"three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
-              "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15}
-_GCS_RE = re.compile(
-    r"\bgcs\s*(?:is|of|=|:|was|now)?\s*(\d{1,2}|" + "|".join(_GCS_WORDS) + r")\s*t?\b",
-    re.IGNORECASE)
 # A COMPLETED airway (A3, 2026-09-24). Feedback review 2026-09-03 section 1:
 # four field reports of a patient whose tube was already in getting the
 # induction-and-paralytic bundle. A planned or in-progress airway ("about to
@@ -5493,15 +5482,12 @@ _RSI_REQUEST_RE = re.compile(
 
 
 def _stated_gcs(q: str) -> Optional[int]:
+    """The stated GCS, read by vitals.py's parser (A7): every form, one reader."""
     v = vitals_mod.parse_vitals(q.lower())
     v = v[0] if isinstance(v, tuple) else v
     if v and v.get("gcs"):
         return int(v["gcs"].value)
-    m = _GCS_RE.search(q)
-    if not m:
-        return None
-    g = m.group(1).lower()
-    return int(g) if g.isdigit() else _GCS_WORDS[g]
+    return None
 
 
 def already_intubated(query: str) -> bool:

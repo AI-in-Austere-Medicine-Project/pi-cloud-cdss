@@ -112,6 +112,9 @@ NOT_A_GCS = [
     "18g needle decompression",
     "no 5G signal out here",
     "V5 lead shows ST elevation",
+    # Added with the fix: "G3" is gravida 3 in an obstetric history.
+    "G3 at 30 weeks, abdominal pain",
+    "she is pregnant, G4 P3",
 ]
 
 

@@ -245,6 +245,28 @@ _SPO2_LABEL = _B + (r"(?:pulse\s*ox(?:imetry)?|o2\s*sats?|sp[o0]2|sa[o0]2"
                     r"|satt?ing|sat'?ing|sats|sat)")
 _RR_LABEL = _B + r"(?:respiratory\s*rate|resp\s*rate|resps|resp|rr)"
 _GCS_LABEL = _B + r"(?:gcs)"
+# A7: every GCS form, read here and nowhere else. openai_client's severe-TBI
+# card and A4's oral-route hold read through parse_vitals() and gcs_mentions().
+GCS_WORDS = {"three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
+             "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+             "fourteen": 14, "fifteen": 15}
+# "GCS 7", "GCS is seven", "GCS 3T", "gcs 8t", "GCS now 9". A trailing "T" is
+# an intubated patient's score; the number is still the total.
+_GCS_TOTAL_RE = re.compile(
+    _GCS_LABEL + r"\s*(?:of|is|was|are|now|at|=|:)?\s*"
+    r"(\d{1,3}(?:\.\d+)?|" + "|".join(GCS_WORDS) + r")(?:\s*t)?(?![a-z0-9])")
+# "E4V5M6", "E2 V1 M4", "GCS E3/V4/M5", labelled or not. The letters are what
+# make it a GCS. A "T" verbal score (intubated) has no number: no total is
+# recorded, and gcs_mentions() reports it as unread, so it fails closed.
+_GCS_COMPONENTS_RE = re.compile(
+    r"(?<![a-z0-9])(?:gcs\s*(?:of|is|was|=|:)?\s*)?"
+    r"e\s*([1-4])\s*[-/,]?\s*v\s*([1-5]|t)\s*[-/,]?\s*m\s*([1-6])(?![a-z0-9])")
+# "G6", "G15": a medic's shorthand. Not after a digit ("14G IV", "18g") and not
+# before a letter or digit ("G6PD", "G2P1"). Only 3 to 15, and never in an
+# obstetric history: "G3 at 30 weeks" is gravida 3.
+_GCS_G_RE = re.compile(r"(?<![a-z0-9])g(\d{1,2})(?:t)?(?![a-z0-9])")
+_OBSTETRIC_RE = re.compile(
+    r"\b(?:pregnan\w*|gravida|para|gestation\w*|weeks?|wks?|lmp|g\d+\s*p\d+)\b")
 # "map" is an ordinary English word, so this label is the one that most needs
 # its anchors. (?<!\w) keeps it out of "roadmap", and a number has to follow:
 # "map" on its own is a map, and this table stores measurements.
@@ -381,6 +403,26 @@ def parse_vitals(text: str, ts: Optional[str] = None):
     for m in re.finditer(_GCS_LABEL + r"\s*e?\s*([1-4])\s*[-/ ]\s*v?\s*([1-5])\s*[-/ ]\s*m?\s*([1-6])\b", q):
         total = sum(int(g) for g in m.groups())
         take("gcs", float(total), m.span(), m.group(0))
+    # A7: "E4V5M6", "E2 V1 M4", with or without the label. A "T" verbal
+    # score records nothing, but its span is consumed so the sweep below does
+    # not call it an unreadable vital.
+    for m in _GCS_COMPONENTS_RE.finditer(q):
+        if _spans_overlap(m.span(), consumed):
+            continue
+        if m.group(2) == "t":
+            consumed.append(m.span())
+            continue
+        take("gcs", float(sum(int(g) for g in m.groups())), m.span(), m.group(0))
+    # A7: "GCS 7", "GCS is seven", "GCS 3T".
+    for m in _GCS_TOTAL_RE.finditer(q):
+        g = m.group(1)
+        value = float(GCS_WORDS[g]) if g in GCS_WORDS else float(g)
+        take("gcs", value, m.span(), m.group(0))
+    # A7: "G6". Silent outside 3-15 and in an obstetric history.
+    if not _OBSTETRIC_RE.search(q):
+        for m in _GCS_G_RE.finditer(q):
+            if 3 <= int(m.group(1)) <= 15:
+                take("gcs", float(m.group(1)), m.span(), m.group(0))
 
     # ── Blood pressure, labelled: "BP 82/40" ────────────────────────────────
     # Both halves share one timestamp: they were measured together and must
@@ -394,7 +436,6 @@ def parse_vitals(text: str, ts: Optional[str] = None):
         ("hr",   _HR_LABEL + _SEP + _NUM),
         ("spo2", _SPO2_LABEL + _SEP + _NUM + r"\s*%?"),
         ("rr",   _RR_LABEL + _SEP + _NUM),
-        ("gcs",  _GCS_LABEL + _SEP + _NUM),
         # A STATED mean arterial pressure. Derivation happens in merge(), over
         # the accumulated state — this turn's text is not where a MAP whose
         # systolic arrived three turns ago can be computed.
@@ -502,6 +543,36 @@ def parse_vitals(text: str, ts: Optional[str] = None):
                 reason="could not be read as a vital in that phrasing"))
 
     return readings, rejections
+
+
+def gcs_mentions(text: str) -> list:
+    """Every GCS the text states, in order: its total, or None where a GCS is
+    named but can't be read ("GCS unknown", "E3 VT M5"). A4's oral-route hold
+    arms on any None or any total under 15; one reading per mention, so an
+    earlier "GCS 15" never masks a later "now GCS 9"."""
+    q = (text or "").lower()
+    found, spans = [], []
+
+    def add(start, end, value):
+        if not _spans_overlap((start, end), spans):
+            spans.append((start, end))
+            found.append((start, value))
+
+    for m in re.finditer(_GCS_LABEL + r"\s*e?\s*([1-4])\s*[-/ ]\s*v?\s*([1-5])\s*[-/ ]\s*m?\s*([1-6])\b", q):
+        add(*m.span(), sum(int(g) for g in m.groups()))
+    for m in _GCS_COMPONENTS_RE.finditer(q):
+        add(*m.span(), None if m.group(2) == "t" else sum(int(g) for g in m.groups()))
+    for m in _GCS_TOTAL_RE.finditer(q):
+        g = m.group(1)
+        value = GCS_WORDS[g] if g in GCS_WORDS else float(g)
+        add(*m.span(), int(value) if RANGES["gcs"]["min"] <= value <= RANGES["gcs"]["max"] else None)
+    if not _OBSTETRIC_RE.search(q):
+        for m in _GCS_G_RE.finditer(q):
+            if 3 <= int(m.group(1)) <= 15:
+                add(*m.span(), int(m.group(1)))
+    for m in re.finditer(r"\bgcs\b", q):
+        add(m.start(), m.end(), None)
+    return [v for _, v in sorted(found, key=lambda x: x[0])]
 
 
 def _take_bp(sbp: float, dbp: float, m, consumed, readings, rejections, ts):
