@@ -177,11 +177,13 @@ NO_WEIGHT = oc.PatientContext()
      "The answer stated cefazolin 2g, but EdgeCDSS has no signed cefazolin "
      "dose. It cannot be answered here until one is signed: use local "
      "protocol or medical control."),
-    # A signed contract exists, but nothing builds without a weight.
+    # A signed contract exists, and every adult naloxone dose is fixed: a
+    # weight would not have built one (A5). The hold says what would.
     ("**TREAT**\n- Titrate naloxone 2–4mg to respiratory effort.", [], NO_WEIGHT,
-     "The answer stated naloxone 2–4mg with no signed naloxone dose for this "
-     "patient: no weight is confirmed. Give the weight in kg and ask for "
-     "naloxone by name."),
+     "The answer stated naloxone 2–4mg, but no signed naloxone dose was offered "
+     "for this question. The signed adult naloxone single doses are fixed, so a "
+     "weight would not change that. Ask for naloxone by name and say what it is "
+     "for: it is signed for opioid-induced respiratory depression."),
     # A signed contract exists; this question did not build it.
     ("**TREAT**\n- Use lorazepam 4mg IV now.", [], _ctx(),
      "The answer stated lorazepam 4mg with no signed lorazepam dose for this "
