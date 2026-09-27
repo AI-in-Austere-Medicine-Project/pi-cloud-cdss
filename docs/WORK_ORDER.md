@@ -45,9 +45,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A4 | Depressed-GCS oral route | **done**: #95, merged and deployed |
 | A5 | Hold text for fixed doses | **done**: #97, merged and deployed |
 | A6 | Contraindicated procedures: table, detectors, check | **done**: #99, merged and deployed. P3 and P5 signed: #100, merged; P1 and P2 unsigned |
-| A7 | GCS parser | in review: #101 |
-| A8 | "status post" must not match status epilepticus | after A7 (**next**) |
-| A9 | Active-seizure phrasings reach the signed entry | after A8 |
+| A7 | GCS parser | **done**: #101, merged |
+| A8 | "status post" must not match status epilepticus | in review: #102 |
+| A9 | Active-seizure phrasings reach the signed entry | after A8 (**next**) |
 | A10 | CICO card must not fire on a completed surgical airway | after A9 |
 | A11 | Free-text dose check reads infusion rates | after A10 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 |
@@ -73,7 +73,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5 and A6 are done (#90, #91, #86, #95, #97, #99), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6 and A7 are done (#90, #91, #86, #95, #97, #99, #101), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -140,7 +140,7 @@ This was the subject of 4 field reports (feedback review §1). A completed-airwa
 
 Tests: the real queries from the review route away from RSI, and a genuine pre-intubation RSI request still routes to it.
 
-### A7: GCS parser (added 2026-09-25; in review, #101)
+### A7: GCS parser (added 2026-09-25; done, #101)
 
 The GCS parser reads "GCS is seven", "GCS 3T", "GCS of 6" and "G6", with a test for each.
 
@@ -181,7 +181,7 @@ Report the proposed table, the matching approach, the false-positive risks, and 
 
 **Signed (#100, merged):** P3 and P5 signed by Andrew Azelton on 2026-09-27. P3 cites ID80 p.18. P5 cites ID40 p.3 alone (owner ruling, #100): the 2026 ID39 p.28 doses succinylcholine but lists no contraindication. The ID40 passage is on printed p.3 = PDF p.3. P1 and P2 stay unsigned and inert. Replay with the signed table: 0 newly held, 0 newly released.
 
-### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91)
+### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91; in review, #102)
 
 The dose builder's seizure trigger is the substring `'status'`. "159lb male unable to ventilate effectively status post oral trauma" (H-SESS-002, also in the live logs) is offered lorazepam 4 mg for active seizure: a non-seizure patient offered a seizure dose.
 
