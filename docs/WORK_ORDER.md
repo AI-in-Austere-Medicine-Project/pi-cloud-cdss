@@ -38,6 +38,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | — | Live fix: explicitly selected model waited for 60 s; fallback bannered | **done**: #88, merged and deployed |
 | A1 | DCR routing failure | **done**: #82, merged and deployed |
 | A2 | Deterministic severe-TBI card | **done**: #84, merged and deployed |
+| D6 | Training toolchain (Mac) | **done**: #93, merged (Mac tooling; nothing deployed) |
 | A0 | Context isolation on patient reset | in review: #90 |
 | A1b | Dose check matches indication, not only value | in review: #91 |
 | A3 | Already-intubated patients receiving the RSI bundle | in review: #86 |
@@ -46,7 +47,6 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A6 | Contraindicated procedures (design only) | after A5 |
 | A7 | GCS parser | after A6 |
 | D5 | Distillation dataset builder | after A7, and not before A0 and A1b are merged and deployed |
-| D6 | Training toolchain (Mac) | after D5 |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
 | C1 | Feedback instrument | after B2 |
@@ -275,7 +275,7 @@ The owner's 2026-09-26 answer settled when D5 runs and what it is checked agains
 
 **Found 2026-09-26:** `~/edgecdss-train` is on the Mac and is not present on the Jetson, so the format test cannot read the dry-run files from the Jetson checkout as written. How the test reaches a reference row is not yet decided.
 
-### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson)
+### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson) (done, #93)
 
 Commit under `tools/distill/`:
 
@@ -313,7 +313,7 @@ Commit under `tools/distill/`:
 
 Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here.
 
-- None yet.
+- [`docs/DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md): dry-run data, toolchain proof only, not a model result.
 
 ## Findings placement (benchmark run 3, docs/MULTI_MODEL_BENCHMARK_2026-09-25.md)
 
