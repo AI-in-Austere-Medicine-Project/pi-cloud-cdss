@@ -817,7 +817,8 @@ ORAL_ROUTE_TERMS = (
 _ORAL_NEGATION = (r"(?:no|not|never|nothing|nil|npo|avoid|avoiding|withhold|"
                   r"withholding|cannot|can't|don't|won't|shouldn't|mustn't)")
 _ORAL_FILLER = (r"(?:give|giving|offer|offering|allow|allowing|allowed|permit|"
-                r"let|him|her|them|the|patient|any|anything|all|oral|po|fluid|"
+                r"let|him|her|them|the|this|that|his|your|a|patient|any|"
+                r"anything|all|oral|po|fluid|"
                 r"fluids|food|water|or|and|to|be|receive|take|taken|taking|"
                 r"safely|strictly|further|more|even|by|mouth)")
 _ORAL_REFUSED_RE = re.compile(
