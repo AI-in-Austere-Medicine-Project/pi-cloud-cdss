@@ -152,3 +152,5 @@ Mirrors the list of the same name in `WORK_ORDER.md`.
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
 | gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set. | Run 3 (#87) |
+| The corpus was ingested from the superseded 2017 ID39; the 2026 edition is now in `jts_protocols`. Re-ingest is a separate decision. | #100 |
+| The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list; ID40 p.3 does. A re-sign. | #100 |

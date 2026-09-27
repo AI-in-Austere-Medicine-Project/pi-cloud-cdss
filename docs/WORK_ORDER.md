@@ -179,7 +179,7 @@ Report the proposed table, the matching approach, the false-positive risks, and 
 
 **Done: #99, merged and deployed.** `server/procedure_contracts.json` holds P1, P2, P3 and P5.
 
-**Signing (#100, in review):** P3 and P5 signed by Andrew Azelton on 2026-09-27, after reading ID80 p.18, ID39 p.28 and ID40 p.3. The ID40 passage is on printed p.3 = PDF p.3, so the citation stands. P1 and P2 stay unsigned and inert. Replay with the signed table: 0 newly held, 0 newly released.
+**Signing (#100, in review):** P3 and P5 signed by Andrew Azelton on 2026-09-27. P3 cites ID80 p.18. P5 cites ID40 p.3 alone (owner ruling, #100): the 2026 ID39 p.28 doses succinylcholine but lists no contraindication. The ID40 passage is on printed p.3 = PDF p.3. P1 and P2 stay unsigned and inert. Replay with the signed table: 0 newly held, 0 newly released.
 
 ### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91)
 
@@ -430,6 +430,8 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
+- **The corpus was ingested from the superseded ID39** (found in #100). `server/data/jts_protocols` holds both `Airway_Management_of_Traumatic_Injuries_17_Jul_2017_ID39.pdf` and `Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf`. All 28 ID39 chunks in the production ChromaDB come from the 2017 edition. Re-ingest is a separate decision.
+- **The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list** (found in #100). The 2026 ID39 p.28 supports its 1.5 mg/kg dose, not "Burns", "Spinal cord injury" or "Hyperkalemia". ID40 p.3 does. Correcting it is a re-sign of that contract.
 
 ## Deferred (do not touch)
 
