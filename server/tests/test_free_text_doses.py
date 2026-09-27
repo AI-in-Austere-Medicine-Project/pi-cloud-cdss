@@ -181,9 +181,9 @@ NO_WEIGHT = oc.PatientContext()
     # weight would not have built one (A5). The hold says what would.
     ("**TREAT**\n- Titrate naloxone 2–4mg to respiratory effort.", [], NO_WEIGHT,
      "The answer stated naloxone 2–4mg, but no signed naloxone dose was offered "
-     "for this question. The signed adult naloxone single doses are fixed, so a "
-     "weight would not change that. Ask for naloxone by name and say what it is "
-     "for: it is signed for opioid-induced respiratory depression."),
+     "for this question. The signed adult naloxone single doses are fixed: ask "
+     "for naloxone by name and say what it is for. It is signed for "
+     "opioid-induced respiratory depression."),
     # A signed contract exists; this question did not build it.
     ("**TREAT**\n- Use lorazepam 4mg IV now.", [], _ctx(),
      "The answer stated lorazepam 4mg with no signed lorazepam dose for this "
