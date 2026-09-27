@@ -4,7 +4,7 @@ The owner's work order of 2026-09-24, with the additions and rulings since.
 The owner's wording is kept where it was given. This file is the plan of record.
 Session notes are not.
 
-Status is as of 2026-09-26. The owner updates it, or it is updated in the PR that
+Status is as of 2026-09-27. The owner updates it, or it is updated in the PR that
 closes an item.
 
 ## Global rules
@@ -41,8 +41,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D6 | Training toolchain (Mac) | **done**: #93, merged (Mac tooling; nothing deployed) |
 | A0 | Context isolation on patient reset | **done**: #90, merged and deployed |
 | A1b | Dose check matches indication, not only value | **done**: #91, merged and deployed |
-| A3 | Already-intubated patients receiving the RSI bundle | approved 2026-09-26 after the review fix; owner merging #86 |
-| A4 | Depressed-GCS oral route | **next**, after A3 |
+| A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
+| A4 | Depressed-GCS oral route | **next** |
 | A5 | Hold text for fixed doses | after A4 |
 | A6 | Contraindicated procedures (design only) | after A5 |
 | A7 | GCS parser | after A6 |
@@ -63,13 +63,13 @@ Owner asks outside the lettered items:
 
 | Item | Status |
 |---|---|
-| 3% NaCl contract, signed at 7.5 g | in review: #85 |
-| Multi-model benchmark run 3 | **done**: #87, merged |
+| 3% NaCl contract, signed at 7.5 g | **done**: #85, merged and deployed |
+| Multi-model benchmark run 3 | **done**: #87, merged and deployed |
 | This work order | **done**: #89, merged |
 
-**Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them.
+**Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0 and A1b are done (#90, #91; main at 894ffd9, deployed and restarted on it).
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0, A1b and A3 are done (#90, #91, #86), and D6 is done (#93).
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -130,7 +130,7 @@ A card for GCS ≤ 8 with a head injury:
 
 An already-intubated patient gets the same card with the airway lines suppressed. The brief follows the 3-slot rule. A child routes to the card with the levetiracetam line held unless a paediatric entry is signed.
 
-### A3: already-intubated patients receiving the RSI bundle (in review, #86)
+### A3: already-intubated patients receiving the RSI bundle (done, #86)
 
 This was the subject of 4 field reports (feedback review §1). A completed-airway detector ("already intubated", "tube is in", "we RSI'd", "on the vent", "being ventilated") suppresses should_use_rsi_pregate regardless of other content, and the is_vent_settings_query vocabulary is widened.
 
