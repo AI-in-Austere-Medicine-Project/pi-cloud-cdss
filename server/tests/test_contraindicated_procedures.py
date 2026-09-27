@@ -6,10 +6,10 @@ Design and owner rulings: docs/A6_CONTRAINDICATED_PROCEDURES_DESIGN.md (#98).
 The table (server/procedure_contracts.json) holds P1 (LP in raised ICP),
 P2 (NG tube in basilar skull fracture), P3 (nasal airway in mid-face trauma,
 ID80 p.18) and P5 (succinylcholine with burns, spinal cord injury or
-hyperkalaemia, ID39 p.28 and ID40 p.3). P4 stays as A4's code. Every row
-ships with signoff: false, so the shipped table holds nothing; the owner
-signs P3 and P5. The `signed` fixture signs copies of the rows, to test the
-check as it will behave once they are signed.
+hyperkalaemia, ID39 p.28 and ID40 p.3). P4 stays as A4's code. The owner
+signed P3 and P5; P1 and P2 stay unsigned and inert. The `signed` fixture
+signs copies of every row, to test each row's check as it would behave
+signed.
 
 Local benchmark run 2, finding 4: qwen2.5:3b advised "Consider performing a
 lumbar puncture to assess for signs of increased ICP" for a blown pupil
@@ -65,15 +65,40 @@ def test_the_table_has_the_four_rows_and_not_p4(pc):
     assert sorted(r["id"] for r in pc.ROWS) == ["P1", "P2", "P3", "P5"]
 
 
-def test_every_shipped_row_is_unsigned(pc):
-    """Signing is the owner's act."""
-    assert all(r["signoff"] is False for r in pc.ROWS)
-    assert all(not r.get("reviewed_by") for r in pc.ROWS)
+def test_p1_and_p2_ship_unsigned(pc):
+    """Owner ruling (#98): no source, so unsigned drafts, inert."""
+    by_id = {r["id"]: r for r in pc.ROWS}
+    for rid in ("P1", "P2"):
+        assert by_id[rid]["signoff"] is False and not by_id[rid].get("reviewed_by")
 
 
-def test_the_shipped_table_holds_nothing(pc):
-    assert pc.active_rows() == []
+def test_p3_and_p5_are_signed_by_the_owner(pc):
+    """Signed by the owner after reading ID80 p.18, ID39 p.28 and ID40 p.3."""
+    by_id = {r["id"]: r for r in pc.ROWS}
+    for rid in ("P3", "P5"):
+        r = by_id[rid]
+        assert r["signoff"] is True
+        assert r["reviewed_by"] == "Andrew Azelton"
+        assert r["review_date"]
+
+
+def test_the_shipped_table_holds_only_p3_and_p5(pc):
+    assert sorted(r["id"] for r in pc.active_rows()) == ["P3", "P5"]
+    # P1 is unsigned: H-IM-04's lumbar puncture is not held by this table.
     assert _proc_issues(H_IM_04_Q, H_IM_04_A) == []
+
+
+def test_as_shipped_p3_holds_an_npa_for_a_midface_fracture(pc):
+    """claude-haiku-4-5, the #99 live harness."""
+    assert _proc_issues(
+        "IED blast to the face, midface fracture, snoring respirations, sats 88",
+        "2. Insert nasopharyngeal airway (NPA) if available and no basilar skull "
+        "fracture sign.")
+
+
+def test_as_shipped_p5_holds_succinylcholine_with_burns(pc):
+    assert _proc_issues("80 kg male, 40% TBSA burns, needs RSI",
+                        "Give succinylcholine 120 mg IV.")
 
 
 def test_the_sourced_rows_cite_their_pages(pc):
@@ -86,7 +111,7 @@ def test_the_sourced_rows_cite_their_pages(pc):
 
 
 def test_the_lint_lists_every_inert_row(pc):
-    assert sorted(pc.inert_rows()) == ["P1", "P2", "P3", "P5"]
+    assert sorted(pc.inert_rows()) == ["P1", "P2"]
 
 
 def test_a_signed_row_without_a_source_is_not_active(pc, monkeypatch):
