@@ -44,7 +44,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
 | A4 | Depressed-GCS oral route | **done**: #95, merged and deployed |
 | A5 | Hold text for fixed doses | **done**: #97, merged and deployed |
-| A6 | Contraindicated procedures: table, detectors, check | design approved (#98); **build next** |
+| A6 | Contraindicated procedures: table, detectors, check | in review: #99 (every row unsigned; the owner signs P3 and P5) |
 | A7 | GCS parser | after A6 |
 | A8 | "status post" must not match status epilepticus | after A7 |
 | A9 | Active-seizure phrasings reach the signed entry | after A8 |
@@ -164,7 +164,7 @@ Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase pa
 
 A fixed-dose hold must never say "no weight confirmed". The hold text names the actual reason and what makes the question answerable. Test: 4 fixed-dose hold cases.
 
-### A6: contraindicated procedures (design approved, #98; build next)
+### A6: contraindicated procedures (design approved, #98; build in review, #99)
 
 DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advice, starting with a small signed table of procedure, contraindicating condition and source:
 - LP in raised ICP;
@@ -176,6 +176,8 @@ DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advic
 Report the proposed table, the matching approach, the false-positive risks, and how it would be signed like a contract. Wait for the owner's go.
 
 **Design approved (#98).** The proposal is [`A6_CONTRAINDICATED_PROCEDURES_DESIGN.md`](A6_CONTRAINDICATED_PROCEDURES_DESIGN.md), with the owner's rulings in §7. In short: P1 and P2 stay unsigned drafts; P3 is mid-face trauma only; P5 is burns (no timing), spinal cord injury and hyperkalaemia (K ≥ 5.5 mmol/L, an owner ruling); P4 stays as A4's code. Every row ships with `signoff: false`, and the owner signs P3 and P5.
+
+**Build in review: #99.** `server/procedure_contracts.json` holds P1, P2, P3 and P5, all unsigned, so nothing holds until the owner signs. Signing P3 or P5 is a change to that file, in its own PR, like a dose contract.
 
 ### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91)
 
