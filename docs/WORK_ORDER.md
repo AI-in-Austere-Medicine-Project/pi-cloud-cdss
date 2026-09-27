@@ -43,8 +43,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A1b | Dose check matches indication, not only value | **done**: #91, merged and deployed |
 | A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
 | A4 | Depressed-GCS oral route | **done**: #95, merged and deployed |
-| A5 | Hold text for fixed doses | **next** |
-| A6 | Contraindicated procedures (design only) | after A5 |
+| A5 | Hold text for fixed doses | in review: #97 |
+| A6 | Contraindicated procedures (design only) | after A5 (**next**) |
 | A7 | GCS parser | after A6 |
 | A8 | "status post" must not match status epilepticus | after A7 |
 | A9 | Active-seizure phrasings reach the signed entry | after A8 |
@@ -157,7 +157,7 @@ Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase pa
 1. **GCS 13 and 14 stay armed.** The hold fails safe; only a plain GCS 15 disarms it. A narrow release for GCS 13–14 with "alert", "protecting airway" or "able to swallow" stated can be its own item later, if the hypoglycaemia case proves common.
 2. **Two correct refusals stay held.** Recorded as findings, not fixed: run 3's haiku-4.5 p1 ("Any oral intake with GCS ≤8 risks food/fluid into lungs") and opus-5 t120 ("not a reason to drink", "no wet swabs he can swallow"). Their wording falls outside the narrow refusal shape, and widening it would release answers that are held today.
 
-### A5: hold text for fixed doses
+### A5: hold text for fixed doses (in review, #97)
 
 A fixed-dose hold must never say "no weight confirmed". The hold text names the actual reason and what makes the question answerable. Test: 4 fixed-dose hold cases.
 
@@ -390,6 +390,7 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 ## Found along the way, not yet placed
 
 - **The validator holds a correct post-tube sedation answer** (found in #86, live on the branch). "80kg male, we tubed him, what do I give after RSI" went to gpt-4o-mini, and the validator held it: "recommends post-intubation sedation with ketamine without confirming the tube is in place". It doesn't read "we tubed him" as the tube being in. It fails safe, so it isn't fixed now (owner, 2026-09-26). Revisit when the validator wording is looked at as a whole, together with run-3 finding 6 (TXA held for plain haemorrhage).
+- **The free-text dose check doesn't read infusion rates** (found in #97). "Start epinephrine 5 mcg/min" or "0.05 mcg/kg/min" to an adult with no signed rate built is served with no hold. Same class as run-3 finding 5 (uncited numbers served unheld).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
