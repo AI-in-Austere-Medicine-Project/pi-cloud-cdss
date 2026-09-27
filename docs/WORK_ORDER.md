@@ -42,8 +42,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A0 | Context isolation on patient reset | **done**: #90, merged and deployed |
 | A1b | Dose check matches indication, not only value | **done**: #91, merged and deployed |
 | A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
-| A4 | Depressed-GCS oral route | in review: #95 |
-| A5 | Hold text for fixed doses | after A4 |
+| A4 | Depressed-GCS oral route | **done**: #95, merged and deployed |
+| A5 | Hold text for fixed doses | **next** |
 | A6 | Contraindicated procedures (design only) | after A5 |
 | A7 | GCS parser | after A6 |
 | A8 | "status post" must not match status epilepticus | after A7 |
@@ -70,7 +70,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b and A3 are done (#90, #91, #86), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3 and A4 are done (#90, #91, #86, #95), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -143,7 +143,7 @@ The GCS parser reads "GCS is seven", "GCS 3T", "GCS of 6" and "G6", with a test 
 
 **Added (owner, #95 review):** a GCS written as components ("E4V5M6") is read too. Until then A4 fails closed on it: it arms the oral-route hold even when the total is 15.
 
-### A4: depressed-GCS oral route
+### A4: depressed-GCS oral route (done, #95)
 
 Oral-route advice with GCS < 13, or "unresponsive", "altered" or "obtunded", must hold. That covers "encourage fluid intake", "sips of water", "PO", "by mouth", "oral glucose" and similar.
 
@@ -151,7 +151,7 @@ Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase pa
 
 **Run 3 finding 4, placed here:** the oral-intake hold fires on correct "nothing by mouth" answers. In the 120 s pass, every held cloud answer on R2-DEPRESSED-GCS said nothing by mouth.
 
-**In review: #95.** Also covers "oral <drug>" for any drug in the contract bank, drug_lexicon.json or MEDICATION_TERMS, fluids included (owner, #95 review).
+**Done: #95, merged and deployed.** Also covers "oral <drug>" for any drug in the contract bank, drug_lexicon.json or MEDICATION_TERMS, fluids included (owner, #95 review).
 
 **Owner rulings (#95 review, 2026-09-27):**
 1. **GCS 13 and 14 stay armed.** The hold fails safe; only a plain GCS 15 disarms it. A narrow release for GCS 13–14 with "alert", "protecting airway" or "able to swallow" stated can be its own item later, if the hypoglycaemia case proves common.
