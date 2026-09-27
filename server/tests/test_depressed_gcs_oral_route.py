@@ -300,3 +300,35 @@ def test_gcs_15_with_another_ams_descriptor_still_holds():
 
 def test_shock_still_arms_it():
     assert _held("GSW abdomen, in shock", "Give oral fluids.")
+
+
+# ── Any drug by mouth, not only glucose (owner, #95 review item 3) ──────────
+# "oral <drug>" and "<drug> PO" for any drug the free-text dose check
+# recognises (the contract bank and drug_lexicon.json), and the fluids named
+# in MEDICATION_TERMS, must hold at GCS < 13.
+
+ORAL_DRUG_ADVICE = [
+    "Give oral ondansetron 4 mg.",
+    "Ondansetron 4 mg PO.",
+    "Give oral acetaminophen 1 g.",
+    "Acetaminophen 1 g PO q6h.",
+    "Oral paracetamol for the pain.",
+    "Give oral lactated Ringer's, 500 mL.",
+    "Lactated Ringer's 500 mL PO.",
+]
+
+
+@pytest.mark.parametrize("response", ORAL_DRUG_ADVICE)
+@pytest.mark.parametrize("query", ["head injury, GCS 7", "fall from height, GCS 12"])
+def test_any_drug_by_mouth_holds_with_a_depressed_gcs(query, response):
+    assert _held(query, response), f"{query!r} + {response!r} was served"
+
+
+@pytest.mark.parametrize("response", ORAL_DRUG_ADVICE)
+def test_any_drug_by_mouth_passes_for_an_alert_patient(response):
+    assert not _held("minor ankle injury, GCS 15, alert", response)
+
+
+def test_refusing_an_oral_drug_is_not_held():
+    assert not _held("head injury, GCS 7",
+                     "Do not give oral ondansetron; give ondansetron IV instead.")
