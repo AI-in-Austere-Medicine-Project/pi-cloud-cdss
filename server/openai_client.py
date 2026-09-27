@@ -64,6 +64,14 @@ except Exception as _e:                                   # pragma: no cover
     print(f"⚠️  drug_contracts unavailable ({_e}) — no drug dose contracts.")
     drug_contracts = None
 
+# A6: the signed table of contraindicated procedures. Same rule: if it cannot
+# be imported, it holds nothing.
+try:
+    import procedure_contracts
+except Exception as _e:                                   # pragma: no cover
+    print(f"⚠️  procedure_contracts unavailable ({_e}) — no procedure contraindications.")
+    procedure_contracts = None
+
 # The concentration master list. Same degradation rule: if it cannot be
 # imported, NO volume is served anywhere — mg doses are unaffected.
 try:
@@ -923,6 +931,155 @@ def _gcs_below_15_or_unread(q: str) -> bool:
         if (int(g) if g.isdigit() else _GCS_WORDS[g]) < 15:
             return True
     return False
+
+
+# ── A6: contraindicated procedures ────────────────────────────────────────
+# A signed row of procedure_contracts.json holds an answer that ADVISES its
+# procedure while its condition is recorded for this patient. Advice is read
+# the way A4 reads oral intake: a term counts unless a negation governs it
+# directly, with only filler between ("do not place an NPA", "avoid
+# succinylcholine", "never do an LP"), or the clause opens on the term and
+# calls it contraindicated. Anything else holds. Lines under DON'T are skipped.
+_PROC_NEGATION = (r"(?:no|not|never|avoid|avoiding|withhold|withholding|cannot|can't|"
+                  r"don't|won't|shouldn't|mustn't|instead of|rather than)")
+_PROC_FILLER = (r"(?:do|perform|performing|place|placing|insert|inserting|put|use|"
+                r"using|give|giving|attempt|attempting|consider|a|an|the|any|this|"
+                r"that|him|her|them|patient|be|to|or|and)")
+_PROC_REFUSED_RE = re.compile(
+    r"\b" + _PROC_NEGATION + r"(?:[\s/]+" + _PROC_FILLER + r")*[\s/]+$")
+_PROC_NEGATION_WORD_RE = re.compile(r"^" + _PROC_NEGATION + r"$")
+# As A4's breakers, without "contraindicat…" (a procedure's own warning says
+# it) and without "instead" ("place an OG instead of an NG" is a refusal).
+_PROC_REFUSAL_BREAKERS_RE = re.compile(
+    r"\b(?:need|needs|needed|necessary|reason|delay\w*|wait|hesitate|stop|problem|"
+    r"issue|harm|concern|worry|but|however|unless|except|although|though|until|"
+    r"once|if|then|fine|ok|okay|alright)\b")
+_PROC_HAZARD_AFTER_RE = re.compile(
+    r"^\W*(?:is|are)?\s*(?:absolutely\s+|relatively\s+)?(?:contraindicated|not recommended|"
+    r"(?:should|must) be avoided|to be avoided)\b")
+# "LP15" is a Lifepak; an "NPA swab" is a nasopharyngeal aspirate.
+_PROC_ABBREV_TAIL_RE = re.compile(
+    r"\s*-?\s*\d|\s+(?:swabs?|samples?|specimens?|aspirates?|cultures?|pcr)\b",
+    re.IGNORECASE)
+
+
+def _procedure_term_refused(clause: str, start: int, end: int) -> bool:
+    c = clause.lower()
+    if _PROC_REFUSAL_BREAKERS_RE.search(c):
+        return False
+    if _PROC_HAZARD_AFTER_RE.match(c[end:]) and not c[:start].strip(" \t-*•"):
+        return True
+    m = _PROC_REFUSED_RE.search(c[:start])
+    if not m:
+        return False
+    before = re.findall(r"[a-z']+", c[:m.start()])[-2:]
+    return not any(_PROC_NEGATION_WORD_RE.match(w) for w in before)
+
+
+def _procedure_term_spans(clause: str, term: str):
+    """Word-anchored. An all-capitals abbreviation ("LP", "NPA", "NGT") is
+    matched in capitals only, and not before a number or a specimen word."""
+    if term.isupper():
+        for m in re.finditer(r"(?<![A-Za-z])" + re.escape(term) + r"(?![A-Za-z])", clause):
+            if not _PROC_ABBREV_TAIL_RE.match(clause, m.end()):
+                yield m.start(), m.end()
+    else:
+        for m in re.finditer(r"\b" + re.escape(term) + r"\b", clause, re.IGNORECASE):
+            yield m.start(), m.end()
+
+
+def procedure_advised(response_text: str, terms) -> bool:
+    """Whether the response advises any of these procedure terms."""
+    section = ""
+    for line in (response_text or "").replace("\u2019", "'").splitlines():
+        h = _FREE_DOSE_HEADING_RE.match(line)
+        if h:
+            section = re.sub(r"\s+", " ", h.group(1)).strip().upper()
+        if section in _FREE_DOSE_SKIP_SECTIONS:
+            continue
+        for clause in _ORAL_CLAUSE_SPLIT_RE.split(line):
+            for term in terms:
+                for start, end in _procedure_term_spans(clause, term):
+                    if not _procedure_term_refused(clause, start, end):
+                        return True
+    return False
+
+
+def _stated(q: str, rx) -> bool:
+    """Any match of rx that is not negated: "no burns", "denies…", or "burns
+    ruled out"."""
+    for m in rx.finditer(q):
+        before = q[max(0, m.start() - 40):m.start()]
+        if any(n in before for n in _POSITIVE_TERM_NEGATIONS):
+            continue
+        if re.match(r"\W*(?:ruled out|excluded|negative|absent|not present)\b", q[m.end():]):
+            continue
+        return True
+    return False
+
+
+_RAISED_ICP_RE = re.compile(
+    r"\b(?:blown|fixed(?:\s+and\s+dilated)?|dilated|unequal|non-?reactive|unreactive)"
+    r"\s+(?:\w+\s+)?pupils?\b"
+    r"|\bpupils?\s+(?:is\s+|are\s+)?(?:blown|fixed|dilated|unequal|non-?reactive|unreactive)\b"
+    r"|\banisocoria\b|\bherniat\w*|\bcushing'?s?\b"
+    r"|\b(?:raised|elevated|increased|high|rising)\s+(?:icp|intracranial pressure)\b")
+_BASILAR_RE = re.compile(
+    r"\b(?:basilar|basal)\s+skull\s+fracture|\bskull\s+base\s+fracture"
+    r"|\brac+oon\s+eyes?\b|\bbattle'?s\s+sign\b"
+    r"|\b(?:csf|cerebrospinal fluid)\s+(?:leak|from|rhinorr|otorr)\w*|\b(?:otorrh|rhinorrh)\w*"
+    r"|\bclear\s+fluid\s+(?:from|out of|leaking from)\s+(?:the\s+|his\s+|her\s+)?(?:ears?|nose)\b"
+    r"|\bhae?motympanum\b")
+_MIDFACE_RE = re.compile(
+    r"\bmid-?\s?face\b|\ble\s?fort\b|\bmaxill(?:a|ary)\s+fracture|\bfractured\s+maxilla\b"
+    r"|\bfacial\s+fractures?\b")
+_SUX_CONDITION_RE = re.compile(
+    r"\bburn(?:s|ed)?\b|\bburnt\b|\btbsa\b"
+    r"|\bspinal\s+cord\s+injur\w*|\bcord\s+injur\w*|\bsci\b|\b(?:para|quadri|tetra)pleg\w*"
+    r"|\bcord\s+transection\b"
+    r"|\bhyperkal(?:a)?emi\w*|\bpeaked\s+t\s*waves?\b")
+_POTASSIUM_RE = re.compile(
+    r"\b(?:k\+?|potassium)\s*(?:level\s*)?(?:is|of|was|=|:|at)?\s*(\d{1,2}(?:\.\d+)?)\b")
+# Owner ruling (#98): a stated potassium of 5.5 mmol/L or more is
+# hyperkalaemia. A ruling, not a citation.
+HYPERKALAEMIA_K_MMOL_L = 5.5
+
+
+def _stated_hyperkalaemic_potassium(q: str) -> bool:
+    for m in _POTASSIUM_RE.finditer(q):
+        k = float(m.group(1))
+        if HYPERKALAEMIA_K_MMOL_L <= k <= 15:
+            return True
+    return False
+
+
+_PROCEDURE_DETECTORS = {
+    "raised_icp": lambda q: looks_like_severe_tbi(q) or _stated(q, _RAISED_ICP_RE),
+    "basilar_skull_fracture": lambda q: _stated(q, _BASILAR_RE),
+    "midface_trauma": lambda q: _stated(q, _MIDFACE_RE),
+    "sux_contraindication": lambda q: (_stated(q, _SUX_CONDITION_RE)
+                                       or _stated_hyperkalaemic_potassium(q)),
+}
+
+if procedure_contracts is not None:
+    for _row in procedure_contracts.ROWS:
+        if _row.get("detector") not in _PROCEDURE_DETECTORS:   # pragma: no cover
+            print(f"⚠️  procedure_contracts row {_row.get('id')} names an unknown "
+                  f"detector {_row.get('detector')!r}; it holds nothing.")
+
+
+def procedure_issues(query: str, response_text: str) -> list:
+    """The hold text of every signed row whose condition is recorded for this
+    patient and whose procedure the response advises."""
+    if procedure_contracts is None:
+        return []
+    q = (query or "").lower().replace("\u2019", "'")
+    issues = []
+    for row in procedure_contracts.active_rows():
+        detect = _PROCEDURE_DETECTORS.get(row.get("detector"))
+        if detect and detect(q) and procedure_advised(response_text, row["advice_terms"]):
+            issues.append(row["hold_text"])
+    return issues
 
 
 SAFE_GATE_RESPONSES = {
@@ -3816,6 +3973,9 @@ def run_deterministic_checks(query: str, response_text: str,
     if oral_route_advised(r):
         if has_ams_descriptor(q) or _has_any_word(q, ["shock"]):
             issues.append("Oral intake in AMS or shock — aspiration risk.")
+
+    # ── Contraindicated procedures (A6): signed rows only ─────────────────
+    issues.extend(procedure_issues(query, response_text))
 
     return DeterministicCheck(passed=len(issues) == 0, issues=issues)
 

@@ -1,0 +1,89 @@
+{
+  "_about": "A6: contraindicated procedures. A row holds an answer only when it is signed: signoff true, reviewed_by, review_date, and at least one source. Signing is the owner's act (docs/authoring/SIGNING.md). Design and rulings: docs/A6_CONTRAINDICATED_PROCEDURES_DESIGN.md. P4 (oral intake with depressed consciousness) stays as A4's code until it has a source.",
+  "rows": [
+    {
+      "id": "P1",
+      "advice": "lumbar puncture",
+      "advice_terms": ["lumbar puncture", "spinal tap", "LP"],
+      "condition": "raised or suspected raised ICP",
+      "detector": "raised_icp",
+      "population": "adult|peds",
+      "hold_text": "The answer advised a lumbar puncture, but raised or suspected raised ICP is recorded. A lumbar puncture is a recognised contraindication here. Use local protocol and medical control.",
+      "sources": [],
+      "extraction_notes": "No corpus passage found for the LP contraindication (#98). The ICP criterion is sourced: JTS Traumatic Brain Injury Management in Prolonged Field Care, p.6, 'Suspect high ICP in any head injury patient with GCS score <=8 OR declining findings on neurologic examination.' Owner ruling (#98): unsigned draft, inert.",
+      "signoff": false,
+      "reviewed_by": null,
+      "review_date": null,
+      "version": 1
+    },
+    {
+      "id": "P2",
+      "advice": "an NG tube",
+      "advice_terms": ["nasogastric tube", "nasogastric", "naso-gastric", "NG tube", "NGT"],
+      "condition": "a basilar skull fracture, or its signs",
+      "detector": "basilar_skull_fracture",
+      "population": "adult|peds",
+      "hold_text": "The answer advised an NG tube, but a basilar skull fracture, or its signs, is recorded. A nasal tube is a recognised contraindication here. Use local protocol and medical control.",
+      "sources": [],
+      "extraction_notes": "No corpus passage found (#98). The signs are listed in JTS Use of TBI WB Biomarkers after a Potentially Concussive Event, p.6: 'signs of a basilar skull fracture (e.g., raccoon eyes, Battle's sign, otorrhea)'. Owner ruling (#98): unsigned draft, inert; the owner will look for a source in NASEMSO or SMOG.",
+      "signoff": false,
+      "reviewed_by": null,
+      "review_date": null,
+      "version": 1
+    },
+    {
+      "id": "P3",
+      "advice": "a nasal airway",
+      "advice_terms": ["nasopharyngeal airway", "nasal airway", "nasal trumpet", "NPA"],
+      "condition": "mid-face trauma",
+      "detector": "midface_trauma",
+      "population": "adult|peds",
+      "hold_text": "The answer advised a nasal airway, but mid-face trauma is recorded: JTS Airway Management in Prolonged Field Care (ID80) p.18 lists mid-face trauma as a contraindication to an NPA. Use local protocol and medical control.",
+      "sources": [
+        {
+          "citation": "JTS Clinical Practice Guideline — Airway Management in Prolonged Field Care, CPG ID80, 01 May 2020, p.18",
+          "tier": 1,
+          "source_class": "JTS",
+          "url": "https://jts.health.mil/index.cfm/CPGs/cpgs",
+          "file": "Airway_Management_in_Prolonged_Field_Care_01_May_2020_ID80.pdf",
+          "retrieved_date": "2026-09-27"
+        }
+      ],
+      "extraction_notes": "ID80 p.18, item 5: 'NPA should be used to assist with face mask ventilations (unless obvious contraindications such as mid-face trauma).' Owner ruling (#98): mid-face trauma only; basilar skull fracture needs its own source.",
+      "signoff": false,
+      "reviewed_by": null,
+      "review_date": null,
+      "version": 1
+    },
+    {
+      "id": "P5",
+      "advice": "succinylcholine",
+      "advice_terms": ["succinylcholine", "suxamethonium", "sux", "succs", "anectine"],
+      "condition": "burns, spinal cord injury or hyperkalaemia",
+      "detector": "sux_contraindication",
+      "population": "adult|peds",
+      "hold_text": "The answer advised succinylcholine, but burns, spinal cord injury or hyperkalaemia is recorded: JTS Airway Management in Trauma (ID39) p.28 and Anesthesia for Trauma Patients (ID40) p.3 list these as contraindications. ID40 names rocuronium for these cases.",
+      "sources": [
+        {
+          "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — RSI and Intubation Pathway, Neuromuscular Blockade, p.28",
+          "tier": 1,
+          "source_class": "JTS",
+          "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+          "retrieved_date": "2026-09-27"
+        },
+        {
+          "citation": "JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021, item 5, p.3",
+          "tier": 1,
+          "source_class": "JTS",
+          "url": "https://jts.health.mil/assets/docs/cpgs/Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+          "retrieved_date": "2026-09-27"
+        }
+      ],
+      "extraction_notes": "ID39 p.28: the signed succinylcholine contract's contraindications, 'Burns', 'Spinal cord injury', 'Hyperkalemia'. ID40 p.3, item 5: 'Rocuronium is a nondepolarizing neuromuscular relaxant useful in cases where succinylcholine may be contraindicated (e.g., burns, spinal cord injury, hyperkalemia).' The ID40 page is the corpus chunk's page; the contract bank cites another ID40 item at p.2, so check the page against the PDF. Owner rulings (#98): 'burns' with no timing qualifier; crush is a separate contract re-sign citing SMOG p.156; a stated potassium of 5.5 mmol/L or more counts as hyperkalaemia (owner ruling, not a citation).",
+      "signoff": false,
+      "reviewed_by": null,
+      "review_date": null,
+      "version": 1
+    }
+  ]
+}
