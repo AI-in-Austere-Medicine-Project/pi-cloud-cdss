@@ -44,9 +44,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
 | A4 | Depressed-GCS oral route | **done**: #95, merged and deployed |
 | A5 | Hold text for fixed doses | **done**: #97, merged and deployed |
-| A6 | Contraindicated procedures: table, detectors, check | **done**: #99, merged and deployed. P3 and P5 signing in review: #100; P1 and P2 unsigned |
-| A7 | GCS parser | **next** |
-| A8 | "status post" must not match status epilepticus | after A7 |
+| A6 | Contraindicated procedures: table, detectors, check | **done**: #99, merged and deployed. P3 and P5 signed: #100, merged; P1 and P2 unsigned |
+| A7 | GCS parser | in review: #101 |
+| A8 | "status post" must not match status epilepticus | after A7 (**next**) |
 | A9 | Active-seizure phrasings reach the signed entry | after A8 |
 | A10 | CICO card must not fire on a completed surgical airway | after A9 |
 | A11 | Free-text dose check reads infusion rates | after A10 |
@@ -140,7 +140,7 @@ This was the subject of 4 field reports (feedback review §1). A completed-airwa
 
 Tests: the real queries from the review route away from RSI, and a genuine pre-intubation RSI request still routes to it.
 
-### A7: GCS parser (added 2026-09-25; a separate PR, after A6 per the 2026-09-26 order)
+### A7: GCS parser (added 2026-09-25; in review, #101)
 
 The GCS parser reads "GCS is seven", "GCS 3T", "GCS of 6" and "G6", with a test for each.
 
@@ -164,7 +164,7 @@ Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase pa
 
 A fixed-dose hold must never say "no weight confirmed". The hold text names the actual reason and what makes the question answerable. Test: 4 fixed-dose hold cases.
 
-### A6: contraindicated procedures (done, #99; P3 and P5 signing in review, #100)
+### A6: contraindicated procedures (done, #99; P3 and P5 signed, #100)
 
 DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advice, starting with a small signed table of procedure, contraindicating condition and source:
 - LP in raised ICP;
@@ -179,7 +179,7 @@ Report the proposed table, the matching approach, the false-positive risks, and 
 
 **Done: #99, merged and deployed.** `server/procedure_contracts.json` holds P1, P2, P3 and P5.
 
-**Signing (#100, in review):** P3 and P5 signed by Andrew Azelton on 2026-09-27. P3 cites ID80 p.18. P5 cites ID40 p.3 alone (owner ruling, #100): the 2026 ID39 p.28 doses succinylcholine but lists no contraindication. The ID40 passage is on printed p.3 = PDF p.3. P1 and P2 stay unsigned and inert. Replay with the signed table: 0 newly held, 0 newly released.
+**Signed (#100, merged):** P3 and P5 signed by Andrew Azelton on 2026-09-27. P3 cites ID80 p.18. P5 cites ID40 p.3 alone (owner ruling, #100): the 2026 ID39 p.28 doses succinylcholine but lists no contraindication. The ID40 passage is on printed p.3 = PDF p.3. P1 and P2 stay unsigned and inert. Replay with the signed table: 0 newly held, 0 newly released.
 
 ### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91)
 
@@ -429,6 +429,7 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
+- **"Absent lung sounds" is not read as a tension sign** (found in #101). The tension check reads "absent / decreased / no … breath sounds" or "air entry", not "lung sounds". A live-log query, "shot in the chest … GCS is seven blood pressure 80/40 … absent lung sounds on the left side", gets the DCR card, not the tension card that A1's ruling 1 puts first.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
 - **The corpus was ingested from the superseded ID39** (found in #100). `server/data/jts_protocols` holds both `Airway_Management_of_Traumatic_Injuries_17_Jul_2017_ID39.pdf` and `Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf`. All 28 ID39 chunks in the production ChromaDB come from the 2017 edition. Re-ingest is a separate decision.
 - **The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list** (found in #100). The 2026 ID39 p.28 supports its 1.5 mg/kg dose, not "Burns", "Spinal cord injury" or "Hyperkalemia". ID40 p.3 does. Correcting it is a re-sign of that contract.
