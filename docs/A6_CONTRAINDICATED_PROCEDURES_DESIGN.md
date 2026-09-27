@@ -122,3 +122,15 @@ The same rules as the other A items:
 4. **P4:** move A4's check into the table now, or leave it as code until it has a source?
 5. **The hyperkalaemia threshold** for a stated potassium, if any.
 6. **Builder follow-up:** should succinylcholine leave ALLOWED_DOSES when a P5 condition is present? It is a dose-layer change, so it is not part of A6.
+
+## 7. Owner rulings (2026-09-27, #98 review)
+
+1. **P1 and P2 stay as unsigned drafts, and are inert.** The owner will look in NASEMSO or SMOG for a P2 source (NG tube with basilar skull fracture), and for basilar skull fracture under P3. Each source found becomes its own signing PR.
+2. **P3 covers mid-face trauma only**, per ID80 p.18.
+3. **P5 is "burns" with no timing qualifier, plus spinal cord injury and hyperkalaemia,** per ID39 p.28 and ID40 p.3. Crush is a separate re-sign of the succinylcholine contract, citing SMOG p.156, after the owner reads the page.
+4. **P4 stays as A4's code until it has a source.** It doesn't move into the table.
+5. **The stated potassium threshold is 5.5 mmol/L.** It is recorded as an owner ruling, not a citation.
+6. **Succinylcholine leaving ALLOWED_DOSES under a P5 condition is A12**, after A11.
+7. **The dead `safety_rules.json` path is A13:** remove it, with a test that nothing depended on it.
+
+**Go:** build A6 with the table, the detectors and the check. Every row ships with `signoff: false`, and the owner signs P3 and P5 after reading the pages. Failing tests first, as listed in §5.

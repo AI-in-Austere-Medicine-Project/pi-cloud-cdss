@@ -42,18 +42,20 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A3 | A patient whose airway is already done never gets the RSI bundle. | Feedback review §1 (4 field reports) | Done, #86 |
 | A4 | Anything by mouth holds when consciousness is depressed. A refusal of oral intake doesn't hold. | Work order 2026-09-24; run 3, finding 4 | Done, #95 |
 | A5 | A fixed-dose hold never says "no weight confirmed"; it names the real reason. | Work order 2026-09-24; local benchmark run 2, finding 3 | Done, #97 |
-| A6 | A design, no code, for a signed table of contraindicated procedures. | Work order 2026-09-24 | In review, #98 (proposal; waiting for the owner's go) |
+| A6 | A design, no code, for a signed table of contraindicated procedures. | Work order 2026-09-24 | Design approved, #98; build next |
 | A7 | The GCS parser reads "GCS is seven", "3T", "of 6", "G6" and "E4V5M6". | Owner, 2026-09-25; "E4V5M6" added in the #95 review | After A6 |
 | A8 | "status post" must not match status epilepticus. | Found in #91 | After A7 |
 | A9 | "actively seizing", "still seizing", "seizing now" and "in status" reach the signed seizure entry. | Found in #91 | After A8 |
 | A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | After A9 |
 | A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | After A10 |
+| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | After A11 |
+| A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | After A12 |
 
 ## 4. D items: data and speed
 
 | Item | Meaning | Machine | Status |
 |---|---|---|---|
-| D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | After A11 |
+| D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | After A13 |
 | D1 | Evaluation hygiene: new `run_tests.sh` cases, reconciling the 30-set, the benchmark protocol. | Jetson | After D5a |
 | D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | After D1 |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
@@ -147,7 +149,6 @@ Mirrors the list of the same name in `WORK_ORDER.md`.
 |---|---|
 | The validator holds a correct post-tube sedation answer ("we tubed him"). | #86 |
 | A correct signed dose is held when the question names the indication, not the drug (epinephrine 1 mg in asystole). Fixing it releases holds and needs an owner ruling. | #97 |
-| `safety_rules.json` reaches no answer: its matches go only to a console print. | #98 |
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
 | gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set. | Run 3 (#87) |

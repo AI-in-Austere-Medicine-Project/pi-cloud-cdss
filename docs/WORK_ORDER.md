@@ -44,13 +44,15 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
 | A4 | Depressed-GCS oral route | **done**: #95, merged and deployed |
 | A5 | Hold text for fixed doses | **done**: #97, merged and deployed |
-| A6 | Contraindicated procedures (design only) | in review: #98 (proposal; waiting for the owner's go) |
+| A6 | Contraindicated procedures: table, detectors, check | design approved (#98); **build next** |
 | A7 | GCS parser | after A6 |
 | A8 | "status post" must not match status epilepticus | after A7 |
 | A9 | Active-seizure phrasings reach the signed entry | after A8 |
 | A10 | CICO card must not fire on a completed surgical airway | after A9 |
 | A11 | Free-text dose check reads infusion rates | after A10 |
-| D5a | Full-answer logging | after A11 |
+| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 |
+| A13 | Remove the dead safety_rules.json path | after A12 |
+| D5a | Full-answer logging | after A13 |
 | D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
 | B1 | Source-mode labelling | after D6 |
@@ -71,7 +73,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4 and A5 are done (#90, #91, #86, #95, #97), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A11 was added after A10 by the owner in the #97 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4 and A5 are done (#90, #91, #86, #95, #97), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -162,7 +164,7 @@ Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase pa
 
 A fixed-dose hold must never say "no weight confirmed". The hold text names the actual reason and what makes the question answerable. Test: 4 fixed-dose hold cases.
 
-### A6: contraindicated procedures (design only; in review, #98)
+### A6: contraindicated procedures (design approved, #98; build next)
 
 DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advice, starting with a small signed table of procedure, contraindicating condition and source:
 - LP in raised ICP;
@@ -173,7 +175,7 @@ DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advic
 
 Report the proposed table, the matching approach, the false-positive risks, and how it would be signed like a contract. Wait for the owner's go.
 
-**In review: #98.** The proposal is [`A6_CONTRAINDICATED_PROCEDURES_DESIGN.md`](A6_CONTRAINDICATED_PROCEDURES_DESIGN.md). Its six open decisions are in §6. No code until the owner's go.
+**Design approved (#98).** The proposal is [`A6_CONTRAINDICATED_PROCEDURES_DESIGN.md`](A6_CONTRAINDICATED_PROCEDURES_DESIGN.md), with the owner's rulings in §7. In short: P1 and P2 stay unsigned drafts; P3 is mid-face trauma only; P5 is burns (no timing), spinal cord injury and hyperkalaemia (K ≥ 5.5 mmol/L, an owner ruling); P4 stays as A4's code. Every row ships with `signoff: false`, and the owner signs P3 and P5.
 
 ### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91)
 
@@ -217,6 +219,14 @@ Requirement (owner): the free-text dose check reads rates (mcg/min, mcg/kg/min, 
 | propofol | none (no signed entry at all) | sedation infusion, adult |
 
 **What will start holding:** every stated rate for any drug other than epinephrine and norepinephrine. That includes ketamine, fentanyl, midazolam and propofol drips, and any mcg/min or mL/hr rate for the other signed drugs (atropine, calcium gluconate, dextrose, levetiracetam, lorazepam, morphine, naloxone, rocuronium, 3% NaCl, succinylcholine, TXA). All signed rate entries are per kg, so an epinephrine or norepinephrine rate also needs a weight to compare against. A plain mcg/min rate ("5 mcg/min") has no signed entry to match, and holds.
+
+### A12: succinylcholine leaves ALLOWED_DOSES under a P5 condition (owner, #98 review)
+
+When a P5 condition (burns, spinal cord injury, hyperkalaemia) is present, the builder doesn't offer succinylcholine. A dose-layer change, kept out of A6.
+
+### A13: remove the dead safety_rules.json path (owner, #98 review; found in #98)
+
+`clinical_router.check_safety_rules()` matches `safety_rules.json` against the query, and the result goes only to a console print. Remove it, with a test that nothing depended on it.
 
 ### B1: source-mode labelling
 
@@ -416,7 +426,6 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
-- **`safety_rules.json` reaches no answer** (found in #98). `clinical_router.check_safety_rules()` matches it against the query, and the result goes only to a console print.
 
 ## Deferred (do not touch)
 
