@@ -107,7 +107,9 @@ def test_the_two_lists_have_one_definition_each():
     source = inspect.getsource(oc.run_deterministic_checks)
     assert "'altered', 'ams', 'unconscious'" not in source
     assert "'drink', 'po fluids'" not in source
-    assert "ORAL_ROUTE_TERMS" in source
+    # A4: the check reads the list through oral_route_advised().
+    assert "oral_route_advised" in source
+    assert "ORAL_ROUTE_TERMS" in inspect.getsource(oc.oral_route_advised)
     assert "has_ams_descriptor" in source
 
 
