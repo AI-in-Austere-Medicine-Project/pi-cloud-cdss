@@ -145,6 +145,6 @@ Mirrors the list of the same name in `WORK_ORDER.md`.
 |---|---|
 | The validator holds a correct post-tube sedation answer ("we tubed him"). | #86 |
 | The free-text dose check doesn't read infusion rates ("5 mcg/min", "0.05 mcg/kg/min"). | #97 |
-| A ketamine drip for pain gets the RSI bundle. | A3 |
-| A unitless weight ("he is 150") silently skips the RSI card. | A3 |
-| gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set. | Run 3 |
+| A ketamine drip for pain gets the RSI bundle. | #86 |
+| A unitless weight ("he is 150") silently skips the RSI card. | #86 |
+| gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set. | Run 3 (#87) |
