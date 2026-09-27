@@ -215,6 +215,19 @@ R2_REFUSALS = {
 }
 
 
+# The live harness for this PR (gemini-3.7-flash, same question): the whole
+# answer refused, and this sentence alone held it.
+R2_REFUSALS["gemini-3.7-flash live 2026-09-27"] = (
+    "**BRIEF**\n- Do NOT give oral fluids; keep strictly NPO.\n- GCS 7 indicates "
+    "impaired airway reflexes and massive aspiration risk.\n\n**DO THIS**\n1. Keep "
+    "strictly NPO (nothing by mouth).\n2. Prepare for advanced airway management "
+    "and protect the airway (GCS ≤ 8).\n3. Moisten lips with a damp sponge or "
+    "gauze for comfort only, ensuring no liquid is swallowed.\n\n**WATCH**\n- "
+    "Vomiting, aspiration, and airway patency.\n\n**TLDR**\n- Do not let this "
+    "patient drink; severe head injury with GCS 7 carries an extreme risk of "
+    "aspiration.\n\nGeneral reference, not JTS. Confirm against local protocol.")
+
+
 @pytest.mark.parametrize("arm", sorted(R2_REFUSALS))
 def test_a_run3_refusal_of_oral_intake_is_not_held(arm):
     assert not _held(_r2_full_query(), R2_REFUSALS[arm]), arm
