@@ -42,7 +42,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A0 | Context isolation on patient reset | **done**: #90, merged and deployed |
 | A1b | Dose check matches indication, not only value | **done**: #91, merged and deployed |
 | A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
-| A4 | Depressed-GCS oral route | **next** |
+| A4 | Depressed-GCS oral route | in review: #95 |
 | A5 | Hold text for fixed doses | after A4 |
 | A6 | Contraindicated procedures (design only) | after A5 |
 | A7 | GCS parser | after A6 |
@@ -54,7 +54,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5 | Distillation dataset builder | after D1 |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
-| C1 | Feedback instrument | after B2 |
+| B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
+| C1 | Feedback instrument | after B3 |
 | D2 | Prompt layout for prefix caching | after C1 |
 | D3 | Retrieval trim to 4 chunks | after D2 |
 | D4 | Show the deterministic part first | after D3 |
@@ -69,7 +70,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → C1 → D2 → D3 → D4. A0, A1b and A3 are done (#90, #91, #86), and D6 is done (#93).
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b and A3 are done (#90, #91, #86), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -140,6 +141,8 @@ Tests: the real queries from the review route away from RSI, and a genuine pre-i
 
 The GCS parser reads "GCS is seven", "GCS 3T", "GCS of 6" and "G6", with a test for each.
 
+**Added (owner, #95 review):** a GCS written as components ("E4V5M6") is read too. Until then A4 fails closed on it: it arms the oral-route hold even when the total is 15.
+
 ### A4: depressed-GCS oral route
 
 Oral-route advice with GCS < 13, or "unresponsive", "altered" or "obtunded", must hold. That covers "encourage fluid intake", "sips of water", "PO", "by mouth", "oral glucose" and similar.
@@ -147,6 +150,12 @@ Oral-route advice with GCS < 13, or "unresponsive", "altered" or "obtunded", mus
 Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase passes.
 
 **Run 3 finding 4, placed here:** the oral-intake hold fires on correct "nothing by mouth" answers. In the 120 s pass, every held cloud answer on R2-DEPRESSED-GCS said nothing by mouth.
+
+**In review: #95.** Also covers "oral <drug>" for any drug in the contract bank, drug_lexicon.json or MEDICATION_TERMS, fluids included (owner, #95 review).
+
+**Owner rulings (#95 review, 2026-09-27):**
+1. **GCS 13 and 14 stay armed.** The hold fails safe; only a plain GCS 15 disarms it. A narrow release for GCS 13–14 with "alert", "protecting airway" or "able to swallow" stated can be its own item later, if the hypoglycaemia case proves common.
+2. **Two correct refusals stay held.** Recorded as findings, not fixed: run 3's haiku-4.5 p1 ("Any oral intake with GCS ≤8 risks food/fluid into lungs") and opus-5 t120 ("not a reason to drink", "no wet swabs he can swallow"). Their wording falls outside the narrow refusal shape, and widening it would release answers that are held today.
 
 ### A5: hold text for fixed doses
 
@@ -194,6 +203,10 @@ A response whose served dose comes from a JTS-cited signed contract is JTS-groun
 ### B2: generator section headers
 
 Headers drift in brief mode: "SEVERE TBI", "TREAT", "EVAC IF", and both "SOURCE" and "SOURCES". Normalise them at parse time to the canonical set: DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE. Unknown headers fold into the nearest canonical section. Test on 3 captured generator outputs. Format only.
+
+### B3: vitals caution on an answer that already refuses oral intake (owner, #95 review)
+
+The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_aspiration`) match "by mouth" inside "nothing by mouth". So they append "Anything by mouth carries an aspiration risk" to an answer that already says NPO (#95 live harness, claude-sonnet-5). Format only. After B2.
 
 ### C1: feedback instrument (feedback review §5)
 
@@ -368,7 +381,7 @@ Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here
 | 1. The hybrid fallback silently substituted qwen for slow cloud models | Live fix, #88 (done) |
 | 2. A seizing patient was served a behavioural-emergency midazolam dose (H-S3) | **A1b** |
 | 3. A previous patient's dose crossed an explicit reset (G-MTN-05) | **A0** |
-| 4. The oral-intake hold fires on correct refusals (R2-DEPRESSED-GCS) | **A4** |
+| 4. The oral-intake hold fires on correct refusals (R2-DEPRESSED-GCS) | **A4** (#95) |
 | 5. Uncited numbers served unheld: crystalloid volumes and rates (H-IM-06), cefazolin 20–30 mg/kg (G-ADV-03), levetiracetam concentrations (G-ADV-10) | **the free-text dose check** |
 | 6. The validator holds TXA for plain haemorrhage (H-S2, H-S1-a, G-MTN-01) | **the TXA validator hold** |
 
