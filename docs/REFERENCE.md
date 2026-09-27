@@ -42,7 +42,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A3 | A patient whose airway is already done never gets the RSI bundle. | Feedback review §1 (4 field reports) | Done, #86 |
 | A4 | Anything by mouth holds when consciousness is depressed. A refusal of oral intake doesn't hold. | Work order 2026-09-24; run 3, finding 4 | Done, #95 |
 | A5 | A fixed-dose hold never says "no weight confirmed"; it names the real reason. | Work order 2026-09-24; local benchmark run 2, finding 3 | Done, #97 |
-| A6 | A design, no code, for a signed table of contraindicated procedures. | Work order 2026-09-24 | Design approved, #98; build next |
+| A6 | A design, no code, for a signed table of contraindicated procedures. | Work order 2026-09-24 | Build in review, #99; every row ships unsigned (the owner signs P3 and P5) |
 | A7 | The GCS parser reads "GCS is seven", "3T", "of 6", "G6" and "E4V5M6". | Owner, 2026-09-25; "E4V5M6" added in the #95 review | After A6 |
 | A8 | "status post" must not match status epilepticus. | Found in #91 | After A7 |
 | A9 | "actively seizing", "still seizing", "seizing now" and "in status" reach the signed seizure entry. | Found in #91 | After A8 |
