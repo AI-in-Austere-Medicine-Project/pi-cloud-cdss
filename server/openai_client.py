@@ -3661,10 +3661,39 @@ def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
         return (f"{said}, but EdgeCDSS has no signed {drug} dose. It cannot be "
                 f"answered here until one is signed: use local protocol or medical control.")
     if patient_ctx is not None and not patient_ctx.has_confirmed_weight:
+        fixed_for = _adult_fixed_single_dose_indications(drug, patient_ctx)
+        if fixed_for:
+            # A5: an adult's fixed entries build without a weight, so a weight
+            # would not have changed this. Say what would.
+            return (f"{said}, but no signed {drug} dose was offered for this question. "
+                    f"The signed adult {drug} single doses are fixed: ask for {drug} "
+                    f"by name and say what it is for. "
+                    f"It is signed for {'; '.join(fixed_for)}.")
         return (f"{said} with no signed {drug} dose for this patient: no weight is "
                 f"confirmed. Give the weight in kg and ask for {drug} by name.")
     return (f"{said} with no signed {drug} dose for this question. Ask for {drug} "
             f"by name, with what it is for, to get the signed dose.")
+
+
+_RATE_UNITS_RE = re.compile(r"/\s*(?:min|h|hr|hour)\b", re.IGNORECASE)
+
+
+def _adult_fixed_single_dose_indications(drug: str,
+                                         patient_ctx: "PatientContext") -> list:
+    """The indications of an adult's signed single doses of this drug, when
+    every one of them is fixed. Empty when weight is the real reason: a child
+    (nothing builds for a child without a weight, fixed or not), or an adult
+    single-dose entry that is per kg (midazolam 0.1 mg/kg for a seizure).
+    Infusion rates are left out: a stated single dose is not one, and the
+    free-text check does not read rates."""
+    if drug_contracts is None or patient_ctx.is_pediatric:
+        return []
+    single = [e for e in drug_contracts.servable_entries().get(drug, [])
+              if "adult" in (e.get("population") or "").split("|")
+              and not _RATE_UNITS_RE.search((e.get("dose_range") or {}).get("units") or "")]
+    if not single or any((e.get("dose_range") or {}).get("per_kg") for e in single):
+        return []
+    return list(dict.fromkeys(e.get("indication") or "" for e in single if e.get("indication")))
 
 
 def run_deterministic_checks(query: str, response_text: str,
