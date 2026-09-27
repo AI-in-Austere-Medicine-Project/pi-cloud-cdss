@@ -20,7 +20,7 @@ Switching the offline model is one `.env` line: `CDSS_LLM_MODEL=<tag>`.
 |---|---|
 | `qwen2.5:3b` | The Ollama tag on the Jetson (357c53fb659c): Qwen2.5 3B, GGUF Q4_K_M. It is the offline model, the hybrid fallback, and the "before" arm of every distillation bench (`BASE_TAG`). |
 | `Qwen2.5-3B-Instruct-4bit` | `mlx-community/Qwen2.5-3B-Instruct-4bit`, the Mac base that `make train` puts the LoRA on (`BASE_4BIT`). `make fuse` uses the full-precision `Qwen/Qwen2.5-3B-Instruct` (`BASE_FULL`). |
-| `edgecdss-dryrun` | An Ollama tag on the Jetson (865f63ecb476). No repo doc records it. |
+| `edgecdss-dryrun` | Base plus a LoRA trained on a handful of hand-written rows before D6 existed. Proof that the Mac → GGUF → Jetson chain works; not a model result. Nothing serves it. An Ollama tag on the Jetson (865f63ecb476). |
 | `edgecdss-d6check` | **Removed.** The D6 toolchain proof: 50 iterations on the 50-row dry-run set. Its record is [`DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md). It is not a candidate model. |
 | `edgecdss-v1` | **Does not exist yet.** Its job is to beat `qwen2.5:3b` on the same exam. |
 | `edgecdss-v2` and later | Later versions, each with its own dataset or training knobs and its own bench doc. |
