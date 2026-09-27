@@ -43,13 +43,14 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A1b | Dose check matches indication, not only value | **done**: #91, merged and deployed |
 | A3 | Already-intubated patients receiving the RSI bundle | **done**: #86, merged and deployed |
 | A4 | Depressed-GCS oral route | **done**: #95, merged and deployed |
-| A5 | Hold text for fixed doses | in review: #97 |
-| A6 | Contraindicated procedures (design only) | after A5 (**next**) |
+| A5 | Hold text for fixed doses | **done**: #97, merged and deployed |
+| A6 | Contraindicated procedures (design only) | in review: #98 (proposal; waiting for the owner's go) |
 | A7 | GCS parser | after A6 |
 | A8 | "status post" must not match status epilepticus | after A7 |
 | A9 | Active-seizure phrasings reach the signed entry | after A8 |
 | A10 | CICO card must not fire on a completed surgical airway | after A9 |
-| D5a | Full-answer logging | after A10 |
+| A11 | Free-text dose check reads infusion rates | after A10 |
+| D5a | Full-answer logging | after A11 |
 | D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
 | B1 | Source-mode labelling | after D6 |
@@ -70,7 +71,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3 and A4 are done (#90, #91, #86, #95), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4 and A5 are done (#90, #91, #86, #95, #97), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A11 was added after A10 by the owner in the #97 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -157,11 +158,11 @@ Tests: GCS 7 with "encourage fluid intake" holds; GCS 15 with the same phrase pa
 1. **GCS 13 and 14 stay armed.** The hold fails safe; only a plain GCS 15 disarms it. A narrow release for GCS 13–14 with "alert", "protecting airway" or "able to swallow" stated can be its own item later, if the hypoglycaemia case proves common.
 2. **Two correct refusals stay held.** Recorded as findings, not fixed: run 3's haiku-4.5 p1 ("Any oral intake with GCS ≤8 risks food/fluid into lungs") and opus-5 t120 ("not a reason to drink", "no wet swabs he can swallow"). Their wording falls outside the narrow refusal shape, and widening it would release answers that are held today.
 
-### A5: hold text for fixed doses (in review, #97)
+### A5: hold text for fixed doses (done, #97)
 
 A fixed-dose hold must never say "no weight confirmed". The hold text names the actual reason and what makes the question answerable. Test: 4 fixed-dose hold cases.
 
-### A6: contraindicated procedures (design only)
+### A6: contraindicated procedures (design only; in review, #98)
 
 DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advice, starting with a small signed table of procedure, contraindicating condition and source:
 - LP in raised ICP;
@@ -171,6 +172,8 @@ DESIGN ONLY, no code. Propose a deterministic check for dangerous non-dose advic
 - succinylcholine with hyperkalaemia, burns over 24 h, or crush.
 
 Report the proposed table, the matching approach, the false-positive risks, and how it would be signed like a contract. Wait for the owner's go.
+
+**In review: #98.** The proposal is [`A6_CONTRAINDICATED_PROCEDURES_DESIGN.md`](A6_CONTRAINDICATED_PROCEDURES_DESIGN.md). Its six open decisions are in §6. No code until the owner's go.
 
 ### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91)
 
@@ -195,6 +198,25 @@ The CICO check is a substring match with no state (`"cric" in q`, `openai_client
 Same class as A8: a substring match with no state. One bug per PR, so it is not in #86.
 
 Failing tests first: "cric'd", "cric is in" and "surgical airway in place" must not get the CICO card. A genuine CICO request ("Help me do a cric", "failed intubation, failed i-gel, sats are 71") still must.
+
+### A11: the free-text dose check reads infusion rates (owner, #97 review; found in #97)
+
+"Start epinephrine 5 mcg/min" or "0.05 mcg/kg/min" to an adult with no signed rate built is served with no hold: the free-text dose check doesn't read rates at all. Same class as run-3 finding 5 (uncited numbers served unheld).
+
+Requirement (owner): the free-text dose check reads rates (mcg/min, mcg/kg/min, mg/hr, mL/hr, units/hr) and compares them to signed rate entries the same way it does single doses. A rate for a drug with no signed rate entry holds. Failing tests first: the epinephrine 5 mcg/min case, a ketamine drip case, and a control where a signed rate passes.
+
+**Rate entries in the bank today** (104 entries, 64 signed; checked 2026-09-27 on `e3a7b3e`):
+
+| Drug | Signed rate entries | Unsigned rate drafts (`NEEDS_MANUAL_ENTRY`) |
+|---|---|---|
+| epinephrine | symptomatic bradycardia — infusion, adult, 0.02–0.2 mcg/kg/min; shock unresponsive to IV fluids — infusion, adult and peds, 0.05–0.3 mcg/kg/min | infusion for refractory shock, adult |
+| norepinephrine | vasodilatory/haemorrhagic shock infusion, adult, 0.05–0.5 mcg/kg/min; vasodilatory shock infusion, peds, 0.05–0.5 mcg/kg/min; symptomatic bradycardia — infusion, adult, 0.02–0.4 mcg/kg/min; cardiogenic shock / pulmonary oedema with SBP under 100, adult, 0.02–2.0 mcg/kg/min | — |
+| ketamine | none (its two signed "infusion"-named entries are mg/kg boluses) | prolonged sedation infusion |
+| fentanyl | none | analgesia infusion, adult |
+| midazolam | none | sedation infusion for the ventilated patient, adult |
+| propofol | none (no signed entry at all) | sedation infusion, adult |
+
+**What will start holding:** every stated rate for any drug other than epinephrine and norepinephrine. That includes ketamine, fentanyl, midazolam and propofol drips, and any mcg/min or mL/hr rate for the other signed drugs (atropine, calcium gluconate, dextrose, levetiracetam, lorazepam, morphine, naloxone, rocuronium, 3% NaCl, succinylcholine, TXA). All signed rate entries are per kg, so an epinephrine or norepinephrine rate also needs a weight to compare against. A plain mcg/min rate ("5 mcg/min") has no signed entry to match, and holds.
 
 ### B1: source-mode labelling
 
@@ -390,10 +412,11 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 ## Found along the way, not yet placed
 
 - **The validator holds a correct post-tube sedation answer** (found in #86, live on the branch). "80kg male, we tubed him, what do I give after RSI" went to gpt-4o-mini, and the validator held it: "recommends post-intubation sedation with ketamine without confirming the tube is in place". It doesn't read "we tubed him" as the tube being in. It fails safe, so it isn't fixed now (owner, 2026-09-26). Revisit when the validator wording is looked at as a whole, together with run-3 finding 6 (TXA held for plain haemorrhage).
-- **The free-text dose check doesn't read infusion rates** (found in #97). "Start epinephrine 5 mcg/min" or "0.05 mcg/kg/min" to an adult with no signed rate built is served with no hold. Same class as run-3 finding 5 (uncited numbers served unheld).
+- **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
+- **`safety_rules.json` reaches no answer** (found in #98). `clinical_router.check_safety_rules()` matches it against the query, and the result goes only to a console print.
 
 ## Deferred (do not touch)
 
