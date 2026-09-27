@@ -49,10 +49,10 @@
           "retrieved_date": "2026-09-27"
         }
       ],
-      "extraction_notes": "ID80 p.18, item 5: 'NPA should be used to assist with face mask ventilations (unless obvious contraindications such as mid-face trauma).' Owner ruling (#98): mid-face trauma only; basilar skull fracture needs its own source.",
-      "signoff": false,
-      "reviewed_by": null,
-      "review_date": null,
+      "extraction_notes": "ID80 p.18 (PDF p.18), item 5, verbatim: 'NPA should be used to assist with face mask ventilations (unless obvious contraindications such as mid-face trauma). OPA are also effective in obtunded patients or those who have received chemical sedation or neuromuscular blockade.' Owner ruling (#98): mid-face trauma only; basilar skull fracture needs its own source. SIGNED 2026-09-27: Andrew Azelton, after reading ID80 p.18.",
+      "signoff": true,
+      "reviewed_by": "Andrew Azelton",
+      "review_date": "2026-09-27",
       "version": 1
     },
     {
@@ -79,10 +79,10 @@
           "retrieved_date": "2026-09-27"
         }
       ],
-      "extraction_notes": "ID39 p.28: the signed succinylcholine contract's contraindications, 'Burns', 'Spinal cord injury', 'Hyperkalemia'. ID40 p.3, item 5: 'Rocuronium is a nondepolarizing neuromuscular relaxant useful in cases where succinylcholine may be contraindicated (e.g., burns, spinal cord injury, hyperkalemia).' The ID40 page is the corpus chunk's page; the contract bank cites another ID40 item at p.2, so check the page against the PDF. Owner rulings (#98): 'burns' with no timing qualifier; crush is a separate contract re-sign citing SMOG p.156; a stated potassium of 5.5 mmol/L or more counts as hyperkalaemia (owner ruling, not a citation).",
-      "signoff": false,
-      "reviewed_by": null,
-      "review_date": null,
+      "extraction_notes": "ID39 p.28 (28 Jan 2026): the signed succinylcholine contract's contraindications, 'Burns', 'Spinal cord injury', 'Hyperkalemia'. The owner read the page; the 2026 edition is not on the Jetson (only the 17 Jul 2017 edition is), so the passage is not quoted verbatim here. ID40 p.3 (PDF p.3), item 5, verbatim: 'Rocuronium is a non-depolarizing neuromuscular relaxant useful in cases where succinylcholine may be contraindicated (e.g., burns, spinal cord injury, hyperkalemia).' VERIFIED 2026-09-27: the ID40 passage is on printed page 3, which is also PDF page 3, so the citation 'p.3' stands and needs no correction (the contract bank's other ID40 citation, item 4 at p.2, is a different item). Owner rulings (#98): 'burns' with no timing qualifier; crush is a separate contract re-sign citing SMOG p.156; a stated potassium of 5.5 mmol/L or more counts as hyperkalaemia (owner ruling, not a citation). SIGNED 2026-09-27: Andrew Azelton, after reading ID39 p.28 and ID40 p.3.",
+      "signoff": true,
+      "reviewed_by": "Andrew Azelton",
+      "review_date": "2026-09-27",
       "version": 1
     }
   ]
