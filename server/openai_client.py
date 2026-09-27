@@ -48,6 +48,7 @@ import re
 import json
 import time
 from dataclasses import dataclass, field, asdict, replace as dc_replace
+from functools import lru_cache
 from typing import Literal, Optional, List, Tuple
 import brief as brief_mod
 import general_reference
@@ -858,6 +859,19 @@ def _oral_term_refused(clause: str, start: int, term: str) -> bool:
     return not any(_ORAL_NEGATION_WORD_RE.match(w) for w in before)
 
 
+@lru_cache(maxsize=1)
+def _oral_drug_re():
+    """ "oral <drug>" for any drug the free-text dose check recognises (the
+    contract bank and drug_lexicon.json) or MEDICATION_TERMS names, fluids
+    included. Owner, #95 review: not only glucose. "<drug> PO", "<drug> by
+    mouth" and "<drug> orally" are caught by ORAL_ROUTE_TERMS already."""
+    names = set(MEDICATION_TERMS)
+    if drug_contracts is not None:
+        names.update(drug_contracts.recognised_drug_index())
+    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True) if n)
+    return re.compile(r"\boral\s+(?:" + alternation + r")\b")
+
+
 def oral_route_advised(response_text: str) -> bool:
     """Whether the response advises anything by mouth.
 
@@ -872,6 +886,9 @@ def oral_route_advised(response_text: str) -> bool:
             for m in re.finditer(r"\b" + re.escape(term) + r"\b", clause):
                 if not _oral_term_refused(clause, m.start(), term):
                     return True
+        for m in _oral_drug_re().finditer(clause):
+            if not _oral_term_refused(clause, m.start(), m.group(0)):
+                return True
     return False
 
 
