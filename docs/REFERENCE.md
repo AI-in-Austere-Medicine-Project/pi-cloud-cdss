@@ -51,7 +51,6 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | Done, #107 |
 | A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | In review, #108 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | Next, after A11 |
-| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | Next, after A11 |
 | A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | After A12 |
 | A11b | Rate matching becomes indication-specific, the same shape as A1b. | Owner, #108 review | After A13 |
 | A16 | A deterministic norepinephrine drip card serving the signed per-kg rate, as the epinephrine drip card does. | Found in #108; owner, #108 review | After A11b |

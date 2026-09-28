@@ -77,7 +77,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9 and A14 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15 and A10 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -219,7 +219,7 @@ A contract entry for ketamine, indication "refractory seizure (benzodiazepine-re
 
 **Cautions (owner, 2026-09-28):** hypoxia and BVM readiness as two served lines: "Hypoxia: transient hypoxia in 22% … Monitor SpO2 and EtCO2 continuously." and "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway." Re-signed.
 
-### A10: the CICO card must not fire on a completed surgical airway (owner, 2026-09-26; found in #86; in review, #107)
+### A10: the CICO card must not fire on a completed surgical airway (owner, 2026-09-26; found in #86; done, #107)
 
 The CICO check is a substring match with no state (`"cric" in q`, `openai_client.py:4580`). Live on the #86 branch, "80kg male, cric'd, what do I give after RSI" was served "Declare CICO … Perform surgical airway / cricothyrotomy now" for a patient whose cric was already in.
 
