@@ -46,9 +46,9 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A7 | The GCS parser reads "GCS is seven", "3T", "of 6", "G6" and "E4V5M6". | Owner, 2026-09-25; "E4V5M6" added in the #95 review | Done, #101 |
 | A8 | "status post" must not match status epilepticus. | Found in #91 | Done, #102 |
 | A9 | "actively seizing", "still seizing", "seizing now" and "in status" reach the signed seizure entry. | Found in #91 | Done, #103 |
-| A14 | "Absent lung sounds" is read as a tension sign, so the tension card comes before DCR. | Found in #101; owner, #103 review | Next, after A9 |
+| A14 | "Absent lung sounds" is read as a tension sign, so the tension card comes before DCR. | Found in #101; owner, #103 review | Done, #106 |
 | A15 | A signed ketamine entry for benzodiazepine-refractory seizure; the seizure card already serves it once signed. | Owner, #103 review | In review, #105: option B signed by the owner (adult 2 mg/kg IV/IO, 3–4 mg/kg IM; child 1 mg/kg IV/IO, 3 mg/kg IM) |
-| A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | After A15 |
+| A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | Next, after A15 |
 | A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | After A10 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | After A11 |
 | A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | After A12 |
