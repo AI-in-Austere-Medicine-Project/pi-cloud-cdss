@@ -1055,6 +1055,25 @@ _PROCEDURE_DETECTORS = {
                                        or _stated_hyperkalaemic_potassium(q)),
 }
 
+def _without_contraindicated_sux(query: str, doses: list) -> list:
+    """A12: every return path of build_allowed_doses drops succinylcholine
+    under a P5 condition. The named-drug path added it back beside the RSI
+    bundle's rocuronium: two paralytics, one of them contraindicated."""
+    if not succinylcholine_contraindicated(query):
+        return doses
+    return [d for d in doses if d.drug.lower() != "succinylcholine"]
+
+
+def succinylcholine_contraindicated(query: str) -> bool:
+    """A12 (owner, #98 review): succinylcholine is not offered under a P5
+    condition. A6's detector (burns, spinal cord injury, hyperkalaemia or a
+    stated K >= 5.5, negation-aware), plus the builder's existing "burn" and
+    "crush" words, kept so nothing excluded before is offered it again."""
+    q = (query or "").lower()
+    return (_PROCEDURE_DETECTORS["sux_contraindication"](q)
+            or any(x in q for x in ["burn", "crush"]))
+
+
 if procedure_contracts is not None:
     for _row in procedure_contracts.ROWS:
         if _row.get("detector") not in _PROCEDURE_DETECTORS:   # pragma: no cover
@@ -1448,7 +1467,7 @@ def _contract_rsi_entries(query: str, ctx: PatientContext) -> list:
 
     paralytics = pick(RSI_PARALYTIC_INDICATIONS)
     wants_succ = (_has_any_word(q, ["sux", "succs"]) or "succinylcholine" in q) \
-        and not any(x in q for x in ["burn", "crush"])
+        and not succinylcholine_contraindicated(q)
     preferred = "succinylcholine" if wants_succ else "rocuronium"
     # Only the PREFERRED paralytic. Falling back to the other one would mean a
     # query that never mentioned succinylcholine gets succinylcholine because
@@ -1652,8 +1671,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         # exception to either.
         if ctx.is_pediatric:
             return []
-        return _finish_doses(
-            indication_matched(query, _contract_dose_candidates(query, ctx)), ctx)
+        return _finish_doses(indication_matched(query, _without_contraindicated_sux(
+            query, _contract_dose_candidates(query, ctx))), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
@@ -1704,7 +1723,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         # succinylcholine. Two paralytics, one intubation.
         contract = _contract_rsi_candidates(query, ctx)
         filled = {_rsi_role(d.indication) for d in contract}
-        prefers_succ = has_succ and not any(x in q for x in ["burn", "crush"])
+        prefers_succ = has_succ and not succinylcholine_contraindicated(q)
 
         if "induction" not in filled and "ketamine" not in superseded:
             doses.append(ketamine_induction_iv(w, ped))
@@ -1721,7 +1740,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         # the query's indication (A1b). A seizing patient being intubated
         # still gets the bundle's sedation slot.
         doses.extend(indication_matched(query, _contract_dose_candidates(query, ctx)))
-        return _finish_doses(doses, ctx)
+        return _finish_doses(_without_contraindicated_sux(query, doses), ctx)
 
     if has_ketamine:
         if is_analg or (not is_seizure):
@@ -1783,7 +1802,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
-    return _finish_doses(indication_matched(query, doses), ctx)
+    return _finish_doses(indication_matched(query, _without_contraindicated_sux(query, doses)), ctx)
 
 
 CONFIRM_CONCENTRATION_LINE = "confirm concentration to compute volume"
@@ -5276,7 +5295,8 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 
     superseded = set(drug_contracts.servable_entries()) if drug_contracts else set()
     # Burns RSI: avoid succinylcholine unless explicitly requested; default rocuronium.
-    use_succ = any(x in q for x in ["succinylcholine", "sux", "succs"]) and not any(x in q for x in ["burn", "crush"])
+    use_succ = (any(x in q for x in ["succinylcholine", "sux", "succs"])
+                and not succinylcholine_contraindicated(q))
 
     if "induction" not in by_role and "ketamine" not in superseded:
         by_role["induction"] = ketamine_induction_iv(w, ped)
