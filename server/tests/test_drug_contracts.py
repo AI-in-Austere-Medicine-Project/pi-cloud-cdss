@@ -1048,6 +1048,10 @@ def test_the_declared_list_is_short_and_named():
         # Owner ruling 2026-09-24: no JTS or SMOG paediatric IV dose exists;
         # declared on NASEMSO p.94.
         ("fentanyl", "acute pain / analgesia"),
+        # A15, owner ruling 2026-09-28 (#103 review): no approved source
+        # states a ketamine seizure dose; option B declared on JTS ID91 p.28
+        # and Finney 2026.
+        ("ketamine", "refractory seizure (benzodiazepine-refractory)"),
     }
 
 

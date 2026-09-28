@@ -167,7 +167,14 @@ def test_refractory_child_without_a_weight_gets_no_number(run):
     "80kg male still in status after 10 mg of versed",
     "Have a TBI patient that is having ststus SZ, maxed out on versed",
 ])
-def test_refractory_names_ketamine_with_its_source_and_no_unsigned_dose(run, query):
+def test_refractory_names_ketamine_with_its_source_and_no_unsigned_dose(run, query, monkeypatch):
+    """With no ketamine seizure entry signed. A15 signs one, so the test hides
+    it: the card must still name ketamine, cite ID91 and state no number when
+    a deployment's bank has none."""
+    dc = oc.drug_contracts
+    real = dc.signed_entries_by_indication
+    monkeypatch.setattr(dc, "signed_entries_by_indication",
+                        lambda *a, **k: [(n, e) for n, e in real(*a, **k) if n != "ketamine"])
     give = _give(_card(run(query)))
     line = [l for l in give.splitlines() if "ketamine" in l.lower()]
     assert line, give

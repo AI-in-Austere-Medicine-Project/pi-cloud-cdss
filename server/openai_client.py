@@ -5413,9 +5413,14 @@ def _second_line_seizure_doses(ctx: PatientContext) -> list:
     if drug_contracts is None or (ctx.is_pediatric and ctx.dosing_weight_kg is None):
         return []
     doses = []
+    route = ctx.route_preference if ctx.route_preference in ("IV", "IM") else None
     for name, entry in drug_contracts.signed_entries_by_indication(
             SECOND_LINE_SEIZURE_INDICATIONS, ctx.is_pediatric, ctx.age_years):
         if name.lower() in _BENZODIAZEPINES:
+            continue
+        # A15: with a stated route, only that route's doses (ketamine has
+        # IV/IO and IM entries; "IV in" is not a reason to show the IM one).
+        if route and entry.get("route") != route:
             continue
         r = drug_contracts.resolve_dose(entry, ctx.dosing_weight_kg)
         if r["dose_mg"] is None:
@@ -5458,10 +5463,18 @@ def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None
         served = ket + lev + rest
         give.append("- A benzodiazepine has already been given: no further benzodiazepine "
                     "dose here. Second line:")
+        ket_signed = drug_contracts is not None and any(
+            n == "ketamine" for n, _ in drug_contracts.signed_entries_by_indication(
+                SECOND_LINE_SEIZURE_INDICATIONS, ctx.is_pediatric, ctx.age_years))
         give += [render_give_line(d) for d in ket] or [
-            "- Ketamine is the second drug for refractory seizures "
-            f"({KETAMINE_SECOND_LINE_SOURCE}). No signed ketamine dose for this indication "
-            "yet: medical control."]
+            ("- ketamine: no signed dose without a weight: give the patient's weight in kg."
+             if ket_signed and ctx.dosing_weight_kg is None else
+             "- Ketamine is the second drug for refractory seizures "
+             f"({KETAMINE_SECOND_LINE_SOURCE}). No signed ketamine dose for this "
+             "patient here: medical control." if ket_signed else
+             "- Ketamine is the second drug for refractory seizures "
+             f"({KETAMINE_SECOND_LINE_SOURCE}). No signed ketamine dose for this indication "
+             "yet: medical control.")]
         give.append("- If ketamine is not available: levetiracetam.")
         give += [render_give_line(d) for d in lev] or [
             "- levetiracetam: " + (

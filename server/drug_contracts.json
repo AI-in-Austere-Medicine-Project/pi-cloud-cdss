@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "64 of 104 dose entries across 16 of 34 drugs are signed and servable; 2 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "68 of 108 dose entries across 16 of 34 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -941,6 +941,330 @@
           "extraction_notes": "A THIRD value joins the existing ketamine analgesia conflict. NASEMSO gives 0.25 mg/kg capped at 25 mg initial; the hardcode gives 0.3 mg/kg IV and 2.0 mg/kg IM uncapped; JTS ID61 gives 0.1-0.2 mg/kg. The spread between the lowest tier-1 figure and the hardcoded IM figure is twentyfold.",
           "adjudication": "OWNER RULING 2026-08-25: JTS ID61's 0.1-0.2 mg/kg and NASEMSO's 0.25 mg/kg are the same clinical range for sub-dissociative analgesia. Both kept and both cited; this is not a conflict.",
           "adjudicated_on": "2026-08-25"
+        },
+        {
+          "indication": "refractory seizure (benzodiazepine-refractory)",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "cautions": [
+            "Only after benzodiazepines have failed to stop the seizure.",
+            "Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously.",
+            "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026).",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-09-28"
+            }
+          ],
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-09-28",
+          "version": "0.1.0",
+          "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. IV covers IV or IO. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
+          "flags": [
+            "OWNER_DECLARED"
+          ],
+          "owner_declaration": {
+            "basis": "owner clinical declaration",
+            "declared_by": "Andrew Azelton - AI-AIM",
+            "declared_on": "2026-09-28",
+            "justification": "JTS ID91 p.28 prescribes the shape: benzodiazepines first, then consider ketamine for refractory seizures. No approved source (NASEMSO, JTS, SMOG, WHO EML) states a ketamine seizure dose. The owner declares option B (#103 review, 2026-09-28): 2 mg/kg IV/IO and 3-4 mg/kg IM for adults, 1 mg/kg IV/IO and 3 mg/kg IM for children, the doses EMS gave in Finney 2026 (IV/IO mean 2.2, IM mean 3.3 mg/kg; 90.5% stopped) and the mg/kg values already signed here for ketamine dissociative sedation, so medics carry one ketamine pattern.",
+            "declared_value": {
+              "min": 2.0,
+              "max": 2.0,
+              "units": "mg/kg",
+              "per_kg": true
+            },
+            "supporting_doctrine": [
+              {
+                "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+                "supports": "The indication: ketamine for seizures that benzodiazepines don't stop. States no dose."
+              },
+              {
+                "citation": "Finney JD, Kowalski M, Wang J, et al. Prehospital Ketamine Administration in Benzodiazepine Refractory Status Epilepticus: A Case Series Review. Prehosp Emerg Care. 2026;30(2):323-331. doi:10.1080/10903127.2025.2486302 (PMID 40193549), Results (abstract)",
+                "supports": "The doses EMS gave for BRSE: IM mean 3.3 mg/kg (22 patients), IV/IO mean 2.2 mg/kg (20); seizures stopped in 38 of 42 (90.5%), ages 8 months to 79 years. Transient hypoxia 22%, BVM 31%, SGA 7%, one intubation. A case series, not a protocol."
+              },
+              {
+                "citation": "Scheppke KA, Pepe PE, Garay SA, et al. Effectiveness of Ketamine As a Rescue Drug for Patients Experiencing Benzodiazepine-Resistant Status Epilepticus in the Prehospital Setting. Crit Care Explor. 2024;6(12):e1186. doi:10.1097/CCE.0000000000001186 (PMID 39642307)",
+                "supports": "Ketamine after sufficient midazolam stopped convulsions in 56 of 57 adults (98.2%) with no clinically significant complications in 81 cases. Its protocol dose (100 mg adult; 1 mg/kg child IM/IN) is option A, not the one declared here."
+              },
+              {
+                "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+                "supports": "The same mg/kg values are signed in this bank for ketamine dissociative sedation (adult 2 mg/kg IV, 4 mg/kg IM; child 1 mg/kg IV, 3 mg/kg IM). Cited for the values medics already carry for ketamine, not for the seizure indication."
+              }
+            ]
+          }
+        },
+        {
+          "indication": "refractory seizure (benzodiazepine-refractory)",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": {
+            "min": 3.0,
+            "max": 4.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "cautions": [
+            "Only after benzodiazepines have failed to stop the seizure.",
+            "Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously.",
+            "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026).",
+            "Onset of action 3-5 minutes by this route.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-09-28"
+            }
+          ],
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-09-28",
+          "version": "0.1.0",
+          "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. The IM range 3-4 mg/kg serves its minimum, 3 mg/kg (SIGNING.md: the engine serves a range's minimum); to serve 4 mg/kg set min and max to 4 and re-declare. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
+          "flags": [
+            "OWNER_DECLARED"
+          ],
+          "owner_declaration": {
+            "basis": "owner clinical declaration",
+            "declared_by": "Andrew Azelton - AI-AIM",
+            "declared_on": "2026-09-28",
+            "justification": "JTS ID91 p.28 prescribes the shape: benzodiazepines first, then consider ketamine for refractory seizures. No approved source (NASEMSO, JTS, SMOG, WHO EML) states a ketamine seizure dose. The owner declares option B (#103 review, 2026-09-28): 2 mg/kg IV/IO and 3-4 mg/kg IM for adults, 1 mg/kg IV/IO and 3 mg/kg IM for children, the doses EMS gave in Finney 2026 (IV/IO mean 2.2, IM mean 3.3 mg/kg; 90.5% stopped) and the mg/kg values already signed here for ketamine dissociative sedation, so medics carry one ketamine pattern.",
+            "declared_value": {
+              "min": 3.0,
+              "max": 4.0,
+              "units": "mg/kg",
+              "per_kg": true
+            },
+            "supporting_doctrine": [
+              {
+                "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+                "supports": "The indication: ketamine for seizures that benzodiazepines don't stop. States no dose."
+              },
+              {
+                "citation": "Finney JD, Kowalski M, Wang J, et al. Prehospital Ketamine Administration in Benzodiazepine Refractory Status Epilepticus: A Case Series Review. Prehosp Emerg Care. 2026;30(2):323-331. doi:10.1080/10903127.2025.2486302 (PMID 40193549), Results (abstract)",
+                "supports": "The doses EMS gave for BRSE: IM mean 3.3 mg/kg (22 patients), IV/IO mean 2.2 mg/kg (20); seizures stopped in 38 of 42 (90.5%), ages 8 months to 79 years. Transient hypoxia 22%, BVM 31%, SGA 7%, one intubation. A case series, not a protocol."
+              },
+              {
+                "citation": "Scheppke KA, Pepe PE, Garay SA, et al. Effectiveness of Ketamine As a Rescue Drug for Patients Experiencing Benzodiazepine-Resistant Status Epilepticus in the Prehospital Setting. Crit Care Explor. 2024;6(12):e1186. doi:10.1097/CCE.0000000000001186 (PMID 39642307)",
+                "supports": "Ketamine after sufficient midazolam stopped convulsions in 56 of 57 adults (98.2%) with no clinically significant complications in 81 cases. Its protocol dose (100 mg adult; 1 mg/kg child IM/IN) is option A, not the one declared here."
+              },
+              {
+                "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+                "supports": "The same mg/kg values are signed in this bank for ketamine dissociative sedation (adult 2 mg/kg IV, 4 mg/kg IM; child 1 mg/kg IV, 3 mg/kg IM). Cited for the values medics already carry for ketamine, not for the seizure indication."
+              }
+            ]
+          }
+        },
+        {
+          "indication": "refractory seizure (benzodiazepine-refractory)",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Age < 3 months"
+          ],
+          "cautions": [
+            "Only after benzodiazepines have failed to stop the seizure.",
+            "Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously.",
+            "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026).",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-09-28"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-28"
+            }
+          ],
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-09-28",
+          "version": "0.1.0",
+          "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. IV covers IV or IO. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
+          "flags": [
+            "OWNER_DECLARED"
+          ],
+          "owner_declaration": {
+            "basis": "owner clinical declaration",
+            "declared_by": "Andrew Azelton - AI-AIM",
+            "declared_on": "2026-09-28",
+            "justification": "JTS ID91 p.28 prescribes the shape: benzodiazepines first, then consider ketamine for refractory seizures. No approved source (NASEMSO, JTS, SMOG, WHO EML) states a ketamine seizure dose. The owner declares option B (#103 review, 2026-09-28): 2 mg/kg IV/IO and 3-4 mg/kg IM for adults, 1 mg/kg IV/IO and 3 mg/kg IM for children, the doses EMS gave in Finney 2026 (IV/IO mean 2.2, IM mean 3.3 mg/kg; 90.5% stopped) and the mg/kg values already signed here for ketamine dissociative sedation, so medics carry one ketamine pattern.",
+            "declared_value": {
+              "min": 1.0,
+              "max": 1.0,
+              "units": "mg/kg",
+              "per_kg": true
+            },
+            "supporting_doctrine": [
+              {
+                "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+                "supports": "The indication: ketamine for seizures that benzodiazepines don't stop. States no dose."
+              },
+              {
+                "citation": "Finney JD, Kowalski M, Wang J, et al. Prehospital Ketamine Administration in Benzodiazepine Refractory Status Epilepticus: A Case Series Review. Prehosp Emerg Care. 2026;30(2):323-331. doi:10.1080/10903127.2025.2486302 (PMID 40193549), Results (abstract)",
+                "supports": "The doses EMS gave for BRSE: IM mean 3.3 mg/kg (22 patients), IV/IO mean 2.2 mg/kg (20); seizures stopped in 38 of 42 (90.5%), ages 8 months to 79 years. Transient hypoxia 22%, BVM 31%, SGA 7%, one intubation. A case series, not a protocol."
+              },
+              {
+                "citation": "Scheppke KA, Pepe PE, Garay SA, et al. Effectiveness of Ketamine As a Rescue Drug for Patients Experiencing Benzodiazepine-Resistant Status Epilepticus in the Prehospital Setting. Crit Care Explor. 2024;6(12):e1186. doi:10.1097/CCE.0000000000001186 (PMID 39642307)",
+                "supports": "Ketamine after sufficient midazolam stopped convulsions in 56 of 57 adults (98.2%) with no clinically significant complications in 81 cases. Its protocol dose (100 mg adult; 1 mg/kg child IM/IN) is option A, not the one declared here."
+              },
+              {
+                "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+                "supports": "The same mg/kg values are signed in this bank for ketamine dissociative sedation (adult 2 mg/kg IV, 4 mg/kg IM; child 1 mg/kg IV, 3 mg/kg IM). Cited for the values medics already carry for ketamine, not for the seizure indication."
+              }
+            ]
+          },
+          "min_age_months": 3
+        },
+        {
+          "indication": "refractory seizure (benzodiazepine-refractory)",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 3.0,
+            "max": 3.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Age < 3 months"
+          ],
+          "cautions": [
+            "Only after benzodiazepines have failed to stop the seizure.",
+            "Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously.",
+            "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026).",
+            "Onset of action 3-5 minutes by this route.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-09-28"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications (\"Children <3 mo. age\"), p.127 — cited for the age floor only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-09-28"
+            }
+          ],
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-09-28",
+          "version": "0.1.0",
+          "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
+          "flags": [
+            "OWNER_DECLARED"
+          ],
+          "owner_declaration": {
+            "basis": "owner clinical declaration",
+            "declared_by": "Andrew Azelton - AI-AIM",
+            "declared_on": "2026-09-28",
+            "justification": "JTS ID91 p.28 prescribes the shape: benzodiazepines first, then consider ketamine for refractory seizures. No approved source (NASEMSO, JTS, SMOG, WHO EML) states a ketamine seizure dose. The owner declares option B (#103 review, 2026-09-28): 2 mg/kg IV/IO and 3-4 mg/kg IM for adults, 1 mg/kg IV/IO and 3 mg/kg IM for children, the doses EMS gave in Finney 2026 (IV/IO mean 2.2, IM mean 3.3 mg/kg; 90.5% stopped) and the mg/kg values already signed here for ketamine dissociative sedation, so medics carry one ketamine pattern.",
+            "declared_value": {
+              "min": 3.0,
+              "max": 3.0,
+              "units": "mg/kg",
+              "per_kg": true
+            },
+            "supporting_doctrine": [
+              {
+                "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): \"Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures.\"",
+                "supports": "The indication: ketamine for seizures that benzodiazepines don't stop. States no dose."
+              },
+              {
+                "citation": "Finney JD, Kowalski M, Wang J, et al. Prehospital Ketamine Administration in Benzodiazepine Refractory Status Epilepticus: A Case Series Review. Prehosp Emerg Care. 2026;30(2):323-331. doi:10.1080/10903127.2025.2486302 (PMID 40193549), Results (abstract)",
+                "supports": "The doses EMS gave for BRSE: IM mean 3.3 mg/kg (22 patients), IV/IO mean 2.2 mg/kg (20); seizures stopped in 38 of 42 (90.5%), ages 8 months to 79 years. Transient hypoxia 22%, BVM 31%, SGA 7%, one intubation. A case series, not a protocol."
+              },
+              {
+                "citation": "Scheppke KA, Pepe PE, Garay SA, et al. Effectiveness of Ketamine As a Rescue Drug for Patients Experiencing Benzodiazepine-Resistant Status Epilepticus in the Prehospital Setting. Crit Care Explor. 2024;6(12):e1186. doi:10.1097/CCE.0000000000001186 (PMID 39642307)",
+                "supports": "Ketamine after sufficient midazolam stopped convulsions in 56 of 57 adults (98.2%) with no clinically significant complications in 81 cases. Its protocol dose (100 mg adult; 1 mg/kg child IM/IN) is option A, not the one declared here."
+              },
+              {
+                "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61",
+                "supports": "The same mg/kg values are signed in this bank for ketamine dissociative sedation (adult 2 mg/kg IV, 4 mg/kg IM; child 1 mg/kg IV, 3 mg/kg IM). Cited for the values medics already carry for ketamine, not for the seizure indication."
+              }
+            ]
+          },
+          "min_age_months": 3
         }
       ],
       "proposed_aliases": [
