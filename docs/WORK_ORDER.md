@@ -48,9 +48,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A7 | GCS parser | **done**: #101, merged |
 | A8 | "status post" must not match status epilepticus | **done**: #102, merged |
 | A9 | Active-seizure phrasings reach the signed entry | **done**: #103, merged and deployed |
-| A14 | "Absent lung sounds" is a tension sign | **done**: #106, merged |
+| A14 | "Absent lung sounds" is a tension sign | after A9 (**next**) |
 | A15 | Ketamine for benzodiazepine-refractory seizure: contract entry | in review: #105 (option B, signed by the owner) |
-| A10 | CICO card must not fire on a completed surgical airway | after A15 (**next**) |
+| A10 | CICO card must not fire on a completed surgical airway | after A15 |
 | A11 | Free-text dose check reads infusion rates | after A10 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 |
 | A13 | Remove the dead safety_rules.json path | after A12 |
@@ -209,11 +209,13 @@ Failing tests first. Negatives: "status post", "post-status" and "status: stable
 
 The tension check reads "absent / decreased / no … breath sounds" or "air entry", not "lung sounds". A live-log query, "shot in the chest … blood pressure 80/40 … absent lung sounds on the left side", gets the DCR card, not the tension card that A1's ruling 1 puts first. Failing tests first, including that query verbatim; the negation rules stay as they are.
 
-### A15: ketamine for benzodiazepine-refractory seizure (owner, #103 review; in review, #104)
+### A15: ketamine for benzodiazepine-refractory seizure (owner, #103 review; in review, #105)
 
 A contract entry for ketamine, indication "refractory seizure (benzodiazepine-refractory)". The ACTIVE SEIZURE card already serves it once signed. The sources and the two dose options (A: 100 mg fixed adult, 1 mg/kg child IM/IN, per Scheppke 2024; B: 2 mg/kg IV/IO, 3–4 mg/kg IM, the observed doses in Finney 2026, as the signed dissociative doses) are in [`authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md`](authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md). The owner rules the dose and signs; the entry is drafted unsigned.
 
-**Owner ruling (2026-09-28): option B, ketamine as the second drug.** "B - Ketamine as second drug. Sign off with me Andrew Azelton." Signed by the owner in #104: adult IV/IO 2 mg/kg, IM 3–4 mg/kg (the engine serves a range's minimum, 3 mg/kg); child IV/IO 1 mg/kg, IM 3 mg/kg, 3 months and over. Owner-declared (declared_by "Andrew Azelton - AI-AIM"): no approved source states a ketamine seizure dose. The ACTIVE SEIZURE card (#103) serves ketamine first after a benzodiazepine, then "If ketamine is not available: levetiracetam". Done ahead of A14 because it completes #103's card.
+**Owner ruling (2026-09-28): option B, ketamine as the second drug.** "B - Ketamine as second drug. Sign off with me Andrew Azelton." Signed by the owner in #105 (#104 was closed by GitHub when #103's branch was deleted): adult IV/IO 2 mg/kg, IM 3–4 mg/kg (the engine serves a range's minimum, 3 mg/kg); child IV/IO 1 mg/kg, IM 3 mg/kg, 3 months and over. Owner-declared (declared_by "Andrew Azelton - AI-AIM"): no approved source states a ketamine seizure dose. The ACTIVE SEIZURE card (#103) serves ketamine first after a benzodiazepine, then "If ketamine is not available: levetiracetam". Done ahead of A14 because it completes #103's card.
+
+**Cautions (owner, 2026-09-28):** hypoxia and BVM readiness as two served lines: "Hypoxia: transient hypoxia in 22% … Monitor SpO2 and EtCO2 continuously." and "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway." Re-signed.
 
 ### A10: the CICO card must not fire on a completed surgical airway (owner, 2026-09-26; found in #86)
 
