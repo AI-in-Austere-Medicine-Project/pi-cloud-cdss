@@ -1314,6 +1314,13 @@ _NOT_ACTIVE_SEIZURE_RE = re.compile(
     r"\b(?:no|not|denies|without|negative for|rule out|history of|hx of|h/o|"
     r"prior|previous|past|prophylaxis|prophylactic|prevent\w*)\b")
 _CLAUSE_START_RE = re.compile(r"[,;.:!?\n—]")
+# A8: "status" is a seizure word only in its seizure senses. The builder's
+# trigger used to be the bare substring 'status', so "status post oral
+# trauma" (H-SESS-002), "altered mental status" and "code status" were all
+# offered the active-seizure dose. The class of "stab" in "stable".
+_SEIZURE_STATUS_RE = re.compile(
+    r"\b(?:in|still\s+in|into|went\s+into|going\s+into|back\s+in)\s+status\b(?!\s*(?:post|:))"
+    r"|\bstatus\s+(?:epilepticus|seizures?|szs?)\b")
 
 
 def is_active_seizure_query(text: str) -> bool:
@@ -1670,7 +1677,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
 
     is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
     is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
-    is_seizure = (any(x in q for x in ['seizure', 'seizing', 'status'])
+    is_seizure = (any(x in q for x in ['seizure', 'seizing'])
+                  or bool(_SEIZURE_STATUS_RE.search(q))
                   or is_active_seizure_query(q))
     has_ketamine = 'ketamine' in named and 'ketamine' not in superseded
     has_roc = 'rocuronium' in named and 'rocuronium' not in superseded
