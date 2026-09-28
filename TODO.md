@@ -205,7 +205,7 @@ deliberately did NOT touch.
       ceilings are also drug-level where the contracts are indication-level,
       so this is not a one-line substitution: ketamine's ceiling has to admit
       4 mg/kg IM dissociative sedation without admitting 4 mg/kg as analgesia.
-- [ ] **`safety_rules.json` `dose_limits` is a stale mirror of the dose bank.**
+- [x] **`safety_rules.json` `dose_limits` is a stale mirror of the dose bank.** Closed by A13 (#110): the file, its generator and its reader are removed.
       It still carries the retired numbers (ketamine 0.3/2.0/1.5/0.5 mg/kg,
       rocuronium 1.0, succinylcholine 1.5/2.0). Nothing serves them —
       `clinical_router.check_safety_rules()` reads only `condition`,

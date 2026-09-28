@@ -236,10 +236,15 @@ def test_norepinephrine_drip_does_not_return_the_epinephrine_recipe():
     NOREPINEPHRINE request — a different drug at a different concentration,
     served as though it were the answer, with nothing marking the substitution.
     Same failure class as F-2 in the alias table, one table over.
+
+    Since A16 a norepinephrine drip request gets its OWN card, with the signed
+    norepinephrine rate. The epinephrine recipe must still never answer it.
     """
     import openai_client as oc
-    assert oc.build_fixed_prep_response("how do i mix a norepinephrine drip") is None
-    assert oc.build_fixed_prep_response("norepinephrine drip please") is None
+    for q in ("how do i mix a norepinephrine drip", "norepinephrine drip please"):
+        text = oc.build_fixed_prep_response(q) or ""
+        assert "EPINEPHRINE INFUSION PREP" not in text, q
+        assert "NOREPINEPHRINE INFUSION" in text, q
     assert oc.is_fixed_prep_request("how do i mix a norepinephrine drip") is False
 
 

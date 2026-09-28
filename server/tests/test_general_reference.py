@@ -279,13 +279,23 @@ def test_a_dose_line_in_general_mode_is_blocked_and_unbannered(stub_llm):
     assert oc.knowledge_source(result["source_mode"]) == "general"
 
 
+# A dopamine recipe, not norepinephrine: since A16 a norepinephrine drip
+# request gets the deterministic norepinephrine card, never general mode.
+_DOPAMINE_PREP_RECIPE = (
+    "**DOPAMINE INFUSION PREP**\n"
+    "- Mix 400 mg dopamine in 250 mL NS.\n"
+    "- Final concentration: 1600 mcg/mL.\n\n"
+    "General reference, not JTS. Confirm against local protocol."
+)
+
+
 def test_a_recipe_in_general_mode_is_served(stub_llm):
-    stub_llm["reply"] = GENERAL_PREP_RECIPE
-    result = run("how do i mix a norepinephrine drip", stub_llm)
+    stub_llm["reply"] = _DOPAMINE_PREP_RECIPE
+    result = run("how do i mix a dopamine drip", stub_llm)
     assert result["source_mode"] == "GENERAL_REFERENCE"
     assert result["validator_result"] == "SAFE"
     assert gr.has_banner(result["response"])
-    assert "16 mcg/mL" in result["response"]
+    assert "1600 mcg/mL" in result["response"]
 
 
 def test_non_medical_refusal_is_unchanged(stub_llm):
