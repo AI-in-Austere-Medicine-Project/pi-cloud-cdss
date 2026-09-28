@@ -4874,8 +4874,23 @@ def is_non_medical_query(query: str) -> bool:
     return any(t in q for t in non_medical)
 
 
+# A10: a surgical airway that is already done is not a CICO request. These
+# spans are removed before the CICO words are read, so "cric'd, what do I give
+# after RSI" is not told to do a cric now, and "failed cric, can't oxygenate"
+# still is. Found in #86; the class of A8, a substring with no state.
+_SURGICAL_AIRWAY_DONE_RE = re.compile(
+    r"\bcric(?:'|’)?(?:e)?d\b"
+    r"|\b(?:cric|cricothyrotomy|cricothyroidotomy|surgical\s+airway|front\s+of\s+neck(?:\s+access)?)"
+    r"\s+(?:is\s+|was\s+|now\s+)?(?:in(?:\s+place)?|placed|done|secured|established|performed|complete\w*)\b"
+    r"|\b(?:did|done|performed|placed|got|have|had)\s+(?:a|the|an)\s+"
+    r"(?:cric|cricothyrotomy|cricothyroidotomy|surgical\s+airway)\b"
+    r"|\bpost[- ]?(?:cric|cricothyrotomy|cricothyroidotomy)\b"
+    r"|\bafter\s+(?:the|a|his|her)\s+(?:cric|cricothyrotomy|surgical\s+airway)\b",
+    re.IGNORECASE)
+
+
 def is_cico_query(text: str) -> bool:
-    q = (text or "").lower()
+    q = _SURGICAL_AIRWAY_DONE_RE.sub(" ", (text or "").lower())
     explicit = any(x in q for x in ["cico", "cric", "front of neck", "surgical airway"])
     failed_airway = any(x in q for x in [
         "failed ett", "failed intubation", "can't intubate", "cannot intubate",

@@ -49,9 +49,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A8 | "status post" must not match status epilepticus | **done**: #102, merged |
 | A9 | Active-seizure phrasings reach the signed entry | **done**: #103, merged and deployed |
 | A14 | "Absent lung sounds" is a tension sign | **done**: #106, merged |
-| A15 | Ketamine for benzodiazepine-refractory seizure: contract entry | in review: #105 (option B, signed by the owner) |
-| A10 | CICO card must not fire on a completed surgical airway | after A15 (**next**) |
-| A11 | Free-text dose check reads infusion rates | after A10 |
+| A15 | Ketamine for benzodiazepine-refractory seizure: contract entry | **done**: #105, merged and deployed (option B, signed by the owner) |
+| A10 | CICO card must not fire on a completed surgical airway | in review: #107 |
+| A11 | Free-text dose check reads infusion rates | after A10 (**next**) |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 |
 | A13 | Remove the dead safety_rules.json path | after A12 |
 | D5a | Full-answer logging | after A13 |
@@ -75,7 +75,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9 and A14 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14 and A15 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -209,7 +209,7 @@ Failing tests first. Negatives: "status post", "post-status" and "status: stable
 
 The tension check reads "absent / decreased / no … breath sounds" or "air entry", not "lung sounds". A live-log query, "shot in the chest … blood pressure 80/40 … absent lung sounds on the left side", gets the DCR card, not the tension card that A1's ruling 1 puts first. Failing tests first, including that query verbatim; the negation rules stay as they are.
 
-### A15: ketamine for benzodiazepine-refractory seizure (owner, #103 review; in review, #105)
+### A15: ketamine for benzodiazepine-refractory seizure (owner, #103 review; done, #105)
 
 A contract entry for ketamine, indication "refractory seizure (benzodiazepine-refractory)". The ACTIVE SEIZURE card already serves it once signed. The sources and the two dose options (A: 100 mg fixed adult, 1 mg/kg child IM/IN, per Scheppke 2024; B: 2 mg/kg IV/IO, 3–4 mg/kg IM, the observed doses in Finney 2026, as the signed dissociative doses) are in [`authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md`](authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md). The owner rules the dose and signs; the entry is drafted unsigned.
 
@@ -217,7 +217,7 @@ A contract entry for ketamine, indication "refractory seizure (benzodiazepine-re
 
 **Cautions (owner, 2026-09-28):** hypoxia and BVM readiness as two served lines: "Hypoxia: transient hypoxia in 22% … Monitor SpO2 and EtCO2 continuously." and "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway." Re-signed.
 
-### A10: the CICO card must not fire on a completed surgical airway (owner, 2026-09-26; found in #86)
+### A10: the CICO card must not fire on a completed surgical airway (owner, 2026-09-26; found in #86; in review, #107)
 
 The CICO check is a substring match with no state (`"cric" in q`, `openai_client.py:4580`). Live on the #86 branch, "80kg male, cric'd, what do I give after RSI" was served "Declare CICO … Perform surgical airway / cricothyrotomy now" for a patient whose cric was already in.
 
@@ -445,7 +445,7 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 
 ## Found along the way, not yet placed
 
-- **The validator holds a correct post-tube sedation answer** (found in #86, live on the branch). "80kg male, we tubed him, what do I give after RSI" went to gpt-4o-mini, and the validator held it: "recommends post-intubation sedation with ketamine without confirming the tube is in place". It doesn't read "we tubed him" as the tube being in. It fails safe, so it isn't fixed now (owner, 2026-09-26). Revisit when the validator wording is looked at as a whole, together with run-3 finding 6 (TXA held for plain haemorrhage).
+- **The validator holds a correct post-tube sedation answer** (found in #86, live on the branch). "80kg male, we tubed him, what do I give after RSI" went to gpt-4o-mini, and the validator held it: "recommends post-intubation sedation with ketamine without confirming the tube is in place". It doesn't read "we tubed him" as the tube being in. It fails safe, so it isn't fixed now (owner, 2026-09-26). Seen again in #107's live harness with "80kg male, cric'd, what do I give after RSI": the validator held gpt-4o-mini's post-intubation ketamine "without confirming tube placement". Revisit when the validator wording is looked at as a whole, together with run-3 finding 6 (TXA held for plain haemorrhage).
 - **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
