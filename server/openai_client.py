@@ -5446,20 +5446,28 @@ def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None
 
     give = []
     if benzo_given:
+        # Owner, #103 review: ketamine is the second drug; levetiracetam is the
+        # alternative (most rescue and EMS systems don't carry it).
+        ket = [d for d in served if d.drug.lower() == "ketamine"]
+        lev = [d for d in served if d.drug.lower() == "levetiracetam"]
+        rest = [d for d in served if d not in ket and d not in lev]
+        served = ket + lev + rest
         give.append("- A benzodiazepine has already been given: no further benzodiazepine "
                     "dose here. Second line:")
-    give += [render_give_line(d) for d in served]
-    if benzo_given:
-        if not any(d.drug.lower() == "levetiracetam" for d in served):
-            give.append("- levetiracetam: " + (
+        give += [render_give_line(d) for d in ket] or [
+            "- Ketamine is the second drug for refractory seizures "
+            f"({KETAMINE_SECOND_LINE_SOURCE}). No signed ketamine dose for this indication "
+            "yet: medical control."]
+        give.append("- If ketamine is not available: levetiracetam.")
+        give += [render_give_line(d) for d in lev] or [
+            "- levetiracetam: " + (
                 "no signed dose without a weight: give the patient's weight in kg."
                 if ctx.dosing_weight_kg is None else
-                "no signed dose for this patient here. Use local protocol or medical control."))
-        if not any(d.drug.lower() == "ketamine" for d in served):
-            give.append("- If levetiracetam is not carried: ketamine is a second-line option "
-                        f"for refractory seizures ({KETAMINE_SECOND_LINE_SOURCE}). No signed "
-                        "ketamine dose for this indication yet: medical control.")
-    elif not any(d.drug.lower() in _BENZODIAZEPINES for d in served):
+                "no signed dose for this patient here. Use local protocol or medical control.")]
+        give += [render_give_line(d) for d in rest]
+    else:
+        give += [render_give_line(d) for d in served]
+    if not benzo_given and not any(d.drug.lower() in _BENZODIAZEPINES for d in served):
         if ctx.dosing_weight_kg is None:
             give.append("- No signed benzodiazepine dose without a weight: give the patient's "
                         "weight in kg for the signed dose.")
