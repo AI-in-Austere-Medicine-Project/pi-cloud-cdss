@@ -5,7 +5,6 @@ Version: 1.0.0
 Queries existing ChromaDB chunks, extracts structured clinical metadata
 per JTS protocol using GPT-4o-mini, validates with Pydantic, and writes:
   - protocol_index.json    (routing map)
-  - safety_rules.json      (hard stops)
   - query_aliases.json     (field slang)
 
 Run once on arcaneone:
@@ -168,109 +167,6 @@ def extract_protocol_metadata(source_file: str, text: str) -> Optional[ProtocolM
     except Exception as e:
         print(f"    ⚠️  Error for {source_file}: {e}")
         return None
-
-
-# ── Safety rules builder ──────────────────────────────────────────────────────
-
-def build_safety_rules(protocols: list) -> dict:
-    """
-    Aggregate safety rules from all extracted protocols.
-    Also includes hard-coded known rules as baseline.
-    """
-    rules = {
-        "txa_tranexamic_acid": {
-            "drug": "TXA / Tranexamic Acid",
-            "indications": [
-                "Traumatic hemorrhagic shock",
-                "Within 3 hours of injury",
-                "Active hemorrhage with hemodynamic instability"
-            ],
-            "contraindications": [
-                "Sepsis without confirmed hemorrhage",
-                "Hypothermia alone without hemorrhage",
-                "Burns alone without hemorrhage",
-                "Isolated TBI without hemorrhage",
-                "More than 3 hours after injury"
-            ],
-            "timing_constraints": ["Must be given within 3 hours of injury for benefit"]
-        },
-        "ketamine": {
-            "drug": "Ketamine",
-            "indications": [
-                "Subdissociative analgesia (IV 0.3mg/kg)",
-                "Dissociative analgesia IM (2mg/kg)",
-                "RSI induction (IV 1.5mg/kg)",
-                "Post-intubation sedation (IV 0.5mg/kg q20-30min)"
-            ],
-            "contraindications": [],
-            "dose_limits": {
-                "iv_analgesic": "0.3 mg/kg IV",
-                "im_analgesic": "2.0 mg/kg IM",
-                "rsi_induction": "1.5 mg/kg IV (max 2.0 mg/kg)",
-                "post_intubation": "0.5 mg/kg IV q20-30min"
-            },
-            "notes": "IV and IM doses differ 7x — do not cross-compare"
-        },
-        "rocuronium": {
-            "drug": "Rocuronium",
-            "indications": ["RSI paralytic"],
-            "contraindications": [],
-            "dose_limits": {"rsi": "1.0 mg/kg IV (max 1.2 mg/kg)"},
-            "sequencing": "Give AFTER induction agent only"
-        },
-        "succinylcholine": {
-            "drug": "Succinylcholine",
-            "indications": ["RSI paralytic (alternative to rocuronium)"],
-            "contraindications": [
-                "Hyperkalemia or risk of hyperkalemia",
-                "Burns greater than 24 hours old",
-                "Crush injury",
-                "Denervation injuries",
-                "Known personal or family history of malignant hyperthermia"
-            ],
-            "dose_limits": {"rsi_adult": "1.5 mg/kg IV", "rsi_pediatric": "2.0 mg/kg IV"}
-        },
-        "wpw_contraindicated_drugs": {
-            "condition": "WPW / Wolf-Parkinson-White / Pre-excitation",
-            "never_give": ["adenosine", "metoprolol", "atenolol", "diltiazem",
-                           "verapamil", "digoxin", "any beta-blocker",
-                           "any calcium channel blocker"],
-            "reason": "Risk of VF via accessory pathway",
-            "treatment": "Synchronized cardioversion if unstable"
-        },
-        "steroids_in_tbi": {
-            "condition": "Traumatic Brain Injury",
-            "never_give": ["dexamethasone", "methylprednisolone", "solu-medrol",
-                           "decadron", "any corticosteroid"],
-            "reason": "Increases mortality per CRASH trial",
-            "also_avoid": ["albumin", "routine hyperventilation unless herniation signs"]
-        },
-        "paralytic_sequencing": {
-            "rule": "Never give paralytic before induction agent in patient with pulse",
-            "required_sequence": ["induction agent first", "paralytic second",
-                                   "post-intubation sedation after tube confirmed"],
-            "exception": "Cardiac arrest — paralytic alone may be acceptable per local protocol"
-        }
-    }
-
-    # Augment with extracted protocol contraindications
-    for protocol in protocols:
-        for c in protocol.contraindications:
-            for med in protocol.medications:
-                med_key = med.lower().replace(" ", "_")
-                if med_key not in rules:
-                    rules[med_key] = {
-                        "drug": med,
-                        "indications": [],
-                        "contraindications": [],
-                        "source_protocol": protocol.protocol_id
-                    }
-                if c not in rules[med_key].get("contraindications", []):
-                    if "contraindications" not in rules[med_key]:
-                        rules[med_key]["contraindications"] = []
-                    rules[med_key]["contraindications"].append(c)
-
-    return rules
 
 
 # ── Query aliases builder ─────────────────────────────────────────────────────
@@ -494,9 +390,6 @@ def main():
             "search_terms": p.search_terms,
         }
 
-    # safety_rules.json
-    safety_rules = build_safety_rules(protocols)
-
     # query_aliases.json
     query_aliases = build_query_aliases()
 
@@ -507,10 +400,6 @@ def main():
     with open(output_dir / "protocol_index.json", "w") as f:
         json.dump(protocol_index, f, indent=2)
     print(f"  ✅ protocol_index.json ({len(protocol_index)} protocols)")
-
-    with open(output_dir / "safety_rules.json", "w") as f:
-        json.dump(safety_rules, f, indent=2)
-    print(f"  ✅ safety_rules.json ({len(safety_rules)} rules)")
 
     with open(output_dir / "query_aliases.json", "w") as f:
         json.dump(query_aliases, f, indent=2)

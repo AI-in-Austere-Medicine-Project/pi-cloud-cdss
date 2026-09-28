@@ -2,7 +2,7 @@
 EdgeCDSS — Clinical Router
 Version: 1.0.0
 
-Uses protocol_index.json, safety_rules.json, and query_aliases.json
+Uses protocol_index.json and query_aliases.json
 to route clinical queries to the correct JTS protocol before ChromaDB search.
 
 Replaces keyword-based pre-gates in openai_client.py with JSON-backed routing.
@@ -143,7 +143,6 @@ class RoutingResult:
     protocol_title: Optional[str]
     clinical_domain: Optional[str]
     missing_context: list                  # what we need before answering
-    safety_concerns: list                  # hard stops identified
     enhanced_search_query: str            # improved ChromaDB query
     aliases_resolved: list                # slang terms resolved
     confidence: str                       # HIGH / MEDIUM / LOW
@@ -160,7 +159,6 @@ class ClinicalRouter:
         import os
         self.app_dir = Path(app_dir or os.getenv("CDSS_APP_DIR") or Path(__file__).parent)
         self.protocol_index = self._load_json("protocol_index.json")
-        self.safety_rules = self._load_json("safety_rules.json")
         self.query_aliases = self._load_json("query_aliases.json")
 
         # Build fast lookup structures
@@ -371,37 +369,6 @@ class ClinicalRouter:
 
         return enhanced, resolved
 
-    def check_safety_rules(self, query: str, full_history: str) -> list:
-        """Check query against safety rules. Return list of concerns."""
-        concerns = []
-        combined = (full_history + " " + query).lower()
-
-        for rule_id, rule in self.safety_rules.items():
-            # Check if this drug/intervention is being requested
-            drug = rule.get("drug", rule.get("drug_or_intervention", "")).lower()
-            never_give = [x.lower() for x in rule.get("never_give", [])]
-
-            # Check WPW-type rules
-            if rule.get("condition", "").lower() in combined:
-                for forbidden in never_give:
-                    if forbidden in combined:
-                        concerns.append(
-                            f"SAFETY: {rule.get('condition')} — do not give {forbidden}. "
-                            f"Reason: {rule.get('reason', 'contraindicated')}"
-                        )
-
-            # Check drug contraindications
-            if drug and drug in combined:
-                for contra in rule.get("contraindications", []):
-                    # Simple check — could be made more sophisticated
-                    contra_terms = contra.lower().split()[:3]
-                    if all(t in combined for t in contra_terms if len(t) > 3):
-                        concerns.append(
-                            f"SAFETY: {drug} may be contraindicated — {contra}"
-                        )
-
-        return concerns
-
     def identify_missing_context(self, protocol_id: str, patient_ctx) -> list:
         """Return list of required context that's currently missing."""
         if not protocol_id or protocol_id not in self.protocol_index:
@@ -528,9 +495,6 @@ class ClinicalRouter:
                 if search_terms:
                     enhanced_query += " " + " ".join(search_terms)
 
-        # Step 4: Check safety rules
-        safety_concerns = self.check_safety_rules(query, full_history)
-
         # Step 5: Identify missing context
         missing_context = self.identify_missing_context(matched_protocol, patient_ctx)
 
@@ -539,7 +503,6 @@ class ClinicalRouter:
             protocol_title=protocol_title,
             clinical_domain=clinical_domain,
             missing_context=missing_context,
-            safety_concerns=safety_concerns,
             enhanced_search_query=enhanced_query.strip(),
             aliases_resolved=aliases_resolved,
             confidence=confidence
@@ -570,8 +533,6 @@ class ClinicalRouter:
                 print(f"  Aliases: {', '.join(result.aliases_resolved[:2])}")
             if result.missing_context:
                 print(f"  Missing: {', '.join(result.missing_context[:2])}")
-            if result.safety_concerns:
-                print(f"  ⚠️  Safety: {result.safety_concerns[0][:80]}")
             print(f"  Search: {result.enhanced_search_query[:80]}")
 
 
