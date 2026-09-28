@@ -47,7 +47,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A8 | "status post" must not match status epilepticus. | Found in #91 | Done, #102 |
 | A9 | "actively seizing", "still seizing", "seizing now" and "in status" reach the signed seizure entry. | Found in #91 | In review, #103 (the card carries the dose; levetiracetam and ketamine as second line) |
 | A14 | "Absent lung sounds" is read as a tension sign, so the tension card comes before DCR. | Found in #101; owner, #103 review | Next, after A9 |
-| A15 | A signed ketamine entry for benzodiazepine-refractory seizure; the seizure card already serves it once signed. | Owner, #103 review | After A14; the owner rules the dose and signs |
+| A15 | A signed ketamine entry for benzodiazepine-refractory seizure; the seizure card already serves it once signed. | Owner, #103 review | In review, #104: option B signed by the owner (adult 2 mg/kg IV/IO, 3–4 mg/kg IM; child 1 mg/kg IV/IO, 3 mg/kg IM) |
 | A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | After A15 |
 | A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | After A10 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | After A11 |

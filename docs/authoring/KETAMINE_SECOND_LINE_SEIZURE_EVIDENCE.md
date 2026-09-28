@@ -2,7 +2,7 @@
 
 Owner, #103 review (2026-09-28): "If patient does not respond to benzos, you can offer levetiracetam, so Ketamine is a known second and third line drug for SZ. status SZ. Most rescue and ems systems dont have levetiracetam. There is data behind it. Search and include KetamINE for second line."
 
-**Status:** the ACTIVE SEIZURE card (#103) names ketamine as the second line when levetiracetam isn't carried, citing JTS ID91 p.28, **with no dose**. No ketamine entry is signed for this indication. The card serves one as soon as one is signed: its lookup already includes the indication "refractory seizure". This page gathers the sources and the dose options for that entry. **Signing is the owner's act.** Nothing here is a signed value.
+**Status (2026-09-28): option B signed by the owner in #104.** Adult IV/IO 2 mg/kg, IM 3–4 mg/kg (served as 3 mg/kg, a range's minimum); child IV/IO 1 mg/kg, IM 3 mg/kg, 3 months and over. It is owner-declared, since no approved source states a ketamine seizure dose. The ACTIVE SEIZURE card serves it as the second drug after a benzodiazepine, with levetiracetam as the alternative. The rest of this page is the evidence behind that decision.
 
 ## Sources found
 
