@@ -179,3 +179,19 @@ def test_refractory_names_ketamine_with_its_source_and_no_unsigned_dose(run, que
 def test_first_line_does_not_offer_second_line(run):
     give = _give(_card(run("80kg male actively seizing")))
     assert "levetiracetam" not in give and "ketamine" not in give.lower(), give
+
+
+# Owner, #103 review round 2: "Ketamine as second drug". Ketamine comes first
+# in the second line; levetiracetam is the alternative when ketamine isn't
+# available.
+
+@pytest.mark.parametrize("query", [
+    "80kg male still in status after 10 mg of versed",
+    "6 year old, 20kg, still seizing after midazolam",
+])
+def test_ketamine_is_the_second_drug_and_levetiracetam_the_alternative(run, query):
+    lines = [l for l in _give(_card(run(query))).splitlines() if l.startswith("- ")]
+    ket = next(i for i, l in enumerate(lines) if "ketamine" in l.lower())
+    lev = next(i for i, l in enumerate(lines) if "levetiracetam" in l.lower())
+    assert ket < lev, lines
+    assert any("if ketamine is not available" in l.lower() for l in lines[ket:lev + 1]), lines
