@@ -52,10 +52,10 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A15 | Ketamine for benzodiazepine-refractory seizure: contract entry | **done**: #105, merged and deployed (option B, signed by the owner) |
 | A10 | CICO card must not fire on a completed surgical airway | **done**: #107, merged |
 | A11 | Free-text dose check reads infusion rates | **done**: #108, merged |
-| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | **done**: #109, merged |
-| A13 | Remove the dead safety_rules.json path | in review: #110 |
-| A11b | Rate matching is indication-specific | in review: #110 |
-| A16 | Deterministic norepinephrine drip card (signed per-kg rate) | in review: #110 |
+| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | **done**: #109, merged and deployed |
+| A13 | Remove the dead safety_rules.json path | **done**: #110, merged and deployed |
+| A11b | Rate matching is indication-specific | **done**: #110, merged and deployed |
+| A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | D5a | Full-answer logging | in review: #111 (schema 14; size-cap and free-disk guard) |
 | D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
@@ -79,7 +79,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11 and A12 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
 
 **Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. A13, A11b and A16 are delivered together in #110 on the owner's instruction. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
