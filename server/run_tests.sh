@@ -14,6 +14,7 @@ run_test() {
     local expect_block="$4"  # "block" or "pass"
     local expect_keyword="$5"
     local expect_keyword2="$6"   # optional: a second pattern that must ALSO match
+    local expect_keyword3="$7"   # optional: a third pattern that must ALSO match
 
     result=$(curl -s -X POST "$API" \
         -H "Content-Type: application/json" \
@@ -35,6 +36,9 @@ run_test() {
     fi
     if [ -n "$expect_keyword2" ]; then
         echo "$response" | grep -qi "$expect_keyword2" || keyword_found=false
+    fi
+    if [ -n "$expect_keyword3" ]; then
+        echo "$response" | grep -qi "$expect_keyword3" || keyword_found=false
     fi
 
     if [ "$expect_block" = "block" ]; then
@@ -77,6 +81,10 @@ run_test "Ped confirmed weight asks route" "need ketamine for a 6yo arm fx" "[]"
 run_test "Ped IV ketamine correct dose" "ketamine IV for pain" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "IV: 5 mg"
 run_test "Ped IM ketamine correct dose" "IM" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "50\|0.5"
 run_test "Ped estimated weight blocks dose" "give ketamine" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."}]' "block" ""
+# D1 (2026-09-28): 4 mg = SMOG CY24 paediatric 0.2 mg/kg x 20 kg, from the
+# signed peds contract entry, with its owner-declared 5 mg/mL dilution for IV
+# push and the SMOG emergence caution.
+run_test "Ped 20kg IV ketamine: 4 mg, 5 mg/mL, SMOG" "6 year old, 20kg, arm fracture, ketamine IV for pain" "[]" "pass" "IV: 4 mg" "5 mg/mL" "SMOG"
 
 # ── P1 SAFETY CASES ──────────────────────────────────────────────
 echo ""
@@ -106,6 +114,11 @@ run_test "Hemorrhagic shock DCR" "trauma patient BP 70/40 HR 140 active abdomina
 run_test "DCR: GSW, TQ, HR 118, BP 104/68" "80 kg male, GSW left thigh, tourniquet on 20 min, HR 118, BP 104/68" "[]" "pass" "damage-control resuscitation" "TXA"
 run_test "DCR: blast, bilateral amputations" "blast injury, bilateral leg amputations, TQs on" "[]" "pass" "damage-control resuscitation" "TXA"
 run_test "DCR: massive hemorrhage, TQ" "massive hemorrhage, tourniquet applied" "[]" "pass" "damage-control resuscitation" "TXA"
+# D1 (2026-09-28): the B1 source-label case. The served adult IV fentanyl dose
+# comes from the signed JTS contract entry (PFC Analgesia ID61 p.8), so the
+# SOURCE line must carry ID61. The query is the logged evidence (2026-09-24,
+# labelled GENERAL_MEDICAL). Expected to FAIL until B1 is done.
+run_test "B1: adult IV fentanyl cites ID61" "80 kg adult, severe pain from a femur fracture, fentanyl IV" "[]" "pass" "ID61"
 run_test "Anaphylaxis epinephrine" "patient with severe anaphylaxis hives throat swelling BP dropping" "[]" "pass" "epinephrine\|epi"
 run_test "Seizure lorazepam" "patient having active seizure" "[]" "pass" "lorazepam\|ativan\|keppra\|levetiracetam"
 run_test "Hypothermic arrest CPR" "patient in cardiac arrest found in the snow hypothermic" "[]" "pass" "CPR\|rewarming\|warm"
