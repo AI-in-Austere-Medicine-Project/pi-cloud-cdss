@@ -3750,9 +3750,49 @@ def _rate_key(unit: str, per_kg: bool, time: str):
     return None
 
 
-def _signed_rate_ranges(drug: str, patient_ctx: Optional["PatientContext"]) -> list:
+# A11b (owner, #108 review): a rate is checked against the entries for THIS
+# patient's indication, the same shape as A1b. Epinephrine's bradycardia and
+# shock ranges overlap, so matching by drug let 0.25 mcg/kg/min through for a
+# bradycardic patient. With no indication detected, matching by drug stands.
+_RATE_BRADY_RE = re.compile(r"\bbradycardi\w*|\bbrady\b")
+_RATE_CARDIOGENIC_RE = re.compile(
+    r"\bcardiogenic\b|\bpulmonary\s+o?edema\b|\bheart\s+failure\b|\bchf\b")
+_RATE_SHOCK_RE = re.compile(
+    r"\bshock\b|\bhypotensi\w*|\bseptic\b|\bsepsis\b|\bvasodilat\w*|\bdistributive\b")
+
+
+def rate_indications(query: str) -> set:
+    """The infusion indications the query states: bradycardia, cardiogenic,
+    shock. Empty when none is stated."""
+    q = (query or "").lower()
+    found = set()
+    readings, _ = vitals_mod.parse_vitals(q, ts=None)
+    hr = readings.get("hr")
+    if _RATE_BRADY_RE.search(q) or (hr is not None and hr.value < 60):
+        found.add("bradycardia")
+    if _RATE_CARDIOGENIC_RE.search(q):
+        found.add("cardiogenic")
+    elif _RATE_SHOCK_RE.search(q) or has_hypotension_or_shock(q):
+        found.add("shock")
+    return found
+
+
+def _rate_indication_category(indication: str) -> Optional[str]:
+    i = (indication or "").lower()
+    if "bradycardia" in i:
+        return "bradycardia"
+    if "cardiogenic" in i:
+        return "cardiogenic"
+    if "shock" in i:
+        return "shock"
+    return None
+
+
+def _signed_rate_ranges(drug: str, patient_ctx: Optional["PatientContext"],
+                        indications: Optional[set] = None) -> list:
     """[(key, lo, hi)] for the drug's signed infusion-rate entries for this
-    patient's population, normalised like _rate_key."""
+    patient's population, normalised like _rate_key. With indications given
+    (A11b), only the entries for them."""
     if drug_contracts is None:
         return []
     ped = bool(patient_ctx and patient_ctx.is_pediatric)
@@ -3760,6 +3800,8 @@ def _signed_rate_ranges(drug: str, patient_ctx: Optional["PatientContext"]) -> l
     for e in drug_contracts.servable_entries().get(drug, []):
         pops = (e.get("population") or "").split("|")
         if ("peds" if ped else "adult") not in pops:
+            continue
+        if indications and _rate_indication_category(e.get("indication")) not in indications:
             continue
         r = e.get("dose_range") or {}
         units = str(r.get("units") or "")
@@ -3774,9 +3816,14 @@ def _signed_rate_ranges(drug: str, patient_ctx: Optional["PatientContext"]) -> l
 
 
 def _free_rate_hold_line(drug: str, shown: str, has_signed_rate: bool,
-                         patient_ctx: Optional["PatientContext"]) -> str:
+                         patient_ctx: Optional["PatientContext"],
+                         other_indication: str = "") -> str:
     """No signed number is quoted (owner ruling 12)."""
     said = f"The answer stated {drug} {shown} as an infusion rate"
+    if other_indication:
+        return (f"{said}, which is not a signed {drug} infusion rate for {other_indication} "
+                f"in this patient. Ask for the {drug} infusion by name, with what it is "
+                f"for, to get the signed rate.")
     if not has_signed_rate:
         who = " for a child" if patient_ctx is not None and patient_ctx.is_pediatric else ""
         return (f"{said}, but EdgeCDSS has no signed {drug} infusion rate{who}. "
@@ -3788,8 +3835,11 @@ def _free_rate_hold_line(drug: str, shown: str, has_signed_rate: bool,
 
 def free_text_dose_issues(response_text: str,
                           allowed_doses: Optional[List["DoseCandidate"]],
-                          patient_ctx: Optional["PatientContext"] = None) -> list:
-    """Issues for doses stated outside the canonical GIVE line. See above."""
+                          patient_ctx: Optional["PatientContext"] = None,
+                          query: Optional[str] = None) -> list:
+    """Issues for doses stated outside the canonical GIVE line. See above.
+    `query` makes rate matching indication-specific (A11b)."""
+    indications = rate_indications(query) if query else set()
     allowed = {}
     for d in allowed_doses or []:
         allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
@@ -3855,7 +3905,9 @@ def free_text_dose_issues(response_text: str,
                     continue
                 drug = attribute(rate)
                 key = _rate_key(rate.group(3), bool(rate.group(4)), rate.group(5))
-                signed = _signed_rate_ranges(drug, patient_ctx)
+                any_signed = _signed_rate_ranges(drug, patient_ctx)
+                signed = (_signed_rate_ranges(drug, patient_ctx, indications)
+                          if indications else any_signed)
                 if key is not None:
                     kind, factor = key
                     stated = [float(v) * factor for v in rate.group(1, 2) if v]
@@ -3863,8 +3915,16 @@ def free_text_dose_issues(response_text: str,
                                              for x in stated)
                            for k, lo, hi in signed):
                         continue
+                wrong_indication = ""
+                if indications and key is not None and any(
+                        k == key[0] and all(lo * 0.95 - 1e-12 <= x <= hi * 1.05 + 1e-12
+                                            for x in [float(v) * key[1]
+                                                      for v in rate.group(1, 2) if v])
+                        for k, lo, hi in any_signed):
+                    wrong_indication = " and ".join(sorted(indications))
                 issues.append(_free_rate_hold_line(drug, rate.group(0).strip(),
-                                                   bool(signed), patient_ctx))
+                                                   bool(any_signed), patient_ctx,
+                                                   wrong_indication))
     return list(dict.fromkeys(issues))
 
 
@@ -4023,7 +4083,7 @@ def run_deterministic_checks(query: str, response_text: str,
                     f"match any ALLOWED_DOSES value ({allowed_vals}).")
 
     # ── Doses stated outside the canonical GIVE line ──────────────────────
-    issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx))
+    issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx, query))
 
     # ── A dose labelled for an indication it was not built for (A1b) ──────
     issues.extend(indication_label_issues(response_text, allowed_doses))
