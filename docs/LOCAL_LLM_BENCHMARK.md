@@ -307,3 +307,53 @@ In `run_tests.sh`, 23 of the 24 whole cards are identical between arms. The exce
 6. **Latency is within the range of the earlier runs.** Cloud p95 fell (5.7 to 4.6 s). The local run had no cold-start outlier (max 42.8 s).
 
 **Limits.** n = 30 and one run per arm, as before. There is no scoring of content beyond the gate outcome: findings 1, 4 and 5 come from reading the cards, not from `score.py`. The full-text captures are gitignored, in `cdss-eval/runs/`.
+
+## Benchmark protocol (D1, owner 2026-09-26)
+
+Every local-arm benchmark from D1 on follows this protocol. A run that departs from it says so in its own section.
+
+**Code and inputs**
+- The code under test is a `git archive` snapshot of the named `main` commit. The deployed `drug_concentrations.json` is copied in, and `PINNED_SHA` records the commit. Every arm and pass uses the same snapshot.
+- The 30-scenario set runs through `run_bank.py --round all`, on its own instance on port 8113, against the frozen bank. Check that `run_meta.json` shows `rounds: all`, `rows: 30` and `bank.intact: true`.
+- `run_tests.sh` runs against a second uvicorn on port 8002 from the same snapshot, with its own log directory and corpus copy. Never run it against the live service or with its `.env`.
+
+**Local passes: air-gapped, three of them**
+- Before the local passes, **ethernet, Wi-Fi and LTE are physically disconnected**. On this Jetson that means:
+  - ethernet is `enP8p1s0`;
+  - Wi-Fi is the onboard RTL8822CE `wlP1p1s0`;
+  - there is no LTE modem (`mmcli -L`: none);
+  - the USB-C device-mode link (`usb0`/`l4tbr0`) must have no cable in.
+- **3 local passes** run back to back, unattended. The session that launched them is offline too.
+- **A timestamped connectivity probe** (`tools/bench/connectivity_probe.py`) runs:
+  - before the passes;
+  - every 30 s during them;
+  - after them.
+
+  Each probe checks, and records as one JSON line:
+  - link carrier on every external interface;
+  - default routes;
+  - NetworkManager device states and the Wi-Fi radio;
+  - modems;
+  - DNS for two provider hosts;
+  - TCP to three public addresses;
+  - ICMP.
+
+  A probe is OFFLINE only if every check fails. The passes start after 3 consecutive OFFLINE probes.
+- The probe file is saved next to the results: in the run bundle and in each pass's run directory. A pass with any ONLINE probe before, during or after it is not an air-gapped pass and is reported as such.
+- A socket guard (`tools/bench/netguard/sitecustomize.py`, with that directory on `PYTHONPATH` and `NETGUARD_LOG` set) logs every non-loopback connection attempt from the benchmark's Python processes. An air-gapped pass is expected to log none.
+
+**Full response text**
+- The 30-set records every response in full (`results.jsonl`).
+- `run_tests.sh` runs behind a pass-through `curl` wrapper that tees every full response body to `full.jsonl`.
+- Session logs are schema 14 (full answer) once D5a is deployed. Earlier snapshots keep only a 200-character preview in the session log, so the harness captures are the record.
+
+**Cloud arm**
+- A cloud arm cannot be air-gapped. It runs online, from the same snapshot, as deployed: the default model with the 8 s cloud timeout.
+- Its turns are attributed by each row's `model_used`, because the hybrid fallback can serve a turn from local qwen.
+
+**Recorded with every run**
+- the commit;
+- the Ollama version;
+- `nvpmodel -q`;
+- the kernel;
+- start and end times.
