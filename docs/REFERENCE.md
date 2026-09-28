@@ -45,8 +45,10 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A6 | A design, no code, for a signed table of contraindicated procedures. | Work order 2026-09-24 | Done, #99. P3 and P5 signed (#100); P1 and P2 unsigned |
 | A7 | The GCS parser reads "GCS is seven", "3T", "of 6", "G6" and "E4V5M6". | Owner, 2026-09-25; "E4V5M6" added in the #95 review | Done, #101 |
 | A8 | "status post" must not match status epilepticus. | Found in #91 | Done, #102 |
-| A9 | "actively seizing", "still seizing", "seizing now" and "in status" reach the signed seizure entry. | Found in #91 | In review, #103 (the card carries the dose) |
-| A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | Next, after A9 |
+| A9 | "actively seizing", "still seizing", "seizing now" and "in status" reach the signed seizure entry. | Found in #91 | In review, #103 (the card carries the dose; levetiracetam and ketamine as second line) |
+| A14 | "Absent lung sounds" is read as a tension sign, so the tension card comes before DCR. | Found in #101; owner, #103 review | Next, after A9 |
+| A15 | A signed ketamine entry for benzodiazepine-refractory seizure; the seizure card already serves it once signed. | Owner, #103 review | After A14; the owner rules the dose and signs |
+| A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | After A15 |
 | A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | After A10 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | After A11 |
 | A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | After A12 |
@@ -121,6 +123,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | `DISTILL_BENCH_<tag>.md` | One per `make bench`: before/after against `qwen2.5:3b` |
 | [`FEEDBACK_REVIEW_2026-09-03.md`](FEEDBACK_REVIEW_2026-09-03.md) | The field feedback behind A3 and C1 |
 | [`A6_CONTRAINDICATED_PROCEDURES_DESIGN.md`](A6_CONTRAINDICATED_PROCEDURES_DESIGN.md) | A6's proposal: the procedure table, matching, false-positive risks, signing |
+| [`authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md`](authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md) | Sources and dose options for A15, ketamine as a second-line seizure drug |
 | [`TESTING_LOCAL.md`](TESTING_LOCAL.md) | Manual checks for the offline and hybrid modes on a second server |
 | [`tools/distill/README.md`](../tools/distill/README.md) | The D6 toolchain: install, targets, isolation, the three gotchas |
 
@@ -151,8 +154,7 @@ Mirrors the list of the same name in `WORK_ORDER.md`.
 | A correct signed dose is held when the question names the indication, not the drug (epinephrine 1 mg in asystole). Fixing it releases holds and needs an owner ruling. | #97 |
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
-| "Absent lung sounds" is not read as a tension sign, so a chest GSW in shock with that phrasing gets the DCR card first (A1 ruling 1 says tension first). A live-log query. | #101 |
-| An eclamptic seizure is served lorazepam with no magnesium; the bank has no signed magnesium entry. | #103 |
+| An eclamptic seizure is served lorazepam with no magnesium; the bank has no signed magnesium entry. SMOG p.37 puts magnesium first line in pregnancy. | #103 |
 | gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set. | Run 3 (#87) |
 | The corpus was ingested from the superseded 2017 ID39; the 2026 edition is now in `jts_protocols`. Re-ingest is a separate decision. | #100 |
 | The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list; ID40 p.3 does. A re-sign. | #100 |
