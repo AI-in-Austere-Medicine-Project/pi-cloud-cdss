@@ -51,9 +51,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A14 | "Absent lung sounds" is a tension sign | **done**: #106, merged |
 | A15 | Ketamine for benzodiazepine-refractory seizure: contract entry | **done**: #105, merged and deployed (option B, signed by the owner) |
 | A10 | CICO card must not fire on a completed surgical airway | **done**: #107, merged |
-| A11 | Free-text dose check reads infusion rates | in review: #108 |
-| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 (**next**) |
-| A13 | Remove the dead safety_rules.json path | after A12 |
+| A11 | Free-text dose check reads infusion rates | **done**: #108, merged |
+| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | in review: #109 |
+| A13 | Remove the dead safety_rules.json path | after A12 (**next**) |
 | A11b | Rate matching is indication-specific | after A13 |
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | after A11b |
 | D5a | Full-answer logging | after A16 |
@@ -77,9 +77,9 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15 and A10 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10 and A11 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
-Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
+**Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
 ## Items
 
@@ -227,7 +227,7 @@ Same class as A8: a substring match with no state. One bug per PR, so it is not 
 
 Failing tests first: "cric'd", "cric is in" and "surgical airway in place" must not get the CICO card. A genuine CICO request ("Help me do a cric", "failed intubation, failed i-gel, sats are 71") still must.
 
-### A11: the free-text dose check reads infusion rates (owner, #97 review; found in #97; in review, #108)
+### A11: the free-text dose check reads infusion rates (owner, #97 review; found in #97; done, #108)
 
 "Start epinephrine 5 mcg/min" or "0.05 mcg/kg/min" to an adult with no signed rate built is served with no hold: the free-text dose check doesn't read rates at all. Same class as run-3 finding 5 (uncited numbers served unheld).
 
@@ -252,7 +252,7 @@ Requirement (owner): the free-text dose check reads rates (mcg/min, mcg/kg/min, 
 3. **Norepinephrine always holding is A16**, a deterministic norepinephrine drip card, after A11b and before D5a.
 4. **Uncited IV fluid rates stay on the found list.** Closing it needs signed crystalloid entries, which is the owner's authoring job.
 
-### A12: succinylcholine leaves ALLOWED_DOSES under a P5 condition (owner, #98 review)
+### A12: succinylcholine leaves ALLOWED_DOSES under a P5 condition (owner, #98 review; in review, #109)
 
 When a P5 condition (burns, spinal cord injury, hyperkalaemia) is present, the builder doesn't offer succinylcholine. A dose-layer change, kept out of A6.
 
