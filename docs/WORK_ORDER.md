@@ -54,7 +54,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A11 | Free-text dose check reads infusion rates | in review: #108 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 (**next**) |
 | A13 | Remove the dead safety_rules.json path | after A12 |
-| D5a | Full-answer logging | after A13 |
+| A11b | Rate matching is indication-specific | after A13 |
+| A16 | Deterministic norepinephrine drip card (signed per-kg rate) | after A11b |
+| D5a | Full-answer logging | after A16 |
 | D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
 | B1 | Source-mode labelling | after D6 |
@@ -75,7 +77,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14 and A15 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9 and A14 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -244,6 +246,12 @@ Requirement (owner): the free-text dose check reads rates (mcg/min, mcg/kg/min, 
 
 **What will start holding:** every stated rate for any drug other than epinephrine and norepinephrine. That includes ketamine, fentanyl, midazolam and propofol drips, and any mcg/min or mL/hr rate for the other signed drugs (atropine, calcium gluconate, dextrose, levetiracetam, lorazepam, morphine, naloxone, rocuronium, 3% NaCl, succinylcholine, TXA). All signed rate entries are per kg, so an epinephrine or norepinephrine rate also needs a weight to compare against. A plain mcg/min rate ("5 mcg/min") has no signed entry to match, and holds.
 
+**Owner rulings (#108 review, 2026-09-28):**
+1. **Rate matching by drug is accepted for now.** A11b makes it indication-specific, after A13.
+2. **Any rate inside a signed range passes.** A signed rate range is a titration range, and every value in it is signed. (A single-dose range still serves its minimum.)
+3. **Norepinephrine always holding is A16**, a deterministic norepinephrine drip card, after A11b and before D5a.
+4. **Uncited IV fluid rates stay on the found list.** Closing it needs signed crystalloid entries, which is the owner's authoring job.
+
 ### A12: succinylcholine leaves ALLOWED_DOSES under a P5 condition (owner, #98 review)
 
 When a P5 condition (burns, spinal cord injury, hyperkalaemia) is present, the builder doesn't offer succinylcholine. A dose-layer change, kept out of A6.
@@ -251,6 +259,14 @@ When a P5 condition (burns, spinal cord injury, hyperkalaemia) is present, the b
 ### A13: remove the dead safety_rules.json path (owner, #98 review; found in #98)
 
 `clinical_router.check_safety_rules()` matches `safety_rules.json` against the query, and the result goes only to a console print. Remove it, with a test that nothing depended on it.
+
+### A11b: rate matching is indication-specific (owner, #108 review)
+
+A11 matches a stated rate against any of the drug's signed rate entries for the patient's population. Make it indication-specific, the same shape as A1b: a rate is checked against the entries for this patient's indication (for example, epinephrine for symptomatic bradycardia against 0.02–0.2 mcg/kg/min, not the shock range). Failing tests first.
+
+### A16: a deterministic norepinephrine drip card (owner, #108 review; found in #108)
+
+Models answer a norepinephrine rate question in flat mcg/min ("2–20 mcg/min"), which A11 holds: every signed norepinephrine rate is per kg per minute, and nothing serves one. Add a deterministic norepinephrine drip card serving the signed per-kg rate, the way the epinephrine drip card does. Failing test first: the "norepinephrine 2–20 mcg/min" answer is held, and the card is served.
 
 ### B1: source-mode labelling
 
@@ -450,8 +466,7 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - **An eclamptic seizure is served lorazepam, with no magnesium** (found in #103). SMOG CY24 p.37: "In pregnant patients, Magnesium should be first line to abort non-epileptic seizures." "70kg, 34 weeks pregnant, eclamptic seizure, what do I give" goes to the model path (A9 keeps eclampsia off the seizure card), and the builder offers lorazepam 4 mg for active seizure. gpt-4o-mini served it. The bank has no signed magnesium entry. It's the same on main.
-- **A norepinephrine rate question has no path to its signed rate** (found in #108). Models answer in flat mcg/min ("2-12 mcg/min", "2-20 mcg/min"); every signed norepinephrine rate is per kg per minute, so A11 holds the answer. Nothing serves the signed per-kg rate: the fixed-prep card covers epinephrine drips, not norepinephrine. Safe, but no answer.
-- **Uncited IV fluid rates are still served** (run-3 finding 5, confirmed in #108). A fluid isn't a drug the check recognises, so "if IV, infuse 250–500 mL/hr" (H-IM-06) isn't read. A11 reads rates for recognised drugs only.
+- **Uncited IV fluid rates are still served** (run-3 finding 5, confirmed in #108). A fluid isn't a drug the check recognises, so "if IV, infuse 250–500 mL/hr" (H-IM-06) isn't read. A11 reads rates for recognised drugs only. Closing it needs signed crystalloid entries, which is the owner's authoring job (owner, #108 review).
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
 - **The corpus was ingested from the superseded ID39** (found in #100). `server/data/jts_protocols` holds both `Airway_Management_of_Traumatic_Injuries_17_Jul_2017_ID39.pdf` and `Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf`. All 28 ID39 chunks in the production ChromaDB come from the 2017 edition. Re-ingest is a separate decision.
 - **The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list** (found in #100). The 2026 ID39 p.28 supports its 1.5 mg/kg dose, not "Burns", "Spinal cord injury" or "Hyperkalemia". ID40 p.3 does. Correcting it is a re-sign of that contract.
