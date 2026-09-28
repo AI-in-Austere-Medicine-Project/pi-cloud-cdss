@@ -96,3 +96,17 @@ def test_single_doses_are_read_as_before():
     issues = oc.free_text_dose_issues("**GIVE**\n- Epinephrine infusion 0.05 mcg/kg/min.",
                                       [], ADULT)
     assert issues == [], issues
+
+
+def test_a_volume_rate_is_not_inherited_from_an_earlier_drug():
+    """Found by the replay (gemini-3.7-flash, H-IM-06): "Use oral rehydration
+    solution; if IV, infuse 250–500 mL/hr." The rate is IV crystalloid, not the
+    oral rehydration salts named in the previous clause. A mL/hr rate counts
+    only when its drug is named in the same clause."""
+    text = ("**BRIEF**\n- If stable and conscious: Use oral rehydration solution; "
+            "if IV, infuse 250–500 mL/hr.")
+    assert _rate_issues(text) == [], _rate_issues(text)
+
+
+def test_a_mass_rate_still_inherits_its_drug():
+    assert _rate_issues("**GIVE**\n- Epinephrine drip. Start at 5 mcg/min.")
