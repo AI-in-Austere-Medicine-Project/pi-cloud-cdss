@@ -50,9 +50,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A9 | Active-seizure phrasings reach the signed entry | **done**: #103, merged and deployed |
 | A14 | "Absent lung sounds" is a tension sign | **done**: #106, merged |
 | A15 | Ketamine for benzodiazepine-refractory seizure: contract entry | **done**: #105, merged and deployed (option B, signed by the owner) |
-| A10 | CICO card must not fire on a completed surgical airway | in review: #107 |
-| A11 | Free-text dose check reads infusion rates | after A10 (**next**) |
-| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 |
+| A10 | CICO card must not fire on a completed surgical airway | **done**: #107, merged |
+| A11 | Free-text dose check reads infusion rates | in review: #108 |
+| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 (**next**) |
 | A13 | Remove the dead safety_rules.json path | after A12 |
 | D5a | Full-answer logging | after A13 |
 | D1 | Evaluation hygiene | after D5a |
@@ -225,7 +225,7 @@ Same class as A8: a substring match with no state. One bug per PR, so it is not 
 
 Failing tests first: "cric'd", "cric is in" and "surgical airway in place" must not get the CICO card. A genuine CICO request ("Help me do a cric", "failed intubation, failed i-gel, sats are 71") still must.
 
-### A11: the free-text dose check reads infusion rates (owner, #97 review; found in #97)
+### A11: the free-text dose check reads infusion rates (owner, #97 review; found in #97; in review, #108)
 
 "Start epinephrine 5 mcg/min" or "0.05 mcg/kg/min" to an adult with no signed rate built is served with no hold: the free-text dose check doesn't read rates at all. Same class as run-3 finding 5 (uncited numbers served unheld).
 
@@ -450,6 +450,8 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - **An eclamptic seizure is served lorazepam, with no magnesium** (found in #103). SMOG CY24 p.37: "In pregnant patients, Magnesium should be first line to abort non-epileptic seizures." "70kg, 34 weeks pregnant, eclamptic seizure, what do I give" goes to the model path (A9 keeps eclampsia off the seizure card), and the builder offers lorazepam 4 mg for active seizure. gpt-4o-mini served it. The bank has no signed magnesium entry. It's the same on main.
+- **A norepinephrine rate question has no path to its signed rate** (found in #108). Models answer in flat mcg/min ("2-12 mcg/min", "2-20 mcg/min"); every signed norepinephrine rate is per kg per minute, so A11 holds the answer. Nothing serves the signed per-kg rate: the fixed-prep card covers epinephrine drips, not norepinephrine. Safe, but no answer.
+- **Uncited IV fluid rates are still served** (run-3 finding 5, confirmed in #108). A fluid isn't a drug the check recognises, so "if IV, infuse 250–500 mL/hr" (H-IM-06) isn't read. A11 reads rates for recognised drugs only.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
 - **The corpus was ingested from the superseded ID39** (found in #100). `server/data/jts_protocols` holds both `Airway_Management_of_Traumatic_Injuries_17_Jul_2017_ID39.pdf` and `Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf`. All 28 ID39 chunks in the production ChromaDB come from the 2017 edition. Re-ingest is a separate decision.
 - **The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list** (found in #100). The 2026 ID39 p.28 supports its 1.5 mg/kg dose, not "Burns", "Spinal cord injury" or "Hyperkalemia". ID40 p.3 does. Correcting it is a re-sign of that contract.
