@@ -56,7 +56,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A13 | Remove the dead safety_rules.json path | in review: #110 |
 | A11b | Rate matching is indication-specific | in review: #110 |
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | in review: #110 |
-| D5a | Full-answer logging | **next**: the A list is done once #110 merges |
+| D5a | Full-answer logging | in review: #111 (schema 14; size-cap and free-disk guard) |
 | D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5 |
@@ -361,6 +361,8 @@ Logging starts as soon as this deploys, so the next dataset comes from real serv
 - Same retention and access rules as the existing query logs. The full answer is no more sensitive than the query already stored.
 - A disk estimate: mean answer length × current daily query volume.
 - Log rotation set so the Jetson can't fill up.
+
+**Built (D5a PR):** log schema 14 adds `response` (the full text the medic saw, the hold text when held), `held_response` (the model's own text the gate held) and `full_answer_dropped`; `response_preview` stays. Same file, same daily rotation, same retention and access; nothing is deleted. Estimate, measured on the Jetson's 35 days of logs: about 1.9 KB per entry, about 25 MB a year at the mean volume, about 175 MB a year at the peak day's volume held every day, against 1.7 TB free. Rotation: files already rotate daily; over `CDSS_LOG_DIR_MAX_BYTES` of session logs or under `CDSS_LOG_MIN_FREE_BYTES` of free disk (2 GiB each by default), the full-answer fields are null with the reason and the rest of the entry is still written. **Owner's decision, open:** whether old session logs are ever deleted by age.
 
 ### D5: distillation dataset builder
 
