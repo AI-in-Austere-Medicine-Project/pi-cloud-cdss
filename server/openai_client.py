@@ -2664,8 +2664,12 @@ def looks_like_hemorrhagic_shock(query: str) -> bool:
 # carries the DCR reassessment line, so the bleeding is not lost.
 # ─────────────────────────────────────────────────────────────────────────────
 _TENSION_SIGN_RES = (
+    # A14: "lung sounds" as well as "breath sounds" (the live-log query said
+    # "absent lung sounds"), and the reversed order, "breath sounds absent".
     re.compile(r"\b(?:absent|decreased|diminished|reduced|no|markedly decreased)\s+"
-               r"(?:air\s+entry|breath\s+sounds)\b", re.IGNORECASE),
+               r"(?:air\s+entry|(?:breath|lung)\s+sounds?)\b"
+               r"|\b(?:air\s+entry|(?:breath|lung)\s+sounds?)\s+(?:are\s+|is\s+)?"
+               r"(?:absent|decreased|diminished|reduced)\b", re.IGNORECASE),
     re.compile(r"\bjvd\b|\bjugular\s+venous\s+distension\b|\bdistended\s+neck\s+veins\b",
                re.IGNORECASE),
     re.compile(r"\btrache(?:a|al)\b[^.;]{0,20}\bdeviat\w*|\bdeviated\s+trachea\b",
