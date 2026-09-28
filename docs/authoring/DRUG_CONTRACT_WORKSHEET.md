@@ -393,7 +393,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **max_cumulative:** none stated by the cited source
 - **contraindications:** Hypersensitivity  ⚠️ nothing a medic could act on
 - **cautions:** Only after benzodiazepines have failed to stop the seizure. · _untiered, so it serves_
-- **cautions:** Be ready to ventilate: transient hypoxia 22% and BVM 31% after prehospital ketamine for this indication (Finney 2026). · _untiered, so it serves_
+- **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
+- **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): "Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures." · retrieved 2026-09-28
@@ -421,7 +422,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **max_cumulative:** none stated by the cited source
 - **contraindications:** Hypersensitivity  ⚠️ nothing a medic could act on
 - **cautions:** Only after benzodiazepines have failed to stop the seizure. · _untiered, so it serves_
-- **cautions:** Be ready to ventilate: transient hypoxia 22% and BVM 31% after prehospital ketamine for this indication (Finney 2026). · _untiered, so it serves_
+- **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
+- **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
 - **cautions:** Onset of action 3-5 minutes by this route. · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
@@ -451,7 +453,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Hypersensitivity
 - **contraindications:** Age < 3 months
 - **cautions:** Only after benzodiazepines have failed to stop the seizure. · _untiered, so it serves_
-- **cautions:** Be ready to ventilate: transient hypoxia 22% and BVM 31% after prehospital ketamine for this indication (Finney 2026). · _untiered, so it serves_
+- **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
+- **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): "Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures." · retrieved 2026-09-28
@@ -481,7 +484,8 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Hypersensitivity
 - **contraindications:** Age < 3 months
 - **cautions:** Only after benzodiazepines have failed to stop the seizure. · _untiered, so it serves_
-- **cautions:** Be ready to ventilate: transient hypoxia 22% and BVM 31% after prehospital ketamine for this indication (Finney 2026). · _untiered, so it serves_
+- **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
+- **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
 - **cautions:** Onset of action 3-5 minutes by this route. · _untiered, so it serves_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
