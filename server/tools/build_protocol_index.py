@@ -58,14 +58,6 @@ class ProtocolMetadata(BaseModel):
     source_file: str = ""
 
 
-class SafetyRule(BaseModel):
-    drug_or_intervention: str
-    indications: list = []
-    contraindications: list = []
-    dose_limits: list = []
-    timing_constraints: list = []
-
-
 # ── Extraction prompt ─────────────────────────────────────────────────────────
 
 EXTRACTION_PROMPT = """You are extracting structured clinical routing metadata from a JTS (Joint Trauma System) Clinical Practice Guideline.
