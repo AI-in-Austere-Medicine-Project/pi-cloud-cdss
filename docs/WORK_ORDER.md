@@ -59,6 +59,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5a | Full-answer logging | **next**: the A list is done once #110 merges |
 | D1 | Evaluation hygiene | after D5a |
 | D5 | Distillation dataset builder | after D1 |
+| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5 |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
 | B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
@@ -77,7 +78,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11 and A12 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11 and A12 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 **Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. A13, A11b and A16 are delivered together in #110 on the owner's instruction. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -297,6 +298,7 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
   - the 6-year-old 20 kg ketamine case, asserting 4 mg, the 5 mg/mL dilution and the SMOG source;
   - the fentanyl label case (B1).
 - **(b)** Reconcile the 30-scenario runner set against docs/EdgeCDSS_JTS_Evaluation_Set_30, the authored set with pre-written failure criteria. Report the differences; don't change either yet.
+  - **Moved to D1b (owner, 2026-09-28):** the authored set can't be found (not in the repo or its history, on the Jetson, or in Drive). D1 goes ahead without it.
 - **(c)** Write the benchmark protocol into the doc:
   - ethernet, Wi-Fi and LTE physically disconnected;
   - a timestamped connectivity probe before, during and after, saved next to the results;
@@ -403,6 +405,14 @@ Print the counts per scenario and per drug.
 **Refuse to run** if any row contains a dose that is not the signed value for that drug and indication.
 
 **Resolved (2026-09-26):** production session logs kept only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`), so they could not supply training answers. The owner chose (a) and (c) above.
+
+
+### D1b: the authored 30-set, drafted for sign-off (owner, 2026-09-28; after D5, its own PR)
+
+The authored set (docs/EdgeCDSS_JTS_Evaluation_Set_30) can't be found, so D1(b)'s reconciliation has nothing to compare against. Instead:
+- Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios (the frozen cdss-eval bank, `scenarios-30.jsonl`).
+- Give each scenario a pre-written failure criterion.
+- The owner reviews and signs it like a contract. Signing is the owner's act.
 
 ### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson) (done, #93)
 
