@@ -1530,6 +1530,16 @@ DOSE_TEMPLATE_CASES = [
         "weight": None,
     },
     {
+        # A9: the ACTIVE SEIZURE card carries the dose the builder resolves.
+        "name": "seizure_card_adult",
+        "render": lambda: _oc.build_seizure_response("she is seizing, 60kg",
+                                                     _analgesia_ctx("IV")),
+        "contract": lambda: _oc.build_allowed_doses("she is seizing, 60kg",
+                                                    _analgesia_ctx("IV")),
+        "backfill": [lambda w: _oc.lorazepam_seizure(w)],
+        "weight": 60.0,
+    },
+    {
         "name": "allowed_doses_seizure",
         "render": lambda: _render_allowed_doses("she is seizing, 60kg",
                                                 _analgesia_ctx("IV")),
@@ -1693,7 +1703,7 @@ def test_the_retired_analgesia_hardcode_is_gone_from_the_iv_path():
 DOSELESS_CARDS = {
     "build_cico_response", "build_tension_pneumothorax_response",
     "build_sepsis_management_response", "build_anaphylaxis_response",
-    "build_seizure_response", "build_hypothermic_arrest_response",
+    "build_hypothermic_arrest_response",
     "build_mascal_response",
     "build_ketamine_drip_response", "build_cholera_response",
     "build_ketamine_age_block",
@@ -1709,7 +1719,7 @@ NOT_A_DOSE_CARD = {
     "build_safety_hold", "build_full_query_history", "build_general_case_response",
     "build_fixed_prep_response", "build_ketamine_analgesia_response",
     "build_rsi_response", "build_hemorrhagic_shock_dcr_response",
-    "build_tbi_management_response",
+    "build_tbi_management_response", "build_seizure_response",
 }
 
 # Cards that render the RECORD behind a dose already served. They print

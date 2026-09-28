@@ -5368,20 +5368,80 @@ def build_anaphylaxis_response() -> str:
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_seizure_response() -> str:
-    return """**ACTIVE SEIZURE**
+# A9: a benzodiazepine the medic says was already given. The card then serves
+# no further benzodiazepine dose: repeat and second-line dosing are for local
+# protocol or medical control, not for a card to decide.
+_BENZO_WORDS = r"(?:midazolam|midaz|versed|lorazepam|ativan|diazepam|valium|benzo\w*)"
+_BENZO_ALREADY_GIVEN_RE = re.compile(
+    r"\b(?:maxed(?:\s+out)?|after|already|gave|given|got|received|refractory|failed|"
+    r"despite|post)\b[^.;]{0,40}?\b" + _BENZO_WORDS + r"\b"
+    r"|\b" + _BENZO_WORDS + r"\b[^.;]{0,30}?\b(?:given|failed|didn'?t work|not working|"
+    r"no effect|no response)\b")
+_BENZODIAZEPINES = ("lorazepam", "midazolam", "diazepam")
+
+
+def is_active_seizure_card_query(query: str) -> bool:
+    """A9: every active-seizure phrasing gets the ACTIVE SEIZURE card: the old
+    substrings, A1b's detector ("SZ", "having a seizure", "convulsing",
+    "status epilepticus") and A8's "in status". Eclampsia is not a card
+    seizure: the card's benzodiazepine advice is not its treatment."""
+    q = (query or "").lower()
+    if "eclamp" in q:
+        return False
+    return (any(x in q for x in ["active seizure", "having active seizure", "seizing"])
+            or is_active_seizure_query(q) or bool(_SEIZURE_STATUS_RE.search(q)))
+
+
+def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None) -> str:
+    """The ACTIVE SEIZURE card. A9 (owner ruling): it carries the signed dose
+    the builder resolves for this patient, the way A2's severe-TBI card does.
+    Exactly what build_allowed_doses would offer the model: the same weight
+    gate, the same indication match, one benzodiazepine."""
+    ctx = ctx or PatientContext()
+    q = (query or "").lower()
+    served = [d for d in build_allowed_doses(query, ctx)
+              if is_seizure_treatment_indication(d.indication)]
+    benzo_given = bool(_BENZO_ALREADY_GIVEN_RE.search(q))
+    if benzo_given:
+        served = [d for d in served if d.drug.lower() not in _BENZODIAZEPINES]
+
+    give = [render_give_line(d) for d in served]
+    if benzo_given:
+        give.append("- A benzodiazepine has already been given: repeat or second-line dosing "
+                    "per local protocol or medical control.")
+    elif not any(d.drug.lower() in _BENZODIAZEPINES for d in served):
+        if ctx.dosing_weight_kg is None:
+            give.append("- No signed benzodiazepine dose without a weight: give the patient's "
+                        "weight in kg for the signed dose.")
+        else:
+            give.append("- No signed benzodiazepine dose for this patient here. Use local "
+                        "protocol or medical control.")
+    give_text = "\n".join(give)
+    step2 = ("Give the benzodiazepine below; lorazepam is preferred IV when available."
+             if any(d.drug.lower() in _BENZODIAZEPINES for d in served) else
+             "Give benzodiazepine per local protocol; lorazepam is preferred IV when available.")
+    blocks = ""
+    if served:
+        blocks = (f"\n**CONTRAINDICATIONS**\n{served_contraindications_block(served)}\n"
+                  f"\n**CAUTIONS**\n{served_cautions_block(served)}\n")
+    source = (f"\n**SOURCE**: {served_source_line(served, 'no signed dose')}\n"
+              if served else "")
+    return f"""**ACTIVE SEIZURE**
 
 **DO THIS**
 1. Protect airway, place lateral if possible, suction ready.
-2. Give benzodiazepine per local protocol; lorazepam is preferred IV when available.
+2. {step2}
 3. If prolonged/recurrent, prepare levetiracetam/Keppra and evacuate.
 
+**GIVE**
+{give_text}
+{blocks}
 **WATCH**
 - Respiratory depression after benzodiazepine.
 
 **TLDR**
 - Active seizure: airway protection, lorazepam/benzodiazepine, then Keppra if ongoing.
-
+{source}
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
@@ -5704,14 +5764,18 @@ def build_vtach_response() -> str:
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_general_case_response(query: str) -> Optional[str]:
+def build_general_case_response(query: str, ctx: Optional[PatientContext] = None,
+                                history: Optional[str] = None) -> Optional[str]:
+    """The fixed common-case cards. Each is chosen by the CURRENT turn; only the
+    seizure card's dose (A9) is built from the whole patient history, as every
+    other dose is."""
     q = (query or "").lower()
     if any(x in q for x in ["vtach", "v tach", "v-tach", "ventricular tachycardia"]):
         return build_vtach_response()
     if "anaphylaxis" in q or ("hives" in q and ("throat" in q or "bp" in q)):
         return build_anaphylaxis_response()
-    if any(x in q for x in ["active seizure", "having active seizure", "seizing"]):
-        return build_seizure_response()
+    if is_active_seizure_card_query(q):
+        return build_seizure_response(history or query, ctx)
     if "cardiac arrest" in q and any(x in q for x in ["hypothermic", "snow", "cold", "frozen"]):
         return build_hypothermic_arrest_response()
     # Severe TBI is not dispatched here: it has its own step (2i-iii, A2,
@@ -6089,7 +6153,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2i: Deterministic common benchmark scenarios
-        general_response = build_general_case_response(query)
+        general_response = build_general_case_response(query, patient_ctx, full_query_history)
         if general_response:
             print("📌 COMMON CASE PRE-GATE")
             return {
