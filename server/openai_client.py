@@ -3829,6 +3829,11 @@ def free_text_dose_issues(response_text: str,
             for rate in _FREE_DOSE_RATE_RE.finditer(clause):
                 if _FREE_DOSE_THRESHOLD_RE.search(clause[:rate.start()]):
                     continue
+                # A volume rate (mL/hr) belongs to a drug named in the same
+                # clause, never an inherited one: "use oral rehydration
+                # solution; if IV, infuse 250-500 mL/hr" is IV crystalloid.
+                if rate.group(3).lower() in ("ml", "cc") and not drugs:
+                    continue
                 drug = attribute(rate)
                 key = _rate_key(rate.group(3), bool(rate.group(4)), rate.group(5))
                 signed = _signed_rate_ranges(drug, patient_ctx)
