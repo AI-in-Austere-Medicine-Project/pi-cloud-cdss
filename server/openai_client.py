@@ -2971,6 +2971,44 @@ def _prep_hold_issue(what: str) -> str:
             f"local protocol or medical control.")
 
 
+# A16 (owner, #108 review): a norepinephrine rate question. Models answer in
+# flat mcg/min, which A11 holds because every signed norepinephrine rate is
+# per kg per minute; nothing served one, so the medic got a hold and no answer.
+_NOREPI_RE = re.compile(r"\b(?:norepinephrine|norepi|levophed|noradrenaline)\b")
+_NOREPI_RATE_INTENT_RE = re.compile(
+    r"\b(?:drip|infusion|rate|start|starting|run|running|titrate|mix|mixing)\b")
+NOREPI_INFUSION_INDICATIONS = ("shock", "bradycardia", "cardiogenic")
+
+
+def is_norepinephrine_rate_request(query: str) -> bool:
+    q = (query or "").lower()
+    return bool(_NOREPI_RE.search(q) and _NOREPI_RATE_INTENT_RE.search(q))
+
+
+def _norepi_entries(query: str, ctx: Optional[PatientContext]) -> tuple:
+    """(entries, note): signed norepinephrine rate entries, narrowed to the
+    indication the query states (A11b's detector), every entry when it states
+    none. Narrowed, never substituted, as _epi_entries is."""
+    if drug_contracts is None:
+        return [], None
+    ped = bool(ctx and ctx.is_pediatric)
+    age = ctx.age_years if ctx else None
+    pairs = [(n, e) for n, e in drug_contracts.signed_entries_by_indication(
+        NOREPI_INFUSION_INDICATIONS, ped, age) if n == "norepinephrine"]
+    note = None
+    stated = rate_indications(query)
+    if stated:
+        narrowed = [x for x in pairs
+                    if _rate_indication_category(x[1]["indication"]) in stated]
+        if not narrowed:
+            who = "a paediatric patient" if ped else "an adult patient"
+            note = (f"- No signed norepinephrine rate for {' and '.join(sorted(stated))} in "
+                    f"{who}. Do NOT extrapolate from the rates signed for other "
+                    "indications. Use local protocol or medical control.")
+        pairs = narrowed
+    return _served_from_pairs(pairs, ctx), note
+
+
 def build_fixed_prep_response(query: str,
                               ctx: Optional[PatientContext] = None) -> Optional[str]:
     """The text of fixed_prep_outcome(): the card, or the hold that replaces it."""
@@ -3019,6 +3057,33 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
             "- Continuous cardiac monitoring required. Use only with local protocol.\n\n"
             "**TLDR**\n"
             "- 1 mL of 1:10,000 epi plus 9 mL NS = 10 mcg/mL push-dose epi.\n\n"
+            f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
+            "Guideline-based support only. Not a substitute for clinical judgment."
+        ), []
+    if is_norepinephrine_rate_request(q):
+        served, note = _norepi_entries(q, ctx)
+        if not served and not note:
+            issue = _prep_hold_issue("norepinephrine infusion")
+            return build_safety_hold([issue], ""), [issue]
+        give = _prep_give_block(served, note)
+        # No norepinephrine preparation is signed or authored here, so the card
+        # states no bag and computes no mL/hr: a volume from a concentration
+        # nobody signed is what resolve_dose_volume exists to hold.
+        return (
+            "**NOREPINEPHRINE INFUSION**\n"
+            "- Concentration: prepare per local protocol. No norepinephrine "
+            "preparation is signed here, so no pump rate in mL is computed.\n\n"
+            "**RATE**\n"
+            f"{give}\n\n"
+            "**CONTRAINDICATIONS**\n"
+            f"{served_contraindications_block(served)}\n\n"
+            "**CAUTIONS**\n"
+            f"{served_cautions_block(served)}\n\n"
+            "**WATCH**\n"
+            "- Cardiac monitoring required. Peripheral line — monitor for extravasation.\n\n"
+            "**TLDR**\n"
+            "- Norepinephrine: the signed rate above is weight-based (mcg/kg/min). "
+            "Titrate to MAP target.\n\n"
             f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
         ), []
