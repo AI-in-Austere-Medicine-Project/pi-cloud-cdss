@@ -155,8 +155,36 @@ def _env_number(name: str, default, cast=float):
 
 import datetime
 import pathlib
+import shutil
 
 _LOG_DIR = pathlib.Path(os.getenv("CDSS_LOG_DIR", "/home/akaclinicalco/cdss-cloud/logs/sessions"))
+
+# D5a: the full answer is logged, so the log can grow. It still rotates by day
+# (one file per UTC date) and nothing is ever deleted: retention is unchanged.
+# What keeps it from filling the Jetson: over LOG_DIR_MAX_BYTES of session
+# logs, or under LOG_MIN_FREE_BYTES of free disk, the full-answer fields are
+# written as null with the reason, and the rest of the entry still is.
+# Measured 2026-09-28: about 1 KB per entry before D5a, about 1.9 KB after;
+# 36 entries a day on average (252 at peak), so about 25 MB a year (175 MB if
+# every day were the peak) against 1.7 TB free.
+LOG_DIR_MAX_BYTES = _env_number("CDSS_LOG_DIR_MAX_BYTES", 2 * 1024 ** 3, int)
+LOG_MIN_FREE_BYTES = _env_number("CDSS_LOG_MIN_FREE_BYTES", 2 * 1024 ** 3, int)
+
+
+def _full_answer_dropped(extra: int = 0) -> Optional[str]:
+    """Why the full answer can't be logged right now, or None. `extra` is the
+    size of the answer about to be written: the cap is never crossed."""
+    try:
+        used = sum(p.stat().st_size for p in _LOG_DIR.glob("cdss_session_*"))
+        if used + extra > LOG_DIR_MAX_BYTES:
+            return (f"session log directory is over its cap ({used} of "
+                    f"{LOG_DIR_MAX_BYTES} bytes)")
+        free = shutil.disk_usage(_LOG_DIR).free
+        if free < LOG_MIN_FREE_BYTES:
+            return f"free disk is under its floor ({free} of {LOG_MIN_FREE_BYTES} bytes)"
+    except OSError as e:
+        return f"could not check the log directory ({e})"
+    return None
 
 def _get_log_file() -> pathlib.Path:
     _LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -216,7 +244,12 @@ def _get_log_file() -> pathlib.Path:
 # and the local model answered), or null when no model was called.
 # Schema 13 adds `fallbacks`: one entry per call that fell back to the local
 # model, with the model that was requested and the timeout it was given.
-LOG_SCHEMA_VERSION = 13
+# Schema 14 (D5a) adds the full answer: `response` (what the medic saw, the
+# hold text when held), `held_response` (the model's own text that the gate
+# held; null when served or when no model wrote it) and `full_answer_dropped`
+# (null, or why the two were left out: the directory cap or the disk floor).
+# `response_preview` stays, for tooling that reads it.
+LOG_SCHEMA_VERSION = 14
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -256,6 +289,10 @@ def log_query(query: str, result: dict, conversation_history: list = None,
     No patient identifiers stored — context is clinical state only.
     """
     try:
+        _LOG_DIR.mkdir(parents=True, exist_ok=True)
+        dropped = _full_answer_dropped(
+            len((result.get("response") or "").encode())
+            + len((result.get("held_response") or "").encode()))
         entry = {
             "ts": datetime.datetime.utcnow().isoformat() + "Z",
             "log_schema": LOG_SCHEMA_VERSION,
@@ -264,6 +301,9 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "input_mode": input_mode,
             "query": query,
             "response_preview": result.get("response", "")[:200],
+            "response": None if dropped else result.get("response", ""),
+            "held_response": None if dropped else result.get("held_response"),
+            "full_answer_dropped": dropped,
             "source_mode": result.get("source_mode", "UNKNOWN"),
             "source": result.get("source") or knowledge_source(
                 result.get("source_mode", "UNKNOWN")),
@@ -6843,6 +6883,9 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
 
         return {
             "response": final_response,
+            # D5a: the model's own text when the gate held it, for the log only
+            # (QueryResponse lists its fields; this is not one of them).
+            "held_response": response_text if outcome.blocked else None,
             "sources": assessment.sources[:3],
             "source_mode": assessment.source_mode,
             # What actually answered, which is not always what was asked for.
