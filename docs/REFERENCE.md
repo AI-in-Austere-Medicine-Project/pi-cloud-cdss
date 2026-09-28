@@ -48,16 +48,18 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A9 | "actively seizing", "still seizing", "seizing now" and "in status" reach the signed seizure entry. | Found in #91 | Done, #103 |
 | A14 | "Absent lung sounds" is read as a tension sign, so the tension card comes before DCR. | Found in #101; owner, #103 review | Done, #106 |
 | A15 | A signed ketamine entry for benzodiazepine-refractory seizure; the seizure card already serves it once signed. | Owner, #103 review | Done, #105: option B signed by the owner (adult 2 mg/kg IV/IO, 3–4 mg/kg IM; child 1 mg/kg IV/IO, 3 mg/kg IM) |
-| A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | In review, #107 |
-| A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | Next, after A10 |
-| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | After A11 |
+| A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | Done, #107 |
+| A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | In review, #108 |
+| A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | Next, after A11 |
 | A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | After A12 |
+| A11b | Rate matching becomes indication-specific, the same shape as A1b. | Owner, #108 review | After A13 |
+| A16 | A deterministic norepinephrine drip card serving the signed per-kg rate, as the epinephrine drip card does. | Found in #108; owner, #108 review | After A11b |
 
 ## 4. D items: data and speed
 
 | Item | Meaning | Machine | Status |
 |---|---|---|---|
-| D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | After A13 |
+| D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | After A16 |
 | D1 | Evaluation hygiene: new `run_tests.sh` cases, reconciling the 30-set, the benchmark protocol. | Jetson | After D5a |
 | D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | After D1 |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
@@ -155,6 +157,7 @@ Mirrors the list of the same name in `WORK_ORDER.md`.
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
 | An eclamptic seizure is served lorazepam with no magnesium; the bank has no signed magnesium entry. SMOG p.37 puts magnesium first line in pregnancy. | #103 |
+| Uncited IV fluid rates are still served: a fluid isn't a drug the check recognises (run-3 finding 5). Closing it needs signed crystalloid entries: the owner's authoring job. | #108 |
 | gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set. | Run 3 (#87) |
 | The corpus was ingested from the superseded 2017 ID39; the 2026 edition is now in `jts_protocols`. Re-ingest is a separate decision. | #100 |
 | The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list; ID40 p.3 does. A re-sign. | #100 |

@@ -134,12 +134,14 @@ def test_what_is_not_a_freelanced_dose(text):
 def test_a_per_kg_dose_is_checked_at_the_patients_weight():
     """1 mcg/kg is a per-kg DOSE, not a rate (G-MTN-03, benchmark run 2). At
     80 kg it is 80 mcg, the signed IN dose, and passes; with no weight it cannot
-    be matched to anything signed, and holds. A per-kg RATE is still not a dose."""
+    be matched to anything signed, and holds. A per-kg RATE is not a dose: A11
+    reads it as a rate, and with no signed fentanyl rate it holds as one."""
     text = "**TREAT**\n1. Fentanyl 1 mcg/kg IV."
     assert oc.free_text_dose_issues(text, _allowed(), _ctx()) == []
     assert oc.free_text_dose_issues(text, _allowed(), NO_WEIGHT) != []
-    assert oc.free_text_dose_issues("**TREAT**\n1. Fentanyl infusion 1 mcg/kg/hr.",
-                                    _allowed(), NO_WEIGHT) == []
+    rate = oc.free_text_dose_issues("**TREAT**\n1. Fentanyl infusion 1 mcg/kg/hr.",
+                                    _allowed(), NO_WEIGHT)
+    assert rate and all("infusion rate" in i for i in rate), rate
 
 
 @pytest.mark.parametrize("text,drug", [

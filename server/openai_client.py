@@ -3702,6 +3702,71 @@ def _drug_spans(clause: str) -> list:
                        for o in spans)]
 
 
+# A11: an infusion RATE. "5 mcg/min", "0.05 mcg/kg/min", "1 mg/kg/hr",
+# "10 mL/hr", "5 units/hr", "2 micrograms per minute". The single-dose
+# patterns above refuse a unit followed by "/" or "per", so a rate is read
+# here and only here.
+_FREE_DOSE_RATE_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*"
+    r"(mg|mcg|µg|μg|ug|micrograms?|milligrams?|g|grams?|units?|iu|m[lL]|cc)"
+    r"(\s*(?:/|per\s+)\s*kg)?\s*(?:/|per\s+)\s*(min(?:ute)?s?|h(?:ou)?rs?|h)\b",
+    re.IGNORECASE)
+_RATE_TIME_PER_MIN = {"min": 1.0, "mins": 1.0, "minute": 1.0, "minutes": 1.0,
+                      "h": 1 / 60, "hr": 1 / 60, "hrs": 1 / 60, "hour": 1 / 60, "hours": 1 / 60}
+
+
+def _rate_key(unit: str, per_kg: bool, time: str):
+    """(quantity kind, per_kg) and the factor that puts a value in mg (or
+    units, or mL) per minute. None for a unit this check can't normalise."""
+    u = unit.lower().replace("µ", "mc").replace("μ", "mc")
+    t = _RATE_TIME_PER_MIN.get(time.lower())
+    if t is None:
+        return None
+    if u in _TO_MG_UNIT:
+        return ("mass", per_kg), _TO_MG_UNIT[u] * t
+    if u in ("unit", "units", "iu"):
+        return ("units", per_kg), t
+    if u in ("ml", "cc"):
+        return ("ml", per_kg), t
+    return None
+
+
+def _signed_rate_ranges(drug: str, patient_ctx: Optional["PatientContext"]) -> list:
+    """[(key, lo, hi)] for the drug's signed infusion-rate entries for this
+    patient's population, normalised like _rate_key."""
+    if drug_contracts is None:
+        return []
+    ped = bool(patient_ctx and patient_ctx.is_pediatric)
+    out = []
+    for e in drug_contracts.servable_entries().get(drug, []):
+        pops = (e.get("population") or "").split("|")
+        if ("peds" if ped else "adult") not in pops:
+            continue
+        r = e.get("dose_range") or {}
+        units = str(r.get("units") or "")
+        parts = [x.strip() for x in units.split("/")]
+        if len(parts) < 2 or parts[-1].lower() not in _RATE_TIME_PER_MIN:
+            continue
+        key = _rate_key(parts[0], bool(r.get("per_kg")), parts[-1])
+        if key and r.get("min") is not None:
+            (kind, factor) = key
+            out.append((kind, float(r["min"]) * factor, float(r.get("max") or r["min"]) * factor))
+    return out
+
+
+def _free_rate_hold_line(drug: str, shown: str, has_signed_rate: bool,
+                         patient_ctx: Optional["PatientContext"]) -> str:
+    """No signed number is quoted (owner ruling 12)."""
+    said = f"The answer stated {drug} {shown} as an infusion rate"
+    if not has_signed_rate:
+        who = " for a child" if patient_ctx is not None and patient_ctx.is_pediatric else ""
+        return (f"{said}, but EdgeCDSS has no signed {drug} infusion rate{who}. "
+                f"Use local protocol or medical control.")
+    return (f"{said}, which is not a signed {drug} infusion rate for this patient (the "
+            f"signed {drug} rates are weight-based, per kg). Ask for the {drug} infusion "
+            f"by name, with what it is for, to get the signed rate.")
+
+
 def free_text_dose_issues(response_text: str,
                           allowed_doses: Optional[List["DoseCandidate"]],
                           patient_ctx: Optional["PatientContext"] = None) -> list:
@@ -3759,6 +3824,28 @@ def free_text_dose_issues(response_text: str,
                     continue
                 issues.append(_free_dose_hold_line(drug, amt.group(0).strip(),
                                                    bool(ok), patient_ctx))
+
+            # A11: rates, against the drug's signed rate entries.
+            for rate in _FREE_DOSE_RATE_RE.finditer(clause):
+                if _FREE_DOSE_THRESHOLD_RE.search(clause[:rate.start()]):
+                    continue
+                # A volume rate (mL/hr) belongs to a drug named in the same
+                # clause, never an inherited one: "use oral rehydration
+                # solution; if IV, infuse 250-500 mL/hr" is IV crystalloid.
+                if rate.group(3).lower() in ("ml", "cc") and not drugs:
+                    continue
+                drug = attribute(rate)
+                key = _rate_key(rate.group(3), bool(rate.group(4)), rate.group(5))
+                signed = _signed_rate_ranges(drug, patient_ctx)
+                if key is not None:
+                    kind, factor = key
+                    stated = [float(v) * factor for v in rate.group(1, 2) if v]
+                    if any(k == kind and all(lo * 0.95 - 1e-12 <= x <= hi * 1.05 + 1e-12
+                                             for x in stated)
+                           for k, lo, hi in signed):
+                        continue
+                issues.append(_free_rate_hold_line(drug, rate.group(0).strip(),
+                                                   bool(signed), patient_ctx))
     return list(dict.fromkeys(issues))
 
 

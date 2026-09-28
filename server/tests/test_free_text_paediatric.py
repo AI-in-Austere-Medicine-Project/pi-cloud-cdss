@@ -99,10 +99,20 @@ def test_the_signed_paediatric_dose_passes(line):
 @pytest.mark.parametrize("line", [
     "Add 1 mg epinephrine to a 250 mL bag of NS.",
     "Mix 4 mg norepinephrine in 250 mL NS.",
-    "Run the ketamine infusion at 0.5 mg/kg/hr.",
-    "Fentanyl infusion 1 mcg/kg/hr, titrate to effect.",
     "Ketamine comes as 50 mg/mL.",
 ])
-def test_preparations_rates_and_concentrations_are_still_not_doses(line):
+def test_preparations_and_concentrations_are_still_not_doses(line):
     det, _ = _issues(line, "ok now what")
     assert det.passed, det.issues
+
+
+@pytest.mark.parametrize("line", [
+    "Run the ketamine infusion at 0.5 mg/kg/hr.",
+    "Fentanyl infusion 1 mcg/kg/hr, titrate to effect.",
+])
+def test_an_unsigned_rate_holds_as_a_rate_not_a_dose(line):
+    """A11 (owner, #97 review): a rate is read, and a rate for a drug with no
+    signed rate entry holds. It is held as an infusion RATE: never as a bolus."""
+    det, _ = _issues(line, "ok now what")
+    assert not det.passed
+    assert all("infusion rate" in i for i in det.issues), det.issues
