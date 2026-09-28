@@ -46,9 +46,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A5 | Hold text for fixed doses | **done**: #97, merged and deployed |
 | A6 | Contraindicated procedures: table, detectors, check | **done**: #99, merged and deployed. P3 and P5 signed: #100, merged; P1 and P2 unsigned |
 | A7 | GCS parser | **done**: #101, merged |
-| A8 | "status post" must not match status epilepticus | in review: #102 |
-| A9 | Active-seizure phrasings reach the signed entry | after A8 (**next**) |
-| A10 | CICO card must not fire on a completed surgical airway | after A9 |
+| A8 | "status post" must not match status epilepticus | **done**: #102, merged |
+| A9 | Active-seizure phrasings reach the signed entry | in review: #103 |
+| A10 | CICO card must not fire on a completed surgical airway | after A9 (**next**) |
 | A11 | Free-text dose check reads infusion rates | after A10 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 |
 | A13 | Remove the dead safety_rules.json path | after A12 |
@@ -73,7 +73,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6 and A7 are done (#90, #91, #86, #95, #97, #99, #101), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7 and A8 are done (#90, #91, #86, #95, #97, #99, #101, #102), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -181,7 +181,7 @@ Report the proposed table, the matching approach, the false-positive risks, and 
 
 **Signed (#100, merged):** P3 and P5 signed by Andrew Azelton on 2026-09-27. P3 cites ID80 p.18. P5 cites ID40 p.3 alone (owner ruling, #100): the 2026 ID39 p.28 doses succinylcholine but lists no contraindication. The ID40 passage is on printed p.3 = PDF p.3. P1 and P2 stay unsigned and inert. Replay with the signed table: 0 newly held, 0 newly released.
 
-### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91; in review, #102)
+### A8: "status post" must not match status epilepticus (owner, 2026-09-26; found in #91; done, #102)
 
 The dose builder's seizure trigger is the substring `'status'`. "159lb male unable to ventilate effectively status post oral trauma" (H-SESS-002, also in the live logs) is offered lorazepam 4 mg for active seizure: a non-seizure patient offered a seizure dose.
 
@@ -189,13 +189,17 @@ This is the same class as "stab" in "stable" and "14G" read as grams: a lexical 
 
 Failing tests first. Negatives: "status post", "post-status" and "status: stable" must not reach the seizure entry.
 
-### A9: active-seizure phrasings reach the signed entry (owner, 2026-09-26; found in #91)
+### A9: active-seizure phrasings reach the signed entry (owner, 2026-09-26; found in #91; in review, #103)
 
 "80kg male actively seizing" never reaches the dose builder. The fixed ACTIVE SEIZURE card answers "benzodiazepine per local protocol" with no signed dose, even with a weight and a signed entry.
 
 - "actively seizing", "seizing now", "still seizing" and "in status" must reach the active-seizure entry the same as "active seizure" does.
 - Add the phrases to the lexicon, with a failing test per phrase first.
 - Report any other seizure phrasing in the stored queries that gets no signed dose today.
+
+**Owner ruling (A9, 2026-09-28): the card carries the dose.** A9's premise was that "active seizure" reaches the signed entry. It didn't: the fixed ACTIVE SEIZURE card intercepted "active seizure" and every "seizing" phrasing, with no dose. Every active-seizure phrasing now gets the card, with the signed GIVE line the builder resolves for the patient (A2's pattern). No weight: the card asks for one. A benzodiazepine already given: no further benzodiazepine dose. Eclampsia stays off the card.
+
+**Stored seizure queries with no signed dose (A9's report, before the fix):** 11 distinct stored queries have a seizure phrasing. 3 got the doseless card, 6 got no signed dose (most state no weight; one is eclampsia) and 2 reached a signed entry (both levetiracetam). After #103, each gets the card with the signed dose where a weight resolves one.
 
 ### A10: the CICO card must not fire on a completed surgical airway (owner, 2026-09-26; found in #86)
 
@@ -430,6 +434,7 @@ Findings 5 and 6 have been placed but not yet given an item letter.
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
 - **"Absent lung sounds" is not read as a tension sign** (found in #101). The tension check reads "absent / decreased / no … breath sounds" or "air entry", not "lung sounds". A live-log query, "shot in the chest … GCS is seven blood pressure 80/40 … absent lung sounds on the left side", gets the DCR card, not the tension card that A1's ruling 1 puts first.
+- **An eclamptic seizure is served lorazepam, with no magnesium** (found in #103). "70kg, 34 weeks pregnant, eclamptic seizure, what do I give" goes to the model path (A9 keeps eclampsia off the seizure card), and the builder offers lorazepam 4 mg for active seizure. gpt-4o-mini served it. The bank has no signed magnesium entry. It's the same on main.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
 - **The corpus was ingested from the superseded ID39** (found in #100). `server/data/jts_protocols` holds both `Airway_Management_of_Traumatic_Injuries_17_Jul_2017_ID39.pdf` and `Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf`. All 28 ID39 chunks in the production ChromaDB come from the 2017 edition. Re-ingest is a separate decision.
 - **The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list** (found in #100). The 2026 ID39 p.28 supports its 1.5 mg/kg dose, not "Burns", "Spinal cord injury" or "Hyperkalemia". ID40 p.3 does. Correcting it is a re-sign of that contract.
