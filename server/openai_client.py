@@ -5392,6 +5392,42 @@ def is_active_seizure_card_query(query: str) -> bool:
             or is_active_seizure_query(q) or bool(_SEIZURE_STATUS_RE.search(q)))
 
 
+# Owner, #103 review: a seizure that doesn't respond to benzodiazepines is
+# offered the second line. Levetiracetam by role, from its signed status-
+# epilepticus entries; ketamine named with its JTS source until a ketamine
+# seizure entry is signed, and served once one is. Most rescue and EMS systems
+# don't carry levetiracetam.
+SECOND_LINE_SEIZURE_INDICATIONS = ("status epilepticus", "refractory seizure")
+KETAMINE_SECOND_LINE_SOURCE = ("JTS Prolonged Casualty Care Guidelines, ID91 p.28: "
+                               "\"consider ketamine for refractory seizures\"")
+
+
+def _second_line_seizure_doses(ctx: PatientContext) -> list:
+    """Signed second-line doses for a benzodiazepine-refractory seizure, by
+    role. The same resolution as the builder: a per-kg entry needs a weight,
+    and a child gets nothing without one."""
+    if drug_contracts is None or (ctx.is_pediatric and ctx.dosing_weight_kg is None):
+        return []
+    doses = []
+    for name, entry in drug_contracts.signed_entries_by_indication(
+            SECOND_LINE_SEIZURE_INDICATIONS, ctx.is_pediatric, ctx.age_years):
+        if name.lower() in _BENZODIAZEPINES:
+            continue
+        r = drug_contracts.resolve_dose(entry, ctx.dosing_weight_kg)
+        if r["dose_mg"] is None:
+            continue
+        doses.append(DoseCandidate(
+            drug=name, indication=entry["indication"], route=entry["route"],
+            dose_mg=round(r["dose_mg"], 4), display_value=r["display_value"],
+            display_units=r["display_units"],
+            source=_contract_source(name, entry),
+            cautions=list(drug_contracts.serve_cautions(entry)),
+            contraindications=list(drug_contracts.serve_contraindications(entry)),
+            dilution=drug_contracts.push_dilution(entry),
+            warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
+    return _finish_doses(doses, ctx)
+
+
 def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None) -> str:
     """The ACTIVE SEIZURE card. A9 (owner ruling): it carries the signed dose
     the builder resolves for this patient, the way A2's severe-TBI card does.
@@ -5404,11 +5440,25 @@ def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None
     benzo_given = bool(_BENZO_ALREADY_GIVEN_RE.search(q))
     if benzo_given:
         served = [d for d in served if d.drug.lower() not in _BENZODIAZEPINES]
+        have = {(d.drug, d.indication) for d in served}
+        served += [d for d in _second_line_seizure_doses(ctx)
+                   if (d.drug, d.indication) not in have]
 
-    give = [render_give_line(d) for d in served]
+    give = []
     if benzo_given:
-        give.append("- A benzodiazepine has already been given: repeat or second-line dosing "
-                    "per local protocol or medical control.")
+        give.append("- A benzodiazepine has already been given: no further benzodiazepine "
+                    "dose here. Second line:")
+    give += [render_give_line(d) for d in served]
+    if benzo_given:
+        if not any(d.drug.lower() == "levetiracetam" for d in served):
+            give.append("- levetiracetam: " + (
+                "no signed dose without a weight: give the patient's weight in kg."
+                if ctx.dosing_weight_kg is None else
+                "no signed dose for this patient here. Use local protocol or medical control."))
+        if not any(d.drug.lower() == "ketamine" for d in served):
+            give.append("- If levetiracetam is not carried: ketamine is a second-line option "
+                        f"for refractory seizures ({KETAMINE_SECOND_LINE_SOURCE}). No signed "
+                        "ketamine dose for this indication yet: medical control.")
     elif not any(d.drug.lower() in _BENZODIAZEPINES for d in served):
         if ctx.dosing_weight_kg is None:
             give.append("- No signed benzodiazepine dose without a weight: give the patient's "
@@ -5417,7 +5467,9 @@ def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None
             give.append("- No signed benzodiazepine dose for this patient here. Use local "
                         "protocol or medical control.")
     give_text = "\n".join(give)
-    step2 = ("Give the benzodiazepine below; lorazepam is preferred IV when available."
+    step2 = ("A benzodiazepine has already been given: go to the second line below."
+             if benzo_given else
+             "Give the benzodiazepine below; lorazepam is preferred IV when available."
              if any(d.drug.lower() in _BENZODIAZEPINES for d in served) else
              "Give benzodiazepine per local protocol; lorazepam is preferred IV when available.")
     blocks = ""
