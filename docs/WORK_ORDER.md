@@ -47,10 +47,10 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A6 | Contraindicated procedures: table, detectors, check | **done**: #99, merged and deployed. P3 and P5 signed: #100, merged; P1 and P2 unsigned |
 | A7 | GCS parser | **done**: #101, merged |
 | A8 | "status post" must not match status epilepticus | **done**: #102, merged |
-| A9 | Active-seizure phrasings reach the signed entry | in review: #103 |
-| A14 | "Absent lung sounds" is a tension sign | after A9 (**next**) |
+| A9 | Active-seizure phrasings reach the signed entry | **done**: #103, merged and deployed |
+| A14 | "Absent lung sounds" is a tension sign | in review: #106 |
 | A15 | Ketamine for benzodiazepine-refractory seizure: contract entry | after A14 (the owner rules the dose and signs) |
-| A10 | CICO card must not fire on a completed surgical airway | after A15 |
+| A10 | CICO card must not fire on a completed surgical airway | after A15 (**next**) |
 | A11 | Free-text dose check reads infusion rates | after A10 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition | after A11 |
 | A13 | Remove the dead safety_rules.json path | after A12 |
@@ -75,7 +75,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7 and A8 are done (#90, #91, #86, #95, #97, #99, #101, #102), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → D5a → D1 → D5 → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4. A0, A1b, A3, A4, A5, A6, A7, A8 and A9 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review.
 
 Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -191,7 +191,7 @@ This is the same class as "stab" in "stable" and "14G" read as grams: a lexical 
 
 Failing tests first. Negatives: "status post", "post-status" and "status: stable" must not reach the seizure entry.
 
-### A9: active-seizure phrasings reach the signed entry (owner, 2026-09-26; found in #91; in review, #103)
+### A9: active-seizure phrasings reach the signed entry (owner, 2026-09-26; found in #91; done, #103)
 
 "80kg male actively seizing" never reaches the dose builder. The fixed ACTIVE SEIZURE card answers "benzodiazepine per local protocol" with no signed dose, even with a weight and a signed entry.
 
@@ -205,7 +205,7 @@ Failing tests first. Negatives: "status post", "post-status" and "status: stable
 
 **Owner ruling (#103 review, 2026-09-28): the second line.** "If patient does not respond to benzos, you can offer levetiracetam", and ketamine is a known second- and third-line drug for status: most rescue and EMS systems don't carry levetiracetam. When the card sees a benzodiazepine already given, it offers levetiracetam by role from its signed status-epilepticus entries, and names ketamine for when levetiracetam isn't carried, citing JTS ID91 p.28, with no dose until a ketamine entry is signed (A15). The evidence is in [`authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md`](authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md).
 
-### A14: "absent lung sounds" is a tension sign (owner, #103 review; found in #101)
+### A14: "absent lung sounds" is a tension sign (owner, #103 review; found in #101; in review, #106)
 
 The tension check reads "absent / decreased / no … breath sounds" or "air entry", not "lung sounds". A live-log query, "shot in the chest … blood pressure 80/40 … absent lung sounds on the left side", gets the DCR card, not the tension card that A1's ruling 1 puts first. Failing tests first, including that query verbatim; the negation rules stay as they are.
 
