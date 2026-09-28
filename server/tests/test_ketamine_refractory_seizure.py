@@ -103,3 +103,23 @@ def test_no_weight_no_ketamine_number():
 def test_first_line_is_unchanged():
     give = _give("80kg male actively seizing")
     assert "lorazepam" in give and "ketamine" not in give.lower(), give
+
+
+# Owner, 2026-09-28 (#103 merged): cautions for hypoxia and BVM readiness, as
+# two lines a medic reads with the dose.
+
+@pytest.mark.parametrize("key", sorted(EXPECTED))
+def test_hypoxia_and_bvm_readiness_are_separate_served_cautions(key):
+    served = dc.serve_cautions(_entries()[key])
+    hyp = [c for c in served if "hypoxia" in c.lower()]
+    bvm = [c for c in served if "bvm" in c.lower() or "bag-valve-mask" in c.lower()]
+    assert hyp and "SpO2" in hyp[0] and "EtCO2" in hyp[0], served
+    assert bvm and "ready before giving" in bvm[0], served
+    assert hyp[0] != bvm[0], "two lines, not one"
+
+
+def test_the_card_shows_both_cautions():
+    ctx = oc.extract_patient_context("80kg male still in status after 10 mg of versed")
+    text = oc.build_seizure_response("80kg male still in status after 10 mg of versed", ctx)
+    cautions = text.split("**CAUTIONS**")[1].split("**WATCH**")[0]
+    assert "Monitor SpO2 and EtCO2" in cautions and "ready before giving" in cautions, cautions
