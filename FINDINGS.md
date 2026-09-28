@@ -133,7 +133,7 @@ report and uncitable outside it. They are numbered here.
 | **DP-4** | `build_rsi_response` assembled the RSI bundle from the retired calculators and asserted a fixed source line. *(reported as A4)* | fixed, verified |
 | **DP-5** | `build_allowed_doses`: `if has_loraz or is_seizure` carried the supersede check on the first half only, so a seizure query appended the legacy calculator beside the signed contract entry — two benzodiazepines for one seizure. *(reported as B1)* | fixed, verified |
 | **DP-6** | `detect_requested_medication_overdose` computes its refusal ceilings from hardcoded multipliers and never reads `max_single_dose`, so a refusal can quote a ceiling the bank no longer agrees with. | open — `TODO.md` |
-| **DP-7** | `safety_rules.json` `dose_limits` still mirrors the retired per-kilogram numbers. Nothing serves them, which is why they will rot unnoticed; the file is generated, so the generator is the fix. | open — `TODO.md` |
+| **DP-7** | **CLOSED by A13 (#110): safety_rules.json and its generator are removed.** `safety_rules.json` `dose_limits` still mirrored the retired per-kilogram numbers. Nothing serves them, which is why they will rot unnoticed; the file is generated, so the generator is the fix. | open — `TODO.md` |
 
 **The structural guard protects provenance, not numeric coincidence.** Two doses
 with the same number are indistinguishable in rendered text, so a regression that
