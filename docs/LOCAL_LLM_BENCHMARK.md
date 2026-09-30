@@ -348,7 +348,9 @@ Every local-arm benchmark from D1 on follows this protocol. A run that departs f
 - Session logs are schema 14 (full answer) once D5a is deployed. Earlier snapshots keep only a 200-character preview in the session log, so the harness captures are the record.
 
 **Cloud arm**
-- A cloud arm cannot be air-gapped. It runs online, from the same snapshot, as deployed: the default model with the 8 s cloud timeout.
+- A cloud arm cannot be air-gapped. It runs online, from the same snapshot, as deployed.
+- The arm script clears the model and timeout overrides (`CDSS_LLM_PROVIDER`, `CDSS_LLM_MODEL`, `CDSS_LLM_CLOUD_TIMEOUT`, `CDSS_LLM_SELECTED_TIMEOUT`), sets `CDSS_DEFAULT_MODEL` to the arm's model, and requests that same model (`run_bank.py --model`).
+- A request that names the default model is not a selection (`providers.is_explicit_selection`), so the generator gets the 8 s cloud timeout (`CLOUD_TIMEOUT_DEFAULT_S`), not the 60 s selected-model timeout. For gpt-4o-mini, the configured default, that is exactly the deployed path.
 - Its turns are attributed by each row's `model_used`, because the hybrid fallback can serve a turn from local qwen.
 
 **Recorded with every run**
@@ -382,7 +384,7 @@ The pre-training baseline D6 compares against, run to the protocol above. **Befo
 - **Local passes:** air-gapped 10:35–10:58Z, 40 of 40 probes in that window OFFLINE. The socket guard logged no non-loopback connection; it logged 4 during the online cloud arm, so it was working.
 - **Environment:** Ollama 0.34.2, nvpmodel 25W, kernel 6.8.12-1021-tegra.
 - **Run 3's local passes were online.** They made no network calls, so it shouldn't matter, but it is a difference.
-- **Timeouts:** the cloud arm before ran with a 120 s cloud timeout, and the arm after ran with the deployed settings. Neither had a fallback: every model turn was `openai/gpt-4o-mini`.
+- **Timeouts:** the cloud arm before ran with a 120 s cloud timeout; the arm after ran with the deployed 8 s (see Cloud arm, above). Neither had a fallback: every model turn was `openai/gpt-4o-mini`.
 - **`run_tests.sh`:** 28/29 on every local pass. The one failure is the B1 fentanyl label case, which is expected until B1: pass 1 served the answer without `ID61`, and in passes 2 and 3 the free-text dose check held it for unasked naloxone and ketamine doses (see WORK_ORDER.md, D5).
 
 **Limits:** n = 30, one cloud run per snapshot, 3 local passes per snapshot. The numbers are latency and size, not content quality.
