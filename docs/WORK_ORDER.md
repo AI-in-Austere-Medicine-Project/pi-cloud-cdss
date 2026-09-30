@@ -58,7 +58,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
-| D5 | Distillation dataset builder | in review: builder built and run; the dataset needs an owner ruling before D6 trains on it |
+| D5 | Distillation dataset builder | in review: #113; builder built and run; the dataset needs an owner ruling before D6 trains on it |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5 |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
@@ -411,7 +411,7 @@ Print the counts per scenario and per drug.
 - **Why:** in the D1 air-gap bench (`cdss-eval/runs/d1-airgap-qwen2.5-3b-local-p1..p3`, main 3fe16a4), the local model added doses nobody asked for to the single-drug B1 query "80 kg adult, severe pain from a femur fracture, fentanyl IV". Pass 2 added naloxone 0.4 mg, ketamine 30 mg and ketamine 0.3 mg/kg; pass 3 added naloxone 0.4 mg and naloxone 25–50 mcg. The free-text dose check held both answers, correctly: nothing signed covered those doses for that question. The validator was not involved. Pass 1 added no other drug and was served.
 - **What it means for D5 and D6:** the dataset must contain no such rows, so the trained model learns not to add them.
 
-**Built (in review):** `tools/build_distill_dataset.py`, tests `server/tests/test_distill_dataset.py`.
+**Built (#113, in review):** `tools/build_distill_dataset.py`, tests `server/tests/test_distill_dataset.py`.
 - **Source:** session-log entries that are not synthetic (`X-Test-Run`), have `history_turns` 0 and a query, de-duplicated by normalised text (case, punctuation, "80kg"/"80 kg"). The scenario id is that normalised text; the scenario type is the router's matched protocol, or "unrouted".
 - **Evaluation set, hard exclusion, before any call:** every query in `run_tests.sh` (current turn and history, parsed from the file) and in the 30-set. The 30-set is pinned as sha256 hashes of its normalised queries in `tools/distill/eval_exclusions.json`, with the bank's own sha256 (`76c2bed9…`): the repository is public, so the text is not committed.
 - **Replay:** `_query_with_rag_internal(query, model="claude-opus-5")` on the deployed tree (refuses if it has uncommitted changes), `CDSS_LLM_SELECTED_TIMEOUT=120` in the builder's own process, the deployed validator and checks. The row's system prompt and user turn are what the live code passed to `providers.chat`, captured at the call. The builder never writes the session log.
