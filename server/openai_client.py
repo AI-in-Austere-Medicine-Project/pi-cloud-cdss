@@ -248,7 +248,9 @@ def _get_log_file() -> pathlib.Path:
 # hold text when held), `held_response` (the model's own text that the gate
 # held; null when served or when no model wrote it) and `full_answer_dropped`
 # (null, or why the two were left out: the directory cap or the disk floor).
-# `response_preview` stays, for tooling that reads it.
+# `response_preview` stays, for tooling that reads it. It also adds
+# `model_returned`: the model the provider's reply named for the generator call,
+# beside `model`, the one that was asked for.
 LOG_SCHEMA_VERSION = 14
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
@@ -316,6 +318,11 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             # null with `model`. The validator's is separate — on a fallback
             # the two can differ, and an audit has to be able to see that.
             "provider": result.get("provider"),
+            # The model the provider's reply named for the generator call, beside
+            # `model`, the one that was asked for: often a dated snapshot of it
+            # ("gpt-4o-mini-2024-07-18"). null with `model`, or when the reply
+            # named none.
+            "model_returned": result.get("model_returned"),
             "validator_provider": result.get("validator_provider"),
             # Every call that fell back to the local model: role, the model that
             # was requested, the one that served, the error and the timeout.
@@ -6824,6 +6831,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         transcript_lines.append(f"CURRENT USER: {query}")
 
         providers.reset_truncation()
+        providers.reset_served()
         with providers.cloud_timeout_for(providers.generator_timeout_s(requested_model)):
             response_text = providers.chat(
                 system_prompt, messages,
@@ -6833,6 +6841,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         generation_truncated = providers.last_chat_truncated()
         generator_served = providers.last_chat_served()
         generator_fallback = providers.last_chat_fallback()
+        generator_returned = providers.last_chat_returned_model()
 
         # Step 6: Deterministic post-checks use full history.
         det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
@@ -6892,6 +6901,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "model": (served_label(generator_served) if generator_served
                       else model_label(model)),
             "provider": served_provider(generator_served),
+            # D5a: the model the provider's reply named, for the log only.
+            "model_returned": generator_returned,
             "validator_provider": served_provider(validator_served),
             # Every local fallback, with the model that was asked for. The
             # generator's requested model is what the portal names above the brief.

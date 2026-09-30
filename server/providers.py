@@ -605,6 +605,11 @@ _TRUNCATED = contextvars.ContextVar("edgecdss_chat_truncated", default=None)
 # straight after the call.
 _SERVED = contextvars.ContextVar("edgecdss_chat_served", default=None)
 
+# The model the provider's reply named for the last chat() in this context,
+# often a dated snapshot of the id that was sent ("gpt-4o-mini-2024-07-18"), or
+# None when the reply named none or no call completed. Same ContextVar reasoning.
+_RETURNED = contextvars.ContextVar("edgecdss_chat_returned", default=None)
+
 # The last chat()'s fallback, if it fell back: what was requested, what served,
 # why, and after how long. None otherwise. Same ContextVar reasoning.
 _FALLBACK = contextvars.ContextVar("edgecdss_chat_fallback", default=None)
@@ -647,6 +652,16 @@ def reset_served() -> None:
     """Forget which provider served the last call, before one that may not run."""
     _SERVED.set(None)
     _FALLBACK.set(None)
+    _RETURNED.set(None)
+
+
+def last_chat_returned_model() -> Optional[str]:
+    """The model the provider's reply named for the last chat() here, or None.
+
+    Beside last_chat_served(), which gives the id that was sent: the reply's
+    name is often a dated snapshot of it. Read it immediately after the call.
+    """
+    return _RETURNED.get()
 
 
 def last_chat_truncated() -> Optional[bool]:
@@ -693,6 +708,7 @@ def _chat_openai_compat(spec: ModelSpec, system: str, messages: list,
     choice = result.choices[0]
     finish = getattr(choice, "finish_reason", None)
     _TRUNCATED.set(None if finish is None else finish == "length")
+    _RETURNED.set(getattr(result, "model", None))
     return (choice.message.content or "").strip()
 
 
@@ -746,6 +762,7 @@ def _chat_anthropic(spec: ModelSpec, system: str, messages: list,
     result = client.messages.create(**kwargs)
     stop = getattr(result, "stop_reason", None)
     _TRUNCATED.set(None if stop is None else stop == "max_tokens")
+    _RETURNED.set(getattr(result, "model", None))
     # content is a list of blocks — thinking blocks come first on models that
     # think, and only text blocks carry the answer.
     return "".join(b.text for b in result.content if getattr(b, "type", "") == "text").strip()
@@ -777,6 +794,7 @@ def chat(system: str, messages: list, *, model: str,
     _TRUNCATED.set(None)
     _SERVED.set(None)
     _FALLBACK.set(None)
+    _RETURNED.set(None)
     spec = MODELS.get(model)
     if spec is None:
         raise ProviderUnavailable(f"unknown model {model!r}")
