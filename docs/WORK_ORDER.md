@@ -56,9 +56,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A13 | Remove the dead safety_rules.json path | **done**: #110, merged and deployed |
 | A11b | Rate matching is indication-specific | **done**: #110, merged and deployed |
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
-| D5a | Full-answer logging | in review: #111 (schema 14; size-cap and free-disk guard) |
+| D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
-| D5 | Distillation dataset builder | after D1 |
+| D5 | Distillation dataset builder | in review: #113; builder built and run; the dataset needs an owner ruling before D6 trains on it |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5 |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
@@ -79,7 +79,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed), and D6 is done (#93). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a and D1 are done (#93, #111, #112). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
 
 **Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. A13, A11b and A16 are delivered together in #110 on the owner's instruction. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -362,7 +362,7 @@ Logging starts as soon as this deploys, so the next dataset comes from real serv
 - A disk estimate: mean answer length × current daily query volume.
 - Log rotation set so the Jetson can't fill up.
 
-**Built (#111):** log schema 14 adds `response` (the full text the medic saw, the hold text when held), `held_response` (the model's own text the gate held), `full_answer_dropped`, and `model_returned` (the model the provider's reply named for the generator call, beside `model`, the one asked for; owner, 2026-09-30); `response_preview` stays. Same file, same daily rotation, same retention and access; nothing is deleted. Estimate, measured on the Jetson's 35 days of logs: about 1.9 KB per entry, about 25 MB a year at the mean volume, about 175 MB a year at the peak day's volume held every day, against 1.7 TB free. Rotation: files already rotate daily; over `CDSS_LOG_DIR_MAX_BYTES` of session logs or under `CDSS_LOG_MIN_FREE_BYTES` of free disk (2 GiB each by default), the full-answer fields are null with the reason and the rest of the entry is still written. **Owner, 2026-09-28 (#111 review): keep all logs.** Session logs are never deleted by age; the guard above is the only limit.
+**Built (#111):** log schema 14 adds `response` (the full text the medic saw, the hold text when held), `held_response` (the model's own text the gate held), `full_answer_dropped`, and `model_returned` (the model the provider's reply named for the generator call, beside `model`, the one asked for; owner, 2026-09-30); `response_preview` stays. Same file, same daily rotation, same retention and access; nothing is deleted. Estimate, measured on the Jetson's 35 days of logs: about 1.9 KB per entry, about 25 MB a year at the mean volume, about 175 MB a year at the peak day's volume held every day, against 1.7 TB free. Rotation: files already rotate daily; over `CDSS_LOG_DIR_MAX_BYTES` of session logs or under `CDSS_LOG_MIN_FREE_BYTES` of free disk (2 GiB each by default), the full-answer fields are null with the reason and the rest of the entry is still written. **Owner, 2026-09-28 (#111 review): keep all logs.** Session logs are never deleted by age; the guard above is the only limit. **Owner, 2026-09-30:** #111 merged and deployed. `model_returned` names the generator's reply only; recording the validator's reply waits for E1.
 
 ### D5: distillation dataset builder
 
@@ -410,6 +410,25 @@ Print the counts per scenario and per drug.
 **Unasked drugs (owner, 2026-09-29; found in the D1 air-gap bench):** any teacher answer that names a drug the question didn't ask about, and that has no signed entry for that question, is excluded. The builder prints how many rows this removes. It is stricter than "served, not held": the free-text dose check holds only a stated dose, and this filter also drops the drug named without one.
 - **Why:** in the D1 air-gap bench (`cdss-eval/runs/d1-airgap-qwen2.5-3b-local-p1..p3`, main 3fe16a4), the local model added doses nobody asked for to the single-drug B1 query "80 kg adult, severe pain from a femur fracture, fentanyl IV". Pass 2 added naloxone 0.4 mg, ketamine 30 mg and ketamine 0.3 mg/kg; pass 3 added naloxone 0.4 mg and naloxone 25–50 mcg. The free-text dose check held both answers, correctly: nothing signed covered those doses for that question. The validator was not involved. Pass 1 added no other drug and was served.
 - **What it means for D5 and D6:** the dataset must contain no such rows, so the trained model learns not to add them.
+
+**Built (#113, in review):** `tools/build_distill_dataset.py`, tests `server/tests/test_distill_dataset.py`.
+- **Source:** session-log entries that are not synthetic (`X-Test-Run`), have `history_turns` 0 and a query, de-duplicated by normalised text (case, punctuation, "80kg"/"80 kg"). The scenario id is that normalised text; the scenario type is the router's matched protocol, or "unrouted".
+- **Evaluation set, hard exclusion, before any call:** every query in `run_tests.sh` (current turn and history, parsed from the file) and in the 30-set. The 30-set is pinned as sha256 hashes of its normalised queries in `tools/distill/eval_exclusions.json`, with the bank's own sha256 (`76c2bed9…`): the repository is public, so the text is not committed.
+- **Replay:** `_query_with_rag_internal(query, model="claude-opus-5")` on the deployed tree (refuses if it has uncommitted changes), `CDSS_LLM_SELECTED_TIMEOUT=120` in the builder's own process, the deployed validator and checks. The row's system prompt and user turn are what the live code passed to `providers.chat`, captured at the call. The builder never writes the session log.
+- **Kept only if:** a model was called; no fallback; not held; not truncated; the teacher's text reaches the medic unchanged (a notice may be added, nothing altered); `run_deterministic_checks` (which applies A1b's `indication_matched`) finds nothing; no unasked drug. Then every row is checked again and the run refuses, writing nothing, on any dose that is not signed.
+- **Output:** `data/distill/{train,valid}.jsonl` in the fixture's shape (the D6 format check passes). Metadata (teacher, `model_returned`, snapshot commit, contract bank sha256/version/signed count, concentrations sha256) is on the same line of `{train,valid}.meta.jsonl`, because a key on the row would fail the D6 preflight. `manifest.json` has the counts.
+- **Cost:** `--plan` selects and prices with no model call. The ceiling (700 + 3,000 reserve output tokens per call at $5/$25) stops the run over $40 unless `--approve-cost` is given.
+
+**First run (2026-09-30, deployed main d0b44f4, bank 1.4.0, 68 of 108 signed):**
+- 79 distinct single-turn production queries (975 synthetic, 181 with history and 48 evaluation-set entries left out). 41 are answered by a deterministic card on this main; 38 reached the teacher. Estimate: $1.19 expected, $4.04 ceiling.
+- Excluded: 13 unasked drug, 2 held. No fallback, truncation or check failure. **Kept 23: train 21, valid 2** (2 scenarios). Refuse-to-run: passed.
+- Unasked drugs: dextrose 5, ketamine 5, morphine 2, calcium gluconate 2, atropine 2, and 14 others once each.
+- Scenario types: unrouted 17, burn_management_pfc 2, airway_management_of_traumatic_injuries 2, drowning_management 1, pain_anxiety_delirium 1. All are under 20 rows.
+- Drugs named in the kept answers: ketamine 1, rocuronium 1.
+
+**For the owner's ruling before D6 trains on it:**
+1. **Junk queries pass every filter.** 8 of the 23 kept rows are not clinical questions: stray keystrokes, an abusive line, pasted pip output, and a pasted coding-assistant instruction the teacher answered with git commands. Nothing in the filters above removes them, and no filter was added without a ruling.
+2. **Too few rows to train on.** 21 train rows, 17 of them unrouted, and almost no dosing. Most of the dose-bearing production questions now go to deterministic cards (41 of 79), and the unasked-drug filter removes about a third of what's left.
 
 **Resolved (2026-09-26):** production session logs kept only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`), so they could not supply training answers. The owner chose (a) and (c) above.
 
@@ -466,6 +485,8 @@ The LLM validator holds correct answers because of how the question or the answe
 3. **#107** (the same pattern as #86, seen again in the live harness): "80kg male, cric'd, what do I give after RSI". The validator held gpt-4o-mini's post-intubation ketamine "without confirming tube placement".
 
 Never loosen a gate: the replay must show 0 newly released.
+
+**Also in E1 (owner, 2026-09-30):** log the model the validator's reply names, beside the generator's `model_returned` (D5a logs the generator's only).
 
 ## Distillation bench results
 
