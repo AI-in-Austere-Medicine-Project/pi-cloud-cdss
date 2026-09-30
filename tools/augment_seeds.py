@@ -139,6 +139,12 @@ def main(argv=None):
     os.environ["FEEDBACK_LOG"] = os.path.join(scratch, "feedback.log")
     os.chdir(server)
     sys.path.insert(0, str(server))
+    # The keys, as the server reads them (openai_client does this on import;
+    # this step imports providers alone). Read only; the env set above wins.
+    from dotenv import load_dotenv
+    load_dotenv(server / ".env")
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise bd.RefuseToRun(f"ANTHROPIC_API_KEY is not set in {server / '.env'}: the teacher can't be called")
     import providers
     out.mkdir(parents=True, exist_ok=True)
     ok = failed = 0

@@ -59,7 +59,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
-| D5b | Second dataset run: junk rule, seeds, paraphrases | in progress: `--plan` shown, stopped before spending (ceiling $69.07 over the $60 approved) |
+| D5b | Second dataset run: junk rule, seeds, paraphrases | in progress: paraphrases written; second plan $48.38 replay ceiling, stopped for the owner |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
@@ -472,6 +472,20 @@ Print the counts per scenario and per drug.
 | **Total** | **$19.07** | **$69.07** |
 
   The ceiling is over the $60 approved, so the run stopped here. It counts 3,700 output tokens per call (700 max plus Opus's 3,000 reserve) and every paraphrase reaching the model.
+
+**Staged (owner, 2026-09-30):** "Staged. Seeds are rows too, as you have it. Run the paraphrasing, re-plan with the real paraphrases, show me the second plan and stop."
+
+**Paraphrasing (2026-09-30):**
+- The first attempt made no teacher call. `augment_seeds.py` imported `providers` without loading the server's `.env`, so all 92 calls stopped on "ANTHROPIC_API_KEY is unset" before any request. Fixed: it loads the `.env` read-only and refuses before the first call if the key is missing.
+- **Rerun: 92 of 92 seeds paraphrased, 0 errors, 460 paraphrases** (prompt `26f28630…`). Ceiling $8.86, expected $0.81.
+
+**Second plan (deployed d0b44f4, real paraphrases; no model called):**
+- **Paraphrases: 456.** The exam re-check left out 4, none of them an exam scenario (cautious drops):
+  - a bare "~68 kg" near "25 kg";
+  - a crushed-hand ketamine question near "need ketamine for a 6 yo arm fx";
+  - two blast-lung vent questions near the DKA vent question (their seed sat at 0.51).
+- **Reaching the teacher:** production 30, seeds 69, paraphrases 353 (**452 calls**). Answered by a card: 42, 23 and 103.
+- **Replay cost: expected $14.46, ceiling $48.38.** With the paraphrasing (ceiling $8.86), this run's ceiling is **$57.24, under the $60 approved.** Stopped here for the owner.
 
 ### D1b: the authored 30-set, drafted for sign-off (owner, 2026-09-28; after D5, its own PR)
 
