@@ -61,8 +61,9 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 |---|---|---|---|
 | D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | Done, #111 (merged and deployed): full answer and held model text logged; guard nulls them over a 2 GiB cap or under 2 GiB free; all logs kept (owner); `model_returned` is the generator's only, the validator's waits for E1 (owner, 2026-09-30) |
 | D1 | Evaluation hygiene: new `run_tests.sh` cases and the benchmark protocol, with three air-gapped local passes as the pre-training baseline. | Jetson | Done: #112, merged (the 30-set reconciliation moved to D1b) |
-| D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | In review (#113): built and run on d0b44f4, 23 rows (21 train / 2 valid), $4.04 ceiling; finding: 8 junk rows and too few rows to train on, owner ruling needed before D6 |
-| D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | After D5 |
+| D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | Done, #113: first run on d0b44f4, 23 rows (8 junk); 41 of 79 real questions are answered without a model |
+| D5b | Second run: junk rule (route, drug or vital, else `review.jsonl`), seeds from the cdss-eval bank minus the exam and its near misses, 5 teacher paraphrases per seed (`tools/augment_seeds.py`). | Jetson | In progress: plan 72 production + 92 seeds + 460 paraphrases; ceiling $69.07 over the $60 approved, stopped before spending |
+| D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | After D5b |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
 | D2 | Put the fixed prompt first, so Ollama reuses its cache. | Jetson | After C1 |
 | D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | After D2 |

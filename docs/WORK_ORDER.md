@@ -58,8 +58,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
-| D5 | Distillation dataset builder | in review: #113; builder built and run; the dataset needs an owner ruling before D6 trains on it |
-| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5 |
+| D5 | Distillation dataset builder | **done**: #113, merged |
+| D5b | Second dataset run: junk rule, seeds, paraphrases | in progress: `--plan` shown, stopped before spending (ceiling $69.07 over the $60 approved) |
+| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
 | B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
@@ -79,7 +80,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a and D1 are done (#93, #111, #112). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a, D1 and D5 are done (#93, #111, #112, #113). D5b was added after D5 by the owner in the #113 review; D1b follows it. B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
 
 **Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. A13, A11b and A16 are delivered together in #110 on the owner's instruction. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -411,7 +412,7 @@ Print the counts per scenario and per drug.
 - **Why:** in the D1 air-gap bench (`cdss-eval/runs/d1-airgap-qwen2.5-3b-local-p1..p3`, main 3fe16a4), the local model added doses nobody asked for to the single-drug B1 query "80 kg adult, severe pain from a femur fracture, fentanyl IV". Pass 2 added naloxone 0.4 mg, ketamine 30 mg and ketamine 0.3 mg/kg; pass 3 added naloxone 0.4 mg and naloxone 25–50 mcg. The free-text dose check held both answers, correctly: nothing signed covered those doses for that question. The validator was not involved. Pass 1 added no other drug and was served.
 - **What it means for D5 and D6:** the dataset must contain no such rows, so the trained model learns not to add them.
 
-**Built (#113, in review):** `tools/build_distill_dataset.py`, tests `server/tests/test_distill_dataset.py`.
+**Built (#113, merged):** `tools/build_distill_dataset.py`, tests `server/tests/test_distill_dataset.py`.
 - **Source:** session-log entries that are not synthetic (`X-Test-Run`), have `history_turns` 0 and a query, de-duplicated by normalised text (case, punctuation, "80kg"/"80 kg"). The scenario id is that normalised text; the scenario type is the router's matched protocol, or "unrouted".
 - **Evaluation set, hard exclusion, before any call:** every query in `run_tests.sh` (current turn and history, parsed from the file) and in the 30-set. The 30-set is pinned as sha256 hashes of its normalised queries in `tools/distill/eval_exclusions.json`, with the bank's own sha256 (`76c2bed9…`): the repository is public, so the text is not committed.
 - **Replay:** `_query_with_rag_internal(query, model="claude-opus-5")` on the deployed tree (refuses if it has uncommitted changes), `CDSS_LLM_SELECTED_TIMEOUT=120` in the builder's own process, the deployed validator and checks. The row's system prompt and user turn are what the live code passed to `providers.chat`, captured at the call. The builder never writes the session log.
@@ -432,6 +433,45 @@ Print the counts per scenario and per drug.
 
 **Resolved (2026-09-26):** production session logs kept only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`), so they could not supply training answers. The owner chose (a) and (c) above.
 
+
+### D5b: second dataset run (owner, 2026-09-30, #113 review; one PR)
+
+**Owner:** "merge as is; the builder is right and the finding is the point."
+
+**Finding recorded (owner):** on this main (d0b44f4), **41 of the 79 real single-turn questions are answered without a model.** They go to deterministic cards, so the teacher never writes them and they can't be training rows.
+
+**The six points:**
+1. **Junk rule.** A kept row must route to a protocol, name a lexicon drug, or contain a parsed vital. Rows that fail all three go to `data/distill/review.jsonl` for the owner, not into train. The 8 junk rows of the first run are dropped now, by hash. Tested with the abusive line, the pip paste and the git prompt as negatives, and an unrouted clinical question as a positive.
+2. **Seeds.** Add `cdss-eval/scenarios.jsonl`, minus the 30-set and minus anything whose normalised text is within edit distance of an exam query. Report the seed count.
+3. **Augmentation.** A separate step, `tools/augment_seeds.py`: the teacher writes 5 paraphrases per seed, varying the wording, weight and vitals with the situation unchanged, from a fixed prompt. Output goes under `data/distill/seeds/` with its source and seed id, tagged `synthetic: true` in the metadata. Exam seeds are excluded first, so an exam scenario can't be paraphrased; there is a test for this.
+4. **Same path.** Every paraphrase goes through the same replay and filters as a production row. Production rows keep `synthetic: false`. Counts are printed by source.
+5. **Cost ceiling for this run: $60.** Show the `--plan` estimate and stop before spending.
+6. Record the 41-of-79 finding above.
+
+**Built:**
+- **Junk rule:** `clinical_signals` reads the question, not the answer. The three signals are routed (the router's matched protocol at HIGH/MEDIUM, as the pipeline uses it), drug (`_drug_spans`: the contract bank plus `drug_lexicon.json`) and vital (`vitals.parse_vitals`). The drop list is `tools/distill/junk_exclusions.json`: 8 hashes, which match 46 log entries and 3 seeds.
+- **Known miss of the rule:** "burn patient 40% TBSA, how much fluid" has none of the three signals, so it goes to review. A test pins this.
+- **Edit distance:** normalised Levenshtein (distance divided by the longer length) of 0.50 or less against every exam query (the 30-set and `run_tests.sh`, current turn and history). Measured on the bank:
+  - the exam questions' misspellings sit at 0.46–0.48 ("septik … txa", "anafalaxis …");
+  - the nearest different situation is at 0.51 (a blast-lung vent question against a DKA vent question).
+  - The 30-set text is read from cdss-eval and must match the pinned sha256, or the builder refuses.
+- **Seeds with history are left out** (the single-patient rule). A seed that repeats a production query is left out.
+- **Paraphrases** take their seed's scenario id (`seed:<id>`), so a seed and its paraphrases never straddle the split. They are checked against the exam again, and they are never substituted: a fallback, an error or a malformed reply is recorded in `errors.jsonl`.
+- **Paraphrase prompt** (sha256 `26f28630…`): it doesn't add a weight or vitals the seed doesn't state.
+
+**Plan (2026-09-30, deployed d0b44f4; no model called):**
+- **Production:** 72 distinct single-turn questions. That is 79, minus the 8 junk, plus one logged today. 30 are model-reaching and 42 deterministic.
+- **Seeds: 92.** Left out: 30 from the 30-set, 23 with history, 8 exact exam text, 5 near an exam query, 18 repeating a production query, 3 junk, 3 duplicates. 69 are model-reaching and 23 deterministic.
+- **Paraphrases:** 92 × 5 = 460 projected. Each is assumed to reach the teacher, with the mean prompt.
+- **Cost:**
+
+| | Expected | Ceiling |
+|---|---|---|
+| Replay (99 calls + 460 projected) | $18.26 | $60.21 |
+| Paraphrasing (92 calls) | $0.81 | $8.86 |
+| **Total** | **$19.07** | **$69.07** |
+
+  The ceiling is over the $60 approved, so the run stopped here. It counts 3,700 output tokens per call (700 max plus Opus's 3,000 reserve) and every paraphrase reaching the model.
 
 ### D1b: the authored 30-set, drafted for sign-off (owner, 2026-09-28; after D5, its own PR)
 
