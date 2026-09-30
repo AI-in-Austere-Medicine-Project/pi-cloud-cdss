@@ -357,3 +357,32 @@ Every local-arm benchmark from D1 on follows this protocol. A run that departs f
 - `nvpmodel -q`;
 - the kernel;
 - start and end times.
+
+## D1 baseline: before and after the A list (2026-09-29)
+
+The pre-training baseline D6 compares against, run to the protocol above. **Before** is benchmark run 3 on main `580836e`, the snapshot before the A items. **After** is main `3fe16a4`, with the A list complete. Both use the same frozen bank (`bec9971c`, intact), the same 30 scenarios, `--round all`, and 0 errors.
+
+| Arm | Snapshot | Runs | Median latency | p95 latency | Prompt tokens, median (p95) | Reached the model |
+|---|---|---|---|---|---|---|
+| Local qwen2.5-3b | before `580836e` | `mm3-qwen2.5-3b-local-p1..p3` (90 rows) | 8.61 s | 38.74 s | not recorded | 75 / 90 |
+| Local qwen2.5-3b | after `3fe16a4`, air-gapped | `d1-airgap-qwen2.5-3b-local-p1..p3` (90 rows) | 8.12 s | 38.19 s | 3,705 (4,346) | 72 / 90 |
+| Cloud gpt-4o-mini | before `580836e` | `mm3t120-gpt-4o-mini-p1` (30 rows) | 2.75 s | 4.78 s | 5,467 (6,510) | 25 / 30 |
+| Cloud gpt-4o-mini | after `3fe16a4` | `d1-gpt-4o-mini-p1` (30 rows) | 2.87 s | 4.02 s | 5,403 (6,511) | 24 / 30 |
+
+**How to read it**
+- Latency is the client's wall time over every row, including rows that never reach the model. Local rows are pooled across the 3 passes. The per-pass median was 8.0 / 8.7 / 9.7 s before and 7.9 / 8.1 / 8.3 s after; the per-pass p95 was 37.8–38.1 s before and 36.4–38.9 s after.
+- Prompt tokens are the provider-reported input tokens per model-reaching row: the generator and validator calls together. Local and cloud use different tokenizers, so compare down a column's arm, not across arms.
+- **Local tokens before are not recorded:** run 3's harness didn't wrap the on-device client (fixed in cdss-eval `3041fa9`). The prompt itself barely moved: the generator and validator system prompts total a median 21,629 characters before and 21,529 after.
+- On the 24 scenarios that reached gpt-4o-mini in both runs, the prompt-token median was 5,386 before and 5,403 after, a total of 107,535 before and 105,734 after.
+- **One scenario left the model path:** H-S3 ("TBI patient … status SZ, maxed out on versed") is now served deterministically (A15, the benzodiazepine-refractory ketamine entry). Before, the local arm held it (BLOCK), and cloud served a model answer.
+
+**What it shows:** the A list changed what is decided, not the cost. Latency and prompt size are within pass-to-pass noise on both arms.
+
+**Conditions**
+- **Local passes:** air-gapped 10:35–10:58Z, 40 of 40 probes in that window OFFLINE. The socket guard logged no non-loopback connection; it logged 4 during the online cloud arm, so it was working.
+- **Environment:** Ollama 0.34.2, nvpmodel 25W, kernel 6.8.12-1021-tegra.
+- **Run 3's local passes were online.** They made no network calls, so it shouldn't matter, but it is a difference.
+- **Timeouts:** the cloud arm before ran with a 120 s cloud timeout, and the arm after ran with the deployed settings. Neither had a fallback: every model turn was `openai/gpt-4o-mini`.
+- **`run_tests.sh`:** 28/29 on every local pass. The one failure is the B1 fentanyl label case, which is expected until B1: pass 1 served the answer without `ID61`, and in passes 2 and 3 the free-text dose check held it for unasked naloxone and ketamine doses (see WORK_ORDER.md, D5).
+
+**Limits:** n = 30, one cloud run per snapshot, 3 local passes per snapshot. The numbers are latency and size, not content quality.
