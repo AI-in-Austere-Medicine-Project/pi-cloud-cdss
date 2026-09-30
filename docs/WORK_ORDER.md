@@ -59,7 +59,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
-| D5b | Second dataset run: junk rule, seeds, paraphrases | in progress: paraphrases written; second plan $48.38 replay ceiling, stopped for the owner |
+| D5b | Second dataset run: junk rule, seeds, paraphrases | in review: run done, 107 rows (98 train / 9 valid), 167 in review; the junk rule's review set is mostly real clinical questions (owner ruling) |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
@@ -486,6 +486,26 @@ Print the counts per scenario and per drug.
   - two blast-lung vent questions near the DKA vent question (their seed sat at 0.51).
 - **Reaching the teacher:** production 30, seeds 69, paraphrases 353 (**452 calls**). Answered by a card: 42, 23 and 103.
 - **Replay cost: expected $14.46, ceiling $48.38.** With the paraphrasing (ceiling $8.86), this run's ceiling is **$57.24, under the $60 approved.** Stopped here for the owner.
+
+**Run (owner, 2026-09-30: "Run the replay with --approve-cost 60"; deployed d0b44f4):** 452 teacher calls. Refuse-to-run passed.
+
+| Source | Card (no model) | Held | Unasked drug | Review | Kept | Train / valid |
+|---|---|---|---|---|---|---|
+| production | 42 | 3 | 11 | 6 | 10 | 10 / 0 |
+| seed | 23 | 2 | 22 | 24 | 21 | 18 / 3 |
+| paraphrase | 103 | 18 | 122 | 137 | 76 | 70 / 6 |
+| **total** | 168 | 23 | 155 | **167** | **107** | **98 / 9** (valid: 4 scenarios) |
+
+- No fallback, truncation, pipeline change or check failure.
+- **Unasked drugs** are the largest exclusion. The most frequent: dextrose 41, ketamine 31, tranexamic acid 21, sodium bicarbonate 15, morphine 14, calcium gluconate 14, epinephrine 12. The full count is in `manifest.json`.
+- **Scenario types:** damage_control_resuscitation 15, burn_management_pfc 13, unrouted 12, radiology_imaging_trauma_patients 12, airway_management_in_prolonged_field_care 11, then 7 or fewer. Every type is under 20 rows.
+- **Drugs named in the kept answers:** midazolam 6, tranexamic acid 6, ketamine 4, amiodarone 2, rocuronium 1.
+- **Cost:** the builder doesn't record the providers' token counts. The plan's expected cost was $14.46 for the replay and $0.81 for the paraphrasing; the actual figure is on the provider dashboards.
+
+**For the owner's ruling: the review file is mostly clinical.** `data/distill/review.jsonl` (untracked) holds 167 rows in about 51 groups (a seed with its paraphrases counts as one group):
+- About 5 groups (~16 rows) are fragments: a bare weight, "90 kg male tenio", "normal weight for a 7 year old", "Do I give ami for this now?".
+- The other ~46 groups (~151 rows) are real clinical questions with no route, no lexicon drug and no parsed vital. Examples: the Parkland formula, when to burp a chest seal, c-spine clearance, IO access, criteria for terminating resuscitation, rabies timing, a vent patient bucking the tube, breech delivery.
+- The rule keeps junk out (none of the 107 kept rows is junk), but the router and the lexicon miss much of the prolonged-field-care and general reference material. "amio" is not in the lexicon.
 
 ### D1b: the authored 30-set, drafted for sign-off (owner, 2026-09-28; after D5, its own PR)
 
