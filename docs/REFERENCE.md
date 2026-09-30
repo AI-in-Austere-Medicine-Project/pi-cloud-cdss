@@ -51,16 +51,16 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A10 | The CICO card doesn't fire on a cric that is already done. | Found in #86 | Done, #107 |
 | A11 | The free-text dose check reads infusion rates and compares them with signed rate entries; a rate with no signed rate entry holds. | Found in #97; owner, #97 review | Done, #108 |
 | A12 | Succinylcholine leaves ALLOWED_DOSES under a P5 condition (burns, spinal cord injury, hyperkalaemia). | Owner, #98 review | Done, #109 |
-| A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | In review, #110 |
-| A11b | Rate matching becomes indication-specific, the same shape as A1b. | Owner, #108 review | In review, #110 |
-| A16 | A deterministic norepinephrine drip card serving the signed per-kg rate, as the epinephrine drip card does. | Found in #108; owner, #108 review | In review, #110 |
+| A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | Done, #110 |
+| A11b | Rate matching becomes indication-specific, the same shape as A1b. | Owner, #108 review | Done, #110 |
+| A16 | A deterministic norepinephrine drip card serving the signed per-kg rate, as the epinephrine drip card does. | Found in #108; owner, #108 review | Done, #110 |
 
 ## 4. D items: data and speed
 
 | Item | Meaning | Machine | Status |
 |---|---|---|---|
-| D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | Next: the A list is done once #110 merges |
-| D1 | Evaluation hygiene: new `run_tests.sh` cases and the benchmark protocol, with three air-gapped local passes as the pre-training baseline. | Jetson | In progress (the 30-set reconciliation moved to D1b) |
+| D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | In review (#111): full answer and held model text logged; guard nulls them over a 2 GiB cap or under 2 GiB free; all logs kept (owner) |
+| D1 | Evaluation hygiene: new `run_tests.sh` cases and the benchmark protocol, with three air-gapped local passes as the pre-training baseline. | Jetson | Done: #112, merged (the 30-set reconciliation moved to D1b) |
 | D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | After D1 |
 | D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | After D5 |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
