@@ -27,6 +27,23 @@ shape of tools/distill/fixtures/format_example.jsonl, split 90/10 by scenario.
 Each row's metadata (teacher, snapshot commit, contract bank version, ...) is
 on the same line of {train,valid}.meta.jsonl: a key on the row itself would
 fail the D6 preflight, which compares the row's keys with the fixture's.
+
+D5b (owner, #113 review):
+- Junk rule: a kept row's question must route to a protocol, name a lexicon
+  drug, or contain a parsed vital. A row with none of the three goes to
+  data/distill/review.jsonl for the owner, not into train or valid. The eight
+  junk queries of the first run are dropped at the source by hash
+  (tools/distill/junk_exclusions.json).
+- Seeds: cdss-eval/scenarios/scenarios.jsonl, minus the 30-set, minus any
+  seed whose normalised text is within edit distance NEAR_EXAM_RATIO of an
+  exam query (the 30-set and run_tests.sh, current turn and history), minus
+  seeds with history.
+- Paraphrases: data/distill/seeds/paraphrases.jsonl, written by
+  tools/augment_seeds.py. They share their seed's scenario id, so a seed and
+  its paraphrases never straddle the split, and they are checked against the
+  exam set again. Every paraphrase takes the same replay and filters as a
+  production row. Metadata: source (production, seed, paraphrase) and
+  synthetic (false only for production).
 """
 import argparse
 import collections
@@ -35,6 +52,7 @@ import copy
 import datetime
 import hashlib
 import importlib
+import importlib.util
 import io
 import json
 import os
@@ -62,6 +80,15 @@ CHARS_PER_TOKEN = 4          # run 3's estimate for the validator share
 TEACHER_OUT_EXPECTED = 698   # run 3, Opus at 120 s: output tokens per model turn
 VALIDATOR_OUT = 200
 VALIDATOR_ANSWER_CHARS = 2361  # D5a: p95 served answer, bytes
+
+EVAL = pathlib.Path("/home/andrew/projects/cdss-eval")
+SCENARIOS_30 = EVAL / "runs/run-tests-mm3-20260925/scenarios-30.jsonl"
+SEEDS = EVAL / "scenarios/scenarios.jsonl"
+# A seed within this normalised edit distance (distance / longer length) of an
+# exam query is the exam question. Measured on the bank: the misspelled exam
+# questions sit at 0.46-0.48 ("septik patient ... txa", "anafalaxis ..."), the
+# nearest different situation at 0.51 (blast-lung vent vs DKA vent).
+NEAR_EXAM_RATIO = 0.5
 
 
 class RefuseToRun(Exception):
@@ -118,8 +145,78 @@ class EvalExclusion:
         return qhash(q) in self.hashes
 
 
+def _bag_distance(a: str, b: str) -> int:
+    """A lower bound on the edit distance, from character counts alone."""
+    ca, cb = collections.Counter(a), collections.Counter(b)
+    return max(sum((ca - cb).values()), sum((cb - ca).values()))
+
+
+def edit_distance_within(a: str, b: str, k: int) -> bool:
+    """Levenshtein(a, b) <= k."""
+    if abs(len(a) - len(b)) > k or _bag_distance(a, b) > k:
+        return False
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        if min(cur) > k:
+            return False
+        prev = cur
+    return prev[-1] <= k
+
+
+class ExamSet:
+    """The exam's text, for the edit-distance check: the 30-set and run_tests.sh."""
+
+    def __init__(self, texts, ids):
+        self.norms = {normalize(t) for t in texts if normalize(t)}
+        self.ids = set(ids)
+
+    @classmethod
+    def load(cls, repo: pathlib.Path = REPO, scenarios_30: pathlib.Path = SCENARIOS_30) -> "ExamSet":
+        pin = json.loads((repo / "tools/distill/eval_exclusions.json").read_text())
+        try:
+            raw = pathlib.Path(scenarios_30).read_bytes()
+        except OSError as e:
+            raise RefuseToRun(f"the 30-set is needed for the edit-distance check: {e}")
+        if hashlib.sha256(raw).hexdigest() != pin["scenarios_30_sha256"]:
+            raise RefuseToRun(f"{scenarios_30} is not the pinned 30-set")
+        texts, ids = set(run_tests_queries((repo / "server/run_tests.sh").read_text())), set()
+        for line in raw.decode().splitlines():
+            s = json.loads(line)
+            ids.add(s["id"])
+            texts.add(s["query"])
+            texts.update(h["query"] for h in s.get("history") or []
+                         if isinstance(h, dict) and h.get("query"))
+        return cls(texts, ids)
+
+    def exact(self, q: str) -> bool:
+        return normalize(q) in self.norms
+
+    def near(self, q: str) -> bool:
+        n = normalize(q)
+        return any(edit_distance_within(n, e, int(NEAR_EXAM_RATIO * max(len(n), len(e))))
+                   for e in self.norms)
+
+
+class JunkDrop:
+    """The first run's eight junk queries (owner, #113 review), by hash."""
+
+    def __init__(self, hashes: set):
+        self.hashes = hashes
+
+    @classmethod
+    def load(cls, repo: pathlib.Path = REPO) -> "JunkDrop":
+        pin = json.loads((repo / "tools/distill/junk_exclusions.json").read_text())
+        return cls(set(pin["query_sha256"]))
+
+    def drops(self, q: str) -> bool:
+        return qhash(q) in self.hashes
+
+
 # ── the source: single-turn production queries ─────────────────────────────
-def load_source_queries(log_dir, exclusion: EvalExclusion):
+def load_source_queries(log_dir, exclusion: EvalExclusion, junk: "JunkDrop | None" = None):
     """Distinct (by normalize) single-turn, non-synthetic queries, first spelling kept."""
     counts = collections.Counter()
     seen = {}
@@ -139,15 +236,78 @@ def load_source_queries(log_dir, exclusion: EvalExclusion):
                 counts["had_history"] += 1
             elif exclusion.excludes(q):
                 counts["evaluation_set"] += 1
+            elif junk is not None and junk.drops(q):
+                counts["junk_dropped"] += 1
             else:
                 k = normalize(q)
                 if k in seen:
                     seen[k]["occurrences"] += 1
                 else:
                     seen[k] = {"query": q, "scenario_id": qhash(q)[:12],
-                               "first_ts": r.get("ts"), "occurrences": 1}
+                               "first_ts": r.get("ts"), "occurrences": 1,
+                               "source": "production", "synthetic": False}
                 continue
     return list(seen.values()), counts
+
+
+def _exam_reason(q: str, exam: ExamSet, exclusion: EvalExclusion) -> "str | None":
+    if exclusion.excludes(q) or exam.exact(q):
+        return "exam_text"
+    if exam.near(q):
+        return "exam_near"
+    return None
+
+
+def load_seeds(path, exam: ExamSet, exclusion: EvalExclusion, junk: JunkDrop, production=()):
+    """The cdss-eval bank minus the exam, its near misses, history, junk and repeats."""
+    counts = collections.Counter()
+    taken = {normalize(p["query"]) for p in production}
+    seen, seeds = set(), []
+    for line in open(path, encoding="utf-8"):
+        if not line.strip():
+            continue
+        s = json.loads(line)
+        q = (s.get("query") or "").strip()
+        if s["id"] in exam.ids:
+            counts["exam_30_set"] += 1
+        elif s.get("history"):
+            counts["had_history"] += 1
+        elif _exam_reason(q, exam, exclusion):
+            counts[_exam_reason(q, exam, exclusion)] += 1
+        elif junk.drops(q):
+            counts["junk_dropped"] += 1
+        elif normalize(q) in taken:
+            counts["duplicates_production"] += 1
+        elif normalize(q) in seen:
+            counts["duplicate"] += 1
+        else:
+            seen.add(normalize(q))
+            seeds.append({"query": q, "seed_id": s["id"], "scenario_id": f"seed:{s['id']}",
+                          "first_ts": None, "occurrences": 1,
+                          "source": "seed", "synthetic": True})
+    return seeds, dict(counts)
+
+
+def load_paraphrases(path, exam: ExamSet, exclusion: EvalExclusion, junk: JunkDrop):
+    """augment_seeds.py's output, checked against the exam again; seed's scenario id."""
+    counts = collections.Counter()
+    seen, items = set(), []
+    for line in open(path, encoding="utf-8"):
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        q = (r.get("query") or "").strip()
+        why = _exam_reason(q, exam, exclusion) or ("junk_dropped" if junk.drops(q) else None)
+        if why is None and normalize(q) in seen:
+            why = "duplicate"
+        if why:
+            counts[why] += 1
+            continue
+        seen.add(normalize(q))
+        items.append({"query": q, "seed_id": r["seed_id"], "paraphrase_id": r["paraphrase_id"],
+                      "scenario_id": f"seed:{r['seed_id']}", "first_ts": None, "occurrences": 1,
+                      "source": "paraphrase", "synthetic": True})
+    return items, dict(counts)
 
 
 # ── what is kept ────────────────────────────────────────────────────────────
@@ -182,6 +342,24 @@ def unasked_drugs(query: str, answer: str, signed) -> set:
     for name in signed:
         covered |= drugs_in(name) or {name.lower()}
     return drugs_in(answer) - covered
+
+
+def clinical_signals(query: str) -> list:
+    """The owner's junk rule, read from the question: routed, drug, vital."""
+    oc = _oc()
+    readings, _rejected = importlib.import_module("vitals").parse_vitals(query or "")
+    return [name for name, hit in (("routed", scenario_type(oc, query) != "unrouted"),
+                                   ("drug", bool(drugs_in(query))),
+                                   ("vital", bool(readings))) if hit]
+
+
+def partition_junk(rows: list):
+    """(kept, review): a row whose question has none of the three signals is for the owner."""
+    kept, review = [], []
+    for r in rows:
+        r["meta"]["clinical_signals"] = clinical_signals(r["meta"]["query"])
+        (kept if r["meta"]["clinical_signals"] else review).append(r)
+    return kept, review
 
 
 def refuse_unsigned_doses(rows: list):
@@ -322,10 +500,24 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--server", default=str(REPO / "server"),
                    help="the deployed server tree the dataset is replayed through")
     p.add_argument("--logs", help="session log dir (default: CDSS_LOG_DIR from that tree's .env)")
+    p.add_argument("--seeds", default=str(SEEDS), help="the cdss-eval bank the seeds come from")
+    p.add_argument("--scenarios-30", default=str(SCENARIOS_30), help="the exam; must match the pin")
     p.add_argument("--out", default=str(REPO / "data/distill"))
     p.add_argument("--plan", action="store_true", help="select, count and cost; call no model")
     p.add_argument("--approve-cost", type=float, help="the owner's approved ceiling, in USD, over $40")
     return p
+
+
+def _augment_module():
+    spec = importlib.util.spec_from_file_location("augment_seeds", REPO / "tools/augment_seeds.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("build_distill_dataset", sys.modules[__name__])
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _by_source(items, key=lambda i: i["source"]) -> dict:
+    return dict(collections.Counter(key(i) for i in items))
 
 
 def main(argv=None):
@@ -342,6 +534,9 @@ def main(argv=None):
     if logs is None:
         from dotenv import dotenv_values
         logs = dotenv_values(server / ".env").get("CDSS_LOG_DIR") or str(server / "logs/sessions")
+    out = pathlib.Path(a.out).resolve()
+    exclusion, junk = EvalExclusion.load(REPO), JunkDrop.load(REPO)
+    exam = ExamSet.load(REPO, pathlib.Path(a.scenarios_30))
     os.chdir(server)
     sys.path.insert(0, str(server))
     import openai_client as oc
@@ -351,35 +546,61 @@ def main(argv=None):
         raise RefuseToRun("the teacher would not be waited for 120 s")
     pipeline_log = open(os.path.join(scratch, "pipeline.log"), "w")
     chroma = ChromaDBClient()
+    aug = _augment_module()
 
-    sources, src_counts = load_source_queries(logs, EvalExclusion.load(REPO))
-    print(f"source: {logs}")
-    print(f"  distinct single-turn production queries: {len(sources)}  "
+    production, src_counts = load_source_queries(logs, exclusion, junk)
+    seeds, seed_counts = load_seeds(a.seeds, exam, exclusion, junk, production)
+    para_path = out / "seeds/paraphrases.jsonl"
+    paraphrases, para_counts = (load_paraphrases(para_path, exam, exclusion, junk)
+                                if para_path.exists() else ([], {}))
+    augmented = {p["seed_id"] for p in paraphrases} | set(aug.done_seed_ids(para_path))
+    to_augment = [s for s in seeds if s["seed_id"] not in augmented]
+    print(f"production: {logs}")
+    print(f"  distinct single-turn production queries: {len(production)}  "
           f"(entries left out: {dict(src_counts)})")
+    print(f"seeds: {a.seeds}")
+    print(f"  seeds: {len(seeds)}  (left out: {seed_counts})")
+    print(f"paraphrases: {len(paraphrases)} in {para_path}  (left out: {para_counts}); "
+          f"seeds still to paraphrase: {len(to_augment)}")
 
+    sources = production + seeds + paraphrases
     plan_cap = Capture(oc, providers, stub=True)
-    plans, deterministic = [], 0
+    plans, deterministic = [], []
     for s in sources:
         plan_cap.run(s["query"], chroma, pipeline_log)
         if plan_cap.gen is None:
-            deterministic += 1
+            deterministic.append(s)
             continue
         g = plan_cap.gen
         plans.append({**s, "prompt_chars": len(g["system"]) + sum(len(m["content"]) for m in g["messages"]),
                       "validator_chars": plan_cap.validator_chars})
-    est = estimate(plans)
-    print(f"  model-reaching on {snap['commit'][:7]}: {len(plans)}  (deterministic-only: {deterministic})")
+    # Paraphrases not written yet: every one is assumed to reach the teacher,
+    # with the mean prompt of the rows planned above.
+    n_proj = aug.N_PARAPHRASES * len(to_augment)
+    mean = lambda k: sum(p[k] or 0 for p in plans) / max(1, len(plans))
+    projected = [{"prompt_chars": mean("prompt_chars"), "validator_chars": mean("validator_chars")}] * n_proj
+    replay = estimate(plans + projected)
+    augment_est = aug.estimate(to_augment)
+    total = {k: round(replay[k] + augment_est[k], 2) for k in ("expected_usd", "ceiling_usd")}
+    print(f"  model-reaching on {snap['commit'][:7]}: {_by_source(plans)}  "
+          f"(deterministic-only: {_by_source(deterministic)})")
     print(f"  teacher {TEACHER}, {TEACHER_TIMEOUT_S} s; validator {providers.validator_model()}")
-    print(f"  cost: expected ${est['expected_usd']:.2f}, ceiling ${est['ceiling_usd']:.2f} "
-          f"({est['calls']} teacher calls, ~{est['teacher_in_tokens']:,} prompt tokens)")
-    check_budget(est["ceiling_usd"], a.approve_cost)
+    print(f"  cost, replay: {len(plans)} calls + {n_proj} projected paraphrase calls: "
+          f"expected ${replay['expected_usd']:.2f}, ceiling ${replay['ceiling_usd']:.2f}")
+    print(f"  cost, paraphrasing {len(to_augment)} seeds: expected ${augment_est['expected_usd']:.2f}, "
+          f"ceiling ${augment_est['ceiling_usd']:.2f}")
+    print(f"  cost, total: expected ${total['expected_usd']:.2f}, ceiling ${total['ceiling_usd']:.2f}")
+    check_budget(total["ceiling_usd"], a.approve_cost)
     if a.plan:
         print("plan only: no model was called and nothing was written.")
         return 0
+    if to_augment:
+        raise RefuseToRun(f"{len(to_augment)} seeds have no paraphrases yet: run tools/augment_seeds.py first")
 
     cap = Capture(oc, providers, stub=False)
-    kept, reasons, unasked_seen = [], collections.Counter(), collections.Counter()
-    reasons["deterministic"] = deterministic
+    kept, outcomes, unasked_seen = [], collections.Counter(), collections.Counter()
+    for s in deterministic:
+        outcomes[(s["source"], "deterministic")] += 1
     for i, s in enumerate(plans, 1):
         result = cap.run(s["query"], chroma, pipeline_log)
         why = exclusion_reason(result, cap.gen)
@@ -392,8 +613,8 @@ def main(argv=None):
             if extra:
                 why = "unasked_drug"
                 unasked_seen.update(extra)
-        reasons[why or "kept"] += 1
-        print(f"  [{i}/{len(plans)}] {why or 'kept':20s} {s['query'][:70]}", flush=True)
+        outcomes[(s["source"], why or "passed")] += 1
+        print(f"  [{i}/{len(plans)}] {s['source']:10s} {why or 'passed':20s} {s['query'][:60]!r}", flush=True)
         if why:
             continue
         kept.append({"scenario_id": s["scenario_id"], "assistant": cap.gen["response"],
@@ -401,7 +622,9 @@ def main(argv=None):
                                                        cap.gen["response"]),
                      "meta": {"scenario_id": s["scenario_id"],
                               "scenario_type": scenario_type(oc, s["query"]),
-                              "query": s["query"], "occurrences": s["occurrences"],
+                              "query": s["query"], "source": s["source"], "synthetic": s["synthetic"],
+                              "seed_id": s.get("seed_id"), "paraphrase_id": s.get("paraphrase_id"),
+                              "occurrences": s["occurrences"],
                               "first_seen": s["first_ts"], "teacher": TEACHER,
                               "model_returned": result.get("model_returned"),
                               "validator_result": result.get("validator_result"),
@@ -412,14 +635,32 @@ def main(argv=None):
                               "built": datetime.datetime.utcnow().isoformat() + "Z"}})
 
     refuse_unsigned_doses(kept)
+    kept, review = partition_junk(kept)
+    for r in review:
+        outcomes[(r["meta"]["source"], "passed")] -= 1
+        outcomes[(r["meta"]["source"], "review")] += 1
+    for r in kept:
+        outcomes[(r["meta"]["source"], "passed")] -= 1
+        outcomes[(r["meta"]["source"], "kept")] += 1
     train, valid = split(kept)
-    write_split(a.out, [(r["row"], {**r["meta"], "split": "train"}) for r in train],
+    write_split(out, [(r["row"], {**r["meta"], "split": "train"}) for r in train],
                 [(r["row"], {**r["meta"], "split": "valid"}) for r in valid])
+    with open(out / "review.jsonl", "w", encoding="utf-8") as f:
+        for r in review:
+            f.write(json.dumps({**r["row"], "meta": r["meta"]}, ensure_ascii=False) + "\n")
 
     print(f"\nkept {len(kept)}: train {len(train)}, valid {len(valid)} "
-          f"({len({r['scenario_id'] for r in valid})} scenarios)  -> {a.out}")
-    print("excluded:", {k: v for k, v in reasons.items() if k != "kept"})
-    print(f"unasked drugs removed {reasons['unasked_drug']} rows: {dict(unasked_seen)}")
+          f"({len({r['scenario_id'] for r in valid})} scenarios); review {len(review)}  -> {out}")
+    table = collections.defaultdict(dict)
+    for (src, what), n in outcomes.items():
+        if n:
+            table[src][what] = n
+    print("counts by source:")
+    for src in ("production", "seed", "paraphrase"):
+        split_n = {sp: sum(r["meta"]["source"] == src for r in rows)
+                   for sp, rows in (("train", train), ("valid", valid))}
+        print(f"  {src:10s} {dict(table.get(src, {}))}  {split_n}")
+    print(f"unasked drugs: {dict(unasked_seen)}")
     types = collections.Counter(r["meta"]["scenario_type"] for r in kept)
     print("scenario types (top 10):")
     for t, n in types.most_common(10):
@@ -429,11 +670,14 @@ def main(argv=None):
     for d, n in drugs.most_common():
         print(f"  {n:4d}  {d}")
     manifest = {"snapshot": snap, "teacher": TEACHER, "teacher_timeout_s": TEACHER_TIMEOUT_S,
-                "validator": providers.validator_model(), "estimate": est,
-                "source_entries_left_out": dict(src_counts), "excluded": dict(reasons),
+                "validator": providers.validator_model(), "estimate": {"replay": replay, "total": total},
+                "production_entries_left_out": dict(src_counts), "seeds_left_out": seed_counts,
+                "paraphrases_left_out": para_counts,
+                "outcomes": {src: d for src, d in table.items()},
                 "unasked_drugs": dict(unasked_seen), "train": len(train), "valid": len(valid),
-                "scenario_types": dict(types), "drugs": dict(drugs), "pipeline_log": pipeline_log.name}
-    (pathlib.Path(a.out) / "manifest.json").write_text(json.dumps(manifest, indent=2))
+                "review": len(review), "scenario_types": dict(types), "drugs": dict(drugs),
+                "pipeline_log": pipeline_log.name}
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return 0
 
 

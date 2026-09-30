@@ -58,7 +58,14 @@ def test_an_unrouted_clinical_question_passes(q, signal):
 
 
 def test_a_routed_question_passes_on_routing_alone():
-    assert "routed" in bd.clinical_signals("burn patient 40% TBSA, how much fluid")
+    assert bd.clinical_signals("drowning victim pulled from the river") == ["routed"]
+
+
+def test_a_clinical_question_with_no_signal_goes_to_review_not_away():
+    # The rule's known miss: no route, no lexicon drug, no parsed vital. It is
+    # held for the owner in review.jsonl, which is what review.jsonl is for.
+    rows = [{"meta": {"query": "burn patient 40% TBSA, how much fluid"}}]
+    assert bd.partition_junk(rows) == ([], rows)
 
 
 def test_rows_failing_all_three_go_to_review_not_train():

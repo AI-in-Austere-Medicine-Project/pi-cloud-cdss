@@ -1,0 +1,13 @@
+{
+ "_note": "D5b (owner, #113 review): the eight junk queries kept by the first D5 run (#113), dropped at the source. sha256 of build_distill_dataset.normalize(query); hashes, not text.",
+ "query_sha256": [
+  "1f21a6d08cd7118b31b90b9093fbf7b15c2e5ae450f98f281e6ece08a437e12f",
+  "43d8fa009e91f07c7d626f26923892f0aa92d4cfd3082e5c161b94cbe829b79d",
+  "8e7fc0236af43df9340685fc16f1efe36543cc1707051220a103ad99cf69a2df",
+  "9564f57d725f8df7c2ef986c731dac441e76c932e9a5aea75453e9b3577f7c53",
+  "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+  "e266ecbf73751a7f5b15874596ce7f7d0ee2fa1ff149d25c22de97e31039ee71",
+  "eccb94d87c6940326177b18a5ca2b1c74fc19c65f51bd8cf0741205fed093ba4",
+  "f76b33486dc1e210a08e1babfa403d937809d2d9b4a97287b3882518961f5826"
+ ]
+}
