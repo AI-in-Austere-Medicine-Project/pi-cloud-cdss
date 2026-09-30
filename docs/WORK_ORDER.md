@@ -59,7 +59,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
-| D5b | Second dataset run: junk rule, seeds, paraphrases | in review: run done, 107 rows (98 train / 9 valid), 167 in review; the junk rule's review set is mostly real clinical questions (owner ruling) |
+| D5b | Second dataset run: junk rule, seeds, paraphrases | in review: #114; run done, 107 rows (98 train / 9 valid), 167 in review; the junk rule's review set is mostly real clinical questions (owner ruling) |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
