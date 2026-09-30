@@ -60,8 +60,9 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | Item | Meaning | Machine | Status |
 |---|---|---|---|
 | D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | Next: the A list is done once #110 merges |
-| D1 | Evaluation hygiene: new `run_tests.sh` cases, reconciling the 30-set, the benchmark protocol. | Jetson | After D5a |
+| D1 | Evaluation hygiene: new `run_tests.sh` cases and the benchmark protocol, with three air-gapped local passes as the pre-training baseline. | Jetson | In progress (the 30-set reconciliation moved to D1b) |
 | D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | After D1 |
+| D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | After D5 |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
 | D2 | Put the fixed prompt first, so Ollama reuses its cache. | Jetson | After C1 |
 | D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | After D2 |

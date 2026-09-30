@@ -307,3 +307,84 @@ In `run_tests.sh`, 23 of the 24 whole cards are identical between arms. The exce
 6. **Latency is within the range of the earlier runs.** Cloud p95 fell (5.7 to 4.6 s). The local run had no cold-start outlier (max 42.8 s).
 
 **Limits.** n = 30 and one run per arm, as before. There is no scoring of content beyond the gate outcome: findings 1, 4 and 5 come from reading the cards, not from `score.py`. The full-text captures are gitignored, in `cdss-eval/runs/`.
+
+## Benchmark protocol (D1, owner 2026-09-26)
+
+Every local-arm benchmark from D1 on follows this protocol. A run that departs from it says so in its own section.
+
+**Code and inputs**
+- The code under test is a `git archive` snapshot of the named `main` commit. The deployed `drug_concentrations.json` is copied in, and `PINNED_SHA` records the commit. Every arm and pass uses the same snapshot.
+- The 30-scenario set runs through `run_bank.py --round all`, on its own instance on port 8113, against the frozen bank. Check that `run_meta.json` shows `rounds: all`, `rows: 30` and `bank.intact: true`.
+- `run_tests.sh` runs against a second uvicorn on port 8002 from the same snapshot, with its own log directory and corpus copy. Never run it against the live service or with its `.env`.
+
+**Local passes: air-gapped, three of them**
+- Before the local passes, **ethernet, Wi-Fi and LTE are physically disconnected**. On this Jetson that means:
+  - ethernet is `enP8p1s0`;
+  - Wi-Fi is the onboard RTL8822CE `wlP1p1s0`;
+  - there is no LTE modem (`mmcli -L`: none);
+  - the USB-C device-mode link (`usb0`/`l4tbr0`) must have no cable in.
+- **3 local passes** run back to back, unattended. The session that launched them is offline too.
+- **A timestamped connectivity probe** (`tools/bench/connectivity_probe.py`) runs:
+  - before the passes;
+  - every 30 s during them;
+  - after them.
+
+  Each probe checks, and records as one JSON line:
+  - link carrier on every external interface;
+  - default routes;
+  - NetworkManager device states and the Wi-Fi radio;
+  - modems;
+  - DNS for two provider hosts;
+  - TCP to three public addresses;
+  - ICMP.
+
+  A probe is OFFLINE only if every check fails. The passes start after 3 consecutive OFFLINE probes.
+- The probe file is saved next to the results: in the run bundle and in each pass's run directory. A pass with any ONLINE probe before, during or after it is not an air-gapped pass and is reported as such.
+- A socket guard (`tools/bench/netguard/sitecustomize.py`, with that directory on `PYTHONPATH` and `NETGUARD_LOG` set) logs every non-loopback connection attempt from the benchmark's Python processes. An air-gapped pass is expected to log none.
+
+**Full response text**
+- The 30-set records every response in full (`results.jsonl`).
+- `run_tests.sh` runs behind a pass-through `curl` wrapper that tees every full response body to `full.jsonl`.
+- Session logs are schema 14 (full answer) once D5a is deployed. Earlier snapshots keep only a 200-character preview in the session log, so the harness captures are the record.
+
+**Cloud arm**
+- A cloud arm cannot be air-gapped. It runs online, from the same snapshot, as deployed.
+- The arm script clears the model and timeout overrides (`CDSS_LLM_PROVIDER`, `CDSS_LLM_MODEL`, `CDSS_LLM_CLOUD_TIMEOUT`, `CDSS_LLM_SELECTED_TIMEOUT`), sets `CDSS_DEFAULT_MODEL` to the arm's model, and requests that same model (`run_bank.py --model`).
+- A request that names the default model is not a selection (`providers.is_explicit_selection`), so the generator gets the 8 s cloud timeout (`CLOUD_TIMEOUT_DEFAULT_S`), not the 60 s selected-model timeout. For gpt-4o-mini, the configured default, that is exactly the deployed path.
+- Its turns are attributed by each row's `model_used`, because the hybrid fallback can serve a turn from local qwen.
+
+**Recorded with every run**
+- the commit;
+- the Ollama version;
+- `nvpmodel -q`;
+- the kernel;
+- start and end times.
+
+## D1 baseline: before and after the A list (2026-09-29)
+
+The pre-training baseline D6 compares against, run to the protocol above. **Before** is benchmark run 3 on main `580836e`, the snapshot before the A items. **After** is main `3fe16a4`, with the A list complete. Both use the same frozen bank (`bec9971c`, intact), the same 30 scenarios, `--round all`, and 0 errors.
+
+| Arm | Snapshot | Runs | Median latency | p95 latency | Prompt tokens, median (p95) | Reached the model |
+|---|---|---|---|---|---|---|
+| Local qwen2.5-3b | before `580836e` | `mm3-qwen2.5-3b-local-p1..p3` (90 rows) | 8.61 s | 38.74 s | not recorded | 75 / 90 |
+| Local qwen2.5-3b | after `3fe16a4`, air-gapped | `d1-airgap-qwen2.5-3b-local-p1..p3` (90 rows) | 8.12 s | 38.19 s | 3,705 (4,346) | 72 / 90 |
+| Cloud gpt-4o-mini | before `580836e` | `mm3t120-gpt-4o-mini-p1` (30 rows) | 2.75 s | 4.78 s | 5,467 (6,510) | 25 / 30 |
+| Cloud gpt-4o-mini | after `3fe16a4` | `d1-gpt-4o-mini-p1` (30 rows) | 2.87 s | 4.02 s | 5,403 (6,511) | 24 / 30 |
+
+**How to read it**
+- Latency is the client's wall time over every row, including rows that never reach the model. Local rows are pooled across the 3 passes. The per-pass median was 8.0 / 8.7 / 9.7 s before and 7.9 / 8.1 / 8.3 s after; the per-pass p95 was 37.8–38.1 s before and 36.4–38.9 s after.
+- Prompt tokens are the provider-reported input tokens per model-reaching row: the generator and validator calls together. Local and cloud use different tokenizers, so compare down a column's arm, not across arms.
+- **Local tokens before are not recorded:** run 3's harness didn't wrap the on-device client (fixed in cdss-eval `3041fa9`). The prompt itself barely moved: the generator and validator system prompts total a median 21,629 characters before and 21,529 after.
+- On the 24 scenarios that reached gpt-4o-mini in both runs, the prompt-token median was 5,386 before and 5,403 after, a total of 107,535 before and 105,734 after.
+- **One scenario left the model path:** H-S3 ("TBI patient … status SZ, maxed out on versed") is now served deterministically (A15, the benzodiazepine-refractory ketamine entry). Before, the local arm held it (BLOCK), and cloud served a model answer.
+
+**What it shows:** the A list changed what is decided, not the cost. Latency and prompt size are within pass-to-pass noise on both arms.
+
+**Conditions**
+- **Local passes:** air-gapped 10:35–10:58Z, 40 of 40 probes in that window OFFLINE. The socket guard logged no non-loopback connection; it logged 4 during the online cloud arm, so it was working.
+- **Environment:** Ollama 0.34.2, nvpmodel 25W, kernel 6.8.12-1021-tegra.
+- **Run 3's local passes were online.** They made no network calls, so it shouldn't matter, but it is a difference.
+- **Timeouts:** the cloud arm before ran with a 120 s cloud timeout; the arm after ran with the deployed 8 s (see Cloud arm, above). Neither had a fallback: every model turn was `openai/gpt-4o-mini`.
+- **`run_tests.sh`:** 28/29 on every local pass. The one failure is the B1 fentanyl label case, which is expected until B1: pass 1 served the answer without `ID61`, and in passes 2 and 3 the free-text dose check held it for unasked naloxone and ketamine doses (see WORK_ORDER.md, D5).
+
+**Limits:** n = 30, one cloud run per snapshot, 3 local passes per snapshot. The numbers are latency and size, not content quality.
