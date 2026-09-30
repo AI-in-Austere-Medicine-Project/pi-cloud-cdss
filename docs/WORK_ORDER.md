@@ -57,7 +57,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A11b | Rate matching is indication-specific | **done**: #110, merged and deployed |
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | D5a | Full-answer logging | in review: #111 (schema 14; size-cap and free-disk guard) |
-| D1 | Evaluation hygiene | after D5a |
+| D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | after D1 |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5 |
 | B1 | Source-mode labelling | after D6 |
@@ -290,7 +290,7 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 - Propose, don't apply, a re-derived ISSUE_TAGS list from the 22 flagged entries.
 - Tests for the schema.
 
-### D1: evaluation hygiene (one PR)
+### D1: evaluation hygiene (one PR; done, #112)
 
 **Placement (owner, 2026-09-26):** after A7 and before D5. D1 is measurement only. Run on deployed main after every A item is done, it gives the clean pre-training baseline that the D6 bench compares against. Same snapshot rule as run 3.
 
@@ -368,7 +368,7 @@ Logging starts as soon as this deploys, so the next dataset comes from real serv
 
 Script: `tools/build_distill_dataset.py`.
 
-**Waits for (owner, 2026-09-26):** A0 and A1b merged and deployed (met: 894ffd9), and D1 done. The dataset is built from replay against the main that contains both. The refuse-to-run check below is A1b's indication matcher: D5 imports it and does not reimplement it.
+**Waits for (owner, 2026-09-26):** A0 and A1b merged and deployed (met: 894ffd9), and D1 done (met: #112). **Owner, 2026-09-30:** D5 does not start until D5a is merged and deployed. The dataset is built from replay against the main that contains both. The refuse-to-run check below is A1b's indication matcher: D5 imports it and does not reimplement it.
 
 **Source (owner, 2026-09-26): (a) regenerate now, and (c) log full answers from now on. Not (b).**
 
