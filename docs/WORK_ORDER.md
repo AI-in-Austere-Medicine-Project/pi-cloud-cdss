@@ -377,6 +377,8 @@ Ollama reuses the KV cache when the prefix is identical. Measure prefill time be
 
 Assert that the rendered prompt is otherwise unchanged: the same content in a different order. Specifics-present and the free-text dose check must be unaffected.
 
+**Training cost too (owner, 2026-10-01):** the distillation rows carry the live system prompt, so they are 4,300–5,600 tokens, ~90% prompt (D6, the max-sequence gap). A fixed prompt first and a shorter prompt shorten every training row as well as the prefill.
+
 ### D3: retrieval trim
 
 Cut the number of chunks passed to the model from the current top-k to 4. Use a reranker or a score threshold, whichever is cheaper on the Jetson. The canine filter stays.
@@ -674,6 +676,26 @@ Commit under `tools/distill/`:
 - `review.jsonl` sha256 `d30ca964f26f34eb3d7aea8b034ff0101fb1fc49c64cd982a5822ddacb80f577`
 - `seeds/paraphrases.jsonl` sha256 `a0bef258a4c0ea824a77a51f805563d5a1fc66df1816d3a0ce5019fb74e45a3b`
 - `make preflight`'s format check passes: 236 + 19 rows against `format_example.jsonl`.
+
+**Gap found on the first real run (owner, 2026-10-01): the trainer cut off the answers.**
+- **What happened:** v1 rows are 4,300–5,600 tokens, because the system prompt alone is ~4,000–6,000. `mlx_lm.lora`'s default `max_seq_length` is 2048, and it truncates the tail of a row, which is the assistant turn: the answer.
+- **Measured on v1** (255 rows; base tokenizer, Qwen chat format):
+
+| | |
+|---|---|
+| Median | 4,337 tokens |
+| p95 | 5,253 tokens |
+| Longest | 6,537 tokens (`train.jsonl:43`, a ketamine-drip paraphrase) |
+| Rows over 2,048 | **161 of 255 (63%)** |
+| System prompt | median ~3,900 tokens, max 6,087 |
+| Answer | median ~320 tokens, max ~620 |
+
+- **Fixed:**
+  - `MAXSEQ ?= 6656` in the Makefile, and `make train` passes `--max-seq-length $(MAXSEQ)`.
+  - `make preflight` (which `train` runs first) now runs `d6.py seqlen $(BASE_4BIT) $(DATA_DIR) $(MAXSEQ)`. It measures every row of train/valid with the base tokenizer's chat template, the count `mlx_lm.lora` uses, and refuses if the longest exceeds MAXSEQ. It also prints how many rows the trainer's default would have cut.
+  - Tests: `server/tests/test_d6_seqlen.py`.
+- **The default is 6656, not the 6144 first proposed (owner, 2026-10-01: "Raise the limit: MAXSEQ ?= 6656 as the default, keep the row").** At 6144, preflight refused v1 on one row: `train.jsonl:43`, a ketamine-drip paraphrase at 6,537 tokens (the next is 6,092). At 6656 v1 passes, with 119 tokens of headroom over its longest row.
+- **Why D2 matters for training as well as latency.** Every training row carries the whole live system prompt: about 4,000 of its ~4,300 median tokens are prompt, and ~320 are answer. Training memory and time grow with sequence length, so a fixed prompt prefix and a shorter prompt (D2, and D3's retrieval trim) cut training cost as well as prefill latency. The trained model sees the same prompt it serves with, so a shorter serving prompt means shorter training rows.
 
 **v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.
 

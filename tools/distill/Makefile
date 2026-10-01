@@ -1,6 +1,6 @@
 # D6: distillation training toolchain. Runs on the Mac, in ~/edgecdss-train.
 #
-#   make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4]
+#   make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4] [MAXSEQ=6656]
 #   make fuse   [ADAPTER=name]            (defaults to the last trained adapter)
 #   make gguf   [ADAPTER=name]
 #   make ship   TAG=edgecdss-name [ADAPTER=name]
@@ -30,6 +30,10 @@ BASE_TAG  ?= qwen2.5:3b
 ITERS ?= 600
 LR    ?= 1e-4
 BATCH ?= 2
+# Tokens per row. mlx_lm.lora's default, 2048, cut the answer off every real row:
+# the system prompt alone is ~4,000-6,000 tokens. Preflight refuses a longer row.
+# 6656: v1's longest row is 6,537 tokens (owner, 2026-10-01: raise the limit, keep the row).
+MAXSEQ ?= 6656
 DATA  ?= $(REPO)/data/distill
 # A ~ typed on the make command line reaches make unexpanded under zsh.
 DATA_DIR := $(patsubst ~/%,$(HOME)/%,$(DATA))
@@ -67,15 +71,16 @@ need-tag = case "$(TAG)" in edgecdss-*) ;; *) echo "TAG must start with edgecdss
 preflight:
 	$(STRICT) if grep -n -e '[-]U' $(HERE)/Makefile $(HERE)/README.md; then echo "preflight: the upgrade flag appears above; remove it" >&2; exit 2; fi; \
 	$(PY) $(HERE)/d6.py pins $(HERE)/requirements.txt; \
-	$(PY) $(HERE)/d6.py format $(FIXTURE) $(DATA_DIR)
+	$(PY) $(HERE)/d6.py format $(FIXTURE) $(DATA_DIR); \
+	$(PY) $(HERE)/d6.py seqlen $(BASE_4BIT) $(DATA_DIR) $(MAXSEQ)
 
 train: preflight
 	$(STRICT) $(need-adapter); \
 	if [ -e "$(ADAPTER_DIR)/adapters.safetensors" ] && [ -z "$(FORCE)" ]; then echo "train: $(ADAPTER_DIR) already holds a trained adapter; pick a new ADAPTER or pass FORCE=1" >&2; exit 2; fi; \
 	mkdir -p "$(ADAPTER_DIR)" "$(STATE)"; \
-	echo "train: $(ADAPTER) on $(DATA_DIR), $(ITERS) iters, lr $(LR), batch $(BATCH), base $(BASE_4BIT)"; \
+	echo "train: $(ADAPTER) on $(DATA_DIR), $(ITERS) iters, lr $(LR), batch $(BATCH), max seq $(MAXSEQ), base $(BASE_4BIT)"; \
 	$(VENV)/bin/mlx_lm.lora --model $(BASE_4BIT) --train --data "$(DATA_DIR)" \
-	    --iters $(ITERS) --learning-rate $(LR) --batch-size $(BATCH) \
+	    --iters $(ITERS) --learning-rate $(LR) --batch-size $(BATCH) --max-seq-length $(MAXSEQ) \
 	    --adapter-path "$(ADAPTER_DIR)" 2>&1 | tee "$(ADAPTER_DIR)/train.log"; \
 	$(PY) $(HERE)/d6.py train-stats "$(ADAPTER_DIR)/train.log" | tee "$(ADAPTER_DIR)/train-stats.txt"; \
 	echo "$(ADAPTER)" > "$(STATE)/adapter"

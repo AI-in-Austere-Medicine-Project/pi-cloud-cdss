@@ -19,7 +19,7 @@ Run these from `tools/distill/`.
 
 | Target | What it does |
 |---|---|
-| `make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4]` | Runs a format preflight, then `mlx_lm.lora` on `mlx-community/Qwen2.5-3B-Instruct-4bit`. `DATA` defaults to `data/distill` (D5's output). The adapter goes to `~/edgecdss-train/adapters/<name>`. |
+| `make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4] [MAXSEQ=6656]` | Runs the preflight (format, and the longest row in tokens against `MAXSEQ`), then `mlx_lm.lora --max-seq-length $(MAXSEQ)` on `mlx-community/Qwen2.5-3B-Instruct-4bit`. `DATA` defaults to `data/distill` (D5's output). The adapter goes to `~/edgecdss-train/adapters/<name>`. |
 | `make fuse` | Runs `mlx_lm.fuse --dequantize` against the full-precision `Qwen/Qwen2.5-3B-Instruct`, copies the four tokenizer files from the base snapshot over the fused folder, then runs one probe generation. |
 | `make gguf` | Converts to f16 with llama.cpp's `convert_hf_to_gguf.py`, runs `llama-quantize` to Q4_K_M, then deletes the f16, even if a step fails. It checks the GGUF header says Q4_K_M. |
 | `make ship TAG=edgecdss-name` | Refuses if the Jetson has under 3 GB free. It refuses any file whose GGUF header is not Q4_K_M, and any file with f16 in its name. It copies the Q4 over with scp, writes the Modelfile and runs `ollama create`, then runs one single-line ketamine probe on the Jetson over ssh. |
