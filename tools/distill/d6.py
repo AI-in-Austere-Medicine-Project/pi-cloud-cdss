@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Checks and reports for the D6 Makefile. Stdlib only, except `gguf-type`,
-which reads the GGUF header with llama.cpp's own gguf-py.
+which reads the GGUF header with llama.cpp's own gguf-py, and `seqlen`, which
+loads the base tokenizer with transformers (pinned in requirements.txt).
 
   d6.py format FIXTURE DATA_DIR      every row of train/valid has the fixture's keys and roles
+  d6.py seqlen BASE DATA_DIR MAXSEQ  refuse if any row is longer than MAXSEQ tokens
   d6.py pins REQUIREMENTS            the venv matches requirements.txt exactly
   d6.py gguf-type FILE LLAMA_CPP     refuse unless FILE is Q4_K_M (never f16)
   d6.py train-stats LOG              tok/s and losses from an mlx_lm.lora log
@@ -62,6 +64,54 @@ def cmd_format(a):
         die(f"{bad} rows do not match {a.fixture}")
     print(f"format: every row matches {Path(a.fixture).name} "
           f"(keys {list(ref[0])}, roles {[r for _, r in ref[1]]})")
+
+
+# ── seqlen ───────────────────────────────────────────────────────────────────
+# mlx_lm.lora truncates every row to --max-seq-length (default 2048), and the
+# tail it cuts is the assistant turn: the answer. A ~5,000-token system prompt
+# put every real row past 2048 (owner, 2026-10-01). The trainer counts a row
+# as the tokenizer's chat template over its messages; so does this.
+TRAINER_DEFAULT_MAX_SEQ = 2048
+
+
+def chat_token_counter(tokenizer):
+    """messages -> token count, by the tokenizer's chat template (as mlx_lm does)."""
+    def count(messages):
+        ids = tokenizer.apply_chat_template(messages, tokenize=True)
+        if isinstance(ids, dict) or hasattr(ids, "keys"):
+            ids = ids["input_ids"]
+        return len(ids)
+    return count
+
+
+def check_seqlen(data, maxseq, count):
+    """Measure every row of train/valid; die if the longest exceeds maxseq."""
+    sizes = []
+    for split in ("train", "valid"):
+        path = Path(data) / f"{split}.jsonl"
+        if not path.exists():
+            die(f"{path} missing")
+        for i, line in enumerate(open(path), 1):
+            if line.strip():
+                sizes.append((count(json.loads(line)["messages"]), f"{path.name}:{i}"))
+    if not sizes:
+        die(f"no rows in {data}")
+    sizes.sort()
+    n, where = sizes[-1]
+    toks = [s for s, _ in sizes]
+    over_default = sum(t > TRAINER_DEFAULT_MAX_SEQ for t in toks)
+    print(f"seqlen: {len(toks)} rows, median {toks[len(toks) // 2]}, p95 {toks[int(0.95 * (len(toks) - 1))]}, "
+          f"longest {n} ({where}); MAXSEQ {maxseq}; "
+          f"over {TRAINER_DEFAULT_MAX_SEQ} (mlx_lm.lora's default): {over_default}")
+    if n > maxseq:
+        over = [w for t, w in sizes if t > maxseq]
+        die(f"{len(over)} rows exceed MAXSEQ {maxseq}: the trainer would cut their answers. "
+            f"Longest {n} tokens at {where}. Raise MAXSEQ or shorten the rows: {', '.join(over[:10])}")
+
+
+def cmd_seqlen(a):
+    from transformers import AutoTokenizer
+    check_seqlen(a.data, a.maxseq, chat_token_counter(AutoTokenizer.from_pretrained(a.base)))
 
 
 # ── pins ─────────────────────────────────────────────────────────────────────
@@ -252,6 +302,8 @@ def main():
     sp = ap.add_subparsers(dest="cmd", required=True)
     p = sp.add_parser("format"); p.add_argument("fixture"); p.add_argument("data"); p.set_defaults(f=cmd_format)
     p = sp.add_parser("pins"); p.add_argument("requirements"); p.set_defaults(f=cmd_pins)
+    p = sp.add_parser("seqlen"); p.add_argument("base"); p.add_argument("data")
+    p.add_argument("maxseq", type=int); p.set_defaults(f=cmd_seqlen)
     p = sp.add_parser("gguf-type"); p.add_argument("file"); p.add_argument("llama_cpp"); p.set_defaults(f=cmd_gguf_type)
     p = sp.add_parser("train-stats"); p.add_argument("log"); p.set_defaults(f=cmd_train_stats)
     p = sp.add_parser("stages"); p.add_argument("work"); p.add_argument("adapter"); p.add_argument("tag")
