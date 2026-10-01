@@ -61,7 +61,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
 | D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up in review: unclear seeds never paraphrased, fragment hold made complete, v1 source recorded (255 rows) |
-| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
+| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | in review: drafted, **unsigned**; 3 owner decisions and 17 criteria for clinical review |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
 | B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
@@ -627,6 +627,22 @@ The authored set (docs/EdgeCDSS_JTS_Evaluation_Set_30) can't be found, so D1(b)'
 - Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios (the frozen cdss-eval bank, `scenarios-30.jsonl`).
 - Give each scenario a pre-written failure criterion.
 - The owner reviews and signs it like a contract. Signing is the owner's act.
+
+**Drafted (2026-10-01, in review; unsigned):** `docs/EVALUATION_SET_30.md`.
+- **Source:** the frozen bank (`scenarios-30.jsonl`, sha256 `76c2bed9…`) and run 3's draft specifics (`specifics_final.json`, sha256 `6795aab9…`). The query, history, patient context, notes, sources and quotes are copied from those files, not retyped. A test (`server/tests/test_evaluation_set_doc.py`) ties every query in the doc to the pinned bank by hash, in the bank's order.
+- **Scoring:** universal criteria U1–U5 apply to every scenario:
+  - U1, gate;
+  - U2, signed dose;
+  - U3, the gate-log invariant;
+  - U4, cross-patient context;
+  - U5, no answer.
+
+  Each scenario also has its own criteria, each marked by where it comes from: *from the notes* (the bank's own PASS/FAIL statement), **[draft: clinical review]** (17, written from the cited CPG page), or **[owner decision]** (3). Expected content (run 3's specifics) is scored as specifics present, not pass/fail.
+- **Owner decisions before signing:**
+  1. **H-S3:** the gate was frozen as SERVE_NO_DOSE before levetiracetam was signed. Does a signed levetiracetam dose now pass?
+  2. **H-IM-06:** no corpus page gives a crystalloid volume for simple dehydration. Is the draft's "universal criteria only" acceptable?
+  3. **G-ADV-10:** does a stated Keppra concentration pass? The draft says only if it comes from the signed concentrations kit.
+- **Published (owner, 2026-10-01: "Commit it to docs/ as ordered"):** the repo is public, so the 30-set text is now public. D5's exclusion still works by hash (`tools/distill/eval_exclusions.json`), so nothing about the exclusion changes.
 
 ### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson) (done, #93)
 
