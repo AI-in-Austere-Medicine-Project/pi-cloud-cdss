@@ -65,7 +65,20 @@ def test_the_doc_matches_the_bank_in_order():
         assert f'- **Query:** "{s["query"]}"' in body, s["id"]
 
 
-def test_signing_is_left_to_the_owner():
+def test_the_set_is_signed_by_the_owner_with_no_open_decisions():
+    # Signed by Andrew Azelton on 2026-10-01, marked on the owner's instruction (#119 review).
     text = DOC.read_text()
-    assert "## Signature" in text
+    assert "**Status: SIGNED** by Andrew Azelton (owner), 2026-10-01." in text
+    assert "**Signed: Andrew Azelton (owner), 2026-10-01.**" in text
     assert "Signing is the owner's act" in text
+    for marker in ("[draft:", "[owner decision]", "DRAFT", "Unsigned"):
+        assert marker not in text, marker
+
+
+def test_the_owner_rulings_are_in_the_signed_text():
+    secs = dict(_sections())
+    assert "signed levetiracetam dose or a signed ketamine second-line" in secs["H-S3"]
+    assert "The universal criteria only" in secs["H-IM-06"] and "guidance gap" in secs["H-IM-06"]
+    assert "not from the signed concentrations kit" in secs["G-ADV-10"]
+    marked = re.findall(r"^\s+\d+\. .*\[guideline-derived; read by the owner\]", DOC.read_text(), re.M)
+    assert len(marked) == 17
