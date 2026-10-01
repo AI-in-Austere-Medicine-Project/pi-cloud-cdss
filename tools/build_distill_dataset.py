@@ -344,22 +344,116 @@ def unasked_drugs(query: str, answer: str, signed) -> set:
     return drugs_in(answer) - covered
 
 
+_VOCABULARY = None
+
+
+def vocabulary() -> frozenset:
+    """tools/distill/clinical_vocabulary.json (build_clinical_vocabulary.py)."""
+    global _VOCABULARY
+    if _VOCABULARY is None:
+        _VOCABULARY = frozenset(json.loads(
+            (REPO / "tools/distill/clinical_vocabulary.json").read_text())["terms"])
+    return _VOCABULARY
+
+
+def vocabulary_words(query: str) -> set:
+    v = vocabulary()
+    return {w for w in normalize(query).split() if w in v or (w.endswith("s") and w[:-1] in v)}
+
+
 def clinical_signals(query: str) -> list:
-    """The owner's junk rule, read from the question: routed, drug, vital."""
+    """The owner's junk rule, read from the question: routed, drug, vital, and
+    (#114 review) a word of the committed clinical vocabulary."""
     oc = _oc()
     readings, _rejected = importlib.import_module("vitals").parse_vitals(query or "")
     return [name for name, hit in (("routed", scenario_type(oc, query) != "unrouted"),
                                    ("drug", bool(drugs_in(query))),
-                                   ("vital", bool(readings))) if hit]
+                                   ("vital", bool(readings)),
+                                   ("vocabulary", bool(vocabulary_words(query)))) if hit]
 
 
-def partition_junk(rows: list):
-    """(kept, review): a row whose question has none of the three signals is for the owner."""
+class ReviewRulings:
+    """The owner's rulings on review rows, by query hash (tools/distill/review_rulings.json):
+    a released row is kept without a signal; a held row stays in review with one."""
+
+    def __init__(self, release: set, hold: set):
+        self.release, self.hold = set(release), set(hold)
+
+    @classmethod
+    def load(cls, repo: pathlib.Path = REPO) -> "ReviewRulings":
+        r = json.loads((repo / "tools/distill/review_rulings.json").read_text())
+        return cls(set(r["release_sha256"]), set(r["hold_sha256"]))
+
+
+def partition_junk(rows: list, rulings: "ReviewRulings | None" = None):
+    """(kept, review): a row whose question has no signal is for the owner, unless released."""
+    rulings = ReviewRulings.load(REPO) if rulings is None else rulings
     kept, review = [], []
     for r in rows:
-        r["meta"]["clinical_signals"] = clinical_signals(r["meta"]["query"])
-        (kept if r["meta"]["clinical_signals"] else review).append(r)
+        m = r["meta"]
+        h = qhash(m["query"])
+        m["clinical_signals"] = clinical_signals(m["query"])
+        m["ruling"] = "hold" if h in rulings.hold else "release" if h in rulings.release else None
+        keep = m["ruling"] == "release" or (m["ruling"] is None and bool(m["clinical_signals"]))
+        (kept if keep else review).append(r)
     return kept, review
+
+
+def _read_pairs(out: pathlib.Path, name: str) -> list:
+    rows = [json.loads(l) for l in open(out / f"{name}.jsonl", encoding="utf-8") if l.strip()]
+    metas = [json.loads(l) for l in open(out / f"{name}.meta.jsonl", encoding="utf-8") if l.strip()]
+    if len(rows) != len(metas):
+        raise RefuseToRun(f"{name}.jsonl and {name}.meta.jsonl are not line for line")
+    return list(zip(rows, metas))
+
+
+def rebuild(out, rulings: ReviewRulings, snapshot_commit: str) -> dict:
+    """Re-partition and re-split the rows already built, with no model call.
+
+    Every row (train, valid and review) is checked again by the refuse-to-run
+    check, its patient context and signed doses rebuilt by the pipeline's own
+    functions. Then the junk rule with the rulings, then the same split rule.
+    Nothing is written if anything refuses."""
+    oc = _oc()
+    out = pathlib.Path(out)
+    pairs = _read_pairs(out, "train") + _read_pairs(out, "valid")
+    for line in open(out / "review.jsonl", encoding="utf-8"):
+        if line.strip():
+            r = json.loads(line)
+            pairs.append(({"messages": r["messages"]}, r["meta"]))
+    items = []
+    for row, meta in pairs:
+        if meta.get("snapshot_commit") != snapshot_commit:
+            raise RefuseToRun(f"a row was built on {meta.get('snapshot_commit')}, not {snapshot_commit}")
+        meta = {k: v for k, v in meta.items() if k != "split"}
+        q = meta["query"]
+        ctx = oc.rebuild_patient_context_from_history(q)
+        items.append({"scenario_id": meta["scenario_id"], "assistant": row["messages"][-1]["content"],
+                      "check": (q, ctx, oc.build_allowed_doses(q, ctx)), "row": row, "meta": meta})
+    refuse_unsigned_doses(items)
+    kept, review = partition_junk(items, rulings)
+    train, valid = split(kept)
+    write_split(out, [(r["row"], {**r["meta"], "split": "train"}) for r in train],
+                [(r["row"], {**r["meta"], "split": "valid"}) for r in valid])
+    with open(out / "review.jsonl", "w", encoding="utf-8") as f:
+        for r in review:
+            f.write(json.dumps({**r["row"], "meta": r["meta"]}, ensure_ascii=False) + "\n")
+    by_source = collections.defaultdict(collections.Counter)
+    for name, rows in (("train", train), ("valid", valid), ("review", review)):
+        for r in rows:
+            by_source[r["meta"]["source"]][name] += 1
+    released = sum(r["meta"]["ruling"] == "release" for r in kept)
+    return {"kept": len(kept), "train": len(train), "valid": len(valid),
+            "valid_scenarios": len({r["scenario_id"] for r in valid}), "review": len(review),
+            "released": released,
+            "held": sum(r["meta"]["ruling"] == "hold" for r in review),
+            "kept_on_vocabulary_only": sum(r["meta"]["clinical_signals"] == ["vocabulary"]
+                                           and r["meta"]["ruling"] is None for r in kept),
+            "by_source": {s: dict(c) for s, c in by_source.items()},
+            "scenario_types": dict(collections.Counter(r["meta"]["scenario_type"] for r in kept)),
+            "scenario_types_by_source": {s: dict(collections.Counter(
+                r["meta"]["scenario_type"] for r in kept if r["meta"]["source"] == s))
+                for s in ("production", "seed", "paraphrase")}}
 
 
 def refuse_unsigned_doses(rows: list):
@@ -505,6 +599,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--out", default=str(REPO / "data/distill"))
     p.add_argument("--plan", action="store_true", help="select, count and cost; call no model")
     p.add_argument("--approve-cost", type=float, help="the owner's approved ceiling, in USD, over $40")
+    p.add_argument("--rebuild", action="store_true",
+                   help="re-partition and re-split the rows in --out with the rulings; call no model")
     return p
 
 
@@ -544,6 +640,23 @@ def main(argv=None):
     from embeddings import ChromaDBClient
     if providers.generator_timeout_s(TEACHER) != TEACHER_TIMEOUT_S:
         raise RefuseToRun("the teacher would not be waited for 120 s")
+    if a.rebuild:
+        summary = rebuild(out, ReviewRulings.load(REPO), snap["commit"])
+        manifest_path = out / "manifest.json"
+        manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+        manifest["rebuild"] = {**summary, "built": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+        print(f"rebuild (no model called): kept {summary['kept']} = train {summary['train']} + "
+              f"valid {summary['valid']} ({summary['valid_scenarios']} scenarios); review {summary['review']}")
+        print(f"  released by hash {summary['released']}, held by hash {summary['held']}, "
+              f"kept on the vocabulary alone {summary['kept_on_vocabulary_only']}")
+        print("counts by source:")
+        for src in ("production", "seed", "paraphrase"):
+            print(f"  {src:10s} {summary['by_source'].get(src, {})}")
+        print("scenario types:")
+        for t, n in collections.Counter(summary["scenario_types"]).most_common():
+            print(f"  {n:4d}  {t}" + (f"   WARNING: fewer than {COVERAGE_MIN} rows" if n < COVERAGE_MIN else ""))
+        return 0
     pipeline_log = open(os.path.join(scratch, "pipeline.log"), "w")
     chroma = ChromaDBClient()
     aug = _augment_module()
@@ -632,7 +745,7 @@ def main(argv=None):
                               "snapshot_commit": snap["commit"],
                               "contract_bank": snap["contract_bank"],
                               "concentrations_sha256": snap["concentrations_sha256"],
-                              "built": datetime.datetime.utcnow().isoformat() + "Z"}})
+                              "built": datetime.datetime.now(datetime.timezone.utc).isoformat()}})
 
     refuse_unsigned_doses(kept)
     kept, review = partition_junk(kept)
