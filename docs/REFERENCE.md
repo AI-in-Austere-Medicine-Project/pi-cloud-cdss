@@ -54,6 +54,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | Done, #110 |
 | A11b | Rate matching becomes indication-specific, the same shape as A1b. | Owner, #108 review | Done, #110 |
 | A16 | A deterministic norepinephrine drip card serving the signed per-kg rate, as the epinephrine drip card does. | Found in #108; owner, #108 review | Done, #110 |
+| A17 | The dose check reads the router's slang table (mag, bicarb, levo, vec, dilt, vaso, …; amio in the lexicon; "ami" excluded), so an abbreviated dose is held like the full name. | Found in D5b; owner, #114 review | In review. Finding: single doses in units, IU or mEq are not read under any name (insulin, heparin, potassium); proposed as its own item |
 
 ## 4. D items: data and speed
 
