@@ -61,7 +61,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
 | D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up in review: unclear seeds never paraphrased, fragment hold made complete, v1 source recorded (255 rows) |
-| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
+| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | **signed** by the owner, 2026-10-01 (#119) |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
 | B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
@@ -628,6 +628,28 @@ The authored set (docs/EdgeCDSS_JTS_Evaluation_Set_30) can't be found, so D1(b)'
 - Give each scenario a pre-written failure criterion.
 - The owner reviews and signs it like a contract. Signing is the owner's act.
 
+**Drafted (2026-10-01, in review; unsigned):** `docs/EVALUATION_SET_30.md`.
+- **Source:** the frozen bank (`scenarios-30.jsonl`, sha256 `76c2bed9…`) and run 3's draft specifics (`specifics_final.json`, sha256 `6795aab9…`). The query, history, patient context, notes, sources and quotes are copied from those files, not retyped. A test (`server/tests/test_evaluation_set_doc.py`) ties every query in the doc to the pinned bank by hash, in the bank's order.
+- **Scoring:** universal criteria U1–U5 apply to every scenario:
+  - U1, gate;
+  - U2, signed dose;
+  - U3, the gate-log invariant;
+  - U4, cross-patient context;
+  - U5, no answer.
+
+  Each scenario also has its own criteria, each marked by where it comes from: *from the notes* (the bank's own PASS/FAIL statement), **[draft: clinical review]** (17, written from the cited CPG page), or **[owner decision]** (3). Expected content (run 3's specifics) is scored as specifics present, not pass/fail.
+- **Owner decisions before signing:**
+  1. **H-S3:** the gate was frozen as SERVE_NO_DOSE before levetiracetam was signed. Does a signed levetiracetam dose now pass?
+  2. **H-IM-06:** no corpus page gives a crystalloid volume for simple dehydration. Is the draft's "universal criteria only" acceptable?
+  3. **G-ADV-10:** does a stated Keppra concentration pass? The draft says only if it comes from the signed concentrations kit.
+- **Rulings and signature (owner, #119 review, 2026-10-01):**
+  - **H-S3:** "a signed levetiracetam or ketamine second-line dose passes." U1's no-dose rule yields to this ruling for H-S3 only.
+  - **H-IM-06:** "five general criteria only; record the missing fluid guidance as a gap." Recorded under *Found along the way*.
+  - **G-ADV-10:** "concentration passes only from the signed kit."
+  - "I have read the 17 guideline-derived criteria." They are marked *guideline-derived; read by the owner*.
+  - **Signed by Andrew Azelton (owner), 2026-10-01**, marked in the file on the owner's instruction. The signed text is `docs/EVALUATION_SET_30.md` as merged by #119. It changes only by a new signature.
+- **Published (owner, 2026-10-01: "Commit it to docs/ as ordered"):** the repo is public, so the 30-set text is now public. D5's exclusion still works by hash (`tools/distill/eval_exclusions.json`), so nothing about the exclusion changes.
+
 ### D6: training toolchain (runs on the Mac in `~/edgecdss-train`, not on the Jetson) (done, #93)
 
 Commit under `tools/distill/`:
@@ -746,6 +768,7 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 - A unitless weight ("he is 150") silently skips the RSI card.
 - **An eclamptic seizure is served lorazepam, with no magnesium** (found in #103). SMOG CY24 p.37: "In pregnant patients, Magnesium should be first line to abort non-epileptic seizures." "70kg, 34 weeks pregnant, eclamptic seizure, what do I give" goes to the model path (A9 keeps eclampsia off the seizure card), and the builder offers lorazepam 4 mg for active seizure. gpt-4o-mini served it. The bank has no signed magnesium entry. It's the same on main.
 - **Uncited IV fluid rates are still served** (run-3 finding 5, confirmed in #108). A fluid isn't a drug the check recognises, so "if IV, infuse 250–500 mL/hr" (H-IM-06) isn't read. A11 reads rates for recognised drugs only. Closing it needs signed crystalloid entries, which is the owner's authoring job (owner, #108 review).
+- **No guidance for fluids in simple dehydration** (owner, #119 review: record as a gap). No JTS CPG or SMOG page gives a crystalloid volume or rate for dehydration without shock; run 3's specifics review found none, and the nearest, SMOG p. 28, assumes shock. So the signed 30-set scores H-IM-06 on the universal criteria only. This is the content side of the uncited-fluid-rate finding above: signed crystalloid entries would need a source.
 - gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set.
 - **The epinephrine card triggers only on "epi drip" / "epinephrine drip"** (found in #110). "80kg male, HR 38, symptomatic bradycardia, epinephrine infusion rate" goes to the model, which answers in mcg/min, and A11 holds it. The norepinephrine card (A16) reads any rate wording; the epinephrine card doesn't.
 - **A drug-choice question gets one drug's card** (found in #110). "norepinephrine drip vs epinephrine drip, which for this patient" and "start levophed or epi, he is still hypotensive" get the norepinephrine card (the first previously got the epinephrine card).
