@@ -61,8 +61,9 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 |---|---|---|---|
 | D5a | Log the full answer (schema 14), with a disk estimate and log rotation. | Jetson | Done, #111 (merged and deployed): full answer and held model text logged; guard nulls them over a 2 GiB cap or under 2 GiB free; all logs kept (owner); `model_returned` is the generator's only, the validator's waits for E1 (owner, 2026-09-30) |
 | D1 | Evaluation hygiene: new `run_tests.sh` cases and the benchmark protocol, with three air-gapped local passes as the pre-training baseline. | Jetson | Done: #112, merged (the 30-set reconciliation moved to D1b) |
-| D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | In review (#113): built and run on d0b44f4, 23 rows (21 train / 2 valid), $4.04 ceiling; finding: 8 junk rows and too few rows to train on, owner ruling needed before D6 |
-| D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | After D5 |
+| D5 | Build the distillation dataset from teacher answers (`tools/build_distill_dataset.py`). | Jetson | Done, #113: first run on d0b44f4, 23 rows (8 junk); 41 of 79 real questions are answered without a model |
+| D5b | Second run: junk rule (route, drug or vital, else `review.jsonl`), seeds from the cdss-eval bank minus the exam and its near misses, 5 teacher paraphrases per seed (`tools/augment_seeds.py`). | Jetson | In review (#114): v1 dataset 258 rows (239 train / 19 valid; production 16, seed 42, paraphrase 200), 16 held in review; junk rule has a fourth signal (`tools/distill/clinical_vocabulary.json`); unasked-drug filter strict for v1 (155 removed), relaxed variant is the v2 experiment. Finding: abbreviated drug names (amio, mag, bicarb, levo) escape the dose check; own PR |
+| D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | After D5b |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
 | D2 | Put the fixed prompt first, so Ollama reuses its cache. | Jetson | After C1 |
 | D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | After D2 |
@@ -82,7 +83,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | Word | Meaning | Where |
 |---|---|---|
 | Distillation | Teaching the small local model to write what the teacher wrote. | D5 builds the data; D6 trains on it |
-| Dataset | `data/distill/train.jsonl` and `valid.jsonl`: messages triples (system, user, assistant), split 90/10 by scenario; per-row metadata line for line in `*.meta.jsonl`, counts in `manifest.json`. Untracked. The evaluation set is excluded by `tools/distill/eval_exclusions.json` (hashes) and `run_tests.sh`. | `tools/build_distill_dataset.py` (D5); format fixture `tools/distill/fixtures/format_example.jsonl`, checked by `make preflight` |
+| Dataset | `data/distill/train.jsonl` and `valid.jsonl`: messages triples (system, user, assistant), split 90/10 by scenario; per-row metadata line for line in `*.meta.jsonl`, counts in `manifest.json`. Untracked. Junk rule: route, lexicon drug, parsed vital or clinical vocabulary, else `review.jsonl`; owner rulings by hash in `tools/distill/review_rulings.json`; `--rebuild` re-splits without a model call. The evaluation set is excluded by `tools/distill/eval_exclusions.json` (hashes) and `run_tests.sh`. | `tools/build_distill_dataset.py` (D5); format fixture `tools/distill/fixtures/format_example.jsonl`, checked by `make preflight` |
 | Base model | The model before training: `Qwen2.5-3B-Instruct`. | `BASE_4BIT`, `BASE_FULL`, `BASE_TAG` in the Makefile |
 | LoRA | Training a small add-on to the base, not the whole model. | `make train` (`mlx_lm.lora`) |
 | Adapter | The trained add-on. | `make train ADAPTER=name` → `~/edgecdss-train/adapters/<name>` |

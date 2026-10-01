@@ -58,8 +58,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
-| D5 | Distillation dataset builder | in review: #113; builder built and run; the dataset needs an owner ruling before D6 trains on it |
-| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5 |
+| D5 | Distillation dataset builder | **done**: #113, merged |
+| D5b | Second dataset run: junk rule, seeds, paraphrases | in review: #114; rulings applied: 258 rows (239 train / 19 valid), 16 held in review; for the owner to merge and train |
+| D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
 | B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
@@ -79,7 +80,7 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a and D1 are done (#93, #111, #112). B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a, D1 and D5 are done (#93, #111, #112, #113). D5b was added after D5 by the owner in the #113 review; D1b follows it. B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
 
 **Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. A13, A11b and A16 are delivered together in #110 on the owner's instruction. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
@@ -411,7 +412,7 @@ Print the counts per scenario and per drug.
 - **Why:** in the D1 air-gap bench (`cdss-eval/runs/d1-airgap-qwen2.5-3b-local-p1..p3`, main 3fe16a4), the local model added doses nobody asked for to the single-drug B1 query "80 kg adult, severe pain from a femur fracture, fentanyl IV". Pass 2 added naloxone 0.4 mg, ketamine 30 mg and ketamine 0.3 mg/kg; pass 3 added naloxone 0.4 mg and naloxone 25–50 mcg. The free-text dose check held both answers, correctly: nothing signed covered those doses for that question. The validator was not involved. Pass 1 added no other drug and was served.
 - **What it means for D5 and D6:** the dataset must contain no such rows, so the trained model learns not to add them.
 
-**Built (#113, in review):** `tools/build_distill_dataset.py`, tests `server/tests/test_distill_dataset.py`.
+**Built (#113, merged):** `tools/build_distill_dataset.py`, tests `server/tests/test_distill_dataset.py`.
 - **Source:** session-log entries that are not synthetic (`X-Test-Run`), have `history_turns` 0 and a query, de-duplicated by normalised text (case, punctuation, "80kg"/"80 kg"). The scenario id is that normalised text; the scenario type is the router's matched protocol, or "unrouted".
 - **Evaluation set, hard exclusion, before any call:** every query in `run_tests.sh` (current turn and history, parsed from the file) and in the 30-set. The 30-set is pinned as sha256 hashes of its normalised queries in `tools/distill/eval_exclusions.json`, with the bank's own sha256 (`76c2bed9…`): the repository is public, so the text is not committed.
 - **Replay:** `_query_with_rag_internal(query, model="claude-opus-5")` on the deployed tree (refuses if it has uncommitted changes), `CDSS_LLM_SELECTED_TIMEOUT=120` in the builder's own process, the deployed validator and checks. The row's system prompt and user turn are what the live code passed to `providers.chat`, captured at the call. The builder never writes the session log.
@@ -432,6 +433,125 @@ Print the counts per scenario and per drug.
 
 **Resolved (2026-09-26):** production session logs kept only the first 200 characters of each answer (`response_preview`, `openai_client.py:256`), so they could not supply training answers. The owner chose (a) and (c) above.
 
+
+### D5b: second dataset run (owner, 2026-09-30, #113 review; one PR)
+
+**Owner:** "merge as is; the builder is right and the finding is the point."
+
+**Finding recorded (owner):** on this main (d0b44f4), **41 of the 79 real single-turn questions are answered without a model.** They go to deterministic cards, so the teacher never writes them and they can't be training rows.
+
+**The six points:**
+1. **Junk rule.** A kept row must route to a protocol, name a lexicon drug, or contain a parsed vital. Rows that fail all three go to `data/distill/review.jsonl` for the owner, not into train. The 8 junk rows of the first run are dropped now, by hash. Tested with the abusive line, the pip paste and the git prompt as negatives, and an unrouted clinical question as a positive.
+2. **Seeds.** Add `cdss-eval/scenarios.jsonl`, minus the 30-set and minus anything whose normalised text is within edit distance of an exam query. Report the seed count.
+3. **Augmentation.** A separate step, `tools/augment_seeds.py`: the teacher writes 5 paraphrases per seed, varying the wording, weight and vitals with the situation unchanged, from a fixed prompt. Output goes under `data/distill/seeds/` with its source and seed id, tagged `synthetic: true` in the metadata. Exam seeds are excluded first, so an exam scenario can't be paraphrased; there is a test for this.
+4. **Same path.** Every paraphrase goes through the same replay and filters as a production row. Production rows keep `synthetic: false`. Counts are printed by source.
+5. **Cost ceiling for this run: $60.** Show the `--plan` estimate and stop before spending.
+6. Record the 41-of-79 finding above.
+
+**Built:**
+- **Junk rule:** `clinical_signals` reads the question, not the answer. The three signals are routed (the router's matched protocol at HIGH/MEDIUM, as the pipeline uses it), drug (`_drug_spans`: the contract bank plus `drug_lexicon.json`) and vital (`vitals.parse_vitals`). The drop list is `tools/distill/junk_exclusions.json`: 8 hashes, which match 46 log entries and 3 seeds.
+- **Known miss of the rule:** "burn patient 40% TBSA, how much fluid" has none of the three signals, so it goes to review. A test pins this.
+- **Edit distance:** normalised Levenshtein (distance divided by the longer length) of 0.50 or less against every exam query (the 30-set and `run_tests.sh`, current turn and history). Measured on the bank:
+  - the exam questions' misspellings sit at 0.46–0.48 ("septik … txa", "anafalaxis …");
+  - the nearest different situation is at 0.51 (a blast-lung vent question against a DKA vent question).
+  - The 30-set text is read from cdss-eval and must match the pinned sha256, or the builder refuses.
+- **Seeds with history are left out** (the single-patient rule). A seed that repeats a production query is left out.
+- **Paraphrases** take their seed's scenario id (`seed:<id>`), so a seed and its paraphrases never straddle the split. They are checked against the exam again, and they are never substituted: a fallback, an error or a malformed reply is recorded in `errors.jsonl`.
+- **Paraphrase prompt** (sha256 `26f28630…`): it doesn't add a weight or vitals the seed doesn't state.
+
+**Plan (2026-09-30, deployed d0b44f4; no model called):**
+- **Production:** 72 distinct single-turn questions. That is 79, minus the 8 junk, plus one logged today. 30 are model-reaching and 42 deterministic.
+- **Seeds: 92.** Left out: 30 from the 30-set, 23 with history, 8 exact exam text, 5 near an exam query, 18 repeating a production query, 3 junk, 3 duplicates. 69 are model-reaching and 23 deterministic.
+- **Paraphrases:** 92 × 5 = 460 projected. Each is assumed to reach the teacher, with the mean prompt.
+- **Cost:**
+
+| | Expected | Ceiling |
+|---|---|---|
+| Replay (99 calls + 460 projected) | $18.26 | $60.21 |
+| Paraphrasing (92 calls) | $0.81 | $8.86 |
+| **Total** | **$19.07** | **$69.07** |
+
+  The ceiling is over the $60 approved, so the run stopped here. It counts 3,700 output tokens per call (700 max plus Opus's 3,000 reserve) and every paraphrase reaching the model.
+
+**Staged (owner, 2026-09-30):** "Staged. Seeds are rows too, as you have it. Run the paraphrasing, re-plan with the real paraphrases, show me the second plan and stop."
+
+**Paraphrasing (2026-09-30):**
+- The first attempt made no teacher call. `augment_seeds.py` imported `providers` without loading the server's `.env`, so all 92 calls stopped on "ANTHROPIC_API_KEY is unset" before any request. Fixed: it loads the `.env` read-only and refuses before the first call if the key is missing.
+- **Rerun: 92 of 92 seeds paraphrased, 0 errors, 460 paraphrases** (prompt `26f28630…`). Ceiling $8.86, expected $0.81.
+
+**Second plan (deployed d0b44f4, real paraphrases; no model called):**
+- **Paraphrases: 456.** The exam re-check left out 4, none of them an exam scenario (cautious drops):
+  - a bare "~68 kg" near "25 kg";
+  - a crushed-hand ketamine question near "need ketamine for a 6 yo arm fx";
+  - two blast-lung vent questions near the DKA vent question (their seed sat at 0.51).
+- **Reaching the teacher:** production 30, seeds 69, paraphrases 353 (**452 calls**). Answered by a card: 42, 23 and 103.
+- **Replay cost: expected $14.46, ceiling $48.38.** With the paraphrasing (ceiling $8.86), this run's ceiling is **$57.24, under the $60 approved.** Stopped here for the owner.
+
+**Run (owner, 2026-09-30: "Run the replay with --approve-cost 60"; deployed d0b44f4):** 452 teacher calls. Refuse-to-run passed.
+
+| Source | Card (no model) | Held | Unasked drug | Review | Kept | Train / valid |
+|---|---|---|---|---|---|---|
+| production | 42 | 3 | 11 | 6 | 10 | 10 / 0 |
+| seed | 23 | 2 | 22 | 24 | 21 | 18 / 3 |
+| paraphrase | 103 | 18 | 122 | 137 | 76 | 70 / 6 |
+| **total** | 168 | 23 | 155 | **167** | **107** | **98 / 9** (valid: 4 scenarios) |
+
+- No fallback, truncation, pipeline change or check failure.
+- **Unasked drugs** are the largest exclusion. The most frequent: dextrose 41, ketamine 31, tranexamic acid 21, sodium bicarbonate 15, morphine 14, calcium gluconate 14, epinephrine 12. The full count is in `manifest.json`.
+- **Scenario types:** damage_control_resuscitation 15, burn_management_pfc 13, unrouted 12, radiology_imaging_trauma_patients 12, airway_management_in_prolonged_field_care 11, then 7 or fewer. Every type is under 20 rows.
+- **Drugs named in the kept answers:** midazolam 6, tranexamic acid 6, ketamine 4, amiodarone 2, rocuronium 1.
+- **Cost:** the builder doesn't record the providers' token counts. The plan's expected cost was $14.46 for the replay and $0.81 for the paraphrasing; the actual figure is on the provider dashboards.
+
+**For the owner's ruling: the review file is mostly clinical.** `data/distill/review.jsonl` (untracked) holds 167 rows in about 51 groups (a seed with its paraphrases counts as one group):
+- About 5 groups (~16 rows) are fragments: a bare weight, "90 kg male tenio", "normal weight for a 7 year old", "Do I give ami for this now?".
+- The other ~46 groups (~151 rows) are real clinical questions with no route, no lexicon drug and no parsed vital. Examples: the Parkland formula, when to burp a chest seal, c-spine clearance, IO access, criteria for terminating resuscitation, rabies timing, a vent patient bucking the tube, breech delivery.
+- The rule keeps junk out (none of the 107 kept rows is junk), but the router and the lexicon miss much of the prolonged-field-care and general reference material. "amio" is not in the lexicon.
+
+**Owner rulings (#114 review, 2026-10-01):**
+1. "Release the 46 clinical groups by hash now; the 5 fragment groups stay out. Then add a fourth junk signal, a committed clinical vocabulary list built from the router's protocol keywords and the corpus section headings (procedures, formulas, anatomy, obstetrics), so next run these pass on their own. Add 'amio' and other common abbreviations you saw to the drug lexicon as a finding for a separate PR."
+2. "Unasked-drug filter stays strict for v1. Record the 155 and the top drugs. The relaxed variant (unasked drug named without a number passes) is the v2 experiment, in the work order under D6."
+3. "Coverage accepted for v1. Rebuild train/valid with the released rows, same split rule, report final counts by source and scenario type, update the PR, stop."
+
+**Applied:**
+- **Groups.** Counted exactly, the review file held 50 groups, not about 51: 46 clinical and **4 fragments** (H-SESS-001 "150lbs", H-SESS-017 "90 kg male tenio", H-SESS-031 "normal weight for a 7 year old", H-SESS-045 "Do I give ami for this now?"). The "~5" in #114 was approximate; the 46 is exact.
+  - The borderline group, H-SESS-032 "How do I pronounce my mother in law dead?", is among the 46: the teacher answered it as pronouncing a death. Flagged for the owner.
+- **`tools/distill/review_rulings.json`** holds hashes only:
+  - release: 151 rows (144 hashes);
+  - hold: 16 rows (15 hashes).
+  - A released row is kept without a signal. A held row stays in review even with one: two "tenio" paraphrases came back as "tension pneumo" (see below) and would pass the vocabulary.
+- **Fourth signal, `vocabulary`.** `tools/distill/clinical_vocabulary.json` has 1,088 words, generated by `tools/distill/build_clinical_vocabulary.py`.
+  - Router sources: `protocol_index.json` (titles, conditions, procedures, search terms, aliases, blood products), the router's curated supplements, and its slang table (`query_aliases.json`).
+  - Corpus source: section headings of the 90 JTS PDFs. A heading word counts only if it is used lowercase in at least 3 CPGs' text (names are not) and is a dictionary word or at least 7 letters (PDF line-break fragments are not).
+  - Acronyms of 3–5 capitals count when written in mixed-case text (RSI, TBI).
+  - A generic stoplist keeps out words like "mother", "weight", "code", "release", "weather", "software" and "body". It is pinned by tests: the junk negatives and the 4 fragment seeds have no signal of any kind.
+- **Next run:** 125 of the 151 released rows (40 of 46 groups) now pass on their own. Six groups still don't: PT/INR, litter-carry reassessment, "leg amp", "amio iv", angioedema, handoff. Not tuned to fit.
+- **Rebuild** (`--rebuild`): no model call. Every row (train, valid and review) is checked again by the refuse-to-run check, with its patient context and signed doses rebuilt by the pipeline's own functions. Then the junk rule with the rulings, then the same split rule. It refuses if a row's snapshot is not the deployed commit. Refuse-to-run: passed.
+
+**Final v1 dataset (rebuilt 2026-10-01 on d0b44f4): 258 rows, 239 train / 19 valid (7 scenarios); 16 held in review.**
+
+| Source | Train | Valid | Review (held) |
+|---|---|---|---|
+| production | 14 | 2 | 0 |
+| seed | 39 | 3 | 3 |
+| paraphrase | 186 | 14 | 13 |
+| **total** | **239** | **19** | **16** |
+
+- **Scenario types, all sources:** unrouted 163, damage_control_resuscitation 15, burn_management_pfc 13, radiology_imaging_trauma_patients 12, airway_management_in_prolonged_field_care 11, pain_anxiety_delirium 7, airway_management_of_traumatic_injuries 6, acute_extremity_compartment_syndrome 4, documentation_prolonged_field_care 4, then 12 types with 3 or fewer.
+- **Unrouted by source:** production 9, seed 23, paraphrase 131. Every type except unrouted is under 20 rows. **Coverage accepted for v1 (owner).**
+
+**Unasked-drug filter: strict for v1 (owner).**
+- It removed **155** rows in the D5b run: production 11, seed 22, paraphrase 122.
+- The drugs most often named: dextrose 41, ketamine 31, tranexamic acid 21, sodium bicarbonate 15, morphine 14, calcium gluconate 14, epinephrine 12, amiodarone 10, acetaminophen 10, atropine 8, naloxone 8. The full count is in the run's `manifest.json`.
+- The relaxed variant is the v2 experiment, recorded under D6.
+
+**Findings (not fixed here):**
+1. **Safety: abbreviated drug names escape the deterministic dose check.**
+   - With nothing signed, the check holds "amiodarone 150 mg IV", "magnesium 2 g IV" and "norepinephrine 5 mcg/min", but **passes** "amio 150 mg IV", "mag 2 g IV", "bicarb 50 mEq IV" and "levo 5 mcg/min". The drug lexicon doesn't know the abbreviations, so the dose is never attributed to a drug.
+   - It fails open. Only the LLM validator stands behind it.
+   - The router's slang table already knows bicarb, levo, mag, dilt, vec, vaso and "rocky onium"; the check's lexicon doesn't. Also seen in the data: "amio", "versa" (Versed), "rock" (rocuronium), "ami" (ambiguous: amiodarone or acute MI, needs a ruling), "nebs", "abx", "morph".
+   - **Proposed: its own PR, with a failing test first and replay; the owner places it.**
+   - None of the 258 v1 rows states a dose under one of these abbreviations (scanned).
+2. **A paraphrase changed the situation.** For the ambiguous seed "90 kg male tenio", the teacher wrote "90 kg male, tension pneumo — what do I do?", against the prompt's "same situation" instruction. The group is held, so it is not in v1. A seed too unclear to keep its situation should be paraphrased never, or reviewed first.
 
 ### D1b: the authored 30-set, drafted for sign-off (owner, 2026-09-28; after D5, its own PR)
 
@@ -466,6 +586,8 @@ Commit under `tools/distill/`:
   3. write the results to a new dated file, `docs/DISTILL_BENCH_<tag>.md`, linked from this work order. Do not append to `LOCAL_LLM_BENCHMARK.md`, which stays a measurement record of the base model.
 
 **Preflight (owner, 2026-09-26):** the Makefile checks the training data against `tools/distill/fixtures/format_example.jsonl`, the same fixture the Jetson-side D5 test uses.
+
+**v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.
 
 **Rules:**
 - Install only with `pip install -r requirements.txt`.
