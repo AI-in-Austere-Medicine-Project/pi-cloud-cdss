@@ -19,13 +19,35 @@ Run these from `tools/distill/`.
 
 | Target | What it does |
 |---|---|
-| `make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4] [MAXSEQ=6656]` | Runs the preflight (format, and the longest row in tokens against `MAXSEQ`), then `mlx_lm.lora --max-seq-length $(MAXSEQ)` on `mlx-community/Qwen2.5-3B-Instruct-4bit`. `DATA` defaults to `data/distill` (D5's output). The adapter goes to `~/edgecdss-train/adapters/<name>`. |
+| `make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4] [MAXSEQ=6656] [BATCH=1] [GRADCKPT=1]` | Runs the preflight (format, and the longest row in tokens against `MAXSEQ`), then `mlx_lm.lora --batch-size $(BATCH) --max-seq-length $(MAXSEQ) --grad-checkpoint` (`GRADCKPT=0` drops the flag) on `mlx-community/Qwen2.5-3B-Instruct-4bit`. `DATA` defaults to `data/distill` (D5's output). The adapter goes to `~/edgecdss-train/adapters/<name>`. |
 | `make fuse` | Runs `mlx_lm.fuse --dequantize` against the full-precision `Qwen/Qwen2.5-3B-Instruct`, copies the four tokenizer files from the base snapshot over the fused folder, then runs one probe generation. |
 | `make gguf` | Converts to f16 with llama.cpp's `convert_hf_to_gguf.py`, runs `llama-quantize` to Q4_K_M, then deletes the f16, even if a step fails. It checks the GGUF header says Q4_K_M. |
 | `make ship TAG=edgecdss-name` | Refuses if the Jetson has under 3 GB free. It refuses any file whose GGUF header is not Q4_K_M, and any file with f16 in its name. It copies the Q4 over with scp, writes the Modelfile and runs `ollama create`, then runs one single-line ketamine probe on the Jetson over ssh. |
 | `make bench` | Benches on the Jetson, against a pinned `git archive` of `origin/main`. It runs the 30-scenario local arm for the base and the new tag, then `run_tests.sh` against a second uvicorn serving the new tag. It prints the before/after table and writes `docs/DISTILL_BENCH_<tag>.md`. It fails unless `run_tests.sh` gives 27/27. |
 
 `fuse`, `gguf` and `ship` default to the adapter of the last `train`. `bench` defaults to the tag of the last `ship`. Pass `ADAPTER=` or `TAG=` to override.
+
+**Running the trainer outside `make`.** Only `make train` records the adapter name (in `~/edgecdss-train/.d6-state/adapter`). If you run `mlx_lm.lora` yourself, nothing is recorded: pass `ADAPTER=<name>` explicitly to `make fuse`, `make gguf` and `make ship`, or they act on the last adapter `make train` made, or on none. The adapter must still be in `~/edgecdss-train/adapters/<name>` for `fuse` to find it.
+
+### Memory
+
+Rows are long: the live system prompt alone is ~4,000–6,000 tokens, so `MAXSEQ` is 6656. On the first v1 run (a 48 GB Mac, `MAXSEQ` 6656):
+
+| Setting | Result |
+|---|---|
+| batch 2, no gradient checkpointing | ran out of memory |
+| batch 1, no gradient checkpointing | ran out of memory |
+| **batch 1, `--grad-checkpoint`** | **completed; peak 12.9 GB** |
+
+So `BATCH=1` and `GRADCKPT=1` are the defaults. Gradient checkpointing recomputes activations in the backward pass instead of storing them: less memory, more time per step.
+
+**v1 loss curve** (that run):
+
+| Iteration | Val loss | Train loss |
+|---|---|---|
+| start | 2.758 | |
+| 200 | 1.025 | |
+| 300 | 1.018 | 0.58 |
 
 ### Preflight
 

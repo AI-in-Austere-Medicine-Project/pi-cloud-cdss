@@ -89,9 +89,10 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | LoRA | Training a small add-on to the base, not the whole model. | `make train` (`mlx_lm.lora`) |
 | Adapter | The trained add-on. | `make train ADAPTER=name` → `~/edgecdss-train/adapters/<name>` |
 | Iterations | Training steps. Default 600. | `ITERS=` |
-| Learning rate | Step size. Default 1e-4. Batch size 2. | `LR=`, `BATCH=` |
+| Learning rate | Step size. Default 1e-4. Batch size 1 (2 ran out of memory on the 48 GB Mac at `MAXSEQ` 6656). | `LR=`, `BATCH=` |
+| Gradient checkpointing | Recompute activations instead of storing them: less memory, slower steps. On by default; batch 1 then peaked at 12.9 GB on the first v1 run. | `GRADCKPT=1` (`--grad-checkpoint`); `GRADCKPT=0` turns it off |
 | Max sequence length | Tokens per row the trainer keeps; a longer row loses its tail, the answer. Default 6656, so v1's longest row (6,537 tokens) fits (mlx_lm.lora's own default, 2048, cut 161 of v1's 255 rows). `make preflight` refuses a row longer than MAXSEQ. | `MAXSEQ=`; `d6.py seqlen` |
-| Loss | How far the model's text is from the target's. Train loss and val loss are logged. | `adapters/<name>/train.log`, `train-stats.txt`; the bench doc's provenance table |
+| Loss | How far the model's text is from the target's. Train loss and val loss are logged. v1 (first run): val 2.758 → 1.025 at 200 → 1.018 at 300; train 0.58 at 300. | `adapters/<name>/train.log`, `train-stats.txt`; the bench doc's provenance table |
 | Fuse | Merge the adapter into the full-precision base, then copy the base's tokenizer files over. | `make fuse` → `~/edgecdss-train/fused/<adapter>` |
 | GGUF | The file format Ollama runs. | `make gguf` (llama.cpp `convert_hf_to_gguf.py`, f16 as a temporary file) |
 | Q4_K_M | The 4-bit quantisation shipped; the f16 is deleted. | `make gguf` (`llama-quantize`) → `~/edgecdss-train/gguf/<adapter>-q4km.gguf` |
