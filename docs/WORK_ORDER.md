@@ -719,6 +719,22 @@ Commit under `tools/distill/`:
 - **The default is 6656, not the 6144 first proposed (owner, 2026-10-01: "Raise the limit: MAXSEQ ?= 6656 as the default, keep the row").** At 6144, preflight refused v1 on one row: `train.jsonl:43`, a ketamine-drip paraphrase at 6,537 tokens (the next is 6,092). At 6656 v1 passes, with 119 tokens of headroom over its longest row.
 - **Why D2 matters for training as well as latency.** Every training row carries the whole live system prompt: about 4,000 of its ~4,300 median tokens are prompt, and ~320 are answer. Training memory and time grow with sequence length, so a fixed prompt prefix and a shorter prompt (D2, and D3's retrieval trim) cut training cost as well as prefill latency. The trained model sees the same prompt it serves with, so a shorter serving prompt means shorter training rows.
 
+**First real v1 run on the Mac (owner, 2026-10-01; 48 GB, `MAXSEQ` 6656):**
+- **Memory:** batch 2 and batch 1 both ran out of memory without gradient checkpointing. With `--grad-checkpoint`, batch 1 peaked at **12.9 GB** and completed.
+- **Defaults now:**
+  - `GRADCKPT ?= 1`, which passes `--grad-checkpoint`; `GRADCKPT=0` drops it.
+  - `BATCH ?= 1` (it was 2).
+  - Both can be overridden on the command line. Tests: `server/tests/test_d6_train_defaults.py`, reading the recipe through `make -n`.
+- **v1 loss curve:**
+
+| Iteration | Val loss | Train loss |
+|---|---|---|
+| start | 2.758 | |
+| 200 | 1.025 | |
+| 300 | 1.018 | 0.58 |
+
+- **Running the trainer outside `make`:** only `make train` records the adapter name in `.d6-state`. After running `mlx_lm.lora` by hand, pass `ADAPTER=<name>` explicitly to `make fuse`, `make gguf` and `make ship`. This is documented in `tools/distill/README.md`.
+
 **v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.
 
 **Rules:**
