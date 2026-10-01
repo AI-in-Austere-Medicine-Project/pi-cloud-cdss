@@ -92,10 +92,14 @@ def done_seed_ids(path) -> set:
     return {json.loads(l)["seed_id"] for l in open(path, encoding="utf-8") if l.strip()}
 
 
-def seeds_to_augment(seeds_path, exam: "bd.ExamSet", done: set, production=()) -> list:
+def seeds_to_augment(seeds_path, exam: "bd.ExamSet", done: set, production=(),
+                     rulings: "bd.ReviewRulings | None" = None) -> list:
+    """The clear seeds not yet paraphrased. An unclear seed (bd.seed_is_clear)
+    generates nothing (owner, 2026-10-01)."""
     seeds, _counts = bd.load_seeds(seeds_path, exam, bd.EvalExclusion.load(bd.REPO),
                                    bd.JunkDrop.load(bd.REPO), production)
-    return [s for s in seeds if s["seed_id"] not in done]
+    clear, _unclear = bd.split_unclear(seeds, bd.ReviewRulings.load(bd.REPO) if rulings is None else rulings)
+    return [s for s in clear if s["seed_id"] not in done]
 
 
 def estimate(seeds: list) -> dict:
@@ -124,6 +128,17 @@ def main(argv=None):
         from dotenv import dotenv_values
         logs = dotenv_values(server / ".env").get("CDSS_LOG_DIR") or str(server / "logs/sessions")
     production, _ = bd.load_source_queries(logs, bd.EvalExclusion.load(bd.REPO), bd.JunkDrop.load(bd.REPO))
+    # The server tree first: the junk rule (which seeds are clear) needs its
+    # router and checks, and the teacher call needs its keys.
+    scratch = tempfile.mkdtemp(prefix="d5b-aug-")
+    os.environ["CDSS_LOG_DIR"] = scratch
+    os.environ["FEEDBACK_LOG"] = os.path.join(scratch, "feedback.log")
+    os.chdir(server)
+    sys.path.insert(0, str(server))
+    # The keys, as the server reads them (openai_client does this on import;
+    # this step imports providers directly). Read only; the env set above wins.
+    from dotenv import load_dotenv
+    load_dotenv(server / ".env")
     para_path, err_path = out / "paraphrases.jsonl", out / "errors.jsonl"
     todo = seeds_to_augment(a.seeds, exam, done_seed_ids(para_path), production)
     est = estimate(todo)
@@ -134,15 +149,6 @@ def main(argv=None):
         print("plan only: no model was called and nothing was written.")
         return 0
 
-    scratch = tempfile.mkdtemp(prefix="d5b-aug-")
-    os.environ["CDSS_LOG_DIR"] = scratch
-    os.environ["FEEDBACK_LOG"] = os.path.join(scratch, "feedback.log")
-    os.chdir(server)
-    sys.path.insert(0, str(server))
-    # The keys, as the server reads them (openai_client does this on import;
-    # this step imports providers alone). Read only; the env set above wins.
-    from dotenv import load_dotenv
-    load_dotenv(server / ".env")
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise bd.RefuseToRun(f"ANTHROPIC_API_KEY is not set in {server / '.env'}: the teacher can't be called")
     import providers

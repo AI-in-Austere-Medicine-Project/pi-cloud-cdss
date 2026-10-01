@@ -59,7 +59,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
-| D5b | Second dataset run: junk rule, seeds, paraphrases | in review: #114; rulings applied: 258 rows (239 train / 19 valid), 16 held in review; for the owner to merge and train |
+| D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up in review: unclear seeds never paraphrased, fragment hold made complete, v1 source recorded (255 rows) |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | after D5b |
 | B1 | Source-mode labelling | after D6 |
 | B2 | Generator section headers | after B1 |
@@ -553,6 +553,26 @@ Print the counts per scenario and per drug.
    - None of the 258 v1 rows states a dose under one of these abbreviations (scanned).
 2. **A paraphrase changed the situation.** For the ambiguous seed "90 kg male tenio", the teacher wrote "90 kg male, tension pneumo — what do I do?", against the prompt's "same situation" instruction. The group is held, so it is not in v1. A seed too unclear to keep its situation should be paraphrased never, or reviewed first.
 
+**Follow-up (owner, 2026-10-01, #114 approval):**
+- "Unclear seeds are never paraphrased: a seed that fails the junk rule goes to review itself and generates nothing. Add that to the builder with a test using '90 kg male tenio'."
+- "Record the 258-row dataset as v1's source in the work order with its manifest counts and the deployed commit."
+
+**Unclear seeds:** `seed_is_clear()` and `split_unclear()`.
+- A seed is paraphrased only if it passes the junk rule or the owner released it, and never if the owner held it.
+- An unclear seed is still a row: it is replayed and goes to `review.jsonl` through the junk rule.
+- `augment_seeds.py` skips unclear seeds. The builder drops any paraphrases already written for an unclear seed before replay (`unclear_seed`).
+- **On the bank today, 10 of the 92 seeds are unclear:**
+  - 4 are fragments: "150lbs", "90 kg male tenio", "normal weight for a 7 year old", "need to now give ami for this".
+  - 6 are clinical but miss every signal: "8 year old sz", "amiorderone", "i need to now give amio iv" (A17's lexicon adds "amio"), "Vent settings dka", the hyperkalaemia question ("his K is 6.8 … peaked T waves"), and "one milligram of pi for the anaphylaxis".
+  - Under the rule they generate nothing. The owner can release any of them by hash.
+
+**Correction: the fragment hold missed 3 rows; v1 is 255, not 258 (owner, 2026-10-01: "Hold them: v1 = 255").**
+- The #114 hold list held the fragment groups' rows that were in review. Three paraphrases had passed a signal in the run, so they went straight into training and were not covered:
+  - "tenio" → "Adult male about 88 kg with a tension pneumothorax, need guidance";
+  - "tenio" → "Male casualty, roughly 190 lb, tension pneumothorax — walk me through it";
+  - "ami" → "Is it time to administer amiodarone for this?" (resolving the ambiguity A17 excludes).
+- The hold now covers every seed and paraphrase of the four fragment groups (22 hashes). The dataset was rebuilt with `--rebuild`: no model call, the same split rule, and refuse-to-run passed.
+
 ### D1b: the authored 30-set, drafted for sign-off (owner, 2026-09-28; after D5, its own PR)
 
 The authored set (docs/EdgeCDSS_JTS_Evaluation_Set_30) can't be found, so D1(b)'s reconciliation has nothing to compare against. Instead:
@@ -586,6 +606,28 @@ Commit under `tools/distill/`:
   3. write the results to a new dated file, `docs/DISTILL_BENCH_<tag>.md`, linked from this work order. Do not append to `LOCAL_LLM_BENCHMARK.md`, which stays a measurement record of the base model.
 
 **Preflight (owner, 2026-09-26):** the Makefile checks the training data against `tools/distill/fixtures/format_example.jsonl`, the same fixture the Jetson-side D5 test uses.
+
+**v1 source (owner, 2026-10-01): the D5b dataset, 255 rows.** Untracked, in `data/distill/` of the D5b build (`~/projects/cdss-d5b`, Jetson).
+
+| | |
+|---|---|
+| Deployed commit (snapshot of every row) | `d0b44f406a4e75703aaa3dee993a6b9fbfb1d456` (D5a, #111) |
+| Contract bank | schema 1.4.0, 68 of 108 entries signed, sha256 `bf257e82…fd505e` |
+| Concentrations kit | sha256 `f8192347…3f3ab5` |
+| Teacher | `claude-opus-5`, 120 s; validator `gpt-4o-mini`; the deployed checks |
+| Built | replay 2026-09-30; rebuilt 2026-10-01T10:57Z (owner rulings, fragment hold complete) |
+| **Rows** | **255: train 236, valid 19 (7 scenarios); 19 held in review** |
+| By source | production 14 / 2 (synthetic: false); seed 39 / 3; paraphrase 183 / 14 (synthetic: true) |
+| Owner rulings | 151 rows released by hash, 19 held (`tools/distill/review_rulings.json`) |
+| Unasked-drug filter | strict: 155 rows removed in the run |
+| Scenario types | unrouted 163, damage_control_resuscitation 15, burn_management_pfc 13, radiology_imaging_trauma_patients 12, airway_management_in_prolonged_field_care 11, pain_anxiety_delirium 7, airway_management_of_traumatic_injuries 6, then 14 types with 4 or fewer |
+| sha256 | below |
+
+- `train.jsonl` sha256 `9adfbdd36d3088a94436ff6b307e73c01a474d90e41dcef25eb60c0d8a3f30c4`
+- `valid.jsonl` sha256 `cb4f0a1c04dc44f0d1247d43f58f0ffe5503d26ad8efde540aed463e7fa05535`
+- `review.jsonl` sha256 `d30ca964f26f34eb3d7aea8b034ff0101fb1fc49c64cd982a5822ddacb80f577`
+- `seeds/paraphrases.jsonl` sha256 `a0bef258a4c0ea824a77a51f805563d5a1fc66df1816d3a0ce5019fb74e45a3b`
+- `make preflight`'s format check passes: 236 + 19 rows against `format_example.jsonl`.
 
 **v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.
 
