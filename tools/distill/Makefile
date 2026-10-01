@@ -1,6 +1,6 @@
 # D6: distillation training toolchain. Runs on the Mac, in ~/edgecdss-train.
 #
-#   make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4] [MAXSEQ=6144]
+#   make train ADAPTER=name [DATA=dir] [ITERS=600] [LR=1e-4] [MAXSEQ=6656]
 #   make fuse   [ADAPTER=name]            (defaults to the last trained adapter)
 #   make gguf   [ADAPTER=name]
 #   make ship   TAG=edgecdss-name [ADAPTER=name]
@@ -32,7 +32,8 @@ LR    ?= 1e-4
 BATCH ?= 2
 # Tokens per row. mlx_lm.lora's default, 2048, cut the answer off every real row:
 # the system prompt alone is ~4,000-6,000 tokens. Preflight refuses a longer row.
-MAXSEQ ?= 6144
+# 6656: v1's longest row is 6,537 tokens (owner, 2026-10-01: raise the limit, keep the row).
+MAXSEQ ?= 6656
 DATA  ?= $(REPO)/data/distill
 # A ~ typed on the make command line reaches make unexpanded under zsh.
 DATA_DIR := $(patsubst ~/%,$(HOME)/%,$(DATA))

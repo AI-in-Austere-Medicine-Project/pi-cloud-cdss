@@ -691,10 +691,10 @@ Commit under `tools/distill/`:
 | Answer | median ~320 tokens, max ~620 |
 
 - **Fixed:**
-  - `MAXSEQ ?= 6144` in the Makefile, and `make train` passes `--max-seq-length $(MAXSEQ)`.
+  - `MAXSEQ ?= 6656` in the Makefile, and `make train` passes `--max-seq-length $(MAXSEQ)`.
   - `make preflight` (which `train` runs first) now runs `d6.py seqlen $(BASE_4BIT) $(DATA_DIR) $(MAXSEQ)`. It measures every row of train/valid with the base tokenizer's chat template, the count `mlx_lm.lora` uses, and refuses if the longest exceeds MAXSEQ. It also prints how many rows the trainer's default would have cut.
   - Tests: `server/tests/test_d6_seqlen.py`.
-- **On v1 at the default 6144, preflight refuses: 1 row** (6,537 tokens; the next is 6,092). Either `make train MAXSEQ=6656` or dropping that row lets it pass. Owner's call.
+- **The default is 6656, not the 6144 first proposed (owner, 2026-10-01: "Raise the limit: MAXSEQ ?= 6656 as the default, keep the row").** At 6144, preflight refused v1 on one row: `train.jsonl:43`, a ketamine-drip paraphrase at 6,537 tokens (the next is 6,092). At 6656 v1 passes, with 119 tokens of headroom over its longest row.
 - **Why D2 matters for training as well as latency.** Every training row carries the whole live system prompt: about 4,000 of its ~4,300 median tokens are prompt, and ~320 are answer. Training memory and time grow with sequence length, so a fixed prompt prefix and a shorter prompt (D2, and D3's retrieval trim) cut training cost as well as prefill latency. The trained model sees the same prompt it serves with, so a shorter serving prompt means shorter training rows.
 
 **v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.

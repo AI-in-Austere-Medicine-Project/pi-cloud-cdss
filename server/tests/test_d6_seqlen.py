@@ -1,7 +1,7 @@
 """D6 gap (owner, 2026-10-01): rows are 4,300-5,600 tokens (a ~5,000-token
 system prompt) and mlx_lm.lora's default max_seq_length of 2048 truncated the
 tail, which is the answer. The Makefile now trains with --max-seq-length
-$(MAXSEQ) (default 6144), and preflight measures the longest row in DATA with
+$(MAXSEQ) (default 6656: v1's longest row is 6,537), and preflight measures the longest row in DATA with
 the base tokenizer's chat template and refuses if it exceeds MAXSEQ.
 
 Offline: the tokenizer is a stand-in; the real one is loaded on the Mac.
@@ -39,8 +39,9 @@ def count_words(messages):
 
 
 # ── the Makefile ────────────────────────────────────────────────────────────
-def test_maxseq_defaults_to_6144_and_can_be_overridden():
-    assert re.search(r"^MAXSEQ\s*\?=\s*6144\s*$", MAKEFILE, re.M)
+def test_maxseq_defaults_to_6656_and_can_be_overridden():
+    # Owner, 2026-10-01: raise the limit and keep v1's longest row (6,537 tokens).
+    assert re.search(r"^MAXSEQ\s*\?=\s*6656\s*$", MAKEFILE, re.M)
 
 
 def test_train_passes_max_seq_length():

@@ -90,7 +90,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | Adapter | The trained add-on. | `make train ADAPTER=name` → `~/edgecdss-train/adapters/<name>` |
 | Iterations | Training steps. Default 600. | `ITERS=` |
 | Learning rate | Step size. Default 1e-4. Batch size 2. | `LR=`, `BATCH=` |
-| Max sequence length | Tokens per row the trainer keeps; a longer row loses its tail, the answer. Default 6144 (mlx_lm.lora's own default, 2048, cut 161 of v1's 255 rows). `make preflight` refuses a row longer than MAXSEQ. | `MAXSEQ=`; `d6.py seqlen` |
+| Max sequence length | Tokens per row the trainer keeps; a longer row loses its tail, the answer. Default 6656, so v1's longest row (6,537 tokens) fits (mlx_lm.lora's own default, 2048, cut 161 of v1's 255 rows). `make preflight` refuses a row longer than MAXSEQ. | `MAXSEQ=`; `d6.py seqlen` |
 | Loss | How far the model's text is from the target's. Train loss and val loss are logged. | `adapters/<name>/train.log`, `train-stats.txt`; the bench doc's provenance table |
 | Fuse | Merge the adapter into the full-precision base, then copy the base's tokenizer files over. | `make fuse` → `~/edgecdss-train/fused/<adapter>` |
 | GGUF | The file format Ollama runs. | `make gguf` (llama.cpp `convert_hf_to_gguf.py`, f16 as a temporary file) |
