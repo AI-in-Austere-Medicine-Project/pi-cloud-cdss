@@ -288,8 +288,10 @@ def load_seeds(path, exam: ExamSet, exclusion: EvalExclusion, junk: JunkDrop, pr
     return seeds, dict(counts)
 
 
-def load_paraphrases(path, exam: ExamSet, exclusion: EvalExclusion, junk: JunkDrop):
-    """augment_seeds.py's output, checked against the exam again; seed's scenario id."""
+def load_paraphrases(path, exam: ExamSet, exclusion: EvalExclusion, junk: JunkDrop,
+                     unclear=frozenset()):
+    """augment_seeds.py's output, checked against the exam again; seed's scenario id.
+    Paraphrases of an unclear seed (`unclear`, seed ids) are never replayed."""
     counts = collections.Counter()
     seen, items = set(), []
     for line in open(path, encoding="utf-8"):
@@ -297,6 +299,9 @@ def load_paraphrases(path, exam: ExamSet, exclusion: EvalExclusion, junk: JunkDr
             continue
         r = json.loads(line)
         q = (r.get("query") or "").strip()
+        if r["seed_id"] in unclear:
+            counts["unclear_seed"] += 1
+            continue
         why = _exam_reason(q, exam, exclusion) or ("junk_dropped" if junk.drops(q) else None)
         if why is None and normalize(q) in seen:
             why = "duplicate"
@@ -397,6 +402,25 @@ def partition_junk(rows: list, rulings: "ReviewRulings | None" = None):
         keep = m["ruling"] == "release" or (m["ruling"] is None and bool(m["clinical_signals"]))
         (kept if keep else review).append(r)
     return kept, review
+
+
+def seed_is_clear(query: str, rulings: ReviewRulings) -> bool:
+    """Owner, 2026-10-01: a seed is paraphrased only if it passes the junk rule
+    (or the owner released it), and never if the owner held it. An unclear
+    seed's paraphrases drift: "90 kg male tenio" came back as "tension pneumo"."""
+    h = qhash(query)
+    if h in rulings.hold:
+        return False
+    return h in rulings.release or bool(clinical_signals(query))
+
+
+def split_unclear(seeds: list, rulings: ReviewRulings):
+    """(clear, unclear). An unclear seed is still a row (it goes to review
+    itself through the junk rule); it generates nothing."""
+    clear, unclear = [], []
+    for s in seeds:
+        (clear if seed_is_clear(s["query"], rulings) else unclear).append(s)
+    return clear, unclear
 
 
 def _read_pairs(out: pathlib.Path, name: str) -> list:
@@ -663,16 +687,19 @@ def main(argv=None):
 
     production, src_counts = load_source_queries(logs, exclusion, junk)
     seeds, seed_counts = load_seeds(a.seeds, exam, exclusion, junk, production)
+    clear_seeds, unclear_seeds = split_unclear(seeds, ReviewRulings.load(REPO))
+    unclear_ids = {s["seed_id"] for s in unclear_seeds}
     para_path = out / "seeds/paraphrases.jsonl"
-    paraphrases, para_counts = (load_paraphrases(para_path, exam, exclusion, junk)
+    paraphrases, para_counts = (load_paraphrases(para_path, exam, exclusion, junk, unclear_ids)
                                 if para_path.exists() else ([], {}))
     augmented = {p["seed_id"] for p in paraphrases} | set(aug.done_seed_ids(para_path))
-    to_augment = [s for s in seeds if s["seed_id"] not in augmented]
+    to_augment = [s for s in clear_seeds if s["seed_id"] not in augmented]
     print(f"production: {logs}")
     print(f"  distinct single-turn production queries: {len(production)}  "
           f"(entries left out: {dict(src_counts)})")
     print(f"seeds: {a.seeds}")
-    print(f"  seeds: {len(seeds)}  (left out: {seed_counts})")
+    print(f"  seeds: {len(seeds)}  (left out: {seed_counts}); unclear, never paraphrased: "
+          f"{len(unclear_seeds)} {sorted(unclear_ids)}")
     print(f"paraphrases: {len(paraphrases)} in {para_path}  (left out: {para_counts}); "
           f"seeds still to paraphrase: {len(to_augment)}")
 

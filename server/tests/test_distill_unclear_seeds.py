@@ -82,3 +82,13 @@ def test_the_unclear_seed_itself_goes_to_review():
     rows = [{"meta": {"query": TENIO}}]
     kept, review = bd.partition_junk(rows, NONE)
     assert kept == [] and review == rows
+
+
+def test_the_fragment_hold_covers_the_whole_group_not_only_review_rows():
+    # Three paraphrases of the fragment groups passed a signal in the D5b run
+    # and reached v1 before the hold covered them (owner, 2026-10-01).
+    hold = bd.ReviewRulings.load(REPO).hold
+    for q in ("Adult male about 88 kg with a tension pneumothorax, need guidance",
+              "Male casualty, roughly 190 lb, tension pneumothorax — walk me through it",
+              "Is it time to administer amiodarone for this?"):
+        assert bd.qhash(q) in hold, q

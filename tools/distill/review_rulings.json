@@ -1,5 +1,5 @@
 {
- "_note": "D5b review rulings (owner, #114 review, 2026-10-01): release the clinical groups of the first D5b run's review.jsonl; hold the fragment groups. sha256 of build_distill_dataset.normalize(query); hashes, not text.",
+ "_note": "D5b review rulings (owner, #114 review, 2026-10-01): release the clinical groups of the first D5b run's review.jsonl; hold the fragment groups. sha256 of build_distill_dataset.normalize(query); hashes, not text. Hold extended (owner, 2026-10-01) to every seed and paraphrase of the four fragment groups, not only their review rows: three had passed a signal and reached v1.",
  "release_groups": 46,
  "hold_groups": 4,
  "release_sha256": [
@@ -149,8 +149,12 @@
   "fe7ad8ad6f9b06ad4eb13e41c25c3382324dcb673e4a5e59d97b45f800e77239"
  ],
  "hold_sha256": [
+  "05d7b06302301828df92eedbee63070034d80814247384440601788ecbc8dee2",
+  "1923c93a87b9f72a5ba9ff8ff6173cbfa878bd6198f25dff20fe6a97de166937",
   "1e12a1ec66a3210b58a46bc63efc3e51135175cbb30f26f24954899b661952ac",
   "2707b8555952b843341ba909d63440fc6ee1366a56a8f13b64222a2617eb3552",
+  "37b0ac18c5ae39c1081d77ce97b8eeb88ce8c80b32ea16b357168a5dd8c4a9ca",
+  "3fe64610b54912dcb06722450000c1807b6b245a108dae423c5351fc6e6eea22",
   "44515bd5399ff52a53f9d6fce8082e9f9693ce7638c0bf3844b8c0babd49a7e4",
   "4cd074d2fc24499bf5c927d433629e8745410c733b505e14d37de021bc99faeb",
   "51d3d78086728f3a7cdfc8f36e94c1d79ed37e65f57159b8de8161a9caba23fa",
@@ -159,6 +163,9 @@
   "864edb9c85b12013b6d9812e1f6c000a8bda35efc606267fe9dca9d828fc9678",
   "8a2b5cc46f6a9fa8c7dc080877094b941538186185b2c103a82c467b87f2dc5f",
   "9d58d3612e9f63330ac47d904c21b179b2f82414b974db03c17bd33da065b337",
+  "a1c5fee0c238731762bfecf971210879124bd28ac8ec9a5cf50bbe280e8bc69e",
+  "d6b8f8d2643ce8ec3d9b635397f59d95c8923c81fbad12322804be62266f7bdb",
+  "d90a96e7710ed4d158ace377b74e4ff38a53c0d3dbbad53f439bca1274b3c27f",
   "eb7963d33758cc99b15d183aac2ee835f125f2cc74aafbc175483e9926c8a3b1",
   "eca4a34bfec525965509b3ad2b9a92c48d6a8a41cb9fe8d81f818962b88ce438",
   "f580636621b181bcbabd09f2bc8d88b5be1224bd0b91c7f553216f9cb9ded5d6",
