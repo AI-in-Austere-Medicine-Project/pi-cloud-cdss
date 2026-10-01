@@ -63,14 +63,14 @@ def test_refuses_when_the_longest_row_exceeds_maxseq(tmp_path, capsys):
         d6.check_seqlen(data, 4096, count_words)
     assert e.value.code == 2
     err = capsys.readouterr().err
-    assert "train.jsonl:2" in err and "5602" in err and "4096" in err
+    assert "train.jsonl:2" in err and "5603" in err and "4096" in err
 
 
 def test_passes_and_reports_when_every_row_fits(tmp_path, capsys):
     data = _data(tmp_path, [_row(100, 10), _row(4000, 300)], [_row(200, 10)])
     d6.check_seqlen(data, 6144, count_words)
     out = capsys.readouterr().out
-    assert "longest 4302" in out and "train.jsonl:2" in out and "6144" in out
+    assert "longest 4303" in out and "train.jsonl:2" in out and "6144" in out
 
 
 def test_a_row_exactly_at_maxseq_fits_and_one_over_does_not(tmp_path):
