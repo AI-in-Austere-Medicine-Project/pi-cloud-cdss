@@ -56,6 +56,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A13 | Remove the dead safety_rules.json path | **done**: #110, merged and deployed |
 | A11b | Rate matching is indication-specific | **done**: #110, merged and deployed |
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
+| A17 | Abbreviated drug names in the dose check (the router's slang table) | in review (owner, #114 review: next item, before D1b) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -83,6 +84,8 @@ Owner asks outside the lettered items:
 **Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a, D1 and D5 are done (#93, #111, #112, #113). D5b was added after D5 by the owner in the #113 review; D1b follows it. B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
 
 **Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. A13, A11b and A16 are delivered together in #110 on the owner's instruction. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
+
+**Owner, 2026-10-01 (#114 review):** A17 is the next item, before D1b.
 
 ## Items
 
@@ -270,6 +273,49 @@ A11 matches a stated rate against any of the drug's signed rate entries for the 
 ### A16: a deterministic norepinephrine drip card (owner, #108 review; found in #108; in review, #110)
 
 Models answer a norepinephrine rate question in flat mcg/min ("2–20 mcg/min"), which A11 holds: every signed norepinephrine rate is per kg per minute, and nothing serves one. Add a deterministic norepinephrine drip card serving the signed per-kg rate, the way the epinephrine drip card does. Failing test first: the "norepinephrine 2–20 mcg/min" answer is held, and the card is served.
+
+### A17: abbreviated drug names in the dose check (owner, #114 review; found in D5b)
+
+**Owner, 2026-10-01:** "Abbreviated drug names in the dose check is A17, next item, before D1b. Add the router's slang table to the dose-check lexicon: amio, mag, bicarb, levo, epi, norepi, roc, sux, versed, ativan, and the rest of that table. 'ami' is excluded as ambiguous. Failing tests first with the four examples you gave; replay with each newly held read."
+
+**What was wrong:** the free-text dose check finds a drug by name (the contract bank, then `drug_lexicon.json`). It did not know the router's slang (`query_aliases.json`). A dose written as "amio 150 mg IV", "mag 2 g IV" or "levo 5 mcg/min" was attributed to no drug and passed, while "amiodarone 150 mg IV", "magnesium 2 g IV" and "norepinephrine 5 mcg/min" were held. It failed open; only the LLM validator stood behind it.
+
+**Built:**
+- `drug_contracts.recognised_drug_index()` gains a third layer under the bank and the lexicon: `slang_drug_aliases()`. The bank always wins.
+- Each `query_aliases.json` entry is resolved through its expansion to the one drug it names.
+  - Added to the check: bicarb, mag, levo, vec, dilt, del tim, vaso, rocky onium, push dose epi, dirty epi, epi drip, norepi drip.
+  - Already recognised: epi, ket, roc, sux, succs, versed, ativan, keppra, levophed (norepi was already a bank alias).
+- **Excluded:**
+  - "ami" (amiodarone or acute MI);
+  - any entry the table marks "context-dependent" ("k");
+  - non-drug entries (cric, blood, tq, march, king, cat, rsi);
+  - multi-drug entries ("pressors").
+- "amio" is not in the router's table. It joins `drug_lexicon.json` as an amiodarone alias, so the dose check changes and routing does not.
+
+**Tests:** `server/tests/test_slang_dose_check.py`, committed first: 30 failed and 8 passed on main.
+- amio 150 mg, mag 2 g, levo 5 mcg/min and bicarb 1 g are now held, naming the drug.
+- The abbreviation and the full name get the same verdict.
+- Every drug alias in the table is recognised; "ami" and "k" are not; non-drug entries are not drugs; the bank still wins.
+- `bicarb 50 mEq` is `xfail(strict)`: see the finding below.
+- `test_drug_lexicon.py::test_a_missing_lexicon_narrows_to_the_bank` now allows slang that names bank drugs.
+
+**Replay** (main 957b372 against A17):
+
+| Corpus | Answers | Newly held | Newly released | Changed |
+|---|---|---|---|---|
+| Served answers (cdss-eval runs) | 1,191 | 0 | 0 | 0 |
+| Held answers | 113 | 0 | 0 | 0 |
+| Pipeline, model stubbed (bank, runs, live queries) | 788 | — | — | 0 |
+| D5b teacher answers (train, valid, review) | 274 | 0 | 0 | 0 |
+
+No stored answer states a dose under one of these abbreviations, so there is no newly held answer to read.
+
+**Finding (correcting the D5b finding): single doses in units, IU or mEq are not read by the free-text check under any name.**
+- With nothing signed, each of these passes: "sodium bicarbonate 50 mEq IV", "potassium chloride 20 mEq IV", "insulin 10 units IV", "heparin 5000 units IV", "heparin 5,000 IU IV", "vasopressin 40 units IV".
+- Rates in units are read ("heparin 1000 units/hr" is held, A11).
+- D5b's "bicarb 50 mEq" example passed because of the unit, not only the abbreviation.
+- Insulin, heparin and potassium are high-alert drugs.
+- **Proposed as its own item, with a failing test first and replay; the owner places it.**
 
 ### B1: source-mode labelling
 

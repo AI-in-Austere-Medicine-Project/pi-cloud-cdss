@@ -57,7 +57,9 @@
       "jts_corpus_chunks": 4
     },
     "amiodarone": {
-      "aliases": [],
+      "aliases": [
+        "amio"
+      ],
       "jts_corpus_chunks": 23
     },
     "amoxicillin": {
