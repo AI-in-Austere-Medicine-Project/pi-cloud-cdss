@@ -981,19 +981,70 @@ def _lexicon_drugs() -> dict:
         return {}
 
 
-def recognised_drug_index() -> dict:
-    """{term: generic} for every drug the free-text dose check recognises.
+# A17: the router's slang table, read by the dose check too. Before this, a
+# dose written as "mag 2 g" or "amio 150 mg" was attributed to no drug and
+# passed, while "magnesium 2 g" and "amiodarone 150 mg" were held.
+SLANG_TABLE = pathlib.Path(__file__).parent / "query_aliases.json"
+# Never a drug, whatever the table says: "ami" is amiodarone or acute MI.
+SLANG_EXCLUDED = frozenset({"ami"})
+_SLANG_CACHE: dict = {}
 
-    The contract bank's alias_index(), then drug_lexicon.json underneath it:
-    a bank name or alias always wins, so a lexicon entry can never re-point a
-    term the bank owns. Recognition only — a lexicon drug has no dose here and
-    nothing serves it; its stated doses are held because no contract signs one.
-    """
+
+def _base_drug_index() -> dict:
     idx = alias_index()
     for generic, entry in _lexicon_drugs().items():
         for term in [generic] + list(entry.get("aliases") or []):
             if isinstance(term, str) and term.strip():
                 idx.setdefault(term.strip().lower(), generic)
+    return idx
+
+
+def slang_drug_aliases(base: Optional[dict] = None) -> dict:
+    """{alias: generic} for every slang-table entry that names exactly one drug.
+
+    Resolved through the expansion ("mag" -> "magnesium sulfate" -> magnesium
+    sulfate), so a non-drug entry ("cric") or a class ("pressors": three
+    drugs) resolves to nothing. Excluded: SLANG_EXCLUDED, any alias the table
+    itself marks "context-dependent" ("k"), and one-character aliases.
+    """
+    base = _base_drug_index() if base is None else base
+    key = frozenset(base.items())
+    if key in _SLANG_CACHE:
+        return _SLANG_CACHE[key]
+    try:
+        table = json.loads(SLANG_TABLE.read_text())
+    except (OSError, ValueError):
+        table = {}
+    patterns = [(re.compile(_term_pattern(t)), g) for t, g in base.items()]
+    out = {}
+    for alias, expansion in table.items():
+        a = str(alias).strip().lower()
+        exp = str(expansion).lower()
+        if len(a) < 2 or a in SLANG_EXCLUDED or "context-dependent" in exp:
+            continue
+        named = {g for rx, g in patterns if rx.search(re.sub(r"\([^)]*\)", " ", exp))}
+        if len(named) == 1:
+            out[a] = named.pop()
+    _SLANG_CACHE.clear()
+    _SLANG_CACHE[key] = out
+    return out
+
+
+def recognised_drug_index() -> dict:
+    """{term: generic} for every drug the free-text dose check recognises.
+
+    The contract bank's alias_index(), then drug_lexicon.json underneath it,
+    then (A17) the router's slang table underneath both: a bank name or alias
+    always wins, so neither can re-point a term the bank owns. Recognition
+    only — a lexicon drug has no dose here and nothing serves it; its stated
+    doses are held because no contract signs one.
+    """
+    idx = _base_drug_index()
+    for alias, generic in slang_drug_aliases(idx).items():
+        idx.setdefault(alias, generic)
+    for term in SLANG_EXCLUDED:
+        if idx.get(term) and term not in alias_index():
+            del idx[term]
     return idx
 
 

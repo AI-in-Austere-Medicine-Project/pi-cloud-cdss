@@ -119,7 +119,11 @@ def test_a_missing_lexicon_narrows_to_the_bank(monkeypatch, tmp_path):
     monkeypatch.setattr(dc, "LEXICON", tmp_path / "absent.json")
     dc._lexicon_drugs.cache_clear()
     try:
-        assert dc.recognised_drug_index() == dc.alias_index()
+        # The bank, plus (A17) the router's slang for bank drugs only.
+        bank = dc.alias_index()
+        idx = dc.recognised_drug_index()
+        assert {t: g for t, g in idx.items() if t in bank} == bank
+        assert set(idx.values()) <= set(bank.values())
         assert _issues(f"**TREAT**\n- {lexicon_only} 5 mg IV.") == []
     finally:
         dc._lexicon_drugs.cache_clear()
