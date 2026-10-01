@@ -45,7 +45,6 @@ DATA_DIR := $(patsubst ~/%,$(HOME)/%,$(DATA))
 FIXTURE := $(HERE)/fixtures/format_example.jsonl
 TOKENIZER_FILES := tokenizer.json tokenizer_config.json vocab.json merges.txt
 MIN_FREE_BYTES := 3000000000
-RT_EXPECT ?= 27
 
 # Strips Ollama's spinner frames and ANSI codes from captured output.
 DESPIN := perl -CS -pe 's/[\x{2800}-\x{28FF}] ?//g; s/\e\[[0-9;?]*[a-zA-Z]//g'
@@ -144,5 +143,5 @@ bench:
 	mkdir -p "$(BENCH_DIR)"; \
 	scp -rq $(JETSON):edgecdss-distill-bench/$(TAG)-$$stamp "$(BENCH_DIR)/"; \
 	$(PY) $(HERE)/d6.py stages "$(WORK)" "$$adapter" "$(TAG)" > "$(BENCH_DIR)/$(TAG)-$$stamp/stages.json"; \
-	$(PY) $(HERE)/d6.py report "$(BENCH_DIR)/$(TAG)-$$stamp" --out "$$out" --rt-expect $(RT_EXPECT) \
+	$(PY) $(HERE)/d6.py report "$(BENCH_DIR)/$(TAG)-$$stamp" --out "$$out" $(if $(RT_BASE),--rt-base "$(RT_BASE)") \
 	    --stages "$(BENCH_DIR)/$(TAG)-$$stamp/stages.json" $(if $(NOTE),--note "$(NOTE)")

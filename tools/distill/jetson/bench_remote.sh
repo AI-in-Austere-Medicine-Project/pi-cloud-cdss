@@ -101,19 +101,28 @@ run_arm() {
 run_arm base "$BASE"
 run_arm tag "$TAG"
 
-# ── run_tests.sh against a second uvicorn serving the tag ───────────────────
+# ── run_tests.sh against a second uvicorn, base then tag ────────────────────
+# The bar (owner, 2026-10-01) is the tag's score equal to the base arm's on the
+# same snapshot, so both arms run it; a fixed count went stale as cases were added.
 cp -r "$EVAL/corpus/chromadb" "$W/chromadb-rt"
-( cd "$W/target" && CDSS_LLM_MODEL=$TAG CDSS_ACCESS_TOKEN=$RT_TOKEN CHROMADB_PATH=$W/chromadb-rt \
-    CDSS_LOG_DIR=$W/rt-logs FEEDBACK_LOG=$W/rt-logs/fb.log \
-    exec "$PY" -m uvicorn main:app --host 127.0.0.1 --port "$RT_PORT" ) > "$W/logs/uvicorn-rt.log" 2>&1 &
-UV=$!
-trap 'kill $UV 2>/dev/null || true' EXIT
-for _ in $(seq 1 240); do curl -s -m 3 "http://127.0.0.1:$RT_PORT/health" >/dev/null && break; sleep 1; done
-curl -s -m 5 "http://127.0.0.1:$RT_PORT/health" >/dev/null || die "uvicorn on :$RT_PORT did not come up"
-CDSS_TEST_API=http://127.0.0.1:$RT_PORT/query CDSS_TEST_TOKEN=$RT_TOKEN \
-  bash "$W/target/run_tests.sh" > "$W/run_tests.txt" 2>&1 || true
-kill $UV; wait $UV 2>/dev/null || true
-trap - EXIT
+run_rt() {
+  local label=$1 model=$2
+  mkdir -p "$W/rt-logs/$label"
+  ( cd "$W/target" && CDSS_LLM_MODEL=$model CDSS_ACCESS_TOKEN=$RT_TOKEN CHROMADB_PATH=$W/chromadb-rt \
+      CDSS_LOG_DIR=$W/rt-logs/$label FEEDBACK_LOG=$W/rt-logs/$label/fb.log \
+      exec "$PY" -m uvicorn main:app --host 127.0.0.1 --port "$RT_PORT" ) > "$W/logs/uvicorn-rt-$label.log" 2>&1 &
+  UV=$!
+  trap 'kill $UV 2>/dev/null || true' EXIT
+  for _ in $(seq 1 240); do curl -s -m 3 "http://127.0.0.1:$RT_PORT/health" >/dev/null && break; sleep 1; done
+  curl -s -m 5 "http://127.0.0.1:$RT_PORT/health" >/dev/null || die "uvicorn on :$RT_PORT did not come up ($label)"
+  CDSS_TEST_API=http://127.0.0.1:$RT_PORT/query CDSS_TEST_TOKEN=$RT_TOKEN \
+    bash "$W/target/run_tests.sh" > "$W/run_tests.$label.txt" 2>&1 || true
+  kill $UV; wait $UV 2>/dev/null || true
+  trap - EXIT
+  for _ in $(seq 1 30); do ss -ltn "sport = :$RT_PORT" | grep -q LISTEN || break; sleep 1; done
+  echo "run_tests.sh $label ($model): $(grep RESULTS "$W/run_tests.$label.txt")"
+}
+run_rt base "$BASE"
+run_rt tag "$TAG"
 rm -rf "$W/chromadb-rt"
-grep RESULTS "$W/run_tests.txt"
 echo "bench: done -> $W"

@@ -223,15 +223,40 @@ def fmt(x, d=1):
     return "—" if x is None else f"{x:.{d}f}"
 
 
+def rt_score(text):
+    """(passed, total) from run_tests.sh output, or (None, None)."""
+    m = re.search(r"RESULTS: (\d+) passed / (\d+) total", text or "")
+    return (int(m.group(1)), int(m.group(2))) if m else (None, None)
+
+
+def rt_score_arg(value):
+    m = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*", value or "")
+    if not m:
+        die(f"--rt-base must be PASSED/TOTAL, got {value!r}")
+    return int(m.group(1)), int(m.group(2))
+
+
 def cmd_report(a):
     bench = Path(a.bench)
     meta = json.load(open(bench / "meta.json"))
     tokps = {t["label"]: t for t in load(bench / "tokps.jsonl")}
     before, after = arm(bench, "base"), arm(bench, "tag")
-    rt = open(bench / "run_tests.txt").read()
-    m = re.search(r"RESULTS: (\d+) passed / (\d+) total", rt)
-    rt_pass, rt_total = (int(m.group(1)), int(m.group(2))) if m else (None, None)
-    rt_ok = rt_pass is not None and rt_pass == rt_total == a.rt_expect
+    # The bar (owner, 2026-10-01): run_tests.sh against the tag equals the base
+    # arm's score on the same snapshot. A fixed count (27/27) went stale when D1
+    # added cases that only pass once later items land.
+    tag_file = bench / "run_tests.tag.txt"
+    rt = open(tag_file if tag_file.exists() else bench / "run_tests.txt").read()
+    rt_pass, rt_total = rt_score(rt)
+    base_file = bench / "run_tests.base.txt"
+    if base_file.exists():
+        (base_pass, base_total), base_how = rt_score(base_file.read_text()), "measured"
+    elif a.rt_base:
+        (base_pass, base_total), base_how = rt_score_arg(a.rt_base), "stated, not measured"
+    else:
+        (base_pass, base_total), base_how = (None, None), "missing"
+    rt_ok = rt_pass is not None and base_pass is not None and (rt_pass, rt_total) == (base_pass, base_total)
+    base_txt = (f"{base_pass} / {base_total} ({base_how})" if base_pass is not None
+                else "no base score: run_tests.base.txt is missing and --rt-base was not given")
     stages = json.load(open(a.stages)) if a.stages and os.path.exists(a.stages) else {}
 
     moved = []
@@ -280,7 +305,8 @@ def cmd_report(a):
           "(as in benchmark run 3).", "",
           f"Models that generated the model turns: before {before['models_used']}, after {after['models_used']}.", "",
           "## run_tests.sh against the new tag", "",
-          f"**{rt_pass} / {rt_total}**, required {a.rt_expect}/{a.rt_expect}: **{'holds' if rt_ok else 'FAILS'}**.", "",
+          f"**{rt_pass} / {rt_total}**; base arm `{meta['base']}`: {base_txt}. "
+          f"The bar is equal to the base arm on the same snapshot: **{'holds' if rt_ok else 'FAILS'}**.", "",
           "## Scenarios whose outcome moved", ""]
     L += ([f"- `{s}`: {b} → {t}" for s, b, t in moved] or ["- None."])
     fails = [l for l in rt.splitlines() if l.startswith("❌")]
@@ -289,12 +315,12 @@ def cmd_report(a):
     doc = "\n".join(L) + "\n"
 
     print("\n".join(table))
-    print(f"run_tests.sh: {rt_pass}/{rt_total} ({'holds' if rt_ok else 'FAILS'}, need {a.rt_expect}/{a.rt_expect})")
+    print(f"run_tests.sh: tag {rt_pass}/{rt_total}, base {base_txt} ({'holds' if rt_ok else 'FAILS'})")
     print("moved:", moved or "none")
     Path(a.out).write_text(doc)
     print(f"wrote {a.out}")
     if not rt_ok:
-        die(f"run_tests.sh {rt_pass}/{rt_total}: the {a.rt_expect}/{a.rt_expect} bar does not hold")
+        die(f"run_tests.sh: tag {rt_pass}/{rt_total}, base {base_txt}: the bar (equal to the base arm) does not hold")
 
 
 def main():
@@ -310,7 +336,8 @@ def main():
     p.set_defaults(f=cmd_stages)
     p = sp.add_parser("report")
     p.add_argument("bench"); p.add_argument("--out", required=True)
-    p.add_argument("--rt-expect", type=int, default=27)
+    p.add_argument("--rt-base", help="the base arm's run_tests.sh score as PASSED/TOTAL, for a bench "
+                   "dir from before run_tests.base.txt existed; a measured score wins")
     p.add_argument("--stages"); p.add_argument("--note")
     p.set_defaults(f=cmd_report)
     a = ap.parse_args()

@@ -22,7 +22,7 @@ Switching the offline model is one `.env` line: `CDSS_LLM_MODEL=<tag>`.
 | `Qwen2.5-3B-Instruct-4bit` | `mlx-community/Qwen2.5-3B-Instruct-4bit`, the Mac base that `make train` puts the LoRA on (`BASE_4BIT`). `make fuse` uses the full-precision `Qwen/Qwen2.5-3B-Instruct` (`BASE_FULL`). |
 | `edgecdss-dryrun` | Base plus a LoRA trained on a handful of hand-written rows before D6 existed. Proof that the Mac → GGUF → Jetson chain works; not a model result. Nothing serves it. An Ollama tag on the Jetson (865f63ecb476). |
 | `edgecdss-d6check` | **Removed.** The D6 toolchain proof: 50 iterations on the 50-row dry-run set. Its record is [`DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md). It is not a candidate model. |
-| `edgecdss-v1` | **Does not exist yet.** Its job is to beat `qwen2.5:3b` on the same exam. Its source: the D5b dataset, 255 rows (236 train / 19 valid), built on `d0b44f4`, contract bank 1.4.0 (68 of 108 signed); see the work order, D6. |
+| `edgecdss-v1` | **Benched 2026-10-01** ([`DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md)): `run_tests.sh` equal to the base (28/29); specifics 36/93 against the base's 32/93 on the same 26 scenarios; answers 2.5× longer; as the offline validator it returned invalid output on 23 of 24 calls, so it must not replace the validator. Its job is to beat `qwen2.5:3b` on the same exam. Its source: the D5b dataset, 255 rows (236 train / 19 valid), built on `d0b44f4`, contract bank 1.4.0 (68 of 108 signed); see the work order, D6. |
 | `edgecdss-v2` and later | Later versions, each with its own dataset or training knobs and its own bench doc. |
 | The teacher | `claude-opus-5`: the exact model ID run 3's Opus arm called (`providers.json` id, `anthropic/claude-opus-5`). D5 regenerates the training answers with it. It is never substituted. |
 | The eight cloud arms | `gpt-4o-mini` (default, and the validator), `gpt-4o`, `claude-haiku-4-5`, `claude-sonnet-5`, `claude-opus-5`, `gemini-3.7-flash`, `gemini-3.1-pro-preview`, `grok-4`. |
@@ -98,7 +98,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | Q4_K_M | The 4-bit quantisation shipped; the f16 is deleted. | `make gguf` (`llama-quantize`) → `~/edgecdss-train/gguf/<adapter>-q4km.gguf` |
 | Ship | Copy the Q4 file to the Jetson, `ollama create` it, and probe it once. It refuses if the Jetson has under 3 GB free. | `make ship TAG=edgecdss-name`, `tools/distill/jetson/ship_remote.sh` |
 | Tag | The Ollama name of a shipped model. It must start with `edgecdss-`; the base and production tags are never overwritten. | `TAG=` |
-| Bench | The 30-set local arm, base against the new tag, plus `run_tests.sh`. 27/27 is required. | `make bench`, `tools/distill/jetson/bench_remote.sh` → `docs/DISTILL_BENCH_<tag>.md` |
+| Bench | The 30-set local arm, base against the new tag, plus `run_tests.sh` against both. The new tag must equal the base arm's `run_tests.sh` score on the same snapshot (28/29 today; 29/29 once B1 lands); a fixed 27/27 went stale when D1 added cases (owner, 2026-10-01). | `make bench`, `tools/distill/jetson/bench_remote.sh` → `docs/DISTILL_BENCH_<tag>.md` |
 | Teacher / student | The teacher (`claude-opus-5`) writes the answers; the student (Qwen2.5-3B) learns them. | D5 (a); D6 |
 
 **The three gotchas (dry run).**
@@ -110,7 +110,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 
 | Name | Meaning | Current reference value |
 |---|---|---|
-| `run_tests.sh` | The endpoint suite: 27 queries. None of them reaches a model. | 27/27 on every run-3 arm and on the d6check bench |
+| `run_tests.sh` | The endpoint suite: 29 cases since D1 (#112). The B1 fentanyl case reaches a model and fails until B1 is done. | 27/27 on every run-3 arm and on the d6check bench (before D1); 28/29 since |
 | The 30-scenario set | 30 safety-critical scenarios from the cdss-eval bank, `run_bank.py --round all`. 25 reach a model and 5 don't. | Run 3, gpt-4o-mini: 28 served / 2 held (as deployed), 30 / 0 (120 s). qwen2.5:3b: 25/5, 24/6, 26/4 over three passes |
 | Served / held | Served: the answer reaches the medic. Held: a check withholds it and a hold message replaces it. | See the 30-set row |
 | Specifics present | Owner-reviewed draft specifics found verbatim in served answers. Term matching, not a correctness score. | Run 3, the same 13 scenarios: claude-opus-5 37/48 (77%), gpt-4o-mini 8/48 (17%), qwen 10/44, 10/40, 9/48 |
