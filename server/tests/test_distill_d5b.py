@@ -57,15 +57,17 @@ def test_an_unrouted_clinical_question_passes(q, signal):
     assert signal in bd.clinical_signals(q)
 
 
-def test_a_routed_question_passes_on_routing_alone():
-    assert bd.clinical_signals("drowning victim pulled from the river") == ["routed"]
+def test_a_routed_question_passes_on_routing():
+    # The vocabulary (fourth signal, #114 review) holds the router's terms by
+    # construction, so a routed question carries both.
+    assert "routed" in bd.clinical_signals("drowning victim pulled from the river")
 
 
-def test_a_clinical_question_with_no_signal_goes_to_review_not_away():
-    # The rule's known miss: no route, no lexicon drug, no parsed vital. It is
-    # held for the owner in review.jsonl, which is what review.jsonl is for.
-    rows = [{"meta": {"query": "burn patient 40% TBSA, how much fluid"}}]
-    assert bd.partition_junk(rows) == ([], rows)
+def test_a_question_with_no_signal_goes_to_review_not_away():
+    # (The D5b miss pinned here, "burn patient 40% TBSA, how much fluid", now
+    # passes on the vocabulary: test_distill_d5b_rulings.)
+    rows = [{"meta": {"query": "tell me a joke"}}]
+    assert bd.partition_junk(rows, bd.ReviewRulings(set(), set())) == ([], rows)
 
 
 def test_rows_failing_all_three_go_to_review_not_train():
