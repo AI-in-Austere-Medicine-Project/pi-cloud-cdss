@@ -3757,8 +3757,16 @@ def audit_volume_lines(response_text: str,
 # names no drug takes the drug last named EARLIER IN THE SAME LINE: a list
 # label ("**Fentanyl**: Can be added at a dose of 25-100μg") and a second
 # sentence ("... of ketamine ... For IM administration, 80-160mg") both put the
-# drug and its dose in different clauses. A line that names no recognised drug
-# is not attributable and is left alone.
+# drug and its dose in different clauses.
+#
+# A18 (owner, 2026-10-02): a dose in a line that names no recognised drug goes
+# to the drug the question names, if it names exactly one; otherwise it cannot
+# be attributed and holds as a dose with no drug named. edgecdss-v1 answered
+# "fentanyl IV" for 80 kg with "- **IV/IO push**: 50 mcg (or 0.5–1 mg/kg)",
+# 40–80 mg, and this check read none of it. Rates in such a line are left
+# alone, as before. Two things in such a line are not doses (A18 replay): a
+# needle or cannula gauge ("14G", "10–14G", "14–16 G" in a decompression line)
+# and a bag recipe ("500 mg in 1 L = 0.5 mg/mL").
 #
 # A per-kg amount ("1.0-2.0mg/kg of ketamine") IS a dose: it is checked at the
 # patient's dosing weight, and with no weight it cannot be matched to anything
@@ -3809,6 +3817,21 @@ _FREE_DOSE_PREP_RE = re.compile(
 _FREE_DOSE_PER_VOLUME_RE = re.compile(
     r"\b(?:per|every|each|a)\s+(?:single\s+)?(?:milli ?lit(?:er|re)s?|ml|cc)\b",
     re.IGNORECASE)
+# A18: only in a line that names no drug (a named drug is checked as before).
+_FREE_DOSE_GAUGE_CONTEXT_RE = re.compile(
+    r"\b(?:needles?|catheters?|cannula\w*|angiocath\w*|gauge|decompress\w*|thoracostomy)\b",
+    re.IGNORECASE)
+_FREE_DOSE_RECIPE_RE = re.compile(
+    r"\b(?:in|into)\s+(?:a\s+)?\d+(?:\.\d+)?\s*(?:m[lL]|L)\b|\d\s*(?:mg|mcg|g)\s*/\s*m[lL]\b",
+    re.IGNORECASE)
+
+
+def _is_gauge(amt, line: str) -> bool:
+    """'14G' in a line about a needle ("Needle: 14G, ≥3.25 inch"): a gauge, not grams."""
+    return (amt.group(3).lower() == "g" and _FREE_DOSE_GAUGE_CONTEXT_RE.search(line) is not None
+            and all(float(v).is_integer() and 10 <= float(v) <= 26 for v in amt.group(1, 2) if v))
+
+
 _FREE_DOSE_CLAUSE_RE = re.compile(r"(?<=[.;:!?])\s+|\s+—\s+|\n")
 _TO_MG_UNIT = {"mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
                "mcg": 0.001, "µg": 0.001, "μg": 0.001, "ug": 0.001,
@@ -3956,6 +3979,8 @@ def free_text_dose_issues(response_text: str,
     for d in allowed_doses or []:
         allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
     weight = patient_ctx.dosing_weight_kg if patient_ctx is not None else None
+    query_drugs = {sp[2] for sp in _drug_spans(query)} if query else set()
+    query_drug = next(iter(query_drugs)) if len(query_drugs) == 1 else None
     issues, section = [], ""
     for line in (response_text or "").splitlines():
         m = _FREE_DOSE_HEADING_RE.match(line)
@@ -3977,8 +4002,9 @@ def free_text_dose_issues(response_text: str,
                     or _FREE_DOSE_PREP_RE.search(clause)
                     or _FREE_DOSE_PER_VOLUME_RE.search(clause)):
                 continue
-            if not drugs and inherited is None:
-                continue
+            drugless = not drugs and inherited is None
+            if drugless:
+                inherited = query_drug  # A18: None if the question names 0 or 2+ drugs
 
             def attribute(amt):
                 if not drugs:
@@ -3991,7 +4017,12 @@ def free_text_dose_issues(response_text: str,
             for amt, per_kg_weight in found:
                 if _FREE_DOSE_THRESHOLD_RE.search(clause[:amt.start()]):
                     continue
+                if drugless and (_is_gauge(amt, line) or _FREE_DOSE_RECIPE_RE.search(clause)):
+                    continue
                 drug = attribute(amt)
+                if drug is None:
+                    issues.append(_free_dose_unattributed_line(amt.group(0).strip()))
+                    continue
                 factor = _TO_MG_UNIT[amt.group(3).lower()]
                 values = [float(v) * factor for v in amt.group(1, 2) if v]
                 ok = allowed.get(drug.lower(), [])
@@ -4007,7 +4038,7 @@ def free_text_dose_issues(response_text: str,
                                                    bool(ok), patient_ctx))
 
             # A11: rates, against the drug's signed rate entries.
-            for rate in _FREE_DOSE_RATE_RE.finditer(clause):
+            for rate in ([] if drugless else _FREE_DOSE_RATE_RE.finditer(clause)):
                 if _FREE_DOSE_THRESHOLD_RE.search(clause[:rate.start()]):
                     continue
                 # A volume rate (mL/hr) belongs to a drug named in the same
@@ -4114,6 +4145,13 @@ def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
                 f"confirmed. Give the weight in kg and ask for {drug} by name.")
     return (f"{said} with no signed {drug} dose for this question. Ask for {drug} "
             f"by name, with what it is for, to get the signed dose.")
+
+
+def _free_dose_unattributed_line(shown: str) -> str:
+    """A18: a dose the check cannot tie to a drug, so cannot check."""
+    return (f"The answer stated {shown} with no drug named, so it cannot be checked "
+            f"against a signed dose. Ask for the drug by name, with what it is for, "
+            f"to get the signed dose.")
 
 
 _RATE_UNITS_RE = re.compile(r"/\s*(?:min|h|hr|hour)\b", re.IGNORECASE)

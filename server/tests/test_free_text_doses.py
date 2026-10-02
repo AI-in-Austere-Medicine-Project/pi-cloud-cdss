@@ -124,7 +124,6 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
     "**DON'T**\n- Fentanyl 1 mg IV.",                            # DON'T section
     "**PREP**\n- Mix 4 mg norepinephrine in 250 mL NS.",         # a preparation
     "**GIVE**\n- Draw 1.6 mL of 50mg/mL ketamine IV (80 mg). Indication: x.",  # canonical
-    "**TREAT**\n1. Give foobarol 5 mg.",                         # not a bank drug
     "**TREAT**\n1. Reassess in 5 min; pain score 8.",            # no drug
 ])
 def test_what_is_not_a_freelanced_dose(text):

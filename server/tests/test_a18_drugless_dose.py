@@ -106,3 +106,23 @@ def test_a_drugless_mass_dose_is_held_too():
 def test_drugless_lines_that_state_no_dose_are_unchanged(answer):
     issues = _issues(answer, "80kg male, femur fracture, severe pain, what do I give")
     assert not any("no drug named" in i for i in issues), issues
+
+
+# Found by the A18 replay: not doses, in a line that names no drug.
+@pytest.mark.parametrize("answer", [
+    "1. Perform immediate needle decompression (10–14G, 3.25-inch needle at the 2nd intercostal space).\n",
+    "1. Large-bore needle (14–16 G) into 2nd intercostal space, midclavicular line\n",
+    "2. Insert 14g needle over rib into pleural space.\n",
+    "- Needle: 14G, ≥3.25 inch, 5th intercostal space anterior axillary line.\n",
+    "- 500 mg in 1 L = 0.5 mg/mL — half the standard 1 mg/mL mix, so rate must double.\n",
+])
+def test_a_gauge_or_a_recipe_is_not_a_drugless_dose(answer):
+    issues = _issues(answer, "80kg male, tension pneumo on the left, what now")
+    assert not any("no drug named" in i for i in issues), issues
+
+
+def test_a_named_drug_in_grams_beside_a_needle_is_still_checked():
+    # The gauge rule is for lines with no drug; TXA 2 g is a dose wherever it is.
+    issues = _issues("- Give TXA 14 g IV through the 14G catheter.\n",
+                     "80kg male, tension pneumo on the left, what now")
+    assert any("tranexamic acid 14 g" in i for i in issues), issues

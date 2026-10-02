@@ -54,7 +54,9 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A13 | Remove the dead `safety_rules.json` path, with a test that nothing depended on it. | Found in #98; owner, #98 review | Done, #110 |
 | A11b | Rate matching becomes indication-specific, the same shape as A1b. | Owner, #108 review | Done, #110 |
 | A16 | A deterministic norepinephrine drip card serving the signed per-kg rate, as the epinephrine drip card does. | Found in #108; owner, #108 review | Done, #110 |
-| A17 | The dose check reads the router's slang table (mag, bicarb, levo, vec, dilt, vaso, …; amio in the lexicon; "ami" excluded), so an abbreviated dose is held like the full name. | Found in D5b; owner, #114 review | In review. Finding: single doses in units, IU or mEq are not read under any name (insulin, heparin, potassium); proposed as its own item |
+| A17 | The dose check reads the router's slang table (mag, bicarb, levo, vec, dilt, vaso, …; amio in the lexicon; "ami" excluded), so an abbreviated dose is held like the full name. | Found in D5b; owner, #114 review | Done, #115. Finding: single doses in units, IU or mEq are not read under any name (insulin, heparin, potassium); proposed as its own item |
+| A18 | A dose in a line that names no drug goes to the question's drug if it names exactly one; otherwise the answer holds as "no drug named". Needle gauges and bag recipes in such a line are not doses. | Found in the D6 v1 bench (B1: fentanyl 0.5–1 mg/kg); owner, 2026-10-02 | In review |
+| A19 | Invalid or unparseable validator output fails closed ("validator unavailable"), never passes. | Found in the D6 v1 bench (G-DIC-04); owner, 2026-10-02 | Queued, after A18 |
 
 ## 4. D items: data and speed
 
