@@ -747,14 +747,17 @@ Commit under `tools/distill/`:
 |---|---|---|
 | 30-set served / held | 28 / 2 | 29 / 1 |
 | `run_tests.sh` (same snapshot) | 28 / 29 (B1: ID61 missing) | 28 / 29 (B1: held). **The bar holds.** |
-| Specifics present, the 26 scenarios both arms served | 32 / 93 (34%) | 36 / 93 (39%) |
+| Specifics present, the 20 model-reaching scenarios both arms served (`make bench`) | 20 / 71 (28%) | 24 / 71 (34%) |
+| Specifics present, all served (`make bench`) | 32 / 93 (26 scenarios) | 37 / 97 (27 scenarios) |
+| Mean answer length, full served text (`make bench`, base tokenizer) | 301 tokens (n=22) | 417 tokens (n=23) |
 | Answer length, model's own text (base tokenizer) | median 114 tokens, p95 694 | median 286 tokens, p95 700 |
 | Answers cut off at the length limit | 2 | 4 |
 | Latency median / p95 | 13.1 / 41.6 s | 30.7 / 53.5 s |
 | LLM validator | `qwen2.5:3b`: 24 calls, 0 invalid | **`edgecdss-v1`: 24 calls, 23 invalid output** |
 
 - For scale: the teacher, `claude-opus-5`, had 37 / 48 (77%) specifics present in run 3, on a different 13-scenario subset.
-- Answer length is counted on the model's raw generator text. The provider's `tokens_out` (medians 204 against 552) also counts the validator call.
+- **Specifics and mean answer length are part of `make bench` since 2026-10-02** (`d6.py report`, tests `server/tests/test_d6_specifics.py`): run 3's list and method; `bench_remote.sh` copies `specifics_final.json` into the bench dir, and the Makefile passes the base model's `tokenizer.json`. The v1 numbers above were scored from the existing run folders, not rerun. The first count in #120 (32/93 against 36/93 on "26 scenarios") included deterministic rows; run 3's same-scenario table counts model-reaching scenarios only, which `make bench` follows.
+- The median rows are counted on the model's raw generator text. The provider's `tokens_out` (medians 204 against 552) also counts the validator call.
 
 **Findings (not fixed here):**
 1. **In offline mode the validator is the generator model, and v1 cannot be a validator.**
@@ -769,6 +772,8 @@ Commit under `tools/distill/`:
    - It was served because the validator (finding 1) returned invalid output.
    - Under the signed 30-set it scores against U5 (an answer to a different question). The specifics count credits "synchronized cardioversion", a term in a wrong sentence.
 3. **v1 writes 2.5× longer answers, and more are cut off** (4 against 2), so latency more than doubles. Every training answer is under the 700-token cap, so the length comes from the model, not the data; worth a look before v2.
+4. **B1 under v1 was held by the free-text dose check, not the LLM validator** (the `run_tests.sh` tag arm, `validator_provider` local, no fallback). The hold text: "The answer stated ketamine 30–100 mg with no signed ketamine dose for this question. Ask for ketamine by name, with what it is for, to get the signed dose." v1 added an unasked ketamine adjunct to a fentanyl answer: a correct hold, so it is not an E1 (validator wording) sighting.
+5. **The same held answer dosed fentanyl as "50 mcg (or 0.5–1 mg/kg)" IV and "100 mcg (or 1–2 mg/kg)" IM**, 40–80 mg IV for 80 kg, a thousandfold error. The free-text dose check does not read it: those lines name no drug, and the check attributes a dose only to a drug named on the same line. Without the ketamine line, `free_text_dose_issues` returns no issues for this answer. It was held only because of the ketamine line, and under v1 the validator is v1 (finding 1). Owner to place.
 
 
 **v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.

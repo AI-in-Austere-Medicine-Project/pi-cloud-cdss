@@ -82,7 +82,7 @@ def _words(text):
 
 def test_a_specific_is_present_by_term_or_match_term_on_word_boundaries():
     assert d6.specifics_present(SPEC["A"], "Apply a TQ, give tranexamic acid.") == (2, 2)
-    assert d6.specifics_present(SPEC["A"], "TQs and txa-free") == (0, 2)   # not on a word boundary
+    assert d6.specifics_present(SPEC["A"], "TQs and TXAs") == (0, 2)        # not on a word boundary
     assert d6.specifics_present(SPEC["A"], "TOURNIQUET") == (1, 2)          # case-insensitive
     assert d6.specifics_present(SPEC["E"], "anything") is None              # no specifics: not scored
     assert d6.specifics_present(None, "anything") is None

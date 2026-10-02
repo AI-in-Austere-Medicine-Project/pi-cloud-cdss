@@ -20,6 +20,12 @@ d6 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(d6)
 
 
+@pytest.fixture(autouse=True)
+def _words_for_tokens(monkeypatch):
+    # The answer length needs a tokenizer; the bar doesn't. One token per word.
+    monkeypatch.setattr(d6, "token_counter", lambda path: lambda text: len(text.split()))
+
+
 def _rt(passed, total):
     return f"...\n================================================\nRESULTS: {passed} passed / {total} total\n"
 
@@ -35,9 +41,11 @@ def _bench(tmp_path, tag_rt, base_rt=None, legacy=False):
     (b / "tokps.jsonl").write_text("")
     for lab in ("base", "tag"):
         (b / f"{lab}.results.jsonl").write_text(json.dumps(
-            {"request_id": "X#r1", "scenario_id": "X", "outcome": "SERVE", "server_processing_ms": 1000}) + "\n")
+            {"request_id": "X#r1", "scenario_id": "X", "outcome": "SERVE", "response": "answer",
+             "server_processing_ms": 1000}) + "\n")
         (b / f"{lab}.instrument.jsonl").write_text(json.dumps(
             {"request_id": "X#r1", "generator_calls": 1, "generation_ms": 900}) + "\n")
+    (b / "specifics.json").write_text(json.dumps({"X": {"specifics": [{"term": "answer"}]}}))
     (b / ("run_tests.txt" if legacy else "run_tests.tag.txt")).write_text(_rt(*tag_rt))
     if base_rt:
         (b / "run_tests.base.txt").write_text(_rt(*base_rt))
@@ -46,7 +54,8 @@ def _bench(tmp_path, tag_rt, base_rt=None, legacy=False):
 
 def _report(b, tmp_path, rt_base=None):
     out = tmp_path / "DISTILL_BENCH_test.md"
-    d6.cmd_report(argparse.Namespace(bench=str(b), out=str(out), stages=None, note=None, rt_base=rt_base))
+    d6.cmd_report(argparse.Namespace(bench=str(b), out=str(out), stages=None, note=None, rt_base=rt_base,
+                                     specifics=None, tokenizer="unused"))
     return out.read_text()
 
 

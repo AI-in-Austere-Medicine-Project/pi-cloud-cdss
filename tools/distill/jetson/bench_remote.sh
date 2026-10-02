@@ -13,6 +13,8 @@ EVAL=$HOME/projects/cdss-eval
 PROD=$HOME/pi-cloud-cdss
 PY=$PROD/.venv/bin/python
 SCEN=${SCENARIOS:-$EVAL/runs/run-tests-mm3-20260925/scenarios-30.jsonl}
+# Benchmark run 3's specifics list: d6.py report scores both arms against it.
+SPEC=${SPECIFICS:-$EVAL/runs/run-tests-mm3-20260925/specifics_final.json}
 BANK_PORT=${BANK_PORT:-8123}
 RT_PORT=${RT_PORT:-8012}
 RT_TOKEN=d6-bench-$RT_PORT
@@ -30,6 +32,7 @@ ollama show "$TAG" --template >/dev/null 2>&1 || die "no ollama model $TAG (run 
 ollama show "$BASE" --template >/dev/null 2>&1 || die "no ollama model $BASE"
 git -C "$PROD" cat-file -e "$SHA^{commit}" 2>/dev/null || die "commit $SHA is not in $PROD"
 [ -f "$SCEN" ] || die "$SCEN missing"
+[ -f "$SPEC" ] || die "$SPEC missing"
 [ ! -e "$W" ] || die "$W already exists"
 
 # ── pinned snapshot ─────────────────────────────────────────────────────────
@@ -39,6 +42,7 @@ cp "$PROD/server/drug_concentrations.json" "$W/target/"
 # run_bank.py records the snapshot's commit from this file, in the harness's format.
 git -C "$PROD" log -1 --format='%H%n%H %ci %s' "$SHA" > "$W/target/PINNED_SHA"
 cp "$SCEN" "$W/scenarios.jsonl"
+cp "$SPEC" "$W/specifics.json"
 
 python3 - "$W" "$SHA" "$TAG" "$BASE" "$SCEN" "$BANK_PORT" "$RT_PORT" <<'EOF'
 import hashlib, json, subprocess, sys, datetime

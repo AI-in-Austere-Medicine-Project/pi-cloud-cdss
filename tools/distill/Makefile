@@ -143,5 +143,6 @@ bench:
 	mkdir -p "$(BENCH_DIR)"; \
 	scp -rq $(JETSON):edgecdss-distill-bench/$(TAG)-$$stamp "$(BENCH_DIR)/"; \
 	$(PY) $(HERE)/d6.py stages "$(WORK)" "$$adapter" "$(TAG)" > "$(BENCH_DIR)/$(TAG)-$$stamp/stages.json"; \
+	snap=$$($(PY) -c "from huggingface_hub import snapshot_download as s; print(s('$(BASE_FULL)', local_files_only=True))"); \
 	$(PY) $(HERE)/d6.py report "$(BENCH_DIR)/$(TAG)-$$stamp" --out "$$out" $(if $(RT_BASE),--rt-base "$(RT_BASE)") \
-	    --stages "$(BENCH_DIR)/$(TAG)-$$stamp/stages.json" $(if $(NOTE),--note "$(NOTE)")
+	    --tokenizer "$$snap/tokenizer.json" --stages "$(BENCH_DIR)/$(TAG)-$$stamp/stages.json" $(if $(NOTE),--note "$(NOTE)")
