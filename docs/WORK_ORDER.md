@@ -58,7 +58,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | A17 | Abbreviated drug names in the dose check (the router's slang table) | **done**: #115, merged |
 | A18 | A dose in a line that names no drug is checked (the question's drug, else held) | **done**: #121, merged and deployed |
-| A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | next (owner, 2026-10-02) |
+| A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | in review (owner, 2026-10-02: after A18) |
 | A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | queued, after A19 (owner, 2026-10-03) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
@@ -362,6 +362,25 @@ Before the gauge and recipe exclusions the replay also held 10 served and 10 tea
 **Found (D6 v1 bench, G-DIC-04):** under `CDSS_LLM_PROVIDER=local` the validator is the generator model. `edgecdss-v1` answered the validator prompt with a field card ("Validator returned invalid output", 23 of 24 calls), which downgrades to NEEDS_HUMAN_REVIEW and **serves**. G-DIC-04's clinically wrong answer was served that way.
 
 **Owner's rule:** invalid or unparseable validator output fails closed: a hold that says "validator unavailable", never a pass. Failing test first with v1's actual validator output.
+
+**What changed:** `validate_response` returns a hold (UNSAFE, `unreadable`) whenever the reply is not a JSON object whose `result` is SAFE, UNSAFE or NEEDS_HUMAN_REVIEW: a parse error, JSON that is not an object, an unknown result, a missing result, an empty or cut-off reply. The medic reads "Validator unavailable: it did not return a verdict that could be read, so this answer was not checked by the validator." No override can downgrade it (the issue text is ours, so an override must not match on it). A verdict the validator did return is handled exactly as before.
+
+**Not changed (owner to rule):** a provider error or timeout on the validator call (no reply at all) still returns NEEDS_HUMAN_REVIEW, "Validator unavailable.", and serves with the review banner. The rule as given covers output; whether an outage also holds is a separate decision. In cloud mode it would hold every answer while the validator's provider is unreachable.
+
+**Tests:** `server/tests/test_a19_validator_fails_closed.py`, committed failing first: v1's G-DIC-04 validator reply verbatim holds; six other non-verdicts hold; an override cannot downgrade the hold; SAFE, NEEDS_HUMAN_REVIEW, UNSAFE and a fenced SAFE are unchanged.
+
+**Replay** (main 510dc56 against A19):
+
+| Corpus | Items | Newly held | Newly released | Changed |
+|---|---|---|---|---|
+| Stored validator replies (cdss-eval runs, `validator_raw`) | 1,028 | 73 (NEEDS_HUMAN_REVIEW → hold) | 0 | — |
+| Served answers, deterministic checks | 1,268 | 0 | 0 | 0 |
+| Held answers, deterministic checks | 125 | 0 | 0 | 0 |
+| Pipeline, model stubbed | 788 | — | — | 0 |
+| D5b teacher answers | 274 | 0 | 0 | 0 |
+| Live session logs, turns with an unreadable or unavailable validator | 1,392 | 0 seen | — | — |
+
+All 73 come from a distilled bench tag acting as its own validator: `edgecdss-v1` 48 (both v1 runs), `edgecdss-d6check` 25. 64 of them were served and 9 already held. Each reply was read: v1 wrote a field card in place of the verdict ("**BRIEF** …", "**Traumatic hemorrhage …**"), twice wrote "**SAFE**" as prose, not JSON; d6check wrote `"result": "WATCH"` or garbled cards. All are correct holds under the rule. No reply from `qwen2.5:3b` or any cloud validator changes, so the offline and cloud settings in use are unaffected on stored data.
 
 ### A20: history amounts read as doses (owner, 2026-10-03; after A19)
 
