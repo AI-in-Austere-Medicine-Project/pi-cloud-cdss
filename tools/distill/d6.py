@@ -10,6 +10,9 @@ loads the base tokenizer with transformers (pinned in requirements.txt).
   d6.py train-stats LOG              tok/s and losses from an mlx_lm.lora log
   d6.py stages WORK ADAPTER TAG       provenance of train, fuse, gguf and ship, as JSON
   d6.py report BENCH_DIR ...         the before/after table and docs/DISTILL_BENCH_<tag>.md
+
+`report` also counts tokens with the `tokenizers` library (pinned in
+requirements.txt), from the base model's tokenizer.json.
 """
 import argparse, json, os, re, statistics, sys
 from pathlib import Path
@@ -215,12 +218,80 @@ def arm(bench, label):
            if inst[r["request_id"]].get("generation_ms") is not None]
     oc = {k: sum(1 for r in rows if r["outcome"] == k) for k in ("SERVE", "BLOCK", "SYSTEM_ERROR")}
     return {"rows": rows, "n": len(rows), "oc": oc, "model_turns": len(model_rows),
+            "model_sids": {r["scenario_id"] for r in model_rows},
             "models_used": sorted({r.get("model_used") or "" for r in model_rows}),
             "lat_med": pct(lat, .5), "lat_p95": pct(lat, .95), "gen_med": pct(gen, .5)}
 
 
+# Specifics present: benchmark run 3's list and method
+# (docs/MULTI_MODEL_BENCHMARK_2026-09-25.md). bench_remote.sh copies the list
+# into the bench dir as specifics.json.
+def load_specifics(bench, path=None):
+    p = Path(path) if path else bench / "specifics.json"
+    if not p.exists():
+        die(f"no specifics list at {p}: bench_remote.sh copies it into the bench dir; "
+            "for an older bench dir pass --specifics with run 3's specifics_final.json")
+    return json.load(open(p))
+
+
+def specifics_present(entry, text):
+    """(hit, of) for one answer, or None if the scenario has no specifics."""
+    if not entry or not entry.get("specifics"):
+        return None
+    hit = 0
+    for sp in entry["specifics"]:
+        terms = [sp["term"]] + sp.get("match_terms", [])
+        if any(re.search(r"(?<![A-Za-z0-9])" + re.escape(t) + r"(?![A-Za-z0-9])", text, re.I) for t in terms):
+            hit += 1
+    return hit, len(entry["specifics"])
+
+
+def token_counter(tokenizer_json):
+    """text -> token count, by the base model's tokenizer, no special tokens."""
+    from tokenizers import Tokenizer
+    tok = Tokenizer.from_file(tokenizer_json)
+    return lambda text: len(tok.encode(text, add_special_tokens=False).ids)
+
+
+def answer_stats(before, after, spec, count):
+    """Specifics present and mean answer length, per arm.
+
+    Same scenarios: model-reaching in both arms, served by both, with specifics
+    (as run 3's same-scenario table). All served: each arm's served answers with
+    specifics (run 3's per-arm column). Length: each arm's served model answers,
+    the full served text."""
+    served = lambda x: {r["scenario_id"]: r for r in x["rows"]
+                        if r["outcome"] == "SERVE" and r["scenario_id"] in x["model_sids"]}
+    sb, sa = served(before), served(after)
+    same = sorted(s for s in set(sb) & set(sa) if specifics_present(spec.get(s), ""))
+    out = {"same_scenarios": same}
+    for lab, x, sv in (("base", before, sb), ("tag", after, sa)):
+        same_sp = [specifics_present(spec.get(s), sv[s]["response"]) for s in same]
+        all_sp = [p for p in (specifics_present(spec.get(r["scenario_id"]), r["response"])
+                              for r in x["rows"] if r["outcome"] == "SERVE") if p]
+        lens = [count(r["response"]) for r in sv.values()]
+        out[lab] = {"same_hit": sum(h for h, _ in same_sp), "same_of": sum(n for _, n in same_sp),
+                    "all_hit": sum(h for h, _ in all_sp), "all_of": sum(n for _, n in all_sp),
+                    "all_n": len(all_sp), "len_n": len(lens),
+                    "len_mean": statistics.mean(lens) if lens else None}
+    return out
+
+
 def fmt(x, d=1):
     return "—" if x is None else f"{x:.{d}f}"
+
+
+def rt_score(text):
+    """(passed, total) from run_tests.sh output, or (None, None)."""
+    m = re.search(r"RESULTS: (\d+) passed / (\d+) total", text or "")
+    return (int(m.group(1)), int(m.group(2))) if m else (None, None)
+
+
+def rt_score_arg(value):
+    m = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*", value or "")
+    if not m:
+        die(f"--rt-base must be PASSED/TOTAL, got {value!r}")
+    return int(m.group(1)), int(m.group(2))
 
 
 def cmd_report(a):
@@ -228,11 +299,27 @@ def cmd_report(a):
     meta = json.load(open(bench / "meta.json"))
     tokps = {t["label"]: t for t in load(bench / "tokps.jsonl")}
     before, after = arm(bench, "base"), arm(bench, "tag")
-    rt = open(bench / "run_tests.txt").read()
-    m = re.search(r"RESULTS: (\d+) passed / (\d+) total", rt)
-    rt_pass, rt_total = (int(m.group(1)), int(m.group(2))) if m else (None, None)
-    rt_ok = rt_pass is not None and rt_pass == rt_total == a.rt_expect
+    # The bar (owner, 2026-10-01): run_tests.sh against the tag equals the base
+    # arm's score on the same snapshot. A fixed count (27/27) went stale when D1
+    # added cases that only pass once later items land.
+    tag_file = bench / "run_tests.tag.txt"
+    rt = open(tag_file if tag_file.exists() else bench / "run_tests.txt").read()
+    rt_pass, rt_total = rt_score(rt)
+    base_file = bench / "run_tests.base.txt"
+    if base_file.exists():
+        (base_pass, base_total), base_how = rt_score(base_file.read_text()), "measured"
+    elif a.rt_base:
+        (base_pass, base_total), base_how = rt_score_arg(a.rt_base), "stated, not measured"
+    else:
+        (base_pass, base_total), base_how = (None, None), "missing"
+    rt_ok = rt_pass is not None and base_pass is not None and (rt_pass, rt_total) == (base_pass, base_total)
+    base_txt = (f"{base_pass} / {base_total} ({base_how})" if base_pass is not None
+                else "no base score: run_tests.base.txt is missing and --rt-base was not given")
     stages = json.load(open(a.stages)) if a.stages and os.path.exists(a.stages) else {}
+    spec = load_specifics(bench, a.specifics)
+    if not a.tokenizer:
+        die("--tokenizer (the base model's tokenizer.json) is required for the answer length")
+    ans = answer_stats(before, after, spec, token_counter(a.tokenizer))
 
     moved = []
     by_sid = {r["scenario_id"]: r for r in before["rows"]}
@@ -252,6 +339,18 @@ def cmd_report(a):
         "|---|---|---|---|---|---|---|---|",
         row(f"before: `{meta['base']}`", "base", before),
         row(f"after: `{meta['tag']}`", "tag", after),
+    ]
+    def sp_row(name, lab):
+        x = ans[lab]
+        share = f" ({100 * x['same_hit'] / x['same_of']:.0f}%)" if x["same_of"] else ""
+        return (f"| {name} | {x['same_hit']} / {x['same_of']}{share} | "
+                f"{x['all_hit']} / {x['all_of']} ({x['all_n']} scenarios) | {fmt(x['len_mean'])} (n={x['len_n']}) |")
+
+    sp_table = [
+        "| Arm | Specifics present, same scenarios | Specifics present, all served | Mean answer length (tokens) |",
+        "|---|---|---|---|",
+        sp_row(f"before: `{meta['base']}`", "base"),
+        sp_row(f"after: `{meta['tag']}`", "tag"),
     ]
     L = [f"# Distillation bench: `{meta['tag']}`, {meta['started'][:10]}", ""]
     if a.note:
@@ -279,8 +378,20 @@ def cmd_report(a):
           "‡ The harness does not wrap the local client, so served prompt tokens are not captured "
           "(as in benchmark run 3).", "",
           f"Models that generated the model turns: before {before['models_used']}, after {after['models_used']}.", "",
+          "## Specifics present and answer length", "", *sp_table, "",
+          "Specifics present counts benchmark run 3's specifics found verbatim (term or match term, "
+          "case-insensitive, on word boundaries) in served answers, by run 3's method "
+          "(docs/MULTI_MODEL_BENCHMARK_2026-09-25.md). It is not a correctness score. "
+          f"Same scenarios: the {len(ans['same_scenarios'])} model-reaching scenarios both arms served "
+          f"that have specifics ({', '.join(ans['same_scenarios']) or 'none'}). "
+          "All served: each arm's served answers with specifics, deterministic ones included, "
+          "so the denominators differ.", "",
+          "Answer length: the full served text of each arm's served model answers, in tokens by the base "
+          "model's tokenizer (no special tokens). Server-added lines (a patient-reset or cut-off banner) "
+          "are counted.", "",
           "## run_tests.sh against the new tag", "",
-          f"**{rt_pass} / {rt_total}**, required {a.rt_expect}/{a.rt_expect}: **{'holds' if rt_ok else 'FAILS'}**.", "",
+          f"**{rt_pass} / {rt_total}**; base arm `{meta['base']}`: {base_txt}. "
+          f"The bar is equal to the base arm on the same snapshot: **{'holds' if rt_ok else 'FAILS'}**.", "",
           "## Scenarios whose outcome moved", ""]
     L += ([f"- `{s}`: {b} → {t}" for s, b, t in moved] or ["- None."])
     fails = [l for l in rt.splitlines() if l.startswith("❌")]
@@ -289,12 +400,13 @@ def cmd_report(a):
     doc = "\n".join(L) + "\n"
 
     print("\n".join(table))
-    print(f"run_tests.sh: {rt_pass}/{rt_total} ({'holds' if rt_ok else 'FAILS'}, need {a.rt_expect}/{a.rt_expect})")
+    print("\n".join(sp_table))
+    print(f"run_tests.sh: tag {rt_pass}/{rt_total}, base {base_txt} ({'holds' if rt_ok else 'FAILS'})")
     print("moved:", moved or "none")
     Path(a.out).write_text(doc)
     print(f"wrote {a.out}")
     if not rt_ok:
-        die(f"run_tests.sh {rt_pass}/{rt_total}: the {a.rt_expect}/{a.rt_expect} bar does not hold")
+        die(f"run_tests.sh: tag {rt_pass}/{rt_total}, base {base_txt}: the bar (equal to the base arm) does not hold")
 
 
 def main():
@@ -310,7 +422,10 @@ def main():
     p.set_defaults(f=cmd_stages)
     p = sp.add_parser("report")
     p.add_argument("bench"); p.add_argument("--out", required=True)
-    p.add_argument("--rt-expect", type=int, default=27)
+    p.add_argument("--rt-base", help="the base arm's run_tests.sh score as PASSED/TOTAL, for a bench "
+                   "dir from before run_tests.base.txt existed; a measured score wins")
+    p.add_argument("--specifics", help="run 3's specifics list, for a bench dir without specifics.json")
+    p.add_argument("--tokenizer", help="the base model's tokenizer.json, for the answer length")
     p.add_argument("--stages"); p.add_argument("--note")
     p.set_defaults(f=cmd_report)
     a = ap.parse_args()

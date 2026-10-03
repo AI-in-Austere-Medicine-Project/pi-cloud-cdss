@@ -735,6 +735,47 @@ Commit under `tools/distill/`:
 
 - **Running the trainer outside `make`:** only `make train` records the adapter name in `.d6-state`. After running `mlx_lm.lora` by hand, pass `ADAPTER=<name>` explicitly to `make fuse`, `make gguf` and `make ship`. This is documented in `tools/distill/README.md`.
 
+**The `run_tests.sh` bar (owner, 2026-10-01):** "the bar is run_tests.sh equals the base arm's score on the same snapshot (28/29 today, 29/29 once B1 lands)."
+- The fixed 27/27 (`RT_EXPECT`) went stale when D1 added two cases.
+- `bench_remote.sh` now runs `run_tests.sh` against the base and then the tag, on the same snapshot (`run_tests.base.txt`, `run_tests.tag.txt`).
+- `d6.py report` requires the tag's score to equal the base's, and it fails when there is no base score. `RT_BASE=N/M` states the base score for a bench dir from before both arms ran; the doc marks it "stated, not measured".
+- Tests: `server/tests/test_d6_rt_bar.py`.
+
+**First bench of `edgecdss-v1`** ([`DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md); run `20261001T180545Z` on c45b210; an earlier run at 17:27Z on 86ddc82 agrees on every point below):
+
+| | `qwen2.5:3b` (before) | `edgecdss-v1` (after) |
+|---|---|---|
+| 30-set served / held | 28 / 2 | 29 / 1 |
+| `run_tests.sh` (same snapshot) | 28 / 29 (B1: ID61 missing) | 28 / 29 (B1: held). **The bar holds.** |
+| Specifics present, the 20 model-reaching scenarios both arms served (`make bench`) | 20 / 71 (28%) | 24 / 71 (34%) |
+| Specifics present, all served (`make bench`) | 32 / 93 (26 scenarios) | 37 / 97 (27 scenarios) |
+| Mean answer length, full served text (`make bench`, base tokenizer) | 301 tokens (n=22) | 417 tokens (n=23) |
+| Answer length, model's own text (base tokenizer) | median 114 tokens, p95 694 | median 286 tokens, p95 700 |
+| Answers cut off at the length limit | 2 | 4 |
+| Latency median / p95 | 13.1 / 41.6 s | 30.7 / 53.5 s |
+| LLM validator | `qwen2.5:3b`: 24 calls, 0 invalid | **`edgecdss-v1`: 24 calls, 23 invalid output** |
+
+- For scale: the teacher, `claude-opus-5`, had 37 / 48 (77%) specifics present in run 3, on a different 13-scenario subset.
+- **Specifics and mean answer length are part of `make bench` since 2026-10-02** (`d6.py report`, tests `server/tests/test_d6_specifics.py`): run 3's list and method; `bench_remote.sh` copies `specifics_final.json` into the bench dir, and the Makefile passes the base model's `tokenizer.json`. The v1 numbers above were scored from the existing run folders, not rerun. The first count in #120 (32/93 against 36/93 on "26 scenarios") included deterministic rows; run 3's same-scenario table counts model-reaching scenarios only, which `make bench` follows.
+- The median rows are counted on the model's raw generator text. The provider's `tokens_out` (medians 204 against 552) also counts the validator call.
+
+**Findings (not fixed here):**
+1. **In offline mode the validator is the generator model, and v1 cannot be a validator.**
+   - `providers.validator_model()` returns the local model under `CDSS_LLM_PROVIDER=local`, so in the after arm the validator was `edgecdss-v1`.
+   - It answered the validator prompt with a field card. On 23 of 24 calls that gave "Validator returned invalid output", which downgrades to NEEDS_HUMAN_REVIEW and serves.
+   - So the after arm ran with the deterministic checks only: its one hold came from them. The two arms did not differ in weights only.
+   - **Shipping v1 as `CDSS_LLM_MODEL` in offline mode would remove the LLM validator layer.** It needs either a separate local validator model (e.g. keep `qwen2.5:3b` as validator) or a ruling. Owner to place.
+2. **G-DIC-04 moved from held to served, and the served answer is clinically wrong.**
+   - The query: "give him tacky cardia meds, rate is 180 and he's clammy". The base answer was held, correctly: the GIVE line dosed ketamine with an empty contract.
+   - v1's answer **passed the dose check**: it names no drug dose, `det_check` passed with no issues.
+   - But it says "Rate 180 with narrow pulse = asystole" and "Cardiac standstill/ventricular fibrillation — apply synchronized cardioversion at 100–150 J". A rate of 180 is not asystole, and VF takes unsynchronized defibrillation. The joule figure is not a drug dose, so no check reads it.
+   - It was served because the validator (finding 1) returned invalid output.
+   - Under the signed 30-set it scores against U5 (an answer to a different question). The specifics count credits "synchronized cardioversion", a term in a wrong sentence.
+3. **v1 writes 2.5× longer answers, and more are cut off** (4 against 2), so latency more than doubles. Every training answer is under the 700-token cap, so the length comes from the model, not the data; worth a look before v2.
+4. **B1 under v1 was held by the free-text dose check, not the LLM validator** (the `run_tests.sh` tag arm, `validator_provider` local, no fallback). The hold text: "The answer stated ketamine 30–100 mg with no signed ketamine dose for this question. Ask for ketamine by name, with what it is for, to get the signed dose." v1 added an unasked ketamine adjunct to a fentanyl answer: a correct hold, so it is not an E1 (validator wording) sighting.
+5. **The same held answer dosed fentanyl as "50 mcg (or 0.5–1 mg/kg)" IV and "100 mcg (or 1–2 mg/kg)" IM**, 40–80 mg IV for 80 kg, a thousandfold error. The free-text dose check does not read it: those lines name no drug, and the check attributes a dose only to a drug named on the same line. Without the ketamine line, `free_text_dose_issues` returns no issues for this answer. It was held only because of the ketamine line, and under v1 the validator is v1 (finding 1). Owner to place.
+
+
 **v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.
 
 **Rules:**
@@ -763,6 +804,7 @@ Never loosen a gate: the replay must show 0 newly released.
 Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here.
 
 - [`docs/DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md): dry-run data, toolchain proof only, not a model result.
+- [`docs/DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md): v1, trained on the D5b dataset (255 rows). `run_tests.sh` 28/29, equal to the base. Not shippable as the offline model while the validator is the same model (see D6, first bench of `edgecdss-v1`).
 
 ## Findings placement (benchmark run 3, docs/MULTI_MODEL_BENCHMARK_2026-09-25.md)
 
