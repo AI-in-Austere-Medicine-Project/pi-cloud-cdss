@@ -4416,6 +4416,24 @@ def normalize_validator_result(data: dict) -> dict:
     return {"result": result, "issues": issues, "rationale": rationale, "safe": result == "SAFE"}
 
 
+# A19 (owner, 2026-10-02): output the gate cannot read as a verdict fails
+# closed. Under CDSS_LLM_PROVIDER=local the validator is the generator model,
+# and in the D6 bench edgecdss-v1 answered the validator prompt with a field
+# card on 23 of 24 calls. That used to become NEEDS_HUMAN_REVIEW, which serves:
+# G-DIC-04's clinically wrong answer went out that way. Output that is not a
+# JSON object with a SAFE, UNSAFE or NEEDS_HUMAN_REVIEW result now holds, and
+# no override can downgrade the hold (the issue is ours, not the validator's).
+VALIDATOR_VERDICTS = ("SAFE", "UNSAFE", "NEEDS_HUMAN_REVIEW")
+VALIDATOR_UNREADABLE_ISSUE = ("Validator unavailable: it did not return a verdict that could be "
+                              "read, so this answer was not checked by the validator.")
+
+
+def _validator_unreadable(why: str) -> dict:
+    return {"result": "UNSAFE", "issues": [VALIDATOR_UNREADABLE_ISSUE],
+            "rationale": f"Unreadable validator output ({why}).", "safe": False,
+            "unreadable": True}
+
+
 def validate_response(full_transcript: str, response_text: str,
                       patient_ctx: PatientContext,
                       allowed_dose_block: str = "",
@@ -4459,7 +4477,10 @@ def validate_response(full_transcript: str, response_text: str,
         raw = raw.strip()
 
         data = json.loads(raw)
-        result_val = data.get("result", "NEEDS_HUMAN_REVIEW")
+        if not isinstance(data, dict) or data.get("result") not in VALIDATOR_VERDICTS:
+            print(f"🚨 Validator output is not a verdict: {raw[:200]!r}")
+            return _validator_unreadable("not a verdict")
+        result_val = data["result"]
         issues = data.get("issues", [])
         rationale = data.get("rationale", "")
 
@@ -4472,9 +4493,7 @@ def validate_response(full_transcript: str, response_text: str,
 
     except json.JSONDecodeError as e:
         print(f"🚨 Validator parse error: {e}")
-        return {"result": "NEEDS_HUMAN_REVIEW",
-                "issues": ["Validator returned invalid output."],
-                "rationale": "Parse error — human review required.", "safe": False}
+        return _validator_unreadable(f"parse error: {e}")
     except Exception as e:
         print(f"🚨 Validator error: {e}")
         return {"result": "NEEDS_HUMAN_REVIEW",
@@ -4831,7 +4850,7 @@ def _gate_core(response_text: str, det_check: DeterministicCheck,
         # A defensive fallback that serves what would otherwise be blocked
         # defends the wrong way. When the validator gave us nothing structured
         # to reason about, fail closed. Found in review of SC-3 (6c7f535).
-        fired = (None if had_no_issues else
+        fired = (None if had_no_issues or llm_result.get("unreadable") else
                  find_fired_override(issues, response_text, patient_ctx, full_query_history))
         if fired is not None:
             # SC-3: an override DOWNGRADES. v4.0 returned (response, False, [])
