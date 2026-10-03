@@ -59,7 +59,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A16 | A deterministic norepinephrine drip card serving the signed per-kg rate, as the epinephrine drip card does. | Found in #108; owner, #108 review | Done, #110 |
 | A17 | The dose check reads the router's slang table (mag, bicarb, levo, vec, dilt, vaso, …; amio in the lexicon; "ami" excluded), so an abbreviated dose is held like the full name. | Found in D5b; owner, #114 review | Done, #115. Finding: single doses in units, IU or mEq are not read under any name (insulin, heparin, potassium); proposed as its own item |
 | A18 | A dose in a line that names no drug goes to the question's drug if it names exactly one; otherwise the answer holds as "no drug named". Needle gauges and bag recipes in such a line are not doses. | Found in the D6 v1 bench (B1: fentanyl 0.5–1 mg/kg); owner, 2026-10-02 | Done, #121 |
-| A19 | Invalid or unparseable validator output fails closed ("validator unavailable"), never passes. | Found in the D6 v1 bench (G-DIC-04); owner, 2026-10-02 | In review. A validator provider outage (no reply) still serves with the review banner; owner to rule |
+| A19 | Invalid or unparseable validator output fails closed ("validator unavailable"), never passes. | Found in the D6 v1 bench (G-DIC-04); owner, 2026-10-02 | In review. Owner ruling 2026-10-03: a validator outage (no reply) keeps serving with the review banner; the deterministic layer is the safety net, the validator a second opinion |
 | A20 | An amount the patient already took or was given ("took calcium channel blocker 240 mg") is history, not a dose to check; A9's benzo-given detector is the pattern. | Found in the A18 replay; owner, 2026-10-03 | Queued, after A19 |
 
 ## 4. D items: data and speed
