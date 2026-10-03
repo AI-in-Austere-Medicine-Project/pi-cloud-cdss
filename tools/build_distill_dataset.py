@@ -3,6 +3,9 @@
 
   python3 tools/build_distill_dataset.py --plan     select, count and cost; no teacher call
   python3 tools/build_distill_dataset.py            the run (stops over $40 unless approved)
+  python3 tools/build_distill_dataset.py --shorten-from SRC --out DIR --tokenizer T --approve-cost N
+                                                     D6 v2: re-run long answers once, shorter
+  python3 tools/build_distill_dataset.py --recheck DIR  today's checks over DIR; no model call
 
 Source (owner, 2026-09-26, option a): the stored production queries that are
 single patient, no history and model-reaching on this snapshot, each replayed
@@ -93,6 +96,88 @@ NEAR_EXAM_RATIO = 0.5
 
 class RefuseToRun(Exception):
     pass
+
+
+# ── D6 v2 (owner, 2026-10-03): one change to the dataset, answer length ─────
+# Every row whose answer is over SHORTEN_LIMIT tokens (base tokenizer, answer
+# only) is re-run once through the teacher, on the snapshot the rows were built
+# on, with SHORTEN_INSTRUCTION added to the teacher's generator call only: the
+# pipeline, the validator and the stored row keep the original question. The
+# new answer takes the same replay and filters. Still over the limit after that
+# one retry, or excluded by a filter: dropped and counted. Every other row is
+# copied unchanged, and every row keeps its original split. Then --recheck runs
+# today's checks over the result with no model call: "the dataset must pass
+# today's checks, whatever snapshot generated it."
+SHORTEN_INSTRUCTION = ("answer in under 300 tokens; keep every signed dose and every specific; "
+                       "drop narrative")
+SHORTEN_LIMIT = 320
+SHORTEN_OUT_EXPECTED = 320
+
+
+def answer_of(row: dict) -> str:
+    return row["messages"][-1]["content"]
+
+
+def shorten_targets(pairs: list, count):
+    """(kept unchanged, to re-run): over SHORTEN_LIMIT answer tokens is re-run."""
+    keep, rerun = [], []
+    for row, meta in pairs:
+        (rerun if count(answer_of(row)) > SHORTEN_LIMIT else keep).append((row, meta))
+    return keep, rerun
+
+
+def rerun_outcome(why, tokens: int) -> str:
+    """'shortened' (kept), 'still_over' (dropped), or the filter that excluded it."""
+    if why:
+        return why
+    return "shortened" if tokens <= SHORTEN_LIMIT else "still_over"
+
+
+def by_original_split(pairs: list):
+    """Same split as the source: each row keeps the split it had."""
+    return ([p for p in pairs if p[1]["split"] == "train"],
+            [p for p in pairs if p[1]["split"] == "valid"])
+
+
+def check_shorten_snapshot(pairs: list, commit: str):
+    built = {m.get("snapshot_commit") for _r, m in pairs}
+    if built != {commit}:
+        raise RefuseToRun(f"the rows were built on {sorted(built)}, this tree is {commit}: "
+                          "re-run them on the tree they were built on, so length is the only change")
+
+
+def check_out_dir(src, out):
+    if pathlib.Path(src).resolve() == pathlib.Path(out).resolve():
+        raise RefuseToRun("--out is the source: the source dataset is never written over")
+
+
+def check_approved(ceiling: float, approved):
+    if approved is None or ceiling > approved:
+        raise RefuseToRun(f"the ceiling estimate is ${ceiling:.2f}; the approved ceiling is "
+                          f"{'not given' if approved is None else f'${approved:.2f}'}: stop for the owner")
+
+
+def recheck(pairs: list):
+    """Today's deterministic checks and unasked-drug filter over every row, each
+    row's patient context and signed doses rebuilt by the pipeline; no model
+    call. ([(row, meta)] passed, [(scenario_id, reason, issues)] dropped)."""
+    oc = _oc()
+    check = getattr(oc, "_distill_real_rdc", oc.run_deterministic_checks)
+    passed, dropped = [], []
+    for row, meta in pairs:
+        q, answer = meta["query"], answer_of(row)
+        ctx = oc.rebuild_patient_context_from_history(q)
+        doses = oc.build_allowed_doses(q, ctx)
+        issues = check(q, answer, ctx, doses).issues
+        if issues:
+            dropped.append((meta["scenario_id"], "deterministic_check", issues))
+            continue
+        extra = unasked_drugs(q, answer, {d.drug for d in oc.indication_matched(q, doses)})
+        if extra:
+            dropped.append((meta["scenario_id"], "unasked_drug", sorted(extra)))
+            continue
+        passed.append((row, meta))
+    return passed, dropped
 
 
 # ── the evaluation set: (b) is out ──────────────────────────────────────────
@@ -538,8 +623,9 @@ def check_budget(estimate: float, approved):
 class Capture:
     """Wraps providers.chat and run_deterministic_checks for one pipeline run."""
 
-    def __init__(self, oc, providers, stub: bool):
+    def __init__(self, oc, providers, stub: bool, instruction: "str | None" = None):
         self.oc, self.providers, self.stub = oc, providers, stub
+        self.instruction = instruction
         self.real_chat = providers.chat
         oc._distill_real_rdc = getattr(oc, "_distill_real_rdc", oc.run_deterministic_checks)
         self.real_rdc = oc._distill_real_rdc
@@ -554,7 +640,13 @@ class Capture:
             return self.real_chat(system, messages, model=model, **kw)
         if model != TEACHER:
             raise RefuseToRun(f"the generator was called with {model!r}, not the teacher")
-        out = "PLAN STUB" if self.stub else self.real_chat(system, messages, model=model, **kw)
+        sent = messages
+        if self.instruction:
+            # D6 v2: the instruction rides on the teacher's call only. The row
+            # is built from the original messages, recorded below.
+            sent = copy.deepcopy(messages)
+            sent[-1]["content"] = f"{sent[-1]['content']}\n\n{self.instruction}"
+        out = "PLAN STUB" if self.stub else self.real_chat(system, sent, model=model, **kw)
         self.gen = {"system": system, "messages": copy.deepcopy(messages), "response": out}
         return out
 
@@ -623,6 +715,13 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--out", default=str(REPO / "data/distill"))
     p.add_argument("--plan", action="store_true", help="select, count and cost; call no model")
     p.add_argument("--approve-cost", type=float, help="the owner's approved ceiling, in USD, over $40")
+    p.add_argument("--shorten-from", help="D6 v2: the source dataset dir; rows over 320 answer "
+                   "tokens are re-run once, shorter, on the tree they were built on (--server)")
+    p.add_argument("--recheck", help="D6 v2: a dataset dir to check with today's checks (--server); "
+                   "no model call")
+    p.add_argument("--tokenizer", help="the base model's tokenizer.json, for answer length")
+    p.add_argument("--env", help="a .env to read provider keys from, read only (the tree "
+                   "--server names may have none); variables already set win")
     p.add_argument("--rebuild", action="store_true",
                    help="re-partition and re-split the rows in --out with the rulings; call no model")
     return p
@@ -655,6 +754,13 @@ def main(argv=None):
         from dotenv import dotenv_values
         logs = dotenv_values(server / ".env").get("CDSS_LOG_DIR") or str(server / "logs/sessions")
     out = pathlib.Path(a.out).resolve()
+    # Resolved now: main() changes into the server tree below.
+    for k in ("shorten_from", "recheck", "tokenizer", "env"):
+        if getattr(a, k):
+            setattr(a, k, str(pathlib.Path(getattr(a, k)).resolve()))
+    if a.env:
+        from dotenv import load_dotenv
+        load_dotenv(a.env, override=False)
     exclusion, junk = EvalExclusion.load(REPO), JunkDrop.load(REPO)
     exam = ExamSet.load(REPO, pathlib.Path(a.scenarios_30))
     os.chdir(server)
@@ -664,6 +770,11 @@ def main(argv=None):
     from embeddings import ChromaDBClient
     if providers.generator_timeout_s(TEACHER) != TEACHER_TIMEOUT_S:
         raise RefuseToRun("the teacher would not be waited for 120 s")
+    if a.recheck:
+        return run_recheck(pathlib.Path(a.recheck).resolve(), snap)
+    if a.shorten_from:
+        return run_shorten(a, pathlib.Path(a.shorten_from).resolve(), out, snap, oc, providers,
+                           ChromaDBClient, scratch)
     if a.rebuild:
         summary = rebuild(out, ReviewRulings.load(REPO), snap["commit"])
         manifest_path = out / "manifest.json"
@@ -818,6 +929,109 @@ def main(argv=None):
                 "review": len(review), "scenario_types": dict(types), "drugs": dict(drugs),
                 "pipeline_log": pipeline_log.name}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    return 0
+
+
+def _token_counter(path):
+    if not path:
+        raise RefuseToRun("--tokenizer (the base model's tokenizer.json) is required")
+    from tokenizers import Tokenizer
+    tok = Tokenizer.from_file(str(path))
+    return lambda text: len(tok.encode(text, add_special_tokens=False).ids)
+
+
+def run_shorten(a, src, out, snap, oc, providers, ChromaDBClient, scratch) -> int:
+    check_out_dir(src, out)
+    count = _token_counter(a.tokenizer)
+    pairs = _read_pairs(src, "train") + _read_pairs(src, "valid")
+    check_shorten_snapshot(pairs, snap["commit"])
+    if {m.get("concentrations_sha256") for _r, m in pairs} != {snap["concentrations_sha256"]}:
+        raise RefuseToRun("this tree's drug_concentrations.json is not the one the rows were built with")
+    keep, rerun = shorten_targets(pairs, count)
+    print(f"source {src}: {len(pairs)} rows; {len(keep)} at or under {SHORTEN_LIMIT} answer tokens kept "
+          f"unchanged; {len(rerun)} to re-run on {snap['commit'][:7]}")
+    log = open(os.path.join(scratch, "pipeline.log"), "w")
+    chroma = ChromaDBClient()
+    plan_cap = Capture(oc, providers, stub=True, instruction=SHORTEN_INSTRUCTION)
+    plans = []
+    for _row, meta in rerun:
+        plan_cap.run(meta["query"], chroma, log)
+        if plan_cap.gen is None:
+            raise RefuseToRun(f"{meta['scenario_id']} no longer reaches the teacher on this tree")
+        g = plan_cap.gen
+        plans.append({"prompt_chars": len(g["system"]) + sum(len(m["content"]) for m in g["messages"])
+                      + len(SHORTEN_INSTRUCTION) + 2, "validator_chars": plan_cap.validator_chars})
+    est = estimate(plans)
+    t_out = RATES[TEACHER][1]
+    est["expected_usd"] = round(est["expected_usd"] - len(plans) * (TEACHER_OUT_EXPECTED - SHORTEN_OUT_EXPECTED)
+                                * t_out / 1e6, 2)
+    print(f"cost: {est['calls']} teacher calls, ~{est['teacher_in_tokens']:,} input tokens: "
+          f"expected ${est['expected_usd']:.2f}, ceiling ${est['ceiling_usd']:.2f}")
+    check_approved(est["ceiling_usd"], a.approve_cost)
+    if a.plan:
+        print("plan only: no model was called and nothing was written.")
+        return 0
+
+    cap = Capture(oc, providers, stub=False, instruction=SHORTEN_INSTRUCTION)
+    outcomes, new_pairs, report = collections.Counter(), [], []
+    for i, (row, meta) in enumerate(rerun, 1):
+        result = cap.run(meta["query"], chroma, log)
+        why = exclusion_reason(result, cap.gen)
+        if why is None and (cap.check is None
+                            or cap.real_rdc(cap.check[0], cap.gen["response"], *cap.check[1:]).issues):
+            why = "deterministic_check"
+        if why is None:
+            signed = {d.drug for d in oc.indication_matched(cap.check[0], cap.check[2])}
+            if unasked_drugs(meta["query"], cap.gen["response"], signed):
+                why = "unasked_drug"
+        before = count(answer_of(row))
+        after = count(cap.gen["response"]) if cap.gen else None
+        outcome = rerun_outcome(why, after or 0)
+        outcomes[outcome] += 1
+        report.append({"scenario_id": meta["scenario_id"], "split": meta["split"], "outcome": outcome,
+                       "tokens_before": before, "tokens_after": after})
+        print(f"  [{i}/{len(rerun)}] {meta['split']:5s} {before:4d} -> {after if after is not None else '-':>4} "
+              f"{outcome:20s} {meta['query'][:50]!r}", flush=True)
+        if outcome != "shortened":
+            continue
+        new_pairs.append((to_row(cap.gen["system"], cap.gen["messages"], cap.gen["response"]),
+                          {**meta, "model_returned": result.get("model_returned"),
+                           "validator_result": result.get("validator_result"),
+                           "source_mode": result.get("source_mode"),
+                           "v2": {"rerun": True, "instruction": SHORTEN_INSTRUCTION,
+                                  "answer_tokens_before": before, "answer_tokens_after": after,
+                                  "built": datetime.datetime.now(datetime.timezone.utc).isoformat()}}))
+        refuse_unsigned_doses([{"scenario_id": meta["scenario_id"], "assistant": cap.gen["response"],
+                                "check": cap.check}])
+    train, valid = by_original_split(keep + new_pairs)
+    write_split(out, train, valid)
+    manifest = {"source": str(src), "snapshot": snap, "teacher": TEACHER, "instruction": SHORTEN_INSTRUCTION,
+                "limit_tokens": SHORTEN_LIMIT, "tokenizer": str(a.tokenizer), "estimate": est,
+                "kept_unchanged": len(keep), "rerun": len(rerun), "outcomes": dict(outcomes),
+                "train": len(train), "valid": len(valid), "rows": report, "pipeline_log": log.name}
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    print(f"\nkept unchanged {len(keep)}; re-run {len(rerun)}: {dict(outcomes)}")
+    print(f"written: train {len(train)}, valid {len(valid)} -> {out}")
+    return 0
+
+
+def run_recheck(d, snap) -> int:
+    pairs = _read_pairs(d, "train") + _read_pairs(d, "valid")
+    passed, dropped = recheck(pairs)
+    train, valid = by_original_split(passed)
+    write_split(d, train, valid)
+    manifest_path = d / "manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    manifest["recheck"] = {"commit": snap["commit"], "contract_bank": snap["contract_bank"],
+                           "checked": len(pairs), "dropped": len(dropped),
+                           "dropped_rows": [{"scenario_id": s, "reason": w, "detail": i} for s, w, i in dropped],
+                           "train": len(train), "valid": len(valid),
+                           "built": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    print(f"recheck on {snap['commit'][:7]} (no model called): {len(pairs)} rows, {len(dropped)} dropped")
+    for s, w, i in dropped:
+        print(f"  {s}: {w}: {i}")
+    print(f"written: train {len(train)}, valid {len(valid)} -> {d}")
     return 0
 
 
