@@ -642,7 +642,7 @@ Print the counts per scenario and per drug.
 **Unasked-drug filter: strict for v1 (owner).**
 - It removed **155** rows in the D5b run: production 11, seed 22, paraphrase 122.
 - The drugs most often named: dextrose 41, ketamine 31, tranexamic acid 21, sodium bicarbonate 15, morphine 14, calcium gluconate 14, epinephrine 12, amiodarone 10, acetaminophen 10, atropine 8, naloxone 8. The full count is in the run's `manifest.json`.
-- The relaxed variant is the v2 experiment, recorded under D6. (Moved to v3 by the owner, 2026-10-03: v2 is the length cap alone.)
+- The relaxed variant is the v2 experiment, recorded under D6. (Moved by the owner, 2026-10-03: v2 is answer length, v3 is more rows from the D5a logs, v4 is this filter.)
 
 **Findings (not fixed here):**
 1. **Safety: abbreviated drug names escape the deterministic dose check.**
@@ -834,21 +834,19 @@ Commit under `tools/distill/`:
 - Longer and slower: mean served answer 417 tokens against 301; latency 30.7 s against 13.1 s median, about 2×.
 - **`qwen2.5:3b` stays the offline model.** v1 is not shipped as `CDSS_LLM_MODEL` and stays on the Jetson only as a bench tag.
 
-**v2 plan (owner, 2026-10-02; scoped 2026-10-03): v2 is the length cap alone.** The same training knobs as v1, read from v1's training log on the Mac (`adapters/<v1>/train.log`; not on the Jetson, so not restated here), on the v1 source with one change:
-- **Drop teacher rows whose answer is over 320 tokens** (the assistant message only, base tokenizer). Never truncate an answer. Report the count removed. **If over a third of the rows are removed, the cap is 360 instead.**
-- Benched with `make bench` against `qwen2.5:3b`, on the same exam (30-set and `run_tests.sh`, base-arm bar).
-- "More rows from the D5a logs" (the 2026-10-02 plan) is not in v2, because v2 changes one thing. It is not placed yet.
+**v2 plan (owner, 2026-10-03, replaces the cap): one change to the dataset, answer length.** Same 255 scenarios, same split, same training knobs as v1 (read from v1's training log on the Mac).
+- **Owner, 2026-10-03:** "Neither cap. Dropping half the data defeats the purpose."
+- The 123 rows whose answer is 320 tokens or under are kept unchanged.
+- The 132 rows whose answer is over 320 tokens (train 119, valid 13) are re-run through the teacher on the same question with one added instruction: "answer in under 300 tokens; keep every signed dose and every specific; drop narrative". The new answer goes through the same replay and filters.
+- A row whose new answer is still over 320 tokens after that one retry is dropped, and the count is reported. A row the filters exclude is reported separately.
+- **Cost estimate first; stop before spending.**
+- Benched with `make bench` against `qwen2.5:3b`, on the same exam.
 
-**The cap measured on the v1 source** (255 rows, `~/projects/cdss-d5b/data/distill`; answer tokens by `Qwen/Qwen2.5-3B-Instruct`'s `tokenizer.json`, no special tokens; median 328, p90 491, max 618):
+The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Instruct` tokenizer): 132 (52%); median answer 328 tokens, p90 491, max 618.
 
-| Cap | Removed | Left |
-|---|---|---|
-| 320 | 132 of 255 (52%): train 119 / 236, valid 13 / 19 | 123 |
-| **360 (applies: 320 removes over a third)** | **105 of 255 (41%): train 95 / 236, valid 10 / 19** | **150: train 141, valid 9** |
+**v3:** more rows from the D5a logs. **v4:** the relaxed unasked-drug filter (below).
 
-**Open (for the owner):** 360 also removes over a third (41%), and the validation set falls to 9 rows. The rule as given ends at 360.
-
-**v3 candidate, first proposed as the v2 experiment (owner, 2026-10-01, #114 review; moved to v3 2026-10-03):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v3 would rebuild the dataset with the relaxed one and bench on the same exam.
+**v4, first proposed as the v2 experiment (owner, 2026-10-01, #114 review; v4 since 2026-10-03):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v4 would rebuild the dataset with the relaxed one and bench on the same exam.
 
 **Rules:**
 - Install only with `pip install -r requirements.txt`.
