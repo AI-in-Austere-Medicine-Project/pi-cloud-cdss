@@ -754,6 +754,10 @@ def main(argv=None):
         from dotenv import dotenv_values
         logs = dotenv_values(server / ".env").get("CDSS_LOG_DIR") or str(server / "logs/sessions")
     out = pathlib.Path(a.out).resolve()
+    # Resolved now: main() changes into the server tree below.
+    for k in ("shorten_from", "recheck", "tokenizer", "env"):
+        if getattr(a, k):
+            setattr(a, k, str(pathlib.Path(getattr(a, k)).resolve()))
     if a.env:
         from dotenv import load_dotenv
         load_dotenv(a.env, override=False)
