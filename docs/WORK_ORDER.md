@@ -380,7 +380,7 @@ Before the gauge and recipe exclusions the replay also held 10 served and 10 tea
 | D5b teacher answers | 274 | 0 | 0 | 0 |
 | Live session logs, turns with an unreadable or unavailable validator | 1,392 | 0 seen | — | — |
 
-All 73 come from a distilled bench tag acting as its own validator: `edgecdss-v1` 48 (both v1 runs), `edgecdss-d6check` 25. 64 of them were served and 9 already held. Each reply was read: v1 wrote a field card in place of the verdict ("**BRIEF** …", "**Traumatic hemorrhage …**"), twice wrote "**SAFE**" as prose, not JSON; d6check wrote `"result": "WATCH"` or garbled cards. All are correct holds under the rule. No reply from `qwen2.5:3b` or any cloud validator changes, so the offline and cloud settings in use are unaffected on stored data.
+All 73 come from a distilled bench tag acting as its own validator: `edgecdss-v1` 48 (both v1 runs), `edgecdss-d6check` 25. 64 of them were served and 9 already held (those 9 change nothing the medic sees). The 64 served were read: v1 wrote a field card in place of the verdict ("**BRIEF** …", "**Traumatic hemorrhage …**"), twice wrote "**SAFE**" as prose, not JSON; d6check wrote `"result": "WATCH"` or garbled cards. All are correct holds under the rule. No reply from `qwen2.5:3b` or any cloud validator changes, so the offline and cloud settings in use are unaffected on stored data.
 
 ### A20: history amounts read as doses (owner, 2026-10-03; after A19)
 
