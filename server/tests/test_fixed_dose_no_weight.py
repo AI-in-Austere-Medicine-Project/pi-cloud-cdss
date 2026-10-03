@@ -114,4 +114,7 @@ def test_a_ccb_overdose_with_no_weight_builds_no_calcium_contract():
 
 def test_the_free_text_check_does_not_pair_a_ccb_dose_with_calcium():
     text = "**TREAT**\n- He took calcium channel blocker 240 mg this morning."
-    assert oc.free_text_dose_issues(text, [], ADULT_NO_WEIGHT) == []
+    issues = oc.free_text_dose_issues(text, [], ADULT_NO_WEIGHT)
+    assert not any("calcium" in i for i in issues), issues
+    # A18: the 240 mg names no recognised drug, so it holds as unattributed.
+    assert all("no drug named" in i for i in issues), issues

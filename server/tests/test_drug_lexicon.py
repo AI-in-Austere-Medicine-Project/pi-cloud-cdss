@@ -44,13 +44,23 @@ def test_the_keppra_concentration_does_not_hold():
 
 
 @pytest.mark.parametrize("text", [
-    "**TREAT**\n- Give foobarol 5 mg.",                  # not a drug to either list
-    "**TREAT**\n- Pressure dressing, 5 g of gauze.",      # a word, not a drug
     "**PREP**\n- Levetiracetam 500 mg per 5 mL vial.",    # a concentration
     "**PREP**\n- Each mL contains 10 mg of levetiracetam.",
 ])
 def test_what_still_passes(text):
     assert _issues(text) == [], text
+
+
+# A18 (owner, 2026-10-02): these passed before as unattributable. A dose in a
+# line with no recognised drug now goes to the question's drug, or holds as a
+# dose with no drug named; with no question here, it holds.
+@pytest.mark.parametrize("text", [
+    "**TREAT**\n- Give foobarol 5 mg.",                  # not a drug to either list
+    "**TREAT**\n- Pressure dressing, 5 g of gauze.",      # a word, not a drug
+])
+def test_a_mass_with_no_recognised_drug_holds_as_unattributed(text):
+    issues = _issues(text)
+    assert issues and all("no drug named" in i for i in issues), issues
 
 
 def test_a_signed_contract_dose_still_passes():
@@ -124,6 +134,8 @@ def test_a_missing_lexicon_narrows_to_the_bank(monkeypatch, tmp_path):
         idx = dc.recognised_drug_index()
         assert {t: g for t, g in idx.items() if t in bank} == bank
         assert set(idx.values()) <= set(bank.values())
-        assert _issues(f"**TREAT**\n- {lexicon_only} 5 mg IV.") == []
+        # Not read as that drug any more; A18 holds it as a dose with no drug named.
+        issues = _issues(f"**TREAT**\n- {lexicon_only} 5 mg IV.")
+        assert issues and not any(lexicon_only in i for i in issues), issues
     finally:
         dc._lexicon_drugs.cache_clear()
