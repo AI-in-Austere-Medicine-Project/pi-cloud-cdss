@@ -92,3 +92,17 @@ def test_a_verdict_the_validator_did_return_is_unchanged(monkeypatch, raw, block
     out = _gate(_validate(monkeypatch, raw))
     assert (out.blocked, out.verdict) == (blocked, verdict)
     assert "validator unavailable" not in out.response.lower()
+
+
+def test_an_outage_keeps_serving_with_the_review_banner(monkeypatch):
+    """Owner ruling 2026-10-03: no reply (provider error or timeout) serves with
+    the review banner; only a reply that is not a verdict holds. The
+    deterministic layer is the safety net, the validator a second opinion."""
+    def down(*a, **k):
+        raise TimeoutError("validator provider unreachable")
+    monkeypatch.setattr(oc.providers, "chat", down)
+    monkeypatch.setattr(oc.providers, "validator_model", lambda: "gpt-4o-mini")
+    ctx = oc.rebuild_patient_context_from_history(QUERY)
+    out = _gate(oc.validate_response("CURRENT USER: " + QUERY, V1_ANSWER, ctx, ""))
+    assert not out.blocked and out.verdict == "NEEDS_HUMAN_REVIEW"
+    assert out.response.endswith(oc.HUMAN_REVIEW_BANNER)
