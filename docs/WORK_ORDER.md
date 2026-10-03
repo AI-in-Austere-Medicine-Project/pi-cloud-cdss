@@ -57,8 +57,9 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A11b | Rate matching is indication-specific | **done**: #110, merged and deployed |
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | A17 | Abbreviated drug names in the dose check (the router's slang table) | **done**: #115, merged |
-| A18 | A dose in a line that names no drug is checked (the question's drug, else held) | in review (owner, 2026-10-02: top of the queue) |
-| A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | queued, after A18 (owner, 2026-10-02) |
+| A18 | A dose in a line that names no drug is checked (the question's drug, else held) | **done**: #121, merged and deployed |
+| A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | next (owner, 2026-10-02) |
+| A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | queued, after A19 (owner, 2026-10-03) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -83,13 +84,15 @@ Owner asks outside the lettered items:
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
 
-**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → A18 → A19 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a, D1 and D5 are done (#93, #111, #112, #113). D5b was added after D5 by the owner in the #113 review; D1b follows it. B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
+**Execution order (owner, 2026-09-26, sixth statement; replaces the earlier five):** A3 (#86) → A4 → A5 → A6 → A7 → A8 → A9 → A14 → A15 → A10 → A11 → A12 → A13 → A11b → A16 → D5a → D1 → D5 → D1b → D6 → A18 → A19 → A20 → B1 → B2 → B3 → C1 → D2 → D3 → D4 → E1. A0, A1b, A3, A4, A5, A6, A7, A8, A9, A14, A15, A10, A11, A12, A13, A11b and A16 are done (#90, #91, #86, #95, #97, #99, #101, #102, #103, #106, #105, #107, #108, #109, #110; the A list is closed); D6, D5a, D1 and D5 are done (#93, #111, #112, #113). D5b was added after D5 by the owner in the #113 review; D1b follows it. B3 was added after B2 by the owner in the #95 review. A14 and A15 were placed after A9 by the owner in the #103 review. A11b and A16 were placed after A13 by the owner in the #108 review. A11 was added after A10 by the owner in the #97 review; A12 and A13 after A11 in the #98 review. E1 was added after D4 by the owner on 2026-09-29.
 
 **Owner, 2026-09-28:** after A12, A13, A11b and A16 the A list is done, then D5a. A13, A11b and A16 are delivered together in #110 on the owner's instruction. Every open A item finishes before any D item starts. Safety before speed, no exceptions. Same rules; stop for review on each.
 
 **Owner, 2026-10-01 (#114 review):** A17 is the next item, before D1b.
 
 **Owner, 2026-10-02 (#120 review):** A18 is top of the queue, then A19. Both come from the first `edgecdss-v1` bench (D6). B1's v1 hold stays off E1: it was the free-text dose check, not the validator.
+
+**Owner, 2026-10-03 (#121 review):** #120 and #121 merged and deployed. A18's hold of a history amount ("He took calcium channel blocker 240 mg this morning.") is accepted; the fix is A20, after A19. Replay output goes under the worktree's own folder, never a shared path (CLAUDE.md).
 
 ## Items
 
@@ -359,6 +362,12 @@ Before the gauge and recipe exclusions the replay also held 10 served and 10 tea
 **Found (D6 v1 bench, G-DIC-04):** under `CDSS_LLM_PROVIDER=local` the validator is the generator model. `edgecdss-v1` answered the validator prompt with a field card ("Validator returned invalid output", 23 of 24 calls), which downgrades to NEEDS_HUMAN_REVIEW and **serves**. G-DIC-04's clinically wrong answer was served that way.
 
 **Owner's rule:** invalid or unparseable validator output fails closed: a hold that says "validator unavailable", never a pass. Failing test first with v1's actual validator output.
+
+### A20: history amounts read as doses (owner, 2026-10-03; after A19)
+
+**Found (A18 replay):** the free-text dose check cannot tell an amount the patient already took or was already given from a dose the answer tells the medic to give. "He took calcium channel blocker 240 mg this morning." holds under A18 as a dose with no drug named. The owner accepted that hold for A18 (it fails safe) and filed the general case here.
+
+**Owner's rule:** use A9's benzo-given detector as the pattern (`_BENZO_ALREADY_GIVEN_RE`, `server/openai_client.py`): a history cue (took, taken, already given, got, received, ingested, overdosed on, home dose, …) within a short window of the amount, in the same clause, marks it as history, not a dose to give. Failing test first with the calcium-channel-blocker sentence. Never loosen a gate: a history amount that is also an instruction ("already given 1 g, give 1 g more") still checks the instruction, and the replay must show 0 newly released, with every released row read (a released row here is a history amount, and each must be shown to be one).
 
 ### B1: source-mode labelling
 
@@ -633,7 +642,7 @@ Print the counts per scenario and per drug.
 **Unasked-drug filter: strict for v1 (owner).**
 - It removed **155** rows in the D5b run: production 11, seed 22, paraphrase 122.
 - The drugs most often named: dextrose 41, ketamine 31, tranexamic acid 21, sodium bicarbonate 15, morphine 14, calcium gluconate 14, epinephrine 12, amiodarone 10, acetaminophen 10, atropine 8, naloxone 8. The full count is in the run's `manifest.json`.
-- The relaxed variant is the v2 experiment, recorded under D6.
+- The relaxed variant is the v2 experiment, recorded under D6. (Moved by the owner, 2026-10-03: v2 is answer length, v3 is more rows from the D5a logs, v4 is this filter.)
 
 **Findings (not fixed here):**
 1. **Safety: abbreviated drug names escape the deterministic dose check.**
@@ -817,9 +826,32 @@ Commit under `tools/distill/`:
 3. **v1 writes 2.5× longer answers, and more are cut off** (4 against 2), so latency more than doubles. Every training answer is under the 700-token cap, so the length comes from the model, not the data; worth a look before v2.
 4. **B1 under v1 was held by the free-text dose check, not the LLM validator** (the `run_tests.sh` tag arm, `validator_provider` local, no fallback). The hold text: "The answer stated ketamine 30–100 mg with no signed ketamine dose for this question. Ask for ketamine by name, with what it is for, to get the signed dose." v1 added an unasked ketamine adjunct to a fentanyl answer: a correct hold, so it is not an E1 (validator wording) sighting.
 5. **The same held answer dosed fentanyl as "50 mcg (or 0.5–1 mg/kg)" IV and "100 mcg (or 1–2 mg/kg)" IM**, 40–80 mg IV for 80 kg, a thousandfold error. The free-text dose check does not read it: those lines name no drug, and the check attributes a dose only to a drug named on the same line. Without the ketamine line, `free_text_dose_issues` returns no issues for this answer. It was held only because of the ketamine line, and under v1 the validator is v1 (finding 1). Owner to place.
+   - **Placed: A18's case (owner, 2026-10-03). Confirmed on main 510dc56:** with the ketamine line removed, `run_deterministic_checks` holds the answer on "fentanyl 0.5–1 mg/kg", "fentanyl 1–2 mg/kg" and "fentanyl 100 mcg" (each "not the signed fentanyl dose for this patient"). Test: `server/tests/test_a18_drugless_dose.py::test_b1_v1_answer_without_the_ketamine_line_still_holds`.
 
 
-**v2 experiment (owner, 2026-10-01, #114 review):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v2 rebuilds the dataset with the relaxed one and benches against v1 on the same exam.
+**v1 verdict (owner, 2026-10-02):** `edgecdss-v1` is **baseline-matched and longer, not better than `qwen2.5:3b`**.
+- Baseline-matched: `run_tests.sh` 28/29, equal to the base.
+- Specifics: 37/97 against 32/93 served (24/71 against 20/71 on the same 20 scenarios). A small gain, not enough.
+- Longer and slower: mean served answer 417 tokens against 301; latency 30.7 s against 13.1 s median, about 2×.
+- **`qwen2.5:3b` stays the offline model.** v1 is not shipped as `CDSS_LLM_MODEL` and stays on the Jetson only as a bench tag.
+
+**v2 plan (owner, 2026-10-03, replaces the cap): one change to the dataset, answer length.** Same 255 scenarios, same split, same training knobs as v1 (read from v1's training log on the Mac).
+- **Owner, 2026-10-03:** "Neither cap. Dropping half the data defeats the purpose."
+- The 123 rows whose answer is 320 tokens or under are kept unchanged.
+- The 132 rows whose answer is over 320 tokens (train 119, valid 13) are re-run through the teacher on the same question with one added instruction: "answer in under 300 tokens; keep every signed dose and every specific; drop narrative". The new answer goes through the same replay and filters.
+- A row whose new answer is still over 320 tokens after that one retry is dropped, and the count is reported. A row the filters exclude is reported separately.
+- **Cost estimate first; stop before spending.**
+- Benched with `make bench` against `qwen2.5:3b`, on the same exam.
+
+The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Instruct` tokenizer): 132 (52%); median answer 328 tokens, p90 491, max 618.
+
+**v3 (owner, 2026-10-03): next, after D2 ships and D5a has accumulated rows.** Rows from the D5a logs, generated under the D2 prompt, so answer length drops by design. No new experiments until then.
+
+**Settled (owner, 2026-10-03):** no length cap; the relaxed unasked-drug filter stays v4.
+
+**v4:** the relaxed unasked-drug filter (below).
+
+**v4, first proposed as the v2 experiment (owner, 2026-10-01, #114 review; v4 since 2026-10-03):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v4 would rebuild the dataset with the relaxed one and bench on the same exam.
 
 **Rules:**
 - Install only with `pip install -r requirements.txt`.
