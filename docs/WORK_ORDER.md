@@ -826,6 +826,7 @@ Commit under `tools/distill/`:
 3. **v1 writes 2.5× longer answers, and more are cut off** (4 against 2), so latency more than doubles. Every training answer is under the 700-token cap, so the length comes from the model, not the data; worth a look before v2.
 4. **B1 under v1 was held by the free-text dose check, not the LLM validator** (the `run_tests.sh` tag arm, `validator_provider` local, no fallback). The hold text: "The answer stated ketamine 30–100 mg with no signed ketamine dose for this question. Ask for ketamine by name, with what it is for, to get the signed dose." v1 added an unasked ketamine adjunct to a fentanyl answer: a correct hold, so it is not an E1 (validator wording) sighting.
 5. **The same held answer dosed fentanyl as "50 mcg (or 0.5–1 mg/kg)" IV and "100 mcg (or 1–2 mg/kg)" IM**, 40–80 mg IV for 80 kg, a thousandfold error. The free-text dose check does not read it: those lines name no drug, and the check attributes a dose only to a drug named on the same line. Without the ketamine line, `free_text_dose_issues` returns no issues for this answer. It was held only because of the ketamine line, and under v1 the validator is v1 (finding 1). Owner to place.
+   - **Placed: A18's case (owner, 2026-10-03). Confirmed on main 510dc56:** with the ketamine line removed, `run_deterministic_checks` holds the answer on "fentanyl 0.5–1 mg/kg", "fentanyl 1–2 mg/kg" and "fentanyl 100 mcg" (each "not the signed fentanyl dose for this patient"). Test: `server/tests/test_a18_drugless_dose.py::test_b1_v1_answer_without_the_ketamine_line_still_holds`.
 
 
 **v1 verdict (owner, 2026-10-02):** `edgecdss-v1` is **baseline-matched and longer, not better than `qwen2.5:3b`**.
@@ -844,7 +845,11 @@ Commit under `tools/distill/`:
 
 The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Instruct` tokenizer): 132 (52%); median answer 328 tokens, p90 491, max 618.
 
-**v3:** more rows from the D5a logs. **v4:** the relaxed unasked-drug filter (below).
+**v3 (owner, 2026-10-03): next, after D2 ships and D5a has accumulated rows.** Rows from the D5a logs, generated under the D2 prompt, so answer length drops by design. No new experiments until then.
+
+**Settled (owner, 2026-10-03):** no length cap; the relaxed unasked-drug filter stays v4.
+
+**v4:** the relaxed unasked-drug filter (below).
 
 **v4, first proposed as the v2 experiment (owner, 2026-10-01, #114 review; v4 since 2026-10-03):** the relaxed unasked-drug filter. An answer that names a drug the question didn't ask about, and that has no signed entry for it, passes if it states **no number** for that drug. A stated dose still excludes the row. v1 trains on the strict filter (D5b, 155 rows removed). v4 would rebuild the dataset with the relaxed one and bench on the same exam.
 
