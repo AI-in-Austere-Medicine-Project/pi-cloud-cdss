@@ -116,5 +116,5 @@ def test_the_free_text_check_does_not_pair_a_ccb_dose_with_calcium():
     text = "**TREAT**\n- He took calcium channel blocker 240 mg this morning."
     issues = oc.free_text_dose_issues(text, [], ADULT_NO_WEIGHT)
     assert not any("calcium" in i for i in issues), issues
-    # A18: the 240 mg names no recognised drug, so it holds as unattributed.
-    assert all("no drug named" in i for i in issues), issues
+    # A20: "took ... 240 mg" is history, not a dose (A18 held it as unattributed).
+    assert issues == [], issues
