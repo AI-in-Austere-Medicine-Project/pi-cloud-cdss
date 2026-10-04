@@ -58,8 +58,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A16 | Deterministic norepinephrine drip card (signed per-kg rate) | **done**: #110, merged and deployed |
 | A17 | Abbreviated drug names in the dose check (the router's slang table) | **done**: #115, merged |
 | A18 | A dose in a line that names no drug is checked (the question's drug, else held) | **done**: #121, merged and deployed |
-| A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | in review (owner, 2026-10-02: after A18) |
-| A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | queued, after A19 (owner, 2026-10-03) |
+| A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | **done**: #123, merged and deployed |
+| A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | in review (owner, 2026-10-03: after A19) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -387,6 +387,24 @@ All 73 come from a distilled bench tag acting as its own validator: `edgecdss-v1
 **Found (A18 replay):** the free-text dose check cannot tell an amount the patient already took or was already given from a dose the answer tells the medic to give. "He took calcium channel blocker 240 mg this morning." holds under A18 as a dose with no drug named. The owner accepted that hold for A18 (it fails safe) and filed the general case here.
 
 **Owner's rule:** use A9's benzo-given detector as the pattern (`_BENZO_ALREADY_GIVEN_RE`, `server/openai_client.py`): a history cue (took, taken, already given, got, received, ingested, overdosed on, home dose, …) within a short window of the amount, in the same clause, marks it as history, not a dose to give. Failing test first with the calcium-channel-blocker sentence. Never loosen a gate: a history amount that is also an instruction ("already given 1 g, give 1 g more") still checks the instruction, and the replay must show 0 newly released, with every released row read (a released row here is a history amount, and each must be shown to be one).
+**What changed:** `free_text_dose_issues` skips an amount that `_is_history_amount` marks as history. A history cue before the amount (took, taken, got, received, ingested, swallowed, overdosed on, OD'd on, already, home dose, was/were/been given) or after it (taken, ingested, swallowed, already, was/were/been given), within 40 characters in the same clause, with no other amount between them, marks it. A negated cue ("hasn't taken", "never got") is not one. Named-drug and drugless amounts alike, per-kg amounts too; rates are untouched.
+
+**Guard, beyond the rule as worded:** in a line that also gives an instruction (give, administer, push, repeat, redose, start, load, bolus, infuse, titrate, follow with), no amount is history. The reason is the teacher's line from the A18 replay, "If 1 g already given and <3 hours from injury: give 1 g more, not 2 g.": its instruction clause contains "not", so the limit skip drops it whole, and the history clause is the only thing holding the line. A clause-only rule would release it. The cost: "He took 240 mg of verapamil; give calcium 1 g" keeps holding the 240 mg (fails safe).
+
+**Tests:** `server/tests/test_a20_history_amounts.py`, committed failing first: the calcium-channel-blocker sentence verbatim and seven history phrasings (8 failed). Guards that passed before and must keep passing: the teacher's TXA line verbatim, "Already given 1 g, give 1 g more.", "Give 1 g if he hasn't already taken it.", "Give 1 g unless it was already given.", a named drug given and repeated, a negated cue. `test_fixed_dose_no_weight.py`: the same sentence now has no issues (was: held as unattributed).
+
+**Replay** (main 6deca63 against A20):
+
+| Corpus | Items | Newly held | Newly released | Changed |
+|---|---|---|---|---|
+| Served answers, deterministic checks | 1,268 | 0 | 0 | 0 |
+| Held answers, deterministic checks | 125 | 0 | 0 | 0 |
+| Pipeline, model stubbed | 788 | — | — | 0 |
+| D5b teacher answers | 274 | 0 | 0 | 0 |
+
+No stored cdss-eval answer has a history cue within 40 characters of an amount, so the corpora don't exercise the change; the tests carry it. The D5a live session logs (full answers) were not replayed: the session's permission classifier blocked reading them. Owner to run or waive.
+
+**Found (not fixed here):** a clause containing "not" (or another limit word) is skipped whole, so a dose instruction in it is never read. "If not already given, give 1 g." with a TXA question returns no issue on main; so does the teacher's "give 1 g more, not 2 g". Same family as the run-3 "uncited numbers served unheld" finding. Owner to place.
 
 ### B1: source-mode labelling
 
@@ -914,6 +932,8 @@ Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here
 Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (owner, 2026-09-29).
 
 ## Found along the way, not yet placed
+
+- **A dose instruction in a clause with a limit word is never read** (found in A20). The limit skip drops the whole clause: "If not already given, give 1 g." and "give 1 g more, not 2 g." return no issue. Owner to place.
 
 - **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
