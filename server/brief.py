@@ -217,6 +217,110 @@ def parse_sections(text: str):
     return preamble, sections
 
 
+# ── B2: generator section headers ────────────────────────────────────────────
+# Owner rulings 2026-10-04. The generator's headers drift (TREAT, WATCH FOR,
+# EVAC IF, a condition title, "GIVE — IF PAIN NOT RELIEVED AT 15 MIN"). A
+# served generator answer's header lines are rewritten, after the gate, to the
+# canonical set. Format only: no line under a header changes.
+#   - A header with a canonical stem takes the canonical name; whatever followed
+#     the stem is a qualifier and is kept: "**GIVE**: IF PAIN NOT RELIEVED AT 15
+#     MIN". A header that is already canonical is left byte for byte.
+#   - BRIEF, GATE QUESTION, DRIP, VENT and POST-INTUBATION SEDATION stay: the
+#     brief is built from BRIEF, the gate question is a required line, and the
+#     other three are dose sections the prompt itself asks for.
+#   - Any other header folds into the FOLLOWING canonical section (the previous
+#     one when none follows): its title becomes a plain line and, with its
+#     lines, goes at the END of that section, so the section's own first step
+#     stays its first step. The brief skips these lines (_is_folded_line).
+# Deterministic cards and holds never come through here: openai_client calls
+# this on served generator answers only.
+CANONICAL_HEADERS = ("DO THIS", "GIVE", "WATCH", "DON'T", "EVAC", "TLDR", "SOURCE")
+KEPT_HEADERS = frozenset({"BRIEF", "GATE QUESTION", "DRIP", "VENT", "POST-INTUBATION SEDATION"})
+# Longest stem first: WATCH FOR before WATCH, EVAC IF before EVAC.
+_HEADER_STEMS = (
+    ("DO THIS", "DO THIS"), ("DO NOW", "DO THIS"), ("TREAT", "DO THIS"),
+    ("GIVE", "GIVE"),
+    ("WATCH FOR", "WATCH"), ("WATCH", "WATCH"),
+    ("DON'T", "DON'T"), ("DONT", "DON'T"), ("DO NOT", "DON'T"),
+    ("EVAC IF", "EVAC"), ("EVAC", "EVAC"),
+    ("TL;DR", "TLDR"), ("TLDR", "TLDR"),
+    ("SOURCES", "SOURCE"), ("SOURCE", "SOURCE"),
+)
+_EXPLAINER_RE = re.compile(r"^(?:what it is|why it matters)\b", re.IGNORECASE)
+
+
+def canonical_header(name: str):
+    """(canonical name, qualifier) for a header, "KEEP", or None (unknown)."""
+    n = _norm_heading(name).rstrip(":").strip()
+    if n in KEPT_HEADERS:
+        return "KEEP"
+    for stem, canon in _HEADER_STEMS:
+        if n == stem or (n.startswith(stem) and not n[len(stem)].isalnum()
+                         and n[len(stem)] != "'"):
+            return canon, n[len(stem):].strip(" —–-:")
+    return None
+
+
+def _is_folded_line(line: str) -> bool:
+    """A condition explainer or a folded title: never a brief's next action."""
+    c = _clean(line)
+    return bool(_EXPLAINER_RE.match(c)) or (bool(c) and c == c.upper()
+                                             and any(ch.isalpha() for ch in c))
+
+
+def normalise_headers(text: str) -> str:
+    """B2: a served generator answer with its headers in the canonical set."""
+    lines = (text or "").split("\n")
+    blocks = [[None, None, []]]          # [header line, mapping, body lines]
+    for raw in lines:
+        m = _HEADING_RE.match(raw)
+        if m and not raw.lstrip().startswith("⚠️"):
+            blocks.append([raw, canonical_header(m.group(1)), []])
+        else:
+            blocks[-1][2].append(raw)
+
+    def is_canon(b):
+        return isinstance(b[1], tuple)
+
+    for i, b in enumerate(blocks):
+        if b[0] is None or b[1] is not None:
+            continue
+        target = next((t for t in blocks[i + 1:] if is_canon(t)), None) \
+            or next((t for t in reversed(blocks[:i]) if is_canon(t)), None)
+        if target is None:
+            continue
+        m = _HEADING_RE.match(b[0])
+        title = m.group(1).strip() + (" " + m.group(2).strip() if m.group(2).strip() else "")
+        body = list(b[2])
+        while body and not body[0].strip():
+            body.pop(0)
+        while body and not body[-1].strip():
+            body.pop()
+        own = target[2]
+        tail = []
+        while own and not own[-1].strip():
+            tail.insert(0, own.pop())
+        own.extend([title] + body)
+        own.extend(tail if tail or target is not blocks[-1] else [])
+        b[0] = "FOLDED"
+
+    out = []
+    for header, mapping, body in blocks:
+        if header == "FOLDED":
+            continue
+        if header is not None:
+            if is_canon((header, mapping, body)):
+                canon, qualifier = mapping
+                m = _HEADING_RE.match(header)
+                if m.group(1).strip() != canon or qualifier:
+                    rest = m.group(2).strip()
+                    tail = " — ".join(p for p in (qualifier, rest) if p)
+                    header = f"**{canon}**" + (f": {tail}" if tail else "")
+            out.append(header)
+        out.extend(body)
+    return "\n".join(out)
+
+
 def _paragraphs(lines):
     out, cur = [], []
     for line in lines:
@@ -431,7 +535,8 @@ def _next_action(sections, dosed):
     """Slot (b): the first real step, else the first thing to watch."""
     for item in _section(sections, ACTION_SECTIONS):
         c = _clean(item)
-        if not c or _PREAMBLE_RE.match(c) or len(c) > OPTIONAL_MAX_CHARS:
+        if (not c or _PREAMBLE_RE.match(c) or len(c) > OPTIONAL_MAX_CHARS
+                or _is_folded_line(c)):
             continue
         low = c.lower()
         if low.startswith("give ") and any(
@@ -649,7 +754,7 @@ def _build(response_text, medication_terms, weight_kg, age_years=None):
         for item in pool:
             c = _clean(item)
             if (not c or c.lower() in seen or len(c) > OPTIONAL_MAX_CHARS
-                    or c.startswith("[")):
+                    or c.startswith("[") or (pool is not pools[0] and _EXPLAINER_RE.match(c))):
                 continue
             # Rule 2: once the response doses, the dose is said once, in the
             # GIVE line's own words.

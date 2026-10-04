@@ -123,8 +123,10 @@ def test_ordinary_sections_start_folded(rendered):
 
 
 def test_the_source_chips_are_folded_too(rendered):
+    # B2: inside the card's own SOURCE section, not a second SOURCES fold.
     bubble = rendered["rsi"]["bubble"]
-    tag = details(bubble, "SOURCES")
+    assert details(bubble, "SOURCES") is None
+    tag = details(bubble, "SOURCE")
     assert tag is not None and not is_open(tag)
     assert bubble.index(tag) < bubble.index("JTS Airway CPG")
 
@@ -171,7 +173,8 @@ def test_a_hold_is_shown_in_full_and_open(rendered, payloads):
     assert '<div class="brief hold">' in bubble
     assert "Reassess patient. Use local protocol." in bubble
     for tag in re.findall(r"<details[^>]*>", bubble):
-        assert "SOURCES" in tag or is_open(tag), f"a hold folded something: {tag}"
+        # B2: the chips' fold is named SOURCE (a hold has no SOURCE of its own).
+        assert 'data-name="SOURCE"' in tag or is_open(tag), f"a hold folded something: {tag}"
 
 
 def test_prose_folds_but_its_warning_does_not(rendered):

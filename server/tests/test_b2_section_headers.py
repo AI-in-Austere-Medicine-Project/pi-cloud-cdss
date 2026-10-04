@@ -50,15 +50,6 @@ def _headers(text):
     return [name for name, _ in brief.parse_sections(text)[1] if name]
 
 
-def _words(text):
-    """Every word, header markup aside: what format-only must preserve."""
-    return sorted(re.findall(r"[\w'’≥<>/.%-]+", text.replace("**", " ")))
-
-
-def _content_words(text):
-    return sorted(w for w in _words(text) if w not in {"TREAT", "FOR", "IF", "WATCH", "EVAC"})
-
-
 @pytest.mark.parametrize("raw, expected", [
     (H_IM_04, ["BRIEF", "DO THIS", "WATCH", "EVAC", "TLDR", "SOURCE"]),
     (G_ADV_04, ["BRIEF", "WATCH", "TLDR", "SOURCE"]),
@@ -70,11 +61,14 @@ def test_three_captured_outputs_get_the_canonical_headers(raw, expected):
 
 @pytest.mark.parametrize("raw", [H_IM_04, G_ADV_04, G_MTN_03])
 def test_no_content_is_lost(raw):
-    # Only header words may go (TREAT, WATCH FOR -> WATCH, EVAC IF -> EVAC).
-    out = brief.normalise_headers(raw)
-    assert _content_words(out) == _content_words(raw)
+    # Every line under a header survives, and a folded header's title
+    # survives as a plain line.
+    out = brief.normalise_headers(raw).splitlines()
     assert all(line in out for line in raw.splitlines()
                if line.strip() and not line.startswith("**"))
+    for name in _headers(raw):
+        if brief.canonical_header(name) is None:
+            assert name in out, name
 
 
 def test_a_qualifier_on_a_header_is_kept():
