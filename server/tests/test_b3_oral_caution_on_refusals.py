@@ -82,3 +82,24 @@ def test_without_the_flag_the_table_behaves_as_before():
     out = vitals_mod.conflicts("Keep him nothing by mouth.", ctx.vitals,
                                flags={"ams_stated": ctx.ams_stated})
     assert any(ASPIRATION in c for c in out)
+
+
+# ── owner, #130 review: a refusal and a permission together — permission wins ─
+
+@pytest.mark.parametrize("mixed", [
+    "NPO for now, sips once he's alert.",             # the owner's sentence
+    "Keep NPO; he can have sips once alert.",
+    "No oral fluids now. Small sips when he wakes.",
+    "Nothing by mouth. Let him drink if GCS improves.",
+    "Do not give oral fluids until he is awake, then small sips.",
+    "Withhold oral intake. Oral glucose gel is fine.",
+])
+def test_a_permission_beside_a_refusal_still_gets_the_caution(mixed):
+    advised = oc.oral_route_advised(mixed)
+    assert advised, mixed
+    assert any(ASPIRATION in c for c in _conflicts(mixed, advised)), mixed
+
+
+def test_an_advised_term_the_table_does_not_list_still_gets_the_caution():
+    # "sips" is in A4's oral-route terms but not in the caution table's list.
+    assert any(ASPIRATION in c for c in _conflicts("Small sips of water are fine.", True))
