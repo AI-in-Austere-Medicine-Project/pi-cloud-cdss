@@ -7073,6 +7073,11 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # about or an override matches on. It rides on blocked responses too: if
         # the context was cleared, the medic needs to know that regardless.
         final_response = outcome.response
+        # B2: a served generator answer's headers in the canonical set. After
+        # the gate, like every label below; a hold is Python's text and is
+        # never rewritten, and the deterministic cards returned long before.
+        if not outcome.blocked:
+            final_response = brief_mod.normalise_headers(final_response)
         # Applied after the gate for the same reason the reset notice is: a label
         # must never become text the validator reasons about or an override
         # matches its keywords against. Served answers only — a safety hold is

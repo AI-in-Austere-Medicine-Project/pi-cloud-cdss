@@ -66,8 +66,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5 | Distillation dataset builder | **done**: #113, merged |
 | D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up in review: unclear seeds never paraphrased, fragment hold made complete, v1 source recorded (255 rows) |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | **signed** by the owner, 2026-10-01 (#119) |
-| B1 | Source-mode labelling | in review |
-| B2 | Generator section headers | after B1 |
+| B1 | Source-mode labelling | **done**: #128, merged and deployed |
+| B2 | Generator section headers | in review |
 | B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
 | C1 | Feedback instrument | after B3 |
 | D2 | Prompt layout for prefix caching | after C1 |
@@ -458,6 +458,26 @@ No other stored answer (336 GENERAL_MEDICAL, 59 INSUFFICIENT, 55 JTS_GROUNDED ru
 ### B2: generator section headers
 
 Headers drift in brief mode: "SEVERE TBI", "TREAT", "EVAC IF", and both "SOURCE" and "SOURCES". Normalise them at parse time to the canonical set: DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE. Unknown headers fold into the nearest canonical section. Test on 3 captured generator outputs. Format only.
+
+**Owner rulings (2026-10-04):**
+1. Normalise by rewriting the served generator answer's header lines after the gate (one vocabulary for brief.py, the portal, speech and the log), not in two parsers.
+2. BRIEF, GATE QUESTION, DRIP, VENT and POST-INTUBATION SEDATION stay as they are; deterministic cards and holds are not touched.
+3. An unknown header folds into the following canonical section, and the brief never takes a "What it is:" / "Why it matters:" line as its next action.
+
+**What was found:** across 804 stored generator outputs, the drift is mostly our own prompt's second template (TREAT, WATCH FOR, EVAC IF) and its condition explainer ("**DEHYDRATION**", "**CONDITION**": "What it is: … Why it matters: …", 104 of the 116 unknown headers, right after BRIEF). No stored answer writes "SOURCES": that was the portal's own fold for the retrieval chips, shown beside the answer's SOURCE. "SEVERE TBI" is the title line of the deterministic severe-TBI card (A2), so under ruling 2 it is unchanged.
+
+**What changed:**
+- `brief.normalise_headers`, called in `_run_pipeline` on served answers after the gate (before the general-reference banner and B1's SOURCE line). A header with a canonical stem takes the canonical name (TREAT, DO NOW → DO THIS; WATCH FOR → WATCH; EVAC IF → EVAC; DONT, DO NOT → DON'T; SOURCES, SOURCE: → SOURCE) and keeps whatever followed the stem as a qualifier: "**GIVE**: IF PAIN NOT RELIEVED AT 15 MIN". A header already canonical is left byte for byte. Any other header folds: its title becomes a plain line and, with its lines, goes at the end of the following canonical section (the previous one if none follows; left alone if the answer has no canonical section), so that section's own first step stays first.
+- `brief.py`: the next-action slot skips explainer lines and folded titles; the optional pool skips explainer lines outside the generator's own BRIEF.
+- Portal (`static/index.html`): the retrieval chips go inside the answer's SOURCE section; with no SOURCE section they get a fold named SOURCE. `test_portal_brief.py`'s two tests that named the SOURCES fold now name SOURCE (same behaviour: the chips fold; a hold folds nothing else).
+
+**Tests:** `server/tests/test_b2_section_headers.py`, committed failing first (21 failed, the deterministic-card guard passed): three captured outputs verbatim (H-IM-04 and G-ADV-04 gpt-4o-mini, served; G-MTN-03 claude-haiku-4.5) get the canonical headers with no line lost; a qualifier is kept; a folded explainer follows the steps; the brief never takes an explainer; the kept headers and already-canonical text are unchanged; the synonyms; a served pipeline answer (G-ADV-04's query and answer) is normalised and a deterministic card is not; the portal shows one SOURCE section with the chips inside. One test helper was replaced after that commit: its word count read the new header words (DO THIS for TREAT) as lost content; a line-by-line check took its place.
+
+**Replay** (main 1806caa against B2):
+- Deterministic checks, byte-identical: served 1,268, held 125, pipeline (stubbed) 788, D5b teacher 274, live logs 1,538.
+- Header replay, every distinct served generator answer (cdss-eval runs and schema-14 live logs): 684 answers, 204 rewritten, **0 lines lost, 0 deterministic-check changes, 0 brief changes, 0 critical_sections changes**. Six keep a non-canonical header because they have no canonical section to fold into (edgecdss-v1's "DCR CPG ID: 18", "CPG ID:", "RASS / CAM:"; claude-haiku-4.5's "GATE QUESTION" + "CLARIFICATION", "SEIZURE — ADULT, NO IV ACCESS, IM ROUTE", "STANDARD CONCENTRATION FOR LEVETIRACETAM (KEPPRA)").
+
+**Not changed (owner to place if wanted):** the prompt's second template still asks for TREAT, WATCH FOR and a condition explainer; changing the prompt would change generation, so it is out of a format-only item. Deterministic card titles ("SEVERE TBI", "MASCAL TRIAGE") are untouched under ruling 2.
 
 ### B3: vitals caution on an answer that already refuses oral intake (owner, #95 review)
 

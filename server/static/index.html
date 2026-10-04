@@ -742,6 +742,8 @@ function answerHtml(d, body) {
                  String(d.brief).split('\n').map(esc).join('<br>') + '</div>'];
   const split = splitSections(body);
   const pre = trimBlank(split.pre);
+  const chips = sourcesHtml(d.sources);
+  let chipsPlaced = false;
   // Under the brief. Not under a hold or a bare gate question: there is no
   // answer yet to ask about.
   if (!blocked && split.sections.length) parts.push(chipsHtml());
@@ -770,11 +772,14 @@ function answerHtml(d, body) {
       }
       const isCritical = critical.indexOf(sec.name) >= 0;
       const forced = blocked || sec.warn || isCritical || ALWAYS_OPEN.indexOf(sec.name) >= 0;
-      parts.push(sectionHtml(sec.name, renderMd(lines.join('\n')), forced, isCritical, prefs));
+      // B2: one SOURCE section. The retrieval chips go inside the answer's
+      // own SOURCE section rather than a second "SOURCES" fold beside it.
+      const extra = (sec.name === 'SOURCE' && chips) ? '<div class="meta">' + chips + '</div>' : '';
+      if (extra) chipsPlaced = true;
+      parts.push(sectionHtml(sec.name, renderMd(lines.join('\n')) + extra, forced, isCritical, prefs));
     });
   }
-  const chips = sourcesHtml(d.sources);
-  if (chips) parts.push(sectionHtml('SOURCES', '<div class="meta">' + chips + '</div>', false, false, prefs));
+  if (chips && !chipsPlaced) parts.push(sectionHtml('SOURCE', '<div class="meta">' + chips + '</div>', false, false, prefs));
   if (split.notes.length) parts.push('<div class="notes">' + renderMd(split.notes.join('\n')) + '</div>');
   return parts.join('');
 }
