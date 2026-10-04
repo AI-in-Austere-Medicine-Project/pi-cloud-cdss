@@ -60,13 +60,13 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A18 | A dose in a line that names no drug is checked (the question's drug, else held) | **done**: #121, merged and deployed |
 | A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | **done**: #123, merged and deployed |
 | A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | **done**: #125, merged and deployed |
-| A21 | A dose in a clause with a limit word ("not", "max", "avoid") is checked; negation exempts only the dose it negates | in review (owner, 2026-10-04: after A20, before B1) |
+| A21 | A dose in a clause with a limit word ("not", "max", "avoid") is checked; negation exempts only the dose it negates | **done**: #127, merged and deployed |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
 | D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up in review: unclear seeds never paraphrased, fragment hold made complete, v1 source recorded (255 rows) |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | **signed** by the owner, 2026-10-01 (#119) |
-| B1 | Source-mode labelling | after D6 |
+| B1 | Source-mode labelling | in review |
 | B2 | Generator section headers | after B1 |
 | B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
 | C1 | Feedback instrument | after B3 |
@@ -440,6 +440,20 @@ Newly held, each read:
 ### B1: source-mode labelling
 
 A response whose served dose comes from a JTS-cited signed contract is JTS-grounded, regardless of retrieval score. The SOURCE line must carry the contract's citation. The evidence is a fentanyl IV query labelled "general" with ID61 chips showing. Test with that query. Format only.
+
+**Reproduced (2026-10-04):** "80 kg adult, severe pain from a femur fracture, fentanyl IV" (`run_tests.sh` B1, the one case every arm fails on its "ID61" pass string) retrieves the PFC Analgesia and Sedation guideline (ID61) pages as its chips, but its top score is 0.196 against the 0.35 JTS_GROUNDED line, so it is GENERAL_MEDICAL and the model is told to write "General Evidence-Based Medicine". The dose it serves is the signed adult IV fixed dose, 50 mcg, whose contract cites CPG ID61. gpt-4o-mini's live answers write it in the no-volume form ("Draw 50 mcg fentanyl IV. NO VOLUME — …", "Fentanyl IV: 50 mcg"), not a canonical "Draw X mL of Y mg/mL" line: no fentanyl concentration is declared.
+
+**What changed:** after the gate, on served generated answers only (not the general-reference tier, not a hold), `jts_contract_citations` collects the served doses: each canonical GIVE line, and each dose the free-text check accepted against a signed value (`free_text_dose_issues` gains an optional `accepted` collector; its issues are unchanged). Each is matched to the allowed candidates of its drug within 5%, with no absolute floor (the GIVE check's 0.5 mg floor would match fentanyl's 50 mcg IV and 80 mcg IN entries to each other). If every candidate matched is a signed, not owner-declared, contract entry with a JTS citation, `source_mode` becomes JTS_GROUNDED (`source: jts`) and the SOURCE line becomes "Signed dose contract — <the entry's citations>". A JTS-grounded answer keeps its own SOURCE text and gets " · dose: Signed dose contract — …" appended. A mixed answer (one JTS-cited dose, one not) is left as it was.
+
+**Tests:** `server/tests/test_b1_source_mode_labelling.py`, committed failing first (3 failed): gpt-4o-mini's logged answer to the B1 query verbatim (2026-10-03) is labelled JTS, its SOURCE line carries "CPG ID61", and everything above the SOURCE line is unchanged; a canonical GIVE line for the same dose likewise. Guards: the same answer at the NASEMSO 80 mcg IN value, an answer with no dose, and a held answer stay GENERAL_MEDICAL.
+
+**Replay** (main 249d9e3 against B1): deterministic checks, byte-identical in every corpus: served 1,268, held 125, pipeline (stubbed) 788, D5b teacher 274, live logs 1,509: 0 newly held, 0 newly released, 0 changed.
+
+Relabelled (served generated answers whose served doses are all JTS-cited signed entries), each read:
+- **6 × live gpt-4o-mini, the B1 fentanyl query** (2026-09-30 to 10-04): 50 mcg IV, GENERAL_MEDICAL → JTS_GROUNDED, SOURCE cites ID61. The evidence case.
+- **4 × R2-HYPOTENSION-VASOACTIVE-RISK-MAP-POS** ("can I give midazolam to settle him for the move"; claude-sonnet-5 run 3, gemini-3.7-flash ×2, gemini-3.1-pro): midazolam 0.5 mg IV, the signed PFC sedation entry (ID61), INSUFFICIENT → JTS_GROUNDED. The scenario's `expected_source` is "jts". Sonnet's own SOURCE line ("JTS ID61 (sedation dosing) / General Evidence-Based Medicine for shock caution") is replaced, so its "shock caution" attribution is not kept.
+
+No other stored answer (336 GENERAL_MEDICAL, 59 INSUFFICIENT, 55 JTS_GROUNDED runs rows) serves only JTS-cited signed doses. Deterministic cards are untouched: their return paths come before this step.
 
 ### B2: generator section headers
 
