@@ -2007,6 +2007,74 @@ def served_source_line(served: List[DoseCandidate], legacy_label: str) -> str:
     return legacy_label
 
 
+# B1: a generated answer whose served dose comes from a JTS-cited signed
+# contract is JTS-grounded, whatever the retrieval score, and its SOURCE line
+# carries the contract's citation. The fentanyl IV query (run_tests.sh B1)
+# showed CPG ID61 as its source chips and served the ID61-signed 50 mcg IV
+# dose, but scored 0.196 against the 0.35 line, so it was labelled "general"
+# and told to cite "General Evidence-Based Medicine". Format only: applied
+# after the gate, to served answers, so nothing held, served or dosed changes.
+#
+# "Served" is every dose the checks accepted against a signed value: each
+# canonical GIVE line, and each dose the free-text check read and passed
+# ("Draw 50 mcg fentanyl IV. NO VOLUME — ...", "Fentanyl IV: 50 mcg"). Each is
+# matched to the allowed candidates of its drug within 5%, with no absolute
+# floor (the GIVE check's 0.5 mg floor would match fentanyl's 50 mcg IV and
+# 80 mcg IN entries to each other). Every candidate a served dose matches must
+# be a signed, not owner-declared, contract entry with a JTS citation;
+# anything else leaves the answer as it was.
+def jts_contract_citations(response_text: str,
+                           allowed_doses: Optional[List[DoseCandidate]],
+                           patient_ctx: Optional[PatientContext] = None,
+                           query: Optional[str] = None) -> list:
+    """The served contract entries' citations, or [] unless every served dose
+    is from a JTS-cited signed contract entry."""
+    if not allowed_doses or drug_contracts is None:
+        return []
+    served = [(drug_s, [float(mg_s)]) for _v, _c, drug_s, mg_s
+              in re.findall(CANONICAL_GIVE_RE, response_text or "", re.IGNORECASE)]
+    free_text_dose_issues(response_text, allowed_doses, patient_ctx, query, accepted=served)
+    if not served:
+        return []
+    by_source = {_contract_source(name, e): e
+                 for name, entries in drug_contracts.servable_entries().items()
+                 for e in entries}
+    cites = []
+    for drug_s, values in served:
+        words = drug_s.lower().split()
+        matched = [d for d in allowed_doses
+                   if any(d.drug.lower() in w or w in d.drug.lower() for w in words)
+                   and any(abs(v - d.dose_mg) <= d.dose_mg * 0.05 + 1e-9 for v in values)]
+        if not matched:
+            return []
+        for d in matched:
+            entry = by_source.get(d.source) if dose_is_from_contract(d) else None
+            if entry is None or drug_contracts.is_owner_declared(entry):
+                return []
+            entry_cites = [src.get("citation") for src in entry.get("sources") or []
+                           if src.get("citation")]
+            if not any(c.startswith("JTS") for c in entry_cites):
+                return []
+            cites.extend(entry_cites)
+    return list(dict.fromkeys(cites))
+
+
+def with_contract_source_line(response: str, cites: list, jts_retrieved: bool) -> str:
+    """B1: the SOURCE line names the signed contract. A JTS-grounded answer
+    keeps its own citation and adds the dose's; any other answer's SOURCE
+    line ("General Evidence-Based Medicine …") is replaced."""
+    contract = "Signed dose contract — " + "; ".join(cites)
+    lines = (response or "").split("\n")
+    for i, line in enumerate(lines):
+        if line.startswith("**SOURCE**"):
+            if jts_retrieved:
+                lines[i] = f"{line.rstrip()} · dose: {contract}"
+            else:
+                lines[i] = f"**SOURCE**: {contract}"
+            return "\n".join(lines)
+    return (response or "").rstrip() + f"\n\n**SOURCE**: {contract}"
+
+
 # The one-line pointer to the detail tier. A serve tier that silently held
 # things back would be worse than the wall it replaced: the medic has to know
 # there is more and how to ask for it, or "detail tier" just means "deleted
@@ -4032,9 +4100,12 @@ def _free_rate_hold_line(drug: str, shown: str, has_signed_rate: bool,
 def free_text_dose_issues(response_text: str,
                           allowed_doses: Optional[List["DoseCandidate"]],
                           patient_ctx: Optional["PatientContext"] = None,
-                          query: Optional[str] = None) -> list:
+                          query: Optional[str] = None,
+                          accepted: Optional[list] = None) -> list:
     """Issues for doses stated outside the canonical GIVE line. See above.
-    `query` makes rate matching indication-specific (A11b)."""
+    `query` makes rate matching indication-specific (A11b). `accepted`, if
+    given, collects (drug, [mg, ...]) for each dose that matched a signed
+    value (B1's label reads it); it never changes the issues."""
     indications = rate_indications(query) if query else set()
     allowed = {}
     for d in allowed_doses or []:
@@ -4096,6 +4167,8 @@ def free_text_dose_issues(response_text: str,
                     stated = values
                 if stated is not None and all(
                         any(abs(x - a) <= a * 0.05 + 1e-9 for a in ok) for x in stated):
+                    if accepted is not None:
+                        accepted.append((drug, stated))
                     continue
                 issues.append(_free_dose_hold_line(drug, amt.group(0).strip(),
                                                    bool(ok), patient_ctx))
@@ -7008,6 +7081,15 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # logged source=general, which is where the attempt came from.
         if use_general and not outcome.blocked:
             final_response = general_reference.add_banner(final_response)
+        # B1: after the gate, served answers only, for the same reason.
+        if not use_general and not outcome.blocked:
+            cites = jts_contract_citations(
+                response_text, indication_matched(full_query_history, allowed_doses),
+                patient_ctx, full_query_history)
+            if cites:
+                final_response = with_contract_source_line(
+                    final_response, cites, assessment.source_mode == "JTS_GROUNDED")
+                assessment.source_mode = "JTS_GROUNDED"
         # The rejected-vital and boundary notices are applied by _finalise, which
         # sees every return path rather than only this one.
 
