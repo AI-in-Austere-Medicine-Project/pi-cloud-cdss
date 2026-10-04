@@ -101,7 +101,7 @@ def test_a_drugless_mass_dose_is_held_too():
     "- Give a 1000 mL crystalloid bolus.\n",          # a volume is not a mass dose
     "- Cardiovert at 100–150 J.\n",                   # energy is not a dose
     "- Repeat if SBP stays below 90.\n",              # no amount at all
-    "- Do not exceed 3 mg/kg.\n",                     # a limit, not a dose
+    "- Do not give 3 mg/kg.\n",                       # A21: a directly negated dose
 ])
 def test_drugless_lines_that_state_no_dose_are_unchanged(answer):
     issues = _issues(answer, "80kg male, femur fracture, severe pain, what do I give")
