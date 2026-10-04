@@ -3832,6 +3832,46 @@ def _is_gauge(amt, line: str) -> bool:
             and all(float(v).is_integer() and 10 <= float(v) <= 26 for v in amt.group(1, 2) if v))
 
 
+# A20 (owner, 2026-10-03): an amount the patient already took or was given is
+# history, not a dose to give. "He took calcium channel blocker 240 mg this
+# morning." held under A18 as a dose with no drug named. A9's benzo-given
+# detector is the pattern: a history cue within a short window of the amount,
+# in the same clause, with no other amount between them. A negated cue
+# ("hasn't taken") is not one. Never loosen a gate: in a line that also gives
+# an instruction, no amount is history. The teacher's "If 1 g already given and
+# <3 hours from injury: give 1 g more, not 2 g." loses its instruction clause to
+# the limit skip ("not"), so the history clause is what holds that line.
+_HISTORY_CUE_BEFORE_RE = re.compile(
+    r"\b(?:took|taken|got|received|ingested|swallowed|overdosed\s+on|od'?d\s+on|"
+    r"already|home\s+dose|was\s+given|were\s+given|been\s+given)\b", re.IGNORECASE)
+_HISTORY_CUE_AFTER_RE = re.compile(
+    r"\b(?:taken|ingested|swallowed|already|was\s+given|were\s+given|been\s+given)\b",
+    re.IGNORECASE)
+_HISTORY_NEGATION_RE = re.compile(r"(?:n't|\bnot|\bnever|\bno|\byet)\s+(?:\w+\s+)?$",
+                                  re.IGNORECASE)
+_HISTORY_INSTRUCTION_RE = re.compile(
+    r"\b(?:give|giving|administer\w*|push|repeat|re-?dose|start|load|bolus|infuse|"
+    r"titrate|follow\s+with)\b", re.IGNORECASE)
+_HISTORY_ANY_AMOUNT_RE = re.compile(
+    r"\d\s*(?:mg|mcg|µg|μg|ug|micrograms?|milligrams?|g|grams?)\b", re.IGNORECASE)
+
+
+def _is_history_amount(amt, clause: str, line: str) -> bool:
+    """A20: 'took ... 240 mg', '240 mg ... taken': an amount already in the patient."""
+    if _HISTORY_INSTRUCTION_RE.search(line):
+        return False
+
+    def cue_ok(cue, between: str) -> bool:
+        return (len(between) <= 40 and not _HISTORY_ANY_AMOUNT_RE.search(between)
+                and not _HISTORY_NEGATION_RE.search(clause[:cue.start()]))
+
+    before = clause[:amt.start()]
+    if any(cue_ok(c, before[c.end():]) for c in _HISTORY_CUE_BEFORE_RE.finditer(before)):
+        return True
+    after = clause[amt.end():]
+    return any(cue_ok(c, after[:c.start()]) for c in _HISTORY_CUE_AFTER_RE.finditer(after))
+
+
 _FREE_DOSE_CLAUSE_RE = re.compile(r"(?<=[.;:!?])\s+|\s+—\s+|\n")
 _TO_MG_UNIT = {"mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
                "mcg": 0.001, "µg": 0.001, "μg": 0.001, "ug": 0.001,
@@ -4018,6 +4058,8 @@ def free_text_dose_issues(response_text: str,
                 if _FREE_DOSE_THRESHOLD_RE.search(clause[:amt.start()]):
                     continue
                 if drugless and (_is_gauge(amt, line) or _FREE_DOSE_RECIPE_RE.search(clause)):
+                    continue
+                if _is_history_amount(amt, clause, line):
                     continue
                 drug = attribute(amt)
                 if drug is None:
