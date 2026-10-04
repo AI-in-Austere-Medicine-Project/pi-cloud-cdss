@@ -81,8 +81,8 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 
 | Item | Meaning | Status |
 |---|---|---|
-| B1 | A dose served from a JTS-cited signed contract is labelled JTS, with the contract's citation. | In review |
-| B2 | Brief-mode section headers are normalised to DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE. | After B1 |
+| B1 | A dose served from a JTS-cited signed contract is labelled JTS, with the contract's citation. | Done, #128 |
+| B2 | Brief-mode section headers are normalised to DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE. | In review. Served generator answers only; BRIEF, GATE QUESTION, DRIP, VENT, POST-INTUBATION SEDATION kept; the portal's retrieval chips sit inside SOURCE |
 | B3 | The vitals caution stops appending "anything by mouth carries an aspiration risk" to an answer that already refuses oral intake. Format only. | After B2 |
 | C1 | The feedback instrument: session id, the full context in `/feedback`, a working comment field. | After B3 |
 
