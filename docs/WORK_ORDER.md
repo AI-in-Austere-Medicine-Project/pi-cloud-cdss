@@ -60,6 +60,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A18 | A dose in a line that names no drug is checked (the question's drug, else held) | **done**: #121, merged and deployed |
 | A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | **done**: #123, merged and deployed |
 | A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | in review (owner, 2026-10-03: after A19) |
+| A21 | A dose in a clause with a limit word ("not", "max", "avoid") is checked; negation exempts only the dose it negates | queued, after A20, before B1 (owner, 2026-10-04) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -401,10 +402,17 @@ All 73 come from a distilled bench tag acting as its own validator: `edgecdss-v1
 | Held answers, deterministic checks | 125 | 0 | 0 | 0 |
 | Pipeline, model stubbed | 788 | — | — | 0 |
 | D5b teacher answers | 274 | 0 | 0 | 0 |
+| Live session logs (owner's permission, 2026-10-04): schema-14 full answers 146, held model answer 1, older rows' 200-char previews 1,304 | 1,451 | 0 | 0 | 0 |
 
-No stored cdss-eval answer has a history cue within 40 characters of an amount, so the corpora don't exercise the change; the tests carry it. The D5a live session logs (full answers) were not replayed: the session's permission classifier blocked reading them. Owner to run or waive.
+The log texts go through `run_deterministic_checks` with the query, the logged patient context and ALLOWED_DOSES rebuilt from the query (the logs keep no allowed list). No stored cdss-eval answer and no logged query or answer has a history cue within 40 characters of an amount, so no corpus exercises the change; the tests carry it.
 
-**Found (not fixed here):** a clause containing "not" (or another limit word) is skipped whole, so a dose instruction in it is never read. "If not already given, give 1 g." with a TXA question returns no issue on main; so does the teacher's "give 1 g more, not 2 g". Same family as the run-3 "uncited numbers served unheld" finding. Owner to place.
+**Found (not fixed here):** a clause containing "not" (or another limit word) is skipped whole, so a dose instruction in it is never read. "If not already given, give 1 g." with a TXA question returns no issue on main; so does the teacher's "give 1 g more, not 2 g". Placed by the owner as A21 (below).
+
+### A21: a dose in a clause with a limit word (owner, 2026-10-04; after A20, before B1)
+
+**Found (A20):** the free-text dose check skips a whole clause that contains "not", "max", "avoid" or another limit word (`_FREE_DOSE_LIMIT_RE`), so a dose instruction in that clause is never read. With a TXA question, "If 1 g already given and <3 hours from injury: give 1 g more, not 2 g." and "If not already given, give 1 g." return no issue on main.
+
+**Owner's rule:** a clause containing "not", "max", "avoid" or similar is not skipped. The dose in it is checked against the signed value like any other. Negation exempts only the dose it directly negates: "not 2 g" is not a recommendation; "give 1 g more" in the same sentence is. Failing tests first with both TXA sentences. Replay with each newly held row read.
 
 ### B1: source-mode labelling
 
@@ -933,7 +941,6 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 
 ## Found along the way, not yet placed
 
-- **A dose instruction in a clause with a limit word is never read** (found in A20). The limit skip drops the whole clause: "If not already given, give 1 g." and "give 1 g more, not 2 g." return no issue. Owner to place.
 
 - **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
