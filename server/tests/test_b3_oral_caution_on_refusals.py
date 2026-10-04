@@ -71,7 +71,7 @@ def test_advice_by_mouth_still_gets_the_caution(advice):
 
 
 def test_the_hypoglycaemia_rule_is_refusal_aware_too():
-    q = "diabetic found confused, glucose 50"
+    q = "diabetic, glucose 50"  # glucose only: "confused" would arm the AMS rule first
     assert any("glucose" in c for c in _conflicts("Give oral glucose gel.", True, q))
     assert not _conflicts("Nothing by mouth; give IV dextrose.", False, q)
 

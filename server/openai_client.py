@@ -6429,8 +6429,10 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
         return result
 
     if result.get("source_mode") not in GATED_SOURCE_MODES:
-        cautions = vitals_mod.conflicts(result.get("response", ""), ctx.vitals,
-                                        flags={"ams_stated": ctx.ams_stated})
+        cautions = vitals_mod.conflicts(
+            result.get("response", ""), ctx.vitals,
+            flags={"ams_stated": ctx.ams_stated,
+                   "oral_route_advised": oral_route_advised(result.get("response", ""))})
         if cautions:
             outcome = _with_cautions(
                 GateOutcome(response=result.get("response", ""),
@@ -7051,8 +7053,10 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # Step 7b: deterministic vitals conflicts. Python owns the explicit rule
         # table (vitals_rules.json); the validator above catches what a table
         # cannot. Both arrive at the gate as cautions, neither can block.
-        cautions = vitals_mod.conflicts(response_text, patient_ctx.vitals,
-                                        flags={"ams_stated": patient_ctx.ams_stated})
+        cautions = vitals_mod.conflicts(
+            response_text, patient_ctx.vitals,
+            flags={"ams_stated": patient_ctx.ams_stated,
+                   "oral_route_advised": oral_route_advised(response_text)})
 
         # Step 8: Safety gate with full history context
         outcome = apply_safety_gate(
