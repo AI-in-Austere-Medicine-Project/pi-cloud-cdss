@@ -890,6 +890,13 @@ Commit under `tools/distill/`:
 
 The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Instruct` tokenizer): 132 (52%); median answer 328 tokens, p90 491, max 618.
 
+**v2 result (run 2026-10-03, #124): negative; closed by the owner, 2026-10-03. Not trained; the 124-row set is to be deleted (owner's ruling; it is gitignored and was never committed).**
+- Of the 132 re-run rows: 1 shortened under 320 (seed:H-SESS-052, 326 → 308), 102 still over (dropped), 25 excluded by the unasked-drug filter, 4 held. The recheck of the kept rows on main 510dc56 dropped 0. The resulting set was 124 rows (train 118, valid 6).
+- The still-over answers did not get shorter: median 423 tokens before, 431.5 after.
+- The instruction was verified as delivered (generator call only). **The card format in the system prompt sets answer length, and a user-turn instruction can't override it.**
+- Cost estimate was $3.78 expected, $14.94 ceiling (approved $15).
+- The builder change stays (`--shorten-from`, `--recheck`, tests `server/tests/test_distill_v2_shorten.py`). The per-row manifest (ids, outcomes, token counts; no answer text) is kept outside the repo.
+
 **v3 (owner, 2026-10-03): next, after D2 ships and D5a has accumulated rows.** Rows from the D5a logs, generated under the D2 prompt, so answer length drops by design. No new experiments until then.
 
 **Settled (owner, 2026-10-03):** no length cap; the relaxed unasked-drug filter stays v4.
