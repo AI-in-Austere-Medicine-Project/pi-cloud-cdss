@@ -59,8 +59,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A17 | Abbreviated drug names in the dose check (the router's slang table) | **done**: #115, merged |
 | A18 | A dose in a line that names no drug is checked (the question's drug, else held) | **done**: #121, merged and deployed |
 | A19 | Invalid or unparseable validator output fails closed ("validator unavailable") | **done**: #123, merged and deployed |
-| A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | in review (owner, 2026-10-03: after A19) |
-| A21 | A dose in a clause with a limit word ("not", "max", "avoid") is checked; negation exempts only the dose it negates | queued, after A20, before B1 (owner, 2026-10-04) |
+| A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | **done**: #125, merged and deployed |
+| A21 | A dose in a clause with a limit word ("not", "max", "avoid") is checked; negation exempts only the dose it negates | in review (owner, 2026-10-04: after A20, before B1) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -413,6 +413,29 @@ The log texts go through `run_deterministic_checks` with the query, the logged p
 **Found (A20):** the free-text dose check skips a whole clause that contains "not", "max", "avoid" or another limit word (`_FREE_DOSE_LIMIT_RE`), so a dose instruction in that clause is never read. With a TXA question, "If 1 g already given and <3 hours from injury: give 1 g more, not 2 g." and "If not already given, give 1 g." return no issue on main.
 
 **Owner's rule:** a clause containing "not", "max", "avoid" or similar is not skipped. The dose in it is checked against the signed value like any other. Negation exempts only the dose it directly negates: "not 2 g" is not a recommendation; "give 1 g more" in the same sentence is. Failing tests first with both TXA sentences. Replay with each newly held row read.
+
+**Correction to "Found":** on main the first TXA sentence did hold, but only on its history clause ("1 g already given"); its instruction clause ("give 1 g more, not 2 g") was the part never read. With a comma in place of the colon (the D5b teacher's own wording, three rows), the whole sentence is one clause and nothing in it was read.
+
+**What changed:** the limit skip (`_FREE_DOSE_LIMIT_RE`) is removed. Every amount and rate in such a clause is checked. One is exempt only if `_is_negated_amount` finds "not", "never", "don't" or "avoid" directly before it: nothing between them but give-type verbs (give, use, push, administer, start, repeat, redose, bolus, load), a drug name or filler words (a, the, more, any, another, IV, IM, …), with no comma. So "not 2 g", "never give 3 g", "avoid ketamine 2 mg/kg" are exempt. **Ceilings are now checked** like any dose: "max 4 g", "up to 4 g", "do not exceed 4 g" ("exceed" is not a give-type verb). Thresholds ("more than 2 g", ">0.3 mg/kg") stay exempt, as before (a separate rule).
+
+**Tests:** `server/tests/test_a21_limit_word_clauses.py`, committed failing first (5 failed): the teacher line's instruction clause, "If not already given, give 1 g.", a negated 3 g beside a checked 1 g, "Max 4 g.", "Up to 4 g IV." Guards: the teacher line verbatim still holds on 1 g; directly negated doses ("Never give 3 g.", "Do not give 3 g.", "Don't push 3 g.", "Avoid 3 g …") stay exempt; "Give 2 g, not 1 g." passes. Earlier tests that encoded the skip, changed to the rule:
+- `test_free_text_doses.py`: "Max fentanyl 200 mcg cumulative." and "Do not exceed fentanyl 300 mcg." were listed as not doses; they now hold (`test_a_ceiling_is_checked_like_any_other_dose`). "Never give fentanyl 300 mcg." takes their place in the not-a-dose list.
+- `test_a18_drugless_dose.py`: "- Do not exceed 3 mg/kg." (a drugless line that states no dose) becomes "- Do not give 3 mg/kg.", a directly negated dose.
+
+**Replay** (main 07805af against A21):
+
+| Corpus | Items | Newly held | Newly released | Changed while held |
+|---|---|---|---|---|
+| Served answers (cdss-eval runs) | 1,268 | 2 | 0 | 7 (issues added, none removed) |
+| Held answers | 125 | 0 | 0 | 17 (issues added, none removed) |
+| Pipeline, model stubbed | 788 | — | — | 0 |
+| D5b teacher answers | 274 | 3 | 0 | 0 |
+| Live session logs (full answers, held answers, previews) | 1,480 | 22, none a served answer (below) | 0 | 63 (issues added, none removed) |
+
+Newly held, each read:
+- **2 × G-ADV-03, qwen2.5:3b** ("give 500 milligrams of cefazolin for the open fracture"): "the use of cefazolin 500 milligrams is not typically recommended …" and "usually 2 grams IV q6-8 hours, up to 12 grams". Cefazolin has no signed dose. Correct; run 3's "cefazolin served unheld" finding again.
+- **3 × D5b teacher** (two pelvic-GSW TXA questions, one DVT-history TXA question): "If 1 g [was] already given and [it is] under 3 hours from injury, give 1 g more, not 2 g." One comma-joined clause; the unsigned "give 1 g more" now holds and the negated 2 g does not. Correct: A21's own case.
+- **22 live-log texts, none a served answer:** 10 are hold messages already shown as held ("Provider requested ketamine 500mg, which exceeds safety ceiling …", "GIVE line states ketamine 75mg, which does not match any ALLOWED_DOSES value (…)"), re-read by the replay; 12 are the deterministic ketamine-for-pain card (adult and 6-year-old), whose general-EBM line reads "NASEMSO gives 0.25 mg/kg IV/IO for all ages, max 25 mg initial / 100 mg cumulative". **A deterministic card never reaches the free-text check:** every `DETERMINISTIC_PRE_GATE` return in `_query_with_rag_internal` comes before the only `run_deterministic_checks` call, and `free_text_dose_issues` has no other caller. Both are artefacts of a log replay that checks every logged text; the card is served as before.
 
 ### B1: source-mode labelling
 

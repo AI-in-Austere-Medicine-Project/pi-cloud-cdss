@@ -3744,8 +3744,8 @@ def audit_volume_lines(response_text: str,
 #
 # Deliberately not read as a dose:
 #   - a rate or a concentration: "1 mcg/kg", "50 mg/mL", "5 mg / 10 mL";
-#   - a clause that limits or forbids: "max 25 mg", "do not exceed 100 mcg",
-#     "no more than", "up to", "cumulative", "never";
+#   - a dose a negation directly negates: "not 2 g", "never give 3 g",
+#     "avoid ketamine 2 mg/kg" (A21; see below);
 #   - a preparation: "mix 4 mg norepinephrine in 250 mL NS" is the bag, not
 #     the patient's dose;
 #   - a concentration in words: "for every milliliter ... there are 10 mg";
@@ -3794,9 +3794,31 @@ _FREE_DOSE_PER_KG_RE = re.compile(
 _FREE_DOSE_THRESHOLD_RE = re.compile(
     r"(?:[<>≤≥]|\b(?:above|below|over|under|greater than|less than|more than))\s*$",
     re.IGNORECASE)
-_FREE_DOSE_LIMIT_RE = re.compile(
-    r"\b(?:max(?:imum)?|exceed\w*|up to|no more than|cumulative|total dose|"
-    r"not|never|avoid|don'?t|limit|ceiling)\b", re.IGNORECASE)
+# A21 (owner, 2026-10-04): a clause with a limit word ("not", "max", "avoid",
+# "up to", "exceed", ...) used to be skipped whole, so "give 1 g more, not 2 g"
+# and "If not already given, give 1 g" were never read. Such a clause is now
+# checked like any other. Negation exempts only the dose it directly negates:
+# the negator, then nothing but give-type verbs, a drug name or filler words
+# (no comma, no other amount) before the amount. "not 2 g" and "never give
+# 3 g" recommend nothing; "do not exceed 4 g" is a ceiling and is checked, as
+# are "max 4 g" and "up to 4 g".
+_FREE_DOSE_NEGATED_RE = re.compile(
+    r"\b(?:not|never|don'?t|avoid)\b([^.;:,!?\d]*)$", re.IGNORECASE)
+_FREE_DOSE_NEGATED_GAP_WORDS = frozenset({
+    "give", "giving", "use", "using", "push", "pushing", "administer", "start",
+    "repeat", "redose", "bolus", "load", "a", "an", "the", "him", "her", "them",
+    "more", "any", "another", "additional", "extra", "iv", "im", "io", "po", "of"})
+
+
+def _is_negated_amount(amt_start: int, clause: str) -> bool:
+    """A21: 'not 2 g', 'never give 3 g', 'avoid ketamine 2 mg/kg'."""
+    m = _FREE_DOSE_NEGATED_RE.search(clause[:amt_start])
+    if not m:
+        return False
+    gap = m.group(1)
+    for start, end, _drug in sorted(_drug_spans(gap), reverse=True):
+        gap = gap[:start] + " " + gap[end:]
+    return all(w.lower() in _FREE_DOSE_NEGATED_GAP_WORDS for w in re.findall(r"[\w'/-]+", gap))
 # A preparation, not a dose: what goes in the bag or syringe, not the patient.
 # "Mix 4 mg norepinephrine in 250 mL NS" is the recipe the general-reference
 # tier exists to serve; the dose the patient gets is a rate off that bag.
@@ -3838,9 +3860,8 @@ def _is_gauge(amt, line: str) -> bool:
 # detector is the pattern: a history cue within a short window of the amount,
 # in the same clause, with no other amount between them. A negated cue
 # ("hasn't taken") is not one. Never loosen a gate: in a line that also gives
-# an instruction, no amount is history. The teacher's "If 1 g already given and
-# <3 hours from injury: give 1 g more, not 2 g." loses its instruction clause to
-# the limit skip ("not"), so the history clause is what holds that line.
+# an instruction, no amount is history ("If 1 g already given ...: give 1 g
+# more, not 2 g." keeps its 1 g held).
 _HISTORY_CUE_BEFORE_RE = re.compile(
     r"\b(?:took|taken|got|received|ingested|swallowed|overdosed\s+on|od'?d\s+on|"
     r"already|home\s+dose|was\s+given|were\s+given|been\s+given)\b", re.IGNORECASE)
@@ -4038,8 +4059,7 @@ def free_text_dose_issues(response_text: str,
             inherited = last_drug
             if drugs:
                 last_drug = max(drugs, key=lambda sp: sp[1])[2]
-            if (_FREE_DOSE_LIMIT_RE.search(clause)
-                    or _FREE_DOSE_PREP_RE.search(clause)
+            if (_FREE_DOSE_PREP_RE.search(clause)
                     or _FREE_DOSE_PER_VOLUME_RE.search(clause)):
                 continue
             drugless = not drugs and inherited is None
@@ -4055,7 +4075,8 @@ def free_text_dose_issues(response_text: str,
             found = [(amt, 1.0) for amt in _FREE_DOSE_AMOUNT_RE.finditer(clause)]
             found += [(amt, None) for amt in _FREE_DOSE_PER_KG_RE.finditer(clause)]
             for amt, per_kg_weight in found:
-                if _FREE_DOSE_THRESHOLD_RE.search(clause[:amt.start()]):
+                if (_FREE_DOSE_THRESHOLD_RE.search(clause[:amt.start()])
+                        or _is_negated_amount(amt.start(), clause)):
                     continue
                 if drugless and (_is_gauge(amt, line) or _FREE_DOSE_RECIPE_RE.search(clause)):
                     continue
@@ -4081,7 +4102,8 @@ def free_text_dose_issues(response_text: str,
 
             # A11: rates, against the drug's signed rate entries.
             for rate in ([] if drugless else _FREE_DOSE_RATE_RE.finditer(clause)):
-                if _FREE_DOSE_THRESHOLD_RE.search(clause[:rate.start()]):
+                if (_FREE_DOSE_THRESHOLD_RE.search(clause[:rate.start()])
+                        or _is_negated_amount(rate.start(), clause)):
                     continue
                 # A volume rate (mL/hr) belongs to a drug named in the same
                 # clause, never an inherited one: "use oral rehydration

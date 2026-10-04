@@ -119,8 +119,7 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
     "**GIVE**\n- Give fentanyl 80 mcg IN.",                     # the contract dose
     "**TREAT**\n1. Give fentanyl 0.08 mg.",                      # same, in mg
     "**PREP**\n- Fentanyl 50 mcg/mL ampoule.",                   # a concentration
-    "**CAUTIONS**\n- Max fentanyl 200 mcg cumulative.",          # a limit
-    "**TREAT**\n1. Do not exceed fentanyl 300 mcg.",             # a limit
+    "**TREAT**\n1. Never give fentanyl 300 mcg.",               # A21: a negated dose
     "**DON'T**\n- Fentanyl 1 mg IV.",                            # DON'T section
     "**PREP**\n- Mix 4 mg norepinephrine in 250 mL NS.",         # a preparation
     "**GIVE**\n- Draw 1.6 mL of 50mg/mL ketamine IV (80 mg). Indication: x.",  # canonical
@@ -128,6 +127,17 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
 ])
 def test_what_is_not_a_freelanced_dose(text):
     assert oc.free_text_dose_issues(text, _allowed()) == [], text
+
+
+@pytest.mark.parametrize("text, shown", [
+    ("**CAUTIONS**\n- Max fentanyl 200 mcg cumulative.", "fentanyl 200 mcg"),
+    ("**TREAT**\n1. Do not exceed fentanyl 300 mcg.", "fentanyl 300 mcg"),
+])
+def test_a_ceiling_is_checked_like_any_other_dose(text, shown):
+    # A21 (owner, 2026-10-04): a clause with "max" or "not" is no longer
+    # skipped. These two were listed above as limits, not doses, before A21.
+    issues = oc.free_text_dose_issues(text, _allowed())
+    assert any(shown in i for i in issues), issues
 
 
 def test_a_per_kg_dose_is_checked_at_the_patients_weight():
