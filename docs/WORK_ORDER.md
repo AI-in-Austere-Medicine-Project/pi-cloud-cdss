@@ -67,8 +67,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up in review: unclear seeds never paraphrased, fragment hold made complete, v1 source recorded (255 rows) |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | **signed** by the owner, 2026-10-01 (#119) |
 | B1 | Source-mode labelling | **done**: #128, merged and deployed |
-| B2 | Generator section headers | in review |
-| B3 | Vitals caution on an answer that already refuses oral intake | after B2 |
+| B2 | Generator section headers | **done**: #129, merged and deployed |
+| B3 | Vitals caution on an answer that already refuses oral intake | in review |
 | C1 | Feedback instrument | after B3 |
 | D2 | Prompt layout for prefix caching | after C1 |
 | D3 | Retrieval trim to 4 chunks | after D2 |
@@ -477,11 +477,24 @@ Headers drift in brief mode: "SEVERE TBI", "TREAT", "EVAC IF", and both "SOURCE"
 - Deterministic checks, byte-identical: served 1,268, held 125, pipeline (stubbed) 788, D5b teacher 274, live logs 1,538.
 - Header replay, every distinct served generator answer (cdss-eval runs and schema-14 live logs): 684 answers, 204 rewritten, **0 lines lost, 0 deterministic-check changes, 0 brief changes, 0 critical_sections changes**. Six keep a non-canonical header because they have no canonical section to fold into (edgecdss-v1's "DCR CPG ID: 18", "CPG ID:", "RASS / CAM:"; claude-haiku-4.5's "GATE QUESTION" + "CLARIFICATION", "SEIZURE — ADULT, NO IV ACCESS, IM ROUTE", "STANDARD CONCENTRATION FOR LEVETIRACETAM (KEPPRA)").
 
-**Not changed (owner to place if wanted):** the prompt's second template still asks for TREAT, WATCH FOR and a condition explainer; changing the prompt would change generation, so it is out of a format-only item. Deterministic card titles ("SEVERE TBI", "MASCAL TRIAGE") are untouched under ruling 2.
+**Placed (owner, 2026-10-04, #129 review):** the prompt's second template (TREAT, WATCH FOR, the condition explainer) goes into D2, which rewrites the fixed prompt and replays as a model-changing item. Deterministic card titles ("SEVERE TBI", "MASCAL TRIAGE") stay as they are.
 
 ### B3: vitals caution on an answer that already refuses oral intake (owner, #95 review)
 
 The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_aspiration`) match "by mouth" inside "nothing by mouth". So they append "Anything by mouth carries an aspiration risk" to an answer that already says NPO (#95 live harness, claude-sonnet-5). Format only. After B2.
+
+
+**What changed:** `vitals.conflicts` skips the `oral_route_aspiration` group when the caller passes `oral_route_advised: False`, A4's refusal-aware reading of the answer (`openai_client.oral_route_advised`: "nothing by mouth", "do not give oral fluids", "withhold all oral intake", "cannot safely swallow" are refusals; "let him drink", "encourage oral fluids", "do not delay oral glucose" are not). Both call sites (the generated path's step 7b and `_finalise`) pass it. Without the flag the table matches words, as before.
+- **Permission wins (owner, #130 review):** with the flag given, the group follows A4's reading both ways. An answer with a permission beside a refusal ("NPO for now, sips once he's alert") is advised, so the caution fires; so does an advised term the table's own word list lacks ("sips", "PO", "fluid intake"). Before this, "NPO for now, sips once he's alert" got no caution on main either: "sips" is not in the table. All three rules of the group (GCS ≤ 8, stated altered mental status, glucose < 70) are covered.
+
+**Not only format:** a vitals caution also downgrades SAFE to NEEDS_HUMAN_REVIEW and adds the review banner. An answer that loses its only caution therefore loses that downgrade too. Nothing is newly held or released; the verdict moves from NEEDS_HUMAN_REVIEW back to the validator's own.
+
+**Tests:** `server/tests/test_b3_oral_caution_on_refusals.py`, committed failing first (13 failed): run 3's R2-DEPRESSED-GCS refusals verbatim (A4's `R2_REFUSALS`, GCS 7, "he seems thirsty, can I let him drink") served through the pipeline get no oral caution (11 got it on main); the flag on `vitals.conflicts`; the hypoglycaemia rule. Guards: advice by mouth still gets the caution; the table without the flag is unchanged. The hypoglycaemia test's query was changed after that commit to record the glucose only: "confused" armed the AMS rule, which speaks first for the group. Six mixed refusal-and-permission answers added at the owner's review, failing first where they failed (2 of 6, plus a "sips" term test).
+
+**Replay** (main 5cd870e against B3):
+- Deterministic checks, byte-identical: served 1,268, held 125, pipeline (stubbed) 788, D5b teacher 274, live logs 1,567.
+- Vitals cautions, every stored generator answer (cdss-eval runs with the scenario history, whatever the recorded outcome, since answers held before A4 are served now; schema-14 live logs): 1,072 answers, **10 lose the oral caution, 2 gain it**. All ten are R2-DEPRESSED-GCS-ORAL-ROUTE-POS refusals, each read: claude-opus-5 ("nothing by mouth … Keep NPO"), claude-sonnet-5 ×2 ("Do not give oral fluids", "Withhold all oral intake"), gemini-3.7-flash ×2 ("keep strictly NPO", "Absolutely nothing by mouth"), gpt-4o ×2 ("Avoid giving oral fluids", "Do not give anything by mouth"), claude-haiku-4.5 ("NPO (nothing by mouth)"), gemini-3.1-pro ("Do not give anything by mouth"), grok-4 ("No oral fluids … Keep NPO"). None had another caution, so each would lose the review banner.
+- Gained (permission-wins change), each read: qwen2.5:3b R2-DEPRESSED-GCS ("Encourage but do not force fluid intake", GCS 7: advice, correct); qwen2.5:3b H-IM-04 ("levofloxacin 750 mg IV/PO … moxifloxacin 400 mg IV/PO" at GCS 7: A4 reads "PO" as an oral route, so an oral option to a GCS 7 patient is cautioned; fails safe).
 
 ### C1: feedback instrument (feedback review §5)
 
@@ -522,6 +535,8 @@ The global rules above apply, as for the A items:
 **Each D item ends with a before/after table** on the 30-scenario set. It gives the median latency, p95 latency and prompt tokens, for the local arm and one cloud arm.
 
 ### D2: prompt layout for prefix caching
+
+**Also in D2 (owner, 2026-10-04, #129 review):** the generator prompt's second template asks for TREAT, WATCH FOR and a condition explainer ("**DEHYDRATION**" / "**CONDITION**": "What it is: … Why it matters: …"). D2 brings it to the canonical headers (DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE); B2's normaliser stays as the net for what a model writes anyway.
 
 Reorder the LLM prompt so that:
 - everything fixed comes first: system instructions, card format, tone rules;

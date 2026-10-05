@@ -1019,6 +1019,9 @@ def _caution_value(reading: VitalReading) -> str:
     return f"{reading.value:g} {reading.unit}"
 
 
+ORAL_ROUTE_GROUP = "oral_route_aspiration"
+
+
 def _drug_present(response_lower: str, drug: str) -> bool:
     return re.search(r'(?<!\w)' + re.escape(drug.lower()) + r'(?!\w)',
                      response_lower) is not None
@@ -1047,6 +1050,25 @@ def conflicts(response_text: str, readings: dict,
     for rule in CAUTIONS:
         group = rule.get("group")
         if group is not None and group in spoken_for:
+            continue
+        # B3 (owner, #95 and #130 reviews): with A4's refusal-aware reading
+        # passed in (openai_client.oral_route_advised), the oral-route group
+        # follows it both ways. An answer that only refuses oral intake
+        # ("nothing by mouth", "do not give oral fluids") gets no caution; an
+        # answer that advises anything by mouth gets it even beside a refusal
+        # ("NPO for now, sips once he's alert": permission wins) and even when
+        # this table's word list lacks the term ("sips"). Without the flag the
+        # table matches words, as before.
+        oral_advised = (flags or {}).get("oral_route_advised") if group == ORAL_ROUTE_GROUP else None
+        if oral_advised is False:
+            continue
+        if oral_advised is True:
+            armed = _rule_armed(rule, readings, flags)
+            if armed is None:
+                continue
+            values = {name: _caution_value(r) for name, r in armed.items()}
+            out.append(rule.get("caution", "").format(drug="", **values))
+            spoken_for.add(group)
             continue
         armed = _rule_armed(rule, readings, flags)
         if armed is None:
