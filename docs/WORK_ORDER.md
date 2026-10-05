@@ -68,8 +68,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | **signed** by the owner, 2026-10-01 (#119) |
 | B1 | Source-mode labelling | **done**: #128, merged and deployed |
 | B2 | Generator section headers | **done**: #129, merged and deployed |
-| B3 | Vitals caution on an answer that already refuses oral intake | in review |
-| C1 | Feedback instrument | after B3 |
+| B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
+| C1 | Feedback instrument | in review |
 | D2 | Prompt layout for prefix caching | after C1 |
 | D3 | Retrieval trim to 4 chunks | after D2 |
 | D4 | Show the deterministic part first | after D3 |
@@ -503,6 +503,38 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 - The comment field actually posts.
 - Propose, don't apply, a re-derived ISSUE_TAGS list from the 22 flagged entries.
 - Tests for the schema.
+
+
+(The instrument findings are §7 of docs/FEEDBACK_REVIEW_2026-09-03.md, with the corpus caveats in §0; §5 there is patient context.)
+
+**What changed:**
+- **Session id:** the client keeps one id per tab session in `sessionStorage` (`edgecdss.session.v1`); storage that is missing or throws falls back to a page-load id. Sent with every `/query` (`session_id`, logged, never branched on) and every report. `device_id` is unchanged.
+- **Query id:** `query_with_rag` mints a `query_id` (uuid4) per query; `/query` returns it, with the pipeline's `source_mode` (the client had only `source`). The session log line carries both ids: **log schema 15**.
+- **`/feedback`** accepts and stores `session_id`, `query_id`, the `conversation_history` the query was sent with (bounded like `/query`: 100 turns, 256 kB), `model`, `provider`, `validator_result`, `source_mode`, and the whole `response` (capped at 20,000 characters by the schema; `response_preview` stays for tooling). All optional: an old client's report is still accepted. `/feedback/summary` passes the ids and answer metadata through, never the history.
+- **The comment field posts:** the flag panel has a second box, "Anything else? (optional — e.g. voice or app not working)", sent as `comment`. It was in the API and empty in 48 of 48 reports because the client had no box for it.
+- **A refused report is not shown as recorded:** `postFeedback` checks the status; a 401 or 422 shows "feedback failed to send" (it said "recorded" before).
+
+**Tests:** `server/tests/test_c1_feedback_instrument.py`, committed failing first (19 failed): the stored record, the whole response, an old payload, the bounds of every new field and of the history in bytes, the summary projection, `query_id` on the response and the log line (two queries, two ids, schema 15), and the client (session id with try/catch, sent on every query, the report's context, the comment box, a refused report). Changed with the schema: three tests that pinned schema 14 now pin 15; the two pipeline-identity tests in `test_log_contract.py` compare results without `query_id`, which is minted per call by design.
+
+**Replay** (main 9f95b35 against C1): deterministic checks and the stubbed pipeline byte-identical: served 1,268, held 125, pipeline 788, D5b teacher 274, live logs 1,596. Nothing in the pipeline reads either id.
+
+**Proposed ISSUE_TAGS (not applied; owner to choose).** From the 22 flagged reports the review covers (feedback.log, 2026-07-18 to 08-26; 7 of 22 carry any tag, and only three tags were ever used: *Too vague / not actionable* 5, *Missing critical step* 4, *Contradicts current CPG* 1). Each report read and placed by its free text:
+
+| Proposed tag | Reports (of the 22) | Now |
+|---|---|---|
+| Answered a different question | 5: #1 and #11 (RSI bundle to an intubated patient), #16, #17 (asked vent rate, got RSI), #20 (beta-blocker overdose answered as sepsis) | new |
+| Held or refused something safe | 4: #2 (DKA vent settings refused), #8 and #19 (ketamine drip held), #18 (adenosine dose withheld) | new |
+| Patient details misread or re-asked | 3: #13 (weight re-asked though shown), #14 (SpO2 phrasing), #16 (wrong weight saved) | new |
+| Dose or calculation not given | 2: #13 (norepinephrine start), #18 | new |
+| Missing critical step | 4: #3, #4, #12 (push-dose pressor?), #22 (cric technique) | kept |
+| Too vague / not actionable | 4: #3, #4, #5 (wanted a short differential), #6 | kept |
+| Contradicts current CPG | 1: #6 | kept |
+| Dose incorrect | 0 | kept: no report used it, but a wrong dose must always be reportable in one tap |
+
+- Proposed to drop (no report in 22 used or needed them): *Medication choice inappropriate*, *Wrong route/access*, *Sources wrong/irrelevant*, *Format hard to use in field*.
+- Not clinical: #7 ("prompt user to change question style") and #10 ("voice not working") were filed as clinical flags with query "test" because there was nowhere else. The new comment box takes these now; a separate "something's broken" button is the review's suggestion, not built here.
+- Three reports carry no text to place (#9 "amiorderone", #15, #21).
+- The six later reports (#23 to #28, to 2026-09-25) fit the same list: #23, #26, #27 held or refused something safe; #24 missing critical step; #28 a drip question; #25 has no text.
 
 ### D1: evaluation hygiene (one PR; done, #112)
 
