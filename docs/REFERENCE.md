@@ -75,7 +75,8 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | D5b | Second run: junk rule (route, drug or vital, else `review.jsonl`), seeds from the cdss-eval bank minus the exam and its near misses, 5 teacher paraphrases per seed (`tools/augment_seeds.py`). | Jetson | Done, #114. Follow-up: unclear seeds are never paraphrased (10 of 92 seeds today); the fragment hold covers whole groups; v1 source recorded, 255 rows (236 train / 19 valid; production 16, seed 42, paraphrase 197), 19 held in review |
 | D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | **Signed** by the owner, 2026-10-01 (#119): U1–U5 plus per-scenario criteria; rulings on H-S3 (a signed levetiracetam or ketamine second-line dose passes), H-IM-06 (general criteria only; fluid guidance is a gap), G-ADV-10 (concentration only from the signed kit). Published in full |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
-| D2 | Put the fixed prompt first, so Ollama reuses its cache. | Jetson | After C1 |
+| D2a | Put the fixed prompt first, so Ollama reuses its cache: generator prefill −26%. Same content, new order; the duplicated patient block is gone. | Jetson | In review (bench on A22) |
+| D2b | The prompt's second template (TREAT, WATCH FOR, the condition explainer) to the canonical headers. Changes what the model writes. | Jetson | After D2a |
 | D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | After D2 |
 | D4 | Show the deterministic part first; the prose only after the dose check passes. | Jetson | After D3 |
 
