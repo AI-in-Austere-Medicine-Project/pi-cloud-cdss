@@ -4318,9 +4318,75 @@ def _adult_fixed_single_dose_indications(drug: str,
     return list(dict.fromkeys(e.get("indication") or "" for e in single if e.get("indication")))
 
 
+# A23 (owner, 2026-10-05): advice that carries no dose, so no dose check reads
+# it, and that is harmful for a patient the medic says is actively bleeding.
+# Found in the D2a bench: to "have a marine that was hit by an IED - he is
+# bleeding out", local qwen2.5:3b served ventilator settings, "Confirm tube",
+# "Post-intubation sedation" and "Perform surgical airway/cricothyrotomy now",
+# with no step that controls the bleeding; the validator called it SAFE.
+# Massive haemorrhage comes first (MARCH).
+#
+# Narrow, by the owner's rule. It reads only the medic's CURRENT question, and
+# only an active-bleeding statement there (bleeding out, haemorrhaging,
+# exsanguinating, massive / arterial / uncontrolled / active bleeding, won't
+# stop bleeding), not negated or already controlled ("bleeding is controlled",
+# "no active bleeding", "tourniquet effective"). The answer then needs one
+# haemorrhage-control ACTION: tourniquet, direct pressure, packing, a
+# haemostatic dressing, a pelvic binder, controlling or stopping the bleeding.
+# "Assess bleeding" or "treat hemorrhage" is not one. An answer that only asks
+# clarifying questions passes.
+_ACTIVE_BLEEDING_RE = re.compile(
+    r"\b(?:bleeding\s+out|bled\s+out|bleeding\s+heavily|heavy\s+bleeding|"
+    r"h(?:a)?emorrhag(?:ing|es)|exsanguinat\w*|"
+    r"(?:massive|arterial|uncontrolled|active|profuse|catastrophic)\s+(?:bleed\w*|h(?:a)?emorrhage)|"
+    r"(?:won'?t|will\s+not|doesn'?t|does\s+not|not)\s+stop\s+bleeding|spurting|pumping\s+blood)",
+    re.IGNORECASE)
+_BLEEDING_CONTROLLED_RE = re.compile(
+    r"\b(?:no|not|without)\s+(?:active\s+|more\s+|further\s+)?(?:bleed\w*|h(?:a)?emorrhag\w*)"
+    r"|\bbleed\w*\s+(?:is\s+|was\s+|has\s+)?(?:been\s+)?(?:controlled|stopped|under\s+control)"
+    r"|\b(?:tq|tourniquet)s?\s+(?:is\s+|are\s+)?(?:on\s+and\s+)?(?:effective|working)\b"
+    r"|\bcontrolled\s+with\b", re.IGNORECASE)
+_HEMORRHAGE_CONTROL_ACTION_RE = re.compile(
+    r"\b(?:tourniquet\w*|tqs?|direct\s+pressure|(?:firm|manual|wound)\s+pressure|pressure\s+dressing\w*|"
+    r"apply\s+pressure|pack(?:ing)?\s+(?:the\s+)?wound|wound\s+pack\w*|pack(?:ing)?\b|"
+    r"h(?:a)?emostatic\w*|combat\s+gauze|xstat|pelvic\s+binder|junctional\s+(?:device|tourniquet)|"
+    r"(?:control|stop)\w*\s+(?:the\s+|all\s+|any\s+|external\s+|massive\s+)?(?:bleed\w*|h(?:a)?emorrhage)|"
+    r"(?:bleeding|h(?:a)?emorrhage)\s+control)\b", re.IGNORECASE)
+_SECTION_OR_NOTICE_RE = re.compile(r"^\s*(?:⚠️|🔄|\*\*SOURCE|Guideline-based support only)")
+
+
+def _only_clarifying_questions(response_text: str) -> bool:
+    """Every content line is a question: the answer asks, it does not advise."""
+    lines = []
+    for raw in (response_text or "").splitlines():
+        if not raw.strip() or _SECTION_OR_NOTICE_RE.match(raw):
+            continue
+        line = re.sub(r"^\s*(?:\*\*[^*]+\*\*:?\s*)", "", raw)          # a header, with any text after it
+        line = re.sub(r"^\s*(?:[-•*]|\d+[.)])\s+", "", line).strip()
+        if line:
+            lines.append(line)
+    return bool(lines) and all(l.endswith("?") for l in lines)
+
+
+def hemorrhage_control_issues(current_query: str, response_text: str) -> list:
+    """A23: one issue if the medic says the patient is actively bleeding and the
+    answer advises without any haemorrhage-control action."""
+    q = current_query or ""
+    if not _ACTIVE_BLEEDING_RE.search(q) or _BLEEDING_CONTROLLED_RE.search(q):
+        return []
+    if _HEMORRHAGE_CONTROL_ACTION_RE.search(response_text or ""):
+        return []
+    if _only_clarifying_questions(response_text):
+        return []
+    return ["The answer gives no haemorrhage control for a patient described as actively bleeding: "
+            "massive haemorrhage comes first (tourniquet, direct pressure, packing). "
+            "Control the bleeding now and use local protocol."]
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
-                              allowed_doses: Optional[List[DoseCandidate]] = None) -> DeterministicCheck:
+                              allowed_doses: Optional[List[DoseCandidate]] = None,
+                              current_query: Optional[str] = None) -> DeterministicCheck:
     """
     Post-generation safety checks.
     If allowed_doses provided: validate response doses match the contract.
@@ -4377,6 +4443,10 @@ def run_deterministic_checks(query: str, response_text: str,
 
     # ── Doses stated outside the canonical GIVE line ──────────────────────
     issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx, query))
+
+    # ── A23: an actively bleeding patient, an answer with no control step ──
+    issues.extend(hemorrhage_control_issues(current_query if current_query is not None else query,
+                                            response_text))
 
     # ── A dose labelled for an indication it was not built for (A1b) ──────
     issues.extend(indication_label_issues(response_text, allowed_doses))
@@ -7058,7 +7128,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         generator_returned = providers.last_chat_returned_model()
 
         # Step 6: Deterministic post-checks use full history.
-        det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses)
+        det_check = run_deterministic_checks(full_query_history, response_text, patient_ctx, allowed_doses,
+                                             current_query=query)
 
         # Step 7: LLM validator with full transcript
         full_transcript = "\n".join(transcript_lines)
