@@ -156,6 +156,32 @@ LLM_PROVIDERS = ("openai", "local")
 LOCAL_PROVIDER = "local"
 LOCAL_DEFAULT_BASE_URL = "http://localhost:11434/v1"
 LOCAL_DEFAULT_MODEL = "qwen2.5:3b"
+# A22 (owner, 2026-10-05): the context every local call asks Ollama for. Ollama
+# ran qwen2.5:3b at its default 4096, and a longer prompt was cut to about 2050
+# tokens keeping the END, so the local model answered without the generator's
+# fixed instructions (12 of 12 protocol-path prompts in the 30-set). 8192 holds
+# the longest 30-set generator prompt (about 4,400 tokens) plus 700 to write,
+# and qwen2.5:3b at 8192 is 2.4 GB, 100% on the Jetson GPU (measured
+# 2026-10-05). One fixed value, not one per call: a different num_ctx makes
+# Ollama reload the model (65 s measured).
+LOCAL_DEFAULT_NUM_CTX = 8192
+
+
+def local_num_ctx() -> int:
+    """CDSS_LOCAL_NUM_CTX, else 8192. Every local client must ask for the same
+    value, or the model reloads between them."""
+    raw = (os.getenv("CDSS_LOCAL_NUM_CTX") or "").strip()
+    try:
+        return int(raw) if raw else LOCAL_DEFAULT_NUM_CTX
+    except ValueError:
+        print(f"⚠️  CDSS_LOCAL_NUM_CTX={raw!r} is not a number — using {LOCAL_DEFAULT_NUM_CTX}")
+        return LOCAL_DEFAULT_NUM_CTX
+
+
+class PromptExceedsContext(RuntimeError):
+    """A22: the prompt is longer than the context the local model was given.
+    Raised, never served: Ollama is asked not to truncate ("truncate": false)
+    and refuses with exceed_context_size_error instead of cutting the start."""
 
 
 def llm_provider() -> str:
@@ -712,6 +738,47 @@ def _chat_openai_compat(spec: ModelSpec, system: str, messages: list,
     return (choice.message.content or "").strip()
 
 
+def _ollama_native_url(path: str) -> str:
+    """local_base_url() names the OpenAI-compatible root (…/v1); the native API
+    is beside it."""
+    root = local_base_url().rstrip("/")
+    if root.endswith("/v1"):
+        root = root[:-3]
+    return root + path
+
+
+def _chat_local_native(spec: ModelSpec, system: str, messages: list,
+                       temperature: float, max_tokens: int,
+                       timeout: Optional[float] = None) -> str:
+    """A22: the on-device model through Ollama's native /api/chat, which takes
+    options the OpenAI-compatible endpoint does not: num_ctx on every call, and
+    "truncate": false so an oversized prompt is an error, never a silent cut."""
+    import urllib.error
+    import urllib.request
+    num_ctx = local_num_ctx()
+    wire = ([{"role": "system", "content": system}] if system else []) + list(messages)
+    body = {"model": spec.id, "messages": wire, "stream": False, "truncate": False,
+            "options": {"num_ctx": num_ctx, "temperature": temperature,
+                        "num_predict": max_tokens + spec.reserve_tokens}}
+    req = urllib.request.Request(_ollama_native_url("/api/chat"), data=json.dumps(body).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout or 600) as resp:
+            result = json.load(resp)
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace")
+        if "exceed_context_size_error" in detail or "exceeds the available context" in detail:
+            n = re.search(r'n_prompt_tokens\\?"?:\s*(\d+)', detail)
+            raise PromptExceedsContext(
+                f"local/{spec.id}: the prompt ({n.group(1) + ' tokens' if n else 'its size'}) "
+                f"exceeds the context it was given (num_ctx {num_ctx}); refused, not cut"
+            ) from None
+        raise ProviderUnavailable(f"local/{spec.id}: HTTP {e.code}: {_redact(detail)[:200]}") from None
+    _TRUNCATED.set(result.get("done_reason") == "length" if result.get("done") else None)
+    _RETURNED.set(result.get("model"))
+    return ((result.get("message") or {}).get("content") or "").strip()
+
+
 @lru_cache(maxsize=1)
 def _anthropic_accepts_temperature() -> bool:
     """Whether the INSTALLED anthropic SDK still takes a temperature.
@@ -802,6 +869,8 @@ def chat(system: str, messages: list, *, model: str,
     if adapter is None:
         raise ProviderUnavailable(
             f"provider {spec.provider!r} names an unknown adapter")
+    if spec.provider == LOCAL_PROVIDER:
+        adapter = _chat_local_native          # A22: num_ctx, never a silent cut
     if spec.provider == LOCAL_PROVIDER or llm_provider() != "openai":
         text = adapter(spec, system, messages, temperature, max_tokens)
         _SERVED.set((spec.provider, spec.id))
@@ -824,7 +893,9 @@ def chat(system: str, messages: list, *, model: str,
               f"({type(cloud_error).__name__} after {timeout:g} s) — retrying on local/{local.id}")
         _TRUNCATED.set(None)
         try:
-            text = _chat_openai_compat(local, system, messages, temperature, max_tokens)
+            text = _chat_local_native(local, system, messages, temperature, max_tokens)
+        except PromptExceedsContext:
+            raise                             # A22: loud, as itself
         except Exception as local_error:
             raise ProviderUnavailable(
                 f"{spec.provider} unreachable ({type(cloud_error).__name__}) and the "

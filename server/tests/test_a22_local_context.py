@@ -159,8 +159,7 @@ def test_the_cloud_fallback_requests_the_context_too(fake_ollama, monkeypatch):
 
     def down(*a, **k):
         raise openai.APIConnectionError(request=None)
-    monkeypatch.setattr(providers, "_chat_openai_compat",
-                        lambda spec, *a, **k: down() if spec.provider != providers.LOCAL_PROVIDER else None)
+    monkeypatch.setitem(providers._ADAPTERS, "openai_compat", lambda *a, **k: down())
     reply = providers.chat(_long_system(), [{"role": "user", "content": ASK}],
                            model="gpt-4o-mini", temperature=0, max_tokens=20)
     assert START in reply

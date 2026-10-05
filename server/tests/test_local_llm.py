@@ -60,9 +60,24 @@ class FakeOpenAI:
         return types.SimpleNamespace(choices=[_Choice(text)])
 
 
+# A22: local calls go to Ollama's native /api/chat (num_ctx, truncate false),
+# not through the OpenAI SDK. This records them the way FakeOpenAI records the
+# cloud's.
+NATIVE_CALLS = []
+
+
+def _fake_native(spec, system, messages, temperature, max_tokens, timeout=None):
+    NATIVE_CALLS.append({"url": providers._ollama_native_url("/api/chat"), "model": spec.id,
+                         "system": system, "messages": list(messages), "timeout": timeout,
+                         "max_tokens": max_tokens, "temperature": temperature})
+    return (VALIDATOR_OK if system == oc.VALIDATOR_PROMPT else GENERATED).strip()
+
+
 @pytest.fixture(autouse=True)
 def fake_sdk(monkeypatch):
     FakeOpenAI.instances = []
+    NATIVE_CALLS.clear()
+    monkeypatch.setattr(providers, "_chat_local_native", _fake_native)
     monkeypatch.setitem(sys.modules, "openai",
                         types.SimpleNamespace(OpenAI=FakeOpenAI))
     for name in ("CDSS_LLM_PROVIDER", "CDSS_LLM_BASE_URL", "CDSS_LLM_MODEL",
@@ -87,15 +102,22 @@ def _one_call(model):
 
 # ── provider=local ───────────────────────────────────────────────────────────
 
-def test_local_constructs_a_client_on_the_local_endpoint_and_model(monkeypatch):
+def _one_native_call(model):
+    providers.chat("SYSTEM", [{"role": "user", "content": "Q"}],
+                   model=model, temperature=0.2, max_tokens=700)
+    (call,) = NATIVE_CALLS
+    return call
+
+
+def test_local_calls_the_local_endpoint_and_model(monkeypatch):
     monkeypatch.setenv("CDSS_LLM_PROVIDER", "local")
     assert providers.default_model() == "qwen2.5:3b"
     assert providers.validator_model() == "qwen2.5:3b", \
         "offline, a cloud validator would fail every query closed"
-    client, call = _one_call(providers.default_model())
-    assert client.init_kwargs == {"api_key": "not-required",
-                                  "base_url": "http://localhost:11434/v1"}
+    call = _one_native_call(providers.default_model())
+    assert call["url"] == "http://localhost:11434/api/chat"     # A22: the native API
     assert call["model"] == "qwen2.5:3b"
+    assert FakeOpenAI.instances == []
     assert providers.last_chat_served() == ("local", "qwen2.5:3b")
 
 
@@ -103,8 +125,8 @@ def test_local_base_url_and_model_come_from_the_environment(monkeypatch):
     monkeypatch.setenv("CDSS_LLM_PROVIDER", "local")
     monkeypatch.setenv("CDSS_LLM_BASE_URL", "http://127.0.0.1:18080/v1")
     monkeypatch.setenv("CDSS_LLM_MODEL", "llama3.2:3b")
-    client, call = _one_call(providers.default_model())
-    assert client.init_kwargs["base_url"] == "http://127.0.0.1:18080/v1"
+    call = _one_native_call(providers.default_model())
+    assert call["url"] == "http://127.0.0.1:18080/api/chat"
     assert call["model"] == "llama3.2:3b"
     assert oc.model_label("llama3.2:3b") == "local/llama3.2:3b"
 
@@ -257,15 +279,16 @@ def test_a_connection_error_is_answered_by_the_local_model(monkeypatch, exc):
                           model="gpt-4o-mini")
     assert text == GENERATED.strip()
     assert providers.last_chat_served() == ("local-fallback", "qwen2.5:3b")
-    (cloud,), (local,) = _clients()
+    (cloud,), local = _clients()
+    assert local == [], "the fallback went through the OpenAI SDK, not the native API"
     assert len(cloud.calls) == 1, "the cloud attempt was retried"
     assert cloud.options == [{"timeout": 8.0, "max_retries": 0}]
-    assert local.init_kwargs["base_url"] == "http://localhost:11434/v1"
-    # The same request, re-sent: only the model differs.
-    (retry,) = local.calls
-    assert retry["messages"] == cloud.calls[0]["messages"]
-    assert {k: v for k, v in retry.items() if k != "model"} == \
-        {k: v for k, v in cloud.calls[0].items() if k != "model"}
+    # The same request, re-sent on the native API: only the model differs.
+    (retry,) = NATIVE_CALLS
+    assert retry["url"] == "http://localhost:11434/api/chat"
+    assert [{"role": "system", "content": retry["system"]}] + retry["messages"] == \
+        cloud.calls[0]["messages"]
+    assert retry["max_tokens"] == 700 and retry["temperature"] == 0.2
     assert retry["model"] == "qwen2.5:3b"
 
 
@@ -306,7 +329,6 @@ def test_a_401_end_to_end_is_an_error_not_a_local_answer(monkeypatch):
 
 def test_local_mode_never_tries_the_cloud(monkeypatch):
     monkeypatch.setenv("CDSS_LLM_PROVIDER", "local")
-    client, _ = _one_call(providers.default_model())
-    assert client.options == [], "the local call was bounded as if it were cloud"
-    cloud, _local = _clients()
-    assert cloud == []
+    call = _one_native_call(providers.default_model())
+    assert call["timeout"] is None, "the local call was bounded as if it were cloud"
+    assert FakeOpenAI.instances == []

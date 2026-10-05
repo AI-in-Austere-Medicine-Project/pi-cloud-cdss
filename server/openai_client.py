@@ -4571,8 +4571,14 @@ VALIDATOR_UNREADABLE_ISSUE = ("Validator unavailable: it did not return a verdic
                               "read, so this answer was not checked by the validator.")
 
 
-def _validator_unreadable(why: str) -> dict:
-    return {"result": "UNSAFE", "issues": [VALIDATOR_UNREADABLE_ISSUE],
+# A22: what the medic reads when the validator's prompt is longer than the local
+# model's context. Held (the "unreadable" flag keeps any override off it).
+VALIDATOR_CONTEXT_ISSUE = ("Validator unavailable: this answer and its context are longer than the "
+                           "on-device model's context window, so it was not checked by the validator.")
+
+
+def _validator_unreadable(why: str, issue: str = VALIDATOR_UNREADABLE_ISSUE) -> dict:
+    return {"result": "UNSAFE", "issues": [issue],
             "rationale": f"Unreadable validator output ({why}).", "safe": False,
             "unreadable": True}
 
@@ -4637,6 +4643,12 @@ def validate_response(full_transcript: str, response_text: str,
     except json.JSONDecodeError as e:
         print(f"🚨 Validator parse error: {e}")
         return _validator_unreadable(f"parse error: {e}")
+    except providers.PromptExceedsContext as e:
+        # A22: not an outage. The validator never saw the whole answer, so this
+        # holds (as unreadable output does, A19) and says why.
+        print(f"🚨 Validator prompt exceeds the local context: {e}")
+        return _validator_unreadable(f"prompt exceeds the local model's context: {e}",
+                                     VALIDATOR_CONTEXT_ISSUE)
     except Exception as e:
         print(f"🚨 Validator error: {e}")
         return {"result": "NEEDS_HUMAN_REVIEW",
