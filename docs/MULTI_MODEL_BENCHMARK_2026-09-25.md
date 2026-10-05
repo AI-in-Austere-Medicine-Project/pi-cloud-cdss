@@ -1,5 +1,7 @@
 # Multi-model benchmark (run 3), 2026-09-25
 
+> **A22 note (2026-10-05): the local arms below ran with the generator prompt truncated.** Ollama served the local model at its default context (4,096 tokens); nothing requested more. A prompt over that was cut to about 2,050 tokens, keeping the end: the start of the generator prompt (its fixed instructions: identity, SCOPE, the safety and card-format rules) never reached the model. On the 30-set at main bc2e6c1, 12 of 12 protocol-path generator prompts (about 4,400 tokens) were cut; the general-reference prompts and every validator call fit. That applies to this benchmark's local qwen2.5:3b arm and to any cloud turn the hybrid fallback served from local qwen. Cloud arms are unaffected. Fixed by A22: every local call now asks for num_ctx 8192 and refuses to truncate.
+
 This page records measurements only. No prompt, threshold, check or contract
 was changed for any arm. The findings at the end are recorded, not fixed.
 

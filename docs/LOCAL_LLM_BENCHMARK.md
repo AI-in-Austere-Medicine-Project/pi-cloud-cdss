@@ -1,5 +1,7 @@
 # Local LLM benchmark: cloud vs on-device, 2026-09-19
 
+> **A22 note (2026-10-05): the local arms below ran with the generator prompt truncated.** Ollama served the local model at its default context (4,096 tokens); nothing requested more. A prompt over that was cut to about 2,050 tokens, keeping the end: the start of the generator prompt (its fixed instructions: identity, SCOPE, the safety and card-format rules) never reached the model. On the 30-set at main bc2e6c1, 12 of 12 protocol-path generator prompts (about 4,400 tokens) were cut; the general-reference prompts and every validator call fit. The D1 table's local prompt-token counts are those truncated counts (for example 3,988 for H-S1-a = 2,050 generator + 1,938 validator). Cloud arms are unaffected. Fixed by A22: every local call now asks for num_ctx 8192 and refuses to truncate.
+
 This page records measurements only. Nothing was tuned to make the local model
 pass: no prompt, threshold or check was changed between the runs below, and the
 one false positive they exposed (see [Findings](#findings)) is recorded, not
