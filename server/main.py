@@ -36,6 +36,7 @@ FEEDBACK_LOG = os.getenv("FEEDBACK_LOG", "feedback.log")
 # conversation would lose a weight stated in turn 1 rather than fail where
 # someone can see it — the F-1 lesson applied to transport.
 MAX_QUERY_CHARS = 8_000            # longest question anyone has ever asked
+MAX_ID_CHARS = 64                  # C1: session/query ids, provider, verdict, source_mode
 MAX_RESPONSE_CHARS = 20_000        # feedback echoes an answer back at us
 MAX_FEEDBACK_TEXT = 4_000          # suggestion / comment
 MAX_FEEDBACK_ISSUES = 32           # the client offers a fixed tag list
@@ -78,6 +79,9 @@ class QueryRequest(BaseModel):
     # Logged, never branched on — a chip's query goes down exactly the path the
     # same words typed would.
     input_mode: str = Field("typed", max_length=16)
+    # C1: the client's per-tab session id (sessionStorage). Logged, never
+    # branched on, like input_mode.
+    session_id: str = Field("", max_length=MAX_ID_CHARS)
 
     @field_validator("input_mode")
     @classmethod
@@ -124,6 +128,10 @@ class QueryResponse(BaseModel):
     # content, see brief.py — and the section names the client must not fold.
     brief: str = ""
     critical_sections: list = []
+    # C1: the id of this answer (on its log line too) and the pipeline's own
+    # source_mode, both sent back with a feedback report about it.
+    query_id: str = ""
+    source_mode: str = ""
 
 class FeedbackRequest(BaseModel):
     query: str = Field(..., max_length=MAX_QUERY_CHARS)
@@ -137,6 +145,24 @@ class FeedbackRequest(BaseModel):
     suggestion: str = Field("", max_length=MAX_FEEDBACK_TEXT)  # what it should have said
     comment: str = Field("", max_length=MAX_FEEDBACK_TEXT)
     device_id: str = Field("web", max_length=200)
+    # C1 (feedback review §0, §7): enough to reproduce the answer reported on.
+    # All optional, so a client that sends none of them is still accepted.
+    session_id: str = Field("", max_length=MAX_ID_CHARS)
+    query_id: str = Field("", max_length=MAX_ID_CHARS)
+    conversation_history: list = Field(default_factory=list, max_length=MAX_HISTORY_TURNS)
+    model: str = Field("", max_length=128)
+    provider: str = Field("", max_length=MAX_ID_CHARS)
+    validator_result: str = Field("", max_length=MAX_ID_CHARS)
+    source_mode: str = Field("", max_length=MAX_ID_CHARS)
+
+    @field_validator("conversation_history")
+    @classmethod
+    def _history_within_budget(cls, v):
+        """The same byte bound /query applies (MAX_HISTORY_BYTES)."""
+        if len(json.dumps(v, default=str)) > MAX_HISTORY_BYTES:
+            raise ValueError(
+                f"conversation_history exceeds {MAX_HISTORY_BYTES} bytes")
+        return v
 
 from pathlib import Path as _Path
 _WEB_CLIENT = _Path(__file__).parent / "static" / "index.html"
@@ -208,7 +234,8 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             voice_mode=(request.voice_mode == "brief"),
             conversation_history=request.conversation_history,
             synthetic=synthetic, model=request.model or None,
-            input_mode=request.input_mode)
+            input_mode=request.input_mode,
+            session_id=request.session_id)
         ms = int((datetime.now() - start).total_seconds() * 1000)
         return QueryResponse(
             response=result["response"],
@@ -226,7 +253,9 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
             patient_context=result.get("patient_context") or {},
             vitals_cautions=result.get("vitals_cautions", []),
             brief=result.get("brief") or "",
-            critical_sections=result.get("critical_sections") or []
+            critical_sections=result.get("critical_sections") or [],
+            query_id=result.get("query_id") or "",
+            source_mode=result.get("source_mode") or ""
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -237,7 +266,14 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
 # from the public internet. The web client was already sending the header.
 @app.post("/feedback", dependencies=[Depends(require_token)])
 async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
-    entry = {"timestamp": datetime.now().isoformat(), "ip": http_request.client.host, "device_id": feedback.device_id, "feedback_type": feedback.feedback_type, "query": feedback.query, "response_preview": feedback.response[:200], "severity": feedback.severity, "issues": feedback.issues, "suggestion": feedback.suggestion, "comment": feedback.comment}
+    entry = {"timestamp": datetime.now().isoformat(), "ip": http_request.client.host, "device_id": feedback.device_id, "feedback_type": feedback.feedback_type, "query": feedback.query, "response_preview": feedback.response[:200], "severity": feedback.severity, "issues": feedback.issues, "suggestion": feedback.suggestion, "comment": feedback.comment,
+             # C1: the whole answer (capped at MAX_RESPONSE_CHARS by the
+             # schema) and what produced it. response_preview stays for the
+             # tooling that reads it.
+             "response": feedback.response, "session_id": feedback.session_id,
+             "query_id": feedback.query_id, "conversation_history": feedback.conversation_history,
+             "model": feedback.model, "provider": feedback.provider,
+             "validator_result": feedback.validator_result, "source_mode": feedback.source_mode}
     with open(FEEDBACK_LOG, "a") as f:
         # json.dumps, not str(). A dict repr passes a newline inside the
         # caller's own text straight through, so one request could forge as
@@ -251,7 +287,11 @@ async def feedback_endpoint(feedback: FeedbackRequest, http_request: Request):
 # text is capped because a summary is a summary — `query` is exactly where a
 # medic types patient detail.
 _SUMMARY_PASSTHROUGH = ("timestamp", "device_id", "feedback_type", "severity",
-                        "issues")
+                        "issues",
+                        # C1: what produced the answer. Not the history: that
+                        # is where patient detail lives, like `query`.
+                        "session_id", "query_id", "model", "provider",
+                        "validator_result", "source_mode")
 _SUMMARY_TRUNCATED = ("query", "response_preview", "suggestion", "comment")
 SUMMARY_MAX_ENTRIES = 20
 SUMMARY_TEXT_CHARS = 200

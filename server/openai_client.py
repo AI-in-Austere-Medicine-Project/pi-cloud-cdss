@@ -47,6 +47,7 @@ import os
 import re
 import json
 import time
+import uuid
 from dataclasses import dataclass, field, asdict, replace as dc_replace
 from functools import lru_cache
 from typing import Literal, Optional, List, Tuple
@@ -251,7 +252,10 @@ def _get_log_file() -> pathlib.Path:
 # `response_preview` stays, for tooling that reads it. It also adds
 # `model_returned`: the model the provider's reply named for the generator call,
 # beside `model`, the one that was asked for.
-LOG_SCHEMA_VERSION = 14
+# Schema 15 (C1) adds `query_id`, minted here once per query and returned to the
+# client, and `session_id`, the client's per-tab session (sessionStorage): a
+# /feedback report names both, so it can be joined to this line.
+LOG_SCHEMA_VERSION = 15
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -284,7 +288,7 @@ def knowledge_source(source_mode: str) -> str:
 
 def log_query(query: str, result: dict, conversation_history: list = None,
               pipeline_ms: Optional[int] = None, synthetic: bool = False,
-              input_mode: str = "typed"):
+              input_mode: str = "typed", session_id: str = ""):
     """
     Write one structured log entry per query.
     JSONL format — one JSON object per line.
@@ -301,6 +305,8 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "debug_warn_only": DEBUG_WARN_ONLY,
             "synthetic": bool(synthetic),
             "input_mode": input_mode,
+            "query_id": result.get("query_id"),
+            "session_id": session_id,
             "query": query,
             "response_preview": result.get("response", "")[:200],
             "response": None if dropped else result.get("response", ""),
@@ -7155,7 +7161,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    session_ctx: Optional[PatientContext] = None,
                    synthetic: bool = False,
                    model: Optional[str] = None,
-                   input_mode: str = "typed") -> dict:
+                   input_mode: str = "typed",
+                   session_id: str = "") -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
 
@@ -7177,8 +7184,11 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     # Stamped once, here, so the client footer and the log entry can never
     # disagree about which knowledge source answered.
     result["source"] = knowledge_source(result.get("source_mode", "UNKNOWN"))
+    # C1: one id per query, in the response and on its log line, so a feedback
+    # report can name the exact answer it is about. Log hygiene only.
+    result["query_id"] = uuid.uuid4().hex
     pipeline_ms = int((time.perf_counter() - t0) * 1000)
     log_query(query, result, conversation_history,
               pipeline_ms=pipeline_ms, synthetic=synthetic,
-              input_mode=input_mode)
+              input_mode=input_mode, session_id=session_id)
     return result

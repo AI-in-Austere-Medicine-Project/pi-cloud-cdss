@@ -223,7 +223,9 @@ def test_synthetic_does_not_alter_pipeline():
 
     assert on.calls == off.calls, "synthetic must not reach the pipeline"
     assert all("synthetic" not in kwargs for _args, kwargs in on.calls)
-    assert result_on == result_off
+    # C1: query_id is minted per call by design; everything else must match.
+    assert {k: v for k, v in result_on.items() if k != "query_id"} == \
+        {k: v for k, v in result_off.items() if k != "query_id"}
     for field in ("validator_result", "validator_issues", "response_preview",
                   "source_mode", "override_fired"):
         assert entry_on[field] == entry_off[field], field
@@ -242,7 +244,9 @@ def test_input_mode_does_not_alter_pipeline():
     _, result_typed = run_and_read(typed, input_mode="typed")
     assert chip.calls == typed.calls, "input_mode must not reach the pipeline"
     assert all("input_mode" not in kwargs for _args, kwargs in chip.calls)
-    assert result_chip == result_typed
+    # C1: query_id is minted per call by design; everything else must match.
+    assert {k: v for k, v in result_chip.items() if k != "query_id"} == \
+        {k: v for k, v in result_typed.items() if k != "query_id"}
 
 
 def test_run_tests_sends_the_synthetic_header():
@@ -263,7 +267,7 @@ def test_log_schema_version_is_stamped():
     """Pre-v4.1 entries carry no log_schema key; the formats must be
     distinguishable without inferring one from which fields are present."""
     entry, _ = run_and_read(_RecordingInternal())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 14
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 15  # C1: query_id, session_id
     for field in ("pipeline_ms", "synthetic", "override_fired"):
         assert field in entry, f"schema 2 must carry {field}"
     for field in ("source", "model"):

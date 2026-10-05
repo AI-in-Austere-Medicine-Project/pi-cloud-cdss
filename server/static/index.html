@@ -267,6 +267,20 @@ const q = document.getElementById('q');
 const send = document.getElementById('send');
 const history = [];   // {query, response, ts} — ts added in v4.1 so the server can detect an inactivity boundary (SC-1)
 const deviceId = 'web-' + Math.random().toString(36).slice(2, 8);
+// C1: one id per tab session, kept across reloads in sessionStorage, so a
+// medic's queries and reports group together. Storage that is missing or throws
+// (private windows, the render harness) costs the persistence, never the id.
+function sessionIdOf() {
+  const key = 'edgecdss.session.v1';
+  const fresh = 's-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  try {
+    const kept = sessionStorage.getItem(key);
+    if (kept) return kept;
+    sessionStorage.setItem(key, fresh);
+  } catch (e) { /* no storage: this page load's id only */ }
+  return fresh;
+}
+const sessionId = sessionIdOf();
 
 // Coerces rather than assuming a string. Values reach this from a JSON body,
 // where numbers are numbers: confirmed_weight_kg arrives as 75.0, and
@@ -553,35 +567,49 @@ const ISSUE_TAGS = [
   'Too vague / not actionable', 'Format hard to use in field'
 ];
 
+// C1: what produced the answer a report is about, so the report can be
+// reproduced: the ids, the history the query was sent with, and the answer's
+// model, provider, verdict and source_mode.
+function feedbackContext(d, historyUsed) {
+  return {
+    session_id: sessionId, query_id: d.query_id || '',
+    conversation_history: historyUsed || [],
+    model: d.model || '', provider: d.provider || '',
+    validator_result: d.validator_result || '', source_mode: d.source_mode || ''
+  };
+}
+
 async function postFeedback(payload, doneEl) {
   try {
-    await fetch('/feedback', {
+    const r = await fetch('/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json',
                  'X-Access-Token': document.getElementById('token').value },
       body: JSON.stringify(payload)
     });
+    // C1: a refused report (401, 422) is not a recorded one.
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     doneEl.innerHTML = '<span class="fbdone">\u2713 feedback recorded \u2014 thank you</span>';
   } catch (e) {
     doneEl.innerHTML = '<span class="fbdone">feedback failed to send</span>';
   }
 }
 
-function wireFeedback(container, queryText, responseText) {
+function wireFeedback(container, queryText, responseText, context) {
   container.querySelectorAll('.fbbtn').forEach(b => {
     b.onclick = () => {
       if (b.dataset.v === 'appropriate') {
-        postFeedback({ query: queryText, response: responseText,
-          feedback_type: 'appropriate', device_id: deviceId },
+        postFeedback(Object.assign({ query: queryText, response: responseText,
+          feedback_type: 'appropriate', device_id: deviceId }, context || {}),
           b.closest('.fb'));
       } else {
-        openFlagPanel(container, queryText, responseText);
+        openFlagPanel(container, queryText, responseText, context);
       }
     };
   });
 }
 
-function openFlagPanel(container, queryText, responseText) {
+function openFlagPanel(container, queryText, responseText, context) {
   if (container.querySelector('.flagpanel')) return;
   const p = document.createElement('div');
   p.className = 'flagpanel';
@@ -594,17 +622,20 @@ function openFlagPanel(container, queryText, responseText) {
     '<div class="sect"><div class="sect-label">Issue type (all that apply)</div>' +
       ISSUE_TAGS.map(t => '<label><input type="checkbox" value="' + t + '"> ' + t + '</label>').join('') + '</div>' +
     '<div class="sect"><div class="sect-label">What should it have said? Cite protocol if possible.</div>' +
-      '<textarea placeholder="e.g. JTS Burn Care CPG calls for..."></textarea></div>' +
+      '<textarea class="suggestion" placeholder="e.g. JTS Burn Care CPG calls for..."></textarea></div>' +
+    '<div class="sect"><div class="sect-label">Anything else? (optional \u2014 e.g. voice or app not working)</div>' +
+      '<textarea class="comment" placeholder="comment"></textarea></div>' +
     '<div class="row"><button class="primary">SUBMIT REPORT</button><button class="cancel">cancel</button></div>';
   container.querySelector('.bubble').appendChild(p);
   p.querySelector('.cancel').onclick = () => p.remove();
   p.querySelector('.primary').onclick = () => {
     const sev = p.querySelector('input[name=sev]:checked').value;
     const issues = [...p.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value);
-    const suggestion = p.querySelector('textarea').value.trim();
-    postFeedback({ query: queryText, response: responseText,
-      feedback_type: 'flagged', severity: sev, issues, suggestion,
-      device_id: deviceId }, p);
+    const suggestion = p.querySelector('textarea.suggestion').value.trim();
+    const comment = p.querySelector('textarea.comment').value.trim();
+    postFeedback(Object.assign({ query: queryText, response: responseText,
+      feedback_type: 'flagged', severity: sev, issues, suggestion, comment: comment,
+      device_id: deviceId }, context || {}), p);
   };
 }
 
@@ -806,6 +837,8 @@ async function ask(followUp, inputMode) {
   addMsg('Medic', esc(text), 'user');
   const pending = addMsg('EdgeCDSS', '<span class="thinking">consulting guidelines</span>');
   const mode = document.querySelector('input[name=mode]:checked').value;
+  // C1: the history this query is sent with, kept for a report about its answer.
+  const historyUsed = history.slice(-50);
   try {
     const r = await fetch('/query', {
       method: 'POST',
@@ -814,7 +847,8 @@ async function ask(followUp, inputMode) {
       body: JSON.stringify({
         query: text, device_id: deviceId,
         timestamp: new Date().toISOString(),
-        voice_mode: mode, conversation_history: history.slice(-50),
+        voice_mode: mode, conversation_history: historyUsed,
+        session_id: sessionId,
         model: document.getElementById('model').value,
         input_mode: (fromChip && inputMode) || 'typed'
       })
@@ -861,7 +895,7 @@ async function ask(followUp, inputMode) {
       });
     });
     decoration('feedback controls', function () {
-      wireFeedback(pending, text, d.response);
+      wireFeedback(pending, text, d.response, feedbackContext(d, historyUsed));
     });
     history.push({ query: text, response: d.response, ts: new Date().toISOString() });
   } catch (e) {
