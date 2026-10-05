@@ -4350,7 +4350,7 @@ _HEMORRHAGE_CONTROL_ACTION_RE = re.compile(
     r"\b(?:tourniquet\w*|tqs?|direct\s+pressure|(?:firm|manual|wound)\s+pressure|pressure\s+dressing\w*|"
     r"apply\s+pressure|pack(?:ing)?\s+(?:the\s+)?wound|wound\s+pack\w*|pack(?:ing)?\b|"
     r"h(?:a)?emostatic\w*|combat\s+gauze|xstat|pelvic\s+binder|junctional\s+(?:device|tourniquet)|"
-    r"(?:control|stop)\w*\s+(?:the\s+|all\s+|any\s+|external\s+|massive\s+)?(?:bleed\w*|h(?:a)?emorrhage)|"
+    r"(?:control|stop)\w*\s+(?:[\w-]+\s+){0,5}?(?:bleed\w*|h(?:a)?emorrhag\w*|blood\s+loss)|"
     r"(?:bleeding|h(?:a)?emorrhage)\s+control)\b", re.IGNORECASE)
 _SECTION_OR_NOTICE_RE = re.compile(r"^\s*(?:⚠️|🔄|\*\*SOURCE|Guideline-based support only)")
 
