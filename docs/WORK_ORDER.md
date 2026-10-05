@@ -69,7 +69,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B1 | Source-mode labelling | **done**: #128, merged and deployed |
 | B2 | Generator section headers | **done**: #129, merged and deployed |
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
-| C1 | Feedback instrument | in review |
+| C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | D2 | Prompt layout for prefix caching | after C1 |
 | D3 | Retrieval trim to 4 chunks | after D2 |
 | D4 | Show the deterministic part first | after D3 |
@@ -518,7 +518,9 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 
 **Replay** (main 9f95b35 against C1): deterministic checks and the stubbed pipeline byte-identical: served 1,268, held 125, pipeline 788, D5b teacher 274, live logs 1,596. Nothing in the pipeline reads either id.
 
-**Proposed ISSUE_TAGS (not applied; owner to choose).** From the 22 flagged reports the review covers (feedback.log, 2026-07-18 to 08-26; 7 of 22 carry any tag, and only three tags were ever used: *Too vague / not actionable* 5, *Missing critical step* 4, *Contradicts current CPG* 1). Each report read and placed by its free text:
+**ISSUE_TAGS: approved as proposed (owner, 2026-10-05) and applied in their own PR.** The four new and the four kept, the four below dropped; non-clinical problems go to the comment box. The list is data: `server/issue_tags.json`, served at `GET /issue_tags` and fetched by the client at load (a failed fetch leaves the panel's text boxes and no checkboxes). An edit is one line there and one in `tests/test_issue_tags.py` (`APPROVED`). Display order: *Dose incorrect* first, then the reports' themes.
+
+**The proposal as approved.** From the 22 flagged reports the review covers (feedback.log, 2026-07-18 to 08-26; 7 of 22 carry any tag, and only three tags were ever used: *Too vague / not actionable* 5, *Missing critical step* 4, *Contradicts current CPG* 1). Each report read and placed by its free text:
 
 | Proposed tag | Reports (of the 22) | Now |
 |---|---|---|

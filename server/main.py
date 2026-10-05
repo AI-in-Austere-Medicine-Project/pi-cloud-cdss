@@ -191,6 +191,18 @@ async def root():
 async def status():
     return await _status_payload()
 
+# The flag panel's issue tags (owner, 2026-10-05). A data file, so changing the
+# list is one line there and one in tests/test_issue_tags.py. Read per request:
+# it is a few hundred bytes, and an edited file needs no restart. Ungated like
+# /models: a fixed list, nothing about any patient or report.
+_ISSUE_TAGS_FILE = _Path(__file__).parent / "issue_tags.json"
+
+
+@app.get("/issue_tags")
+async def issue_tags():
+    return {"tags": json.loads(_ISSUE_TAGS_FILE.read_text(encoding="utf-8"))["tags"]}
+
+
 @app.get("/models")
 async def models():
     """The dropdown's contents: models whose provider actually authenticates.
