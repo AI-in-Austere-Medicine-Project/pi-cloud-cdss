@@ -467,6 +467,7 @@ async function refreshModels() {
   }
 }
 refreshModels();
+loadIssueTags();
 
 async function refreshStatus() {
   const dot = document.getElementById('dot'), stat = document.getElementById('stat');
@@ -561,11 +562,16 @@ function fbControls() {
     '<button class="fbbtn flag" data-v="flagged">\u26a0 flag issue</button></span>';
 }
 
-const ISSUE_TAGS = [
-  'Dose incorrect', 'Medication choice inappropriate', 'Wrong route/access',
-  'Missing critical step', 'Contradicts current CPG', 'Sources wrong/irrelevant',
-  'Too vague / not actionable', 'Format hard to use in field'
-];
+// The flag panel's issue tags come from the server (server/issue_tags.json),
+// not from this file. A failed fetch leaves the list empty: the panel still
+// opens with its two text boxes, so a report can always be filed.
+let issueTags = [];
+async function loadIssueTags() {
+  try {
+    const d = await (await fetch('/issue_tags')).json();
+    if (Array.isArray(d.tags)) issueTags = d.tags.map(String);
+  } catch (e) { /* no tags: the panel keeps its text boxes */ }
+}
 
 // C1: what produced the answer a report is about, so the report can be
 // reproduced: the ids, the history the query was sent with, and the answer's
@@ -620,7 +626,7 @@ function openFlagPanel(container, queryText, responseText, context) {
       '<label><input type="radio" name="sev" value="significant" checked> clinically significant</label>' +
       '<label class="sev-dangerous"><input type="radio" name="sev" value="dangerous"> dangerous if followed</label></div>' +
     '<div class="sect"><div class="sect-label">Issue type (all that apply)</div>' +
-      ISSUE_TAGS.map(t => '<label><input type="checkbox" value="' + t + '"> ' + t + '</label>').join('') + '</div>' +
+      issueTags.map(t => '<label><input type="checkbox" value="' + esc(t) + '"> ' + esc(t) + '</label>').join('') + '</div>' +
     '<div class="sect"><div class="sect-label">What should it have said? Cite protocol if possible.</div>' +
       '<textarea class="suggestion" placeholder="e.g. JTS Burn Care CPG calls for..."></textarea></div>' +
     '<div class="sect"><div class="sect-label">Anything else? (optional \u2014 e.g. voice or app not working)</div>' +

@@ -1,0 +1,13 @@
+{
+  "note": "The flag panel's issue tags, in display order. Owner-approved 2026-10-05 from the 22 flagged reports (docs/WORK_ORDER.md, C1). One tag per line; change tests/test_issue_tags.py APPROVED with it. Non-clinical problems (voice, app) go in the comment box, not a tag.",
+  "tags": [
+    "Dose incorrect",
+    "Answered a different question",
+    "Held or refused something safe",
+    "Missing critical step",
+    "Dose or calculation not given",
+    "Patient details misread or re-asked",
+    "Too vague / not actionable",
+    "Contradicts current CPG"
+  ]
+}
