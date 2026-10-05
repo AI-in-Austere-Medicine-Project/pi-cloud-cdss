@@ -84,7 +84,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | B1 | A dose served from a JTS-cited signed contract is labelled JTS, with the contract's citation. | Done, #128 |
 | B2 | Brief-mode section headers are normalised to DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE. | Done, #129. Served generator answers only; BRIEF, GATE QUESTION, DRIP, VENT, POST-INTUBATION SEDATION kept; the portal's retrieval chips sit inside SOURCE |
 | B3 | The vitals caution stops appending "anything by mouth carries an aspiration risk" to an answer that already refuses oral intake. Format only. | Done, #130. Permission beside a refusal still gets the caution |
-| C1 | The feedback instrument: session id, the full context in `/feedback`, a working comment field. | In review. Log schema 15 (query_id, session_id). ISSUE_TAGS proposal in WORK_ORDER, not applied |
+| C1 | The feedback instrument: session id, the full context in `/feedback`, a working comment field. | Done, #131. Log schema 15 (query_id, session_id). Issue tags: server/issue_tags.json, applied in their own PR |
 
 ## 6. Training vocabulary
 
