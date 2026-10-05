@@ -28,15 +28,21 @@ def _ctx(weight, age=None):
     return oc.PatientContext(confirmed_weight_kg=weight, age_years=age, weight_source="stated")
 
 
-def _main_layout(ctx, assessment, dose_block):
-    """The layout on main before D2a, kept here to compare content against."""
+def _main_layout(ctx, assessment, dose_block, splices=-1):
+    """The layout on main before D2a, kept here to compare content against.
+
+    `splices=-1` is main as it ran: str.replace splices the patient block at
+    EVERY match of GENERATOR_SCOPE_ANCHOR, and the anchor also matches "SCOPE OF
+    PRACTICE", so main carried the patient block twice. `splices=1` is the one
+    splice the code meant."""
     patient_block = oc.build_patient_block(ctx)
     source_block = oc.build_source_block(assessment)
     prompt = oc.GENERATOR_BASE
     if patient_block:
         prompt = prompt.replace(
             oc.GENERATOR_SCOPE_ANCHOR,
-            f"────────────────────────────────\nPATIENT CONTEXT\n────────────────────────────────\n\n{patient_block}\n\n{oc.GENERATOR_SCOPE_ANCHOR}")
+            f"────────────────────────────────\nPATIENT CONTEXT\n────────────────────────────────\n\n{patient_block}\n\n{oc.GENERATOR_SCOPE_ANCHOR}",
+            splices)
     prompt += f"\n\n────────────────────────────────\nRETRIEVED PROTOCOL CONTEXT\n────────────────────────────────\n\n{source_block}"
     prompt += f"\n\n────────────────────────────────\n{dose_block}\n────────────────────────────────"
     return prompt
@@ -51,7 +57,7 @@ def test_the_fixed_text_is_the_whole_prefix():
 def test_same_content_different_order():
     for ctx in (_ctx(80.0), _ctx(20.0, 6), oc.PatientContext()):
         new = oc.build_system_prompt(ctx, ASSESS, DOSES)
-        old = _main_layout(ctx, ASSESS, DOSES)
+        old = _main_layout(ctx, ASSESS, DOSES, splices=1)
         assert collections.Counter(l for l in new.splitlines() if l.strip()) == \
             collections.Counter(l for l in old.splitlines() if l.strip())
 
@@ -65,9 +71,11 @@ def test_per_query_blocks_come_after_the_fixed_text_in_order():
     assert fixed_end <= i_ret < i_pat < i_dose
 
 
-def test_no_patient_no_patient_section():
-    p = oc.build_system_prompt(oc.PatientContext(), ASSESS, DOSES)
-    assert "\nPATIENT CONTEXT\n" not in p[len(oc.GENERATOR_BASE):]
+def test_main_carried_the_patient_block_twice_and_d2a_carries_it_once():
+    # Found in D2a: the anchor "────\nSCOPE" also matches "SCOPE OF PRACTICE".
+    assert oc.GENERATOR_BASE.count(oc.GENERATOR_SCOPE_ANCHOR) == 2
+    assert _main_layout(_ctx(80.0), ASSESS, DOSES).count("\nPATIENT CONTEXT\n") == 2
+    assert oc.build_system_prompt(_ctx(80.0), ASSESS, DOSES).count("\nPATIENT CONTEXT\n") == 1
 
 
 def test_the_general_reference_prompt_is_already_fixed_first():
