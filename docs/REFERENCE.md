@@ -64,6 +64,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A21 | A clause with "not", "max", "avoid" or similar is no longer skipped: its dose is checked against the signed value; negation exempts only the dose it directly negates ("not 2 g"). | Found in A20 (both TXA sentences); owner, 2026-10-04 | Done, #127. Ceilings ("max 4 g", "up to 4 g", "do not exceed 4 g") are now checked; only a directly negated dose ("not 2 g", "never give 3 g") is exempt |
 | A22 | Every local call asks Ollama's native API for num_ctx 8192 (CDSS_LOCAL_NUM_CTX) with truncate false; a prompt over it raises PromptExceedsContext (generator: system error; validator: hold), never a silent cut. | Found in the D2a bench (default 4,096 context cut 12 of 12 protocol-path prompts to ~2,050 tokens, keeping the end); owner, 2026-10-05 | Done, #133. Validator overflow holds (owner confirmed) |
 | A23 | When the current question says the patient is actively bleeding, an answer with no haemorrhage-control action (tourniquet, pressure, packing, haemostatic, binder, control/stop the bleeding) holds; clarifying questions pass. | Found in the D2a bench (H-S1-a: local qwen served vent settings and "cricothyrotomy now" for a bleeding patient); owner, 2026-10-05 | Done, #135 |
+| A23b | "Bleeding from [an external trauma site]" (groin, thigh, neck, axilla, stump, wound …; not nose, gums, rectum) is active bleeding; "bleeding control" is an action only with an action verb. | Found in the D2b bench (G-MTN-04, "he's bleeding from the groin"); owner, 2026-10-06 | In review |
 
 ## 4. D items: data and speed
 
@@ -76,7 +77,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | D1b | Draft `docs/EVALUATION_SET_30.md` from the runner's 30 scenarios, with a pre-written failure criterion for each, for the owner to review and sign like a contract. The authored set can't be found. | Jetson | **Signed** by the owner, 2026-10-01 (#119): U1–U5 plus per-scenario criteria; rulings on H-S3 (a signed levetiracetam or ketamine second-line dose passes), H-IM-06 (general criteria only; fluid guidance is a gap), G-ADV-10 (concentration only from the signed kit). Published in full |
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
 | D2a | Put the fixed prompt first, so Ollama reuses its cache: generator prefill −26%. Same content, new order; the duplicated patient block is gone. | Jetson | Done, #136 |
-| D2b | The prompt's second template (TREAT, WATCH FOR, the condition explainer) to the canonical headers. Changes what the model writes. | Jetson | In review |
+| D2b | The prompt's second template (TREAT, WATCH FOR, the condition explainer) to the canonical headers. Changes what the model writes. | Jetson | Done, #137 |
 | D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | After D2 |
 | D4 | Show the deterministic part first; the prose only after the dose check passes. | Jetson | After D3 |
 

@@ -4350,7 +4350,13 @@ _ACTIVE_BLEEDING_RE = re.compile(
     r"\b(?:bleeding\s+out|bled\s+out|bleeding\s+heavily|heavy\s+bleeding|"
     r"h(?:a)?emorrhag(?:ing|es)|exsanguinat\w*|"
     r"(?:massive|arterial|uncontrolled|active|profuse|catastrophic)\s+(?:bleed\w*|h(?:a)?emorrhage)|"
-    r"(?:won'?t|will\s+not|doesn'?t|does\s+not|not)\s+stop\s+bleeding|spurting|pumping\s+blood)",
+    r"(?:won'?t|will\s+not|doesn'?t|does\s+not|not)\s+stop\s+bleeding|spurting|pumping\s+blood|"
+    # A23b: bleeding from an external trauma site. Medical bleeds (nose, gums,
+    # rectum, urine, vomit) are not in the list and stay out of this check.
+    r"bleed(?:s|ing)\s+(?:heavily\s+|badly\s+|a\s+lot\s+)?from\s+(?:the\s+|his\s+|her\s+|their\s+|a\s+|an\s+)?"
+    r"(?:(?:left|right|upper|lower|inner|outer)\s+)?"
+    r"(?:groin|inguinal\w*|thigh|leg|knee|calf|foot|feet|arm|forearm|elbow|hand|wrist|neck|axilla\w*|armpit|"
+    r"shoulder|buttock|pelvis|femoral|junction\w*|stump|wound|limb|extremit\w*|scalp|face|chest|flank|back))",
     re.IGNORECASE)
 _BLEEDING_CONTROLLED_RE = re.compile(
     r"\b(?:no|not|without)\s+(?:active\s+|more\s+|further\s+)?(?:bleed\w*|h(?:a)?emorrhag\w*)"
@@ -4362,7 +4368,10 @@ _HEMORRHAGE_CONTROL_ACTION_RE = re.compile(
     r"apply\s+pressure|pack(?:ing)?\s+(?:the\s+)?wound|wound\s+pack\w*|pack(?:ing)?\b|"
     r"h(?:a)?emostatic\w*|combat\s+gauze|xstat|pelvic\s+binder|junctional\s+(?:device|tourniquet)|"
     r"(?:control|stop)\w*\s+(?:[\w-]+\s+){0,5}?(?:bleed\w*|h(?:a)?emorrhag\w*|blood\s+loss)|"
-    r"(?:bleeding|h(?:a)?emorrhage)\s+control)\b", re.IGNORECASE)
+    # A23b: "bleeding control" is an action only with a verb that is one;
+    # "Confirm groin wound for bleeding control" names it without doing it.
+    r"(?:achieve|gain|get|establish|obtain|ensure|perform|maintain)\s+(?:[\w-]+\s+){0,2}?(?:bleeding|h(?:a)?emorrhage)\s+control)\b",
+    re.IGNORECASE)
 _SECTION_OR_NOTICE_RE = re.compile(r"^\s*(?:⚠️|🔄|\*\*SOURCE|Guideline-based support only)")
 
 
