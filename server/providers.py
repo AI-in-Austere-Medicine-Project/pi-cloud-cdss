@@ -694,7 +694,7 @@ def last_chat_truncated() -> Optional[bool]:
     """Did the last chat() here stop because it ran out of tokens?
 
     A truncated answer is served silently otherwise: the text simply ends, and
-    whatever the format put last — DON'T, EVAC IF, TLDR, SOURCE, the
+    whatever the format put last — DON'T, EVAC, TLDR, SOURCE, the
     disclaimer — is not there. Read it immediately after the call it describes;
     the next chat() overwrites it.
     """
