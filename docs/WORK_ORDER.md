@@ -64,7 +64,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A21 | A dose in a clause with a limit word ("not", "max", "avoid") is checked; negation exempts only the dose it negates | **done**: #127, merged and deployed |
 | A22 | The local model sees its whole prompt: num_ctx 8192 on every call, an oversized prompt fails loudly | **done**: #133, merged |
 | A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | **done**: #135, merged |
-| A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | in review (owner, 2026-10-06; found in the D2b bench, G-MTN-04) |
+| A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | **done**: #138, merged |
+| A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | in review; draft unsigned (owner, 2026-10-06) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -512,7 +513,40 @@ Newly held, each read:
 - **G-MTN-04, mock CI row** (`ci-20260822…`): no model wrote it. Harmless.
 - Already held, issue added: G-MTN-04 (D2a and D2b bench, qwen: unsigned epinephrine 5 mg "Indication: hemorrhage control") and H-S1-a (D2a bench before tree, qwen: epinephrine "Indication: Hemorrhage control"). Bleeding answers with no control step.
 
-**Queued, owner 2026-10-06: junctional bleeding routing (after A23b).** "Bleeding from the groin" went to the model, not the haemorrhage card. File as a found item: junctional bleeding phrasings route to the DCR card, with junctional-specific content (packing, pressure, junctional tourniquet) drafted for the owner to sign.
+**Queued, owner 2026-10-06: junctional bleeding routing (after A23b).** "Bleeding from the groin" went to the model, not the haemorrhage card. File as a found item: junctional bleeding phrasings route to the DCR card, with junctional-specific content (packing, pressure, junctional tourniquet) drafted for the owner to sign. Filed as A24 (below).
+
+### A24: junctional bleeding to the DCR card, with junctional content for the owner to sign (owner, 2026-10-06; found in the D2b bench)
+
+**Found:** "new casualty, adult male, blast injury, he's bleeding from the groin" (G-MTN-04) went to the model, not the haemorrhage card. The DCR gate's junctional pattern read the site before the bleeding ("groin wound", "groin … bleeding"), not after it ("bleeding from the groin"). Junctional sites, JTS CPG ID82 p.13: "junctional includes axilla/inguinal/cervical".
+
+**What changed:**
+- Routing: the DCR gate's injury pattern also reads "bleeding / haemorrhaging [heavily] from / at / in [the …] [left / right] groin / inguinal / axilla / armpit / neck / cervical". It fires the DCR card as the existing junctional pattern does (ahead of the tension-pneumothorax, sepsis and poisoning exclusions, as before).
+- Content: `server/junctional_card.json`, three DO THIS lines and one WATCH line, each with verbatim corpus quotes and pages, **`signoff: false`**. When the owner signs it (`signoff` true, `reviewed_by`, `review_date`), a junctional question's DCR card leads DO THIS with these lines, adds the WATCH line, and cites them in SOURCE. Unsigned, or for a question that is not junctional, the card is byte for byte as before.
+
+**The draft, for the owner to sign:**
+1. **Junctional bleeding (groin, axilla, neck): pack the wound tightly with a hemostatic dressing (Combat Gauze, Celox Gauze, ChitoGauze; XStat for a deep wound) and put a pressure dressing over it.**
+   - JTS CPG, Damage Control Resuscitation (DCR) in Prolonged Field Care (PFC) (01 Oct 2018; the text also carries 01 Sep 2023: owner to confirm the edition and CPG ID), p.21: "• Limb tourniquets • Wound packing • Pressure dressings • Hemostatic dressings • Junctional tourniquets • Pelvic binders"
+   - JTS CPG, Damage Control Resuscitation (DCR) in Prolonged Field Care (PFC) (01 Oct 2018; the text also carries 01 Sep 2023: owner to confirm the edition and CPG ID), p.5: "Pressure dressings  Hemostatic dressings (Combat Gauze, Celox Gauze, Chito Gauze, and XStat  Junctional tourniquets  Pelvic binders"
+   - JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019), p.8: "and the XSTAT™ device, which injects absorbent sponges into deep wounds to tamponade bleeding."
+   - CCATT CPG, Negative Pressure Wound Therapy (26 Feb 2025; CPG ID to confirm), p.10: "pack the wound tightly and apply a pressure dressing to the entire limb."
+2. **Groin or axilla: apply a junctional tourniquet if one is carried (Combat Ready Clamp, SAM Junctional Tourniquet, Junctional Emergency Treatment Tool).**
+   - JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019), p.8: "Junctional (axillary, neck, and groin) hemorrhage, previously a nearly intractable problem, can now be treated with approved junctional tourniquets (e."
+   - JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019), p.8: ", Combat Ready Clamp, SAM® Junctional Tourniquet, Junctional Emergency Treatment Tool)"
+3. **Until it is on, or if none is carried, hold firm manual pressure on the packed wound.**
+   - CCATT CPG, Negative Pressure Wound Therapy (26 Feb 2025; CPG ID to confirm), p.10: "maintain manual pressure using a team member rather than converting to a junctional tourniquet as manual pressure may be more reliable."
+- WATCH: **Junctional tourniquet on: transition to a pressure dressing within 2 hours when the criteria for conversion are met.**
+   - JTS CPG, Damage Control Resuscitation (DCR) in Prolonged Field Care (PFC) (01 Oct 2018; the text also carries 01 Sep 2023: owner to confirm the edition and CPG ID), p.5: "Tourniquets (limb and junctional) should be transitioned to pressure dressings within 2 hours when criteria for conversion are met"
+
+**Owner to confirm when signing:**
+- The DCR in PFC CPG's edition and CPG ID (its text carries 01 Oct 2018 and 01 Sep 2023, no ID).
+- The CCATT NPWT citation's CPG ID (its text shows "ID 49", which may refer to another CPG).
+- Line 3's source is aeromedical care of a *non-life-threatening* junctional bleed ("If non-life-threatening bleeding is identified from a groin or axillary junctional wound …"); whether it carries to the field is the owner's call.
+- TCCC's "at least 3 minutes of direct pressure" is not in the JTS corpus and is not in the draft; add it with its source if wanted.
+- Neck: no junctional tourniquet is named for the neck; line 2 says "groin or axilla" only.
+
+**Tests:** `server/tests/test_a24_junctional_bleeding.py`, committed failing first (12 failed): the G-MTN-04 question and four other junctional phrasings route to the DCR card (and the G-MTN-04 question through the pipeline gets it); nose, gums and "neck pain, no bleeding" are not junctional; the draft ships unsigned and changes nothing; every draft line cites a page with a quote; signed, the card serves the lines and cites ID18 p.8, and a non-junctional card is unchanged.
+
+**Replay** (main b133514 against A24): deterministic checks byte-identical (served 1,553, held 201, D5b teacher 274, live logs 1,770): **0 newly released**. Pipeline (model stubbed): 2 rows change route, both the G-MTN-04 question (bank and run), from the model (JTS_GROUNDED) to the DCR card (DETERMINISTIC_PRE_GATE). No other stored query reroutes.
 
 ### B1: source-mode labelling
 
