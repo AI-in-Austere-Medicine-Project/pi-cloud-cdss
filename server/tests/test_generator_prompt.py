@@ -85,6 +85,6 @@ def test_the_patient_block_still_reaches_the_generator_prompt():
     prompt = oc.build_system_prompt(ctx, assessment, "")
     assert "PATIENT CONTEXT" in prompt
     assert "80" in prompt
-    assert oc.GENERATOR_SCOPE_ANCHOR in oc.GENERATOR_BASE, (
-        "the splice anchor must exist in the text it splices into")
-    assert prompt.index("PATIENT CONTEXT") < prompt.index("VOICE-FIRST STYLE")
+    # D2a: no splice any more. The block follows the fixed text, once.
+    assert prompt.index("PATIENT CONTEXT") > len(oc.GENERATOR_BASE) - 1
+    assert prompt.count("\nPATIENT CONTEXT\n") == 1

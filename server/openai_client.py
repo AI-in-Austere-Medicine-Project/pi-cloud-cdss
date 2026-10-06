@@ -3659,9 +3659,10 @@ def build_source_block(assessment: RetrievalAssessment) -> str:
         )
 
 
-# Where the patient block is spliced into GENERATOR_BASE. Named because the
-# splice is a string match against a heading, and a heading that is edited
-# without editing this constant silently drops the patient block.
+# Where the patient block WAS spliced into GENERATOR_BASE, before D2a. Kept
+# only for test_d2a_prompt_prefix, which renders main's old layout to compare
+# content: the anchor also matches "SCOPE OF PRACTICE", so that layout carried
+# the patient block twice. Nothing in the pipeline uses it.
 GENERATOR_SCOPE_ANCHOR = "────────────────────────────────\nSCOPE"
 
 
@@ -3669,17 +3670,17 @@ def build_system_prompt(ctx: PatientContext, assessment: RetrievalAssessment,
                         allowed_dose_block: str, now_ts=None) -> str:
     patient_block = build_patient_block(ctx, now_ts=now_ts)
     source_block = build_source_block(assessment)
+    # D2a (prefix caching): GENERATOR_BASE is fixed text and comes first, whole,
+    # so every query shares it as a prefix and a provider that caches prefixes
+    # (Ollama's KV cache) evaluates it once. Everything per-query follows it:
+    # retrieved context, patient context, ALLOWED_DOSES; the question is the
+    # user turn. The patient block used to be spliced in ahead of SCOPE, which
+    # ended the shared prefix at the first patient. Same content, new order
+    # (test_d2a_prompt_prefix).
     prompt = GENERATOR_BASE
-    if patient_block:
-        # Anchored to the SCOPE heading, which replaced NON-MEDICAL QUERY RULE
-        # (F-2). Asserted in test_generator_prompt.py rather than left to fail
-        # silently: a rename that misses this line drops the patient block out
-        # of the prompt entirely and nothing else notices.
-        prompt = prompt.replace(
-            GENERATOR_SCOPE_ANCHOR,
-            f"────────────────────────────────\nPATIENT CONTEXT\n────────────────────────────────\n\n{patient_block}\n\n{GENERATOR_SCOPE_ANCHOR}"
-        )
     prompt += f"\n\n────────────────────────────────\nRETRIEVED PROTOCOL CONTEXT\n────────────────────────────────\n\n{source_block}"
+    if patient_block:
+        prompt += f"\n\n────────────────────────────────\nPATIENT CONTEXT\n────────────────────────────────\n\n{patient_block}"
     prompt += f"\n\n────────────────────────────────\n{allowed_dose_block}\n────────────────────────────────"
     return prompt
 
