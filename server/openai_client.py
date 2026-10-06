@@ -235,7 +235,7 @@ def _get_log_file() -> pathlib.Path:
 # Schema 11 adds `generation_truncated`: true when the generator stopped at its
 # token limit, false when it finished, null when no model wrote the text or the
 # provider did not say. A truncated answer loses the END of its format first,
-# which is where DON'T, EVAC IF, TLDR and SOURCE sit.
+# which is where DON'T, EVAC, TLDR and SOURCE sit.
 # Schema 10 adds `input_mode`: how the query was entered — "typed", "voice", or
 # "chip" for a brief-first follow-up chip. Log hygiene like `synthetic`: it is
 # client-declared, and nothing in the pipeline may branch on it.
@@ -3526,7 +3526,7 @@ RESPONSE FORMAT — JTS SCOPE
 **DON'T**
 - [One contraindication]
 
-**EVAC IF**
+**EVAC**
 - [One threshold trigger]
 
 **TLDR**
@@ -3543,17 +3543,27 @@ RESPONSE FORMAT — NON-JTS SCOPE
 **BRIEF** [required, always first — same rules as above]
 - [At most 3 short lines: dose copied exactly if any, next action, what must not be missed]
 
-**[CONDITION]**
-- What it is: [one sentence]
-- Why it matters: [one sentence]
-
-**TREAT**
-1. [Step 1] 2. [Step 2] 3. [Step 3]
+**DO THIS**
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
 
 **GIVE** [ALLOWED_DOSES only]
 - Draw X mL of Y mg/mL [drug] [route] (Z mg). Indication: [reason].
 
-**WATCH FOR** | **TLDR** | **SOURCE**: General Evidence-Based Medicine
+**WATCH**
+- [One monitoring line]
+
+**DON'T**
+- [One contraindication]
+
+**EVAC**
+- [One threshold trigger]
+
+**TLDR**
+- [One sentence. Most critical action or number.]
+
+**SOURCE**: General Evidence-Based Medicine
 
 Guideline-based support only. Not a substitute for clinical judgment.
 """
@@ -3701,7 +3711,7 @@ CANONICAL_GIVE_RE = (
 
 TRUNCATED_NOTICE = (
     "⚠️ This answer was cut off at its length limit. Anything after the cut — "
-    "DON'T, EVAC IF, TLDR or SOURCE — may be missing. Ask again for the part you "
+    "DON'T, EVAC, TLDR or SOURCE — may be missing. Ask again for the part you "
     "need, and use local protocol.\n\n")
 TRUNCATED_ISSUE = ("Generated response stopped at the token limit; content after "
                    "the cut is missing.")
