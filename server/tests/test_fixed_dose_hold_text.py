@@ -50,7 +50,9 @@ FIXED = [
 
 @pytest.mark.parametrize("query,response,drug,indication", FIXED)
 def test_a_fixed_dose_hold_does_not_blame_the_weight(query, response, drug, indication):
-    issues = _issues(query, response)
+    # A23: "he is bleeding out" answered with TXA alone also holds for having no
+    # haemorrhage control; this test is about the dose issue's text.
+    issues = [i for i in _issues(query, response) if "haemorrhage control" not in i]
     assert len(issues) == 1, issues
     assert "weight" not in issues[0].lower(), issues[0]
 
