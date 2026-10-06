@@ -2668,6 +2668,12 @@ _DCR_INJURY_PATTERN_RE = re.compile(
     r"|\b(?:chest|abdomen|abdominal|torso)\b[^.;]{0,15}\b(?:gsw|gunshot|stab(?:s|bed|bing)?)\b"
     # junctional haemorrhage
     r"|\bjunctional\b|\b(?:groin|axilla\w*|inguinal)\b[^.;]{0,25}\b(?:bleed\w*|wound|hemorrhag\w*)\b"
+    # A24: the site after the bleeding, "bleeding from the groin" (G-MTN-04
+    # went to the model). Junctional sites per JTS CPG ID82 p.13: "junctional
+    # includes axilla/inguinal/cervical".
+    r"|\b(?:bleed\w*|hemorrhag\w*|haemorrhag\w*)\s+(?:heavily\s+|badly\s+|a\s+lot\s+)?(?:from|at|in)\s+"
+    r"(?:the\s+|his\s+|her\s+|their\s+|a\s+)?(?:(?:left|right)\s+)?"
+    r"(?:groin|inguinal\w*|axilla\w*|armpit|neck|cervical)\b"
     # ID18's own population: "massively hemorrhaging casualties"
     r"|\bmassive(?:ly)?\b[^.;]{0,15}\b(?:hemorrhag\w*|haemorrhag\w*|bleed\w*|blood loss)\b",
     re.IGNORECASE)
@@ -5881,12 +5887,45 @@ def build_wpw_drug_block() -> str:
     )
 
 
+# A24 (owner, 2026-10-06): junctional bleeding — groin / inguinal, axilla /
+# armpit, neck (JTS CPG ID82 p.13: "junctional includes axilla/inguinal/
+# cervical") — routes to the DCR card (the pattern above), and the card gains
+# junctional-specific steps from junctional_card.json. The file ships as a
+# cited DRAFT with signoff false; until the owner signs it (signoff true,
+# reviewed_by, review_date) the card is exactly as before, junctional or not.
+_JUNCTIONAL_SITE_RE = re.compile(
+    r"\b(?:bleed\w*|hemorrhag\w*|haemorrhag\w*)\s+(?:heavily\s+|badly\s+|a\s+lot\s+)?(?:from|at|in)\s+"
+    r"(?:the\s+|his\s+|her\s+|their\s+|a\s+)?(?:(?:left|right)\s+)?(?:groin|inguinal\w*|axilla\w*|armpit|neck|cervical)\b"
+    r"|\b(?:groin|axilla\w*|armpit|inguinal)\b[^.;]{0,25}\b(?:bleed\w*|hemorrhag\w*|haemorrhag\w*)\b"
+    r"|\bjunctional\s+(?:bleed\w*|hemorrhag\w*|haemorrhag\w*|wound)",
+    re.IGNORECASE)
+_JUNCTIONAL_CARD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "junctional_card.json")
+
+
+def is_junctional_bleeding(query: str) -> bool:
+    return _JUNCTIONAL_SITE_RE.search(query or "") is not None
+
+
+def junctional_card() -> dict:
+    """The junctional draft, as written (signed or not)."""
+    with open(_JUNCTIONAL_CARD_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _junctional_card_if_signed() -> Optional[dict]:
+    card = junctional_card()
+    if card.get("signoff") is True and card.get("reviewed_by") and card.get("review_date"):
+        return card
+    return None
+
+
 DCR_ID18_SOURCE = ("JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019): p.3 (DCR "
                    "algorithm), p.4 and p.11 (limit crystalloid; blood products first), "
                    "p.10 (recognition)")
 
 
-def build_hemorrhagic_shock_dcr_response(ctx: Optional[PatientContext] = None) -> str:
+def build_hemorrhagic_shock_dcr_response(ctx: Optional[PatientContext] = None,
+                                         query: str = "") -> str:
     """The DCR card. Its TXA line is the SIGNED entry for this patient, served
     verbatim with its contraindications and cautions (owner ruling 12), and
     none when no entry is signed: a missing contract states no number.
@@ -5899,10 +5938,23 @@ def build_hemorrhagic_shock_dcr_response(ctx: Optional[PatientContext] = None) -
     else:
         give = ("- TXA: no signed tranexamic acid dose applies here. Use local protocol "
                 "or medical control.")
+    steps = ["Control hemorrhage immediately: pressure, tourniquet, wound packing, pelvic binder if indicated.",
+             "Treat as hemorrhagic shock. Start damage-control resuscitation.",
+             "Use LTOWB or blood products if available and within protocol. Evacuate urgently."]
+    watch_extra, source_extra = "", ""
+    junctional = _junctional_card_if_signed() if is_junctional_bleeding(query) else None
+    if junctional:
+        steps = [x["text"] for x in junctional["do_this"]] + steps
+        watch_extra = "".join(f"\n- {x['text']}" for x in junctional.get("watch", []))
+        cites = {}
+        for line in junctional["do_this"] + junctional.get("watch", []):
+            for src in line["sources"]:
+                cites.setdefault(src["citation"], set()).add(src["page"])
+        source_extra = " · junctional: " + "; ".join(
+            f"{c} p.{', p.'.join(str(p) for p in sorted(pages))}" for c, pages in cites.items())
+    do_this = "\n".join(f"{i}. {t}" for i, t in enumerate(steps, 1))
     return f"""**DO THIS**
-1. Control hemorrhage immediately: pressure, tourniquet, wound packing, pelvic binder if indicated.
-2. Treat as hemorrhagic shock. Start damage-control resuscitation.
-3. Use LTOWB or blood products if available and within protocol. Evacuate urgently.
+{do_this}
 
 **GIVE**
 {give}
@@ -5914,7 +5966,7 @@ def build_hemorrhagic_shock_dcr_response(ctx: Optional[PatientContext] = None) -
 {served_cautions_block(served)}
 
 **WATCH**
-- Mental status, radial pulse, BP trend, ongoing bleeding, hypothermia, and response to blood products.
+- Mental status, radial pulse, BP trend, ongoing bleeding, hypothermia, and response to blood products.{watch_extra}
 
 **DON'T**
 - Do not give large-volume crystalloid for hemorrhagic shock if blood products are available.
@@ -5925,7 +5977,7 @@ def build_hemorrhagic_shock_dcr_response(ctx: Optional[PatientContext] = None) -
 **TLDR**
 - Hemorrhage with shock: control the bleeding, damage-control resuscitation with blood products, TXA within 3 hours of injury.
 
-**SOURCE**: {DCR_ID18_SOURCE} · doses: {served_source_line(served, "no signed dose")}
+**SOURCE**: {DCR_ID18_SOURCE} · doses: {served_source_line(served, "no signed dose")}{source_extra}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
@@ -7015,7 +7067,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         ):
             print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
             return {
-                "response": build_hemorrhagic_shock_dcr_response(patient_ctx),
+                "response": build_hemorrhagic_shock_dcr_response(patient_ctx, query),
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
                 "validator_result": "DETERMINISTIC_CHECKED",

@@ -1,0 +1,72 @@
+{
+  "_comment": "A24 (owner, 2026-10-06). Junctional-specific lines served at the top of the DCR card's DO THIS when the medic's question states junctional bleeding (groin, axilla, neck). DRAFT, drafted from the JTS corpus with verbatim quotes; NOT SERVED until the owner signs (signoff true, reviewed_by, review_date). Unsigned, the DCR card is exactly as before. Owner to confirm: the PFC CPG's edition and ID; the CCATT citation's ID; line 3's source is aeromedical care of a non-life-threatening junctional bleed, not field doctrine; TCCC's '3 minutes of direct pressure' is not in the corpus and is not in the draft.",
+  "id": "junctional_hemorrhage",
+  "sites": "groin / inguinal, axilla / armpit, neck (cervical): JTS CPG ID82 p.13",
+  "do_this": [
+    {
+      "text": "Junctional bleeding (groin, axilla, neck): pack the wound tightly with a hemostatic dressing (Combat Gauze, Celox Gauze, ChitoGauze; XStat for a deep wound) and put a pressure dressing over it.",
+      "sources": [
+        {
+          "citation": "JTS CPG, Damage Control Resuscitation (DCR) in Prolonged Field Care (PFC) (01 Oct 2018; the text also carries 01 Sep 2023: owner to confirm the edition and CPG ID)",
+          "page": 21,
+          "quote": "• Limb tourniquets • Wound packing • Pressure dressings • Hemostatic dressings • Junctional tourniquets • Pelvic binders"
+        },
+        {
+          "citation": "JTS CPG, Damage Control Resuscitation (DCR) in Prolonged Field Care (PFC) (01 Oct 2018; the text also carries 01 Sep 2023: owner to confirm the edition and CPG ID)",
+          "page": 5,
+          "quote": "Pressure dressings  Hemostatic dressings (Combat Gauze, Celox Gauze, Chito Gauze, and XStat  Junctional tourniquets  Pelvic binders"
+        },
+        {
+          "citation": "JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019)",
+          "page": 8,
+          "quote": "and the XSTAT™ device, which injects absorbent sponges into deep wounds to tamponade bleeding."
+        },
+        {
+          "citation": "CCATT CPG, Negative Pressure Wound Therapy (26 Feb 2025; CPG ID to confirm)",
+          "page": 10,
+          "quote": "pack the wound tightly and apply a pressure dressing to the entire limb."
+        }
+      ]
+    },
+    {
+      "text": "Groin or axilla: apply a junctional tourniquet if one is carried (Combat Ready Clamp, SAM Junctional Tourniquet, Junctional Emergency Treatment Tool).",
+      "sources": [
+        {
+          "citation": "JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019)",
+          "page": 8,
+          "quote": "Junctional (axillary, neck, and groin) hemorrhage, previously a nearly intractable problem, can now be treated with approved junctional tourniquets (e."
+        },
+        {
+          "citation": "JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019)",
+          "page": 8,
+          "quote": ", Combat Ready Clamp, SAM® Junctional Tourniquet, Junctional Emergency Treatment Tool)"
+        }
+      ]
+    },
+    {
+      "text": "Until it is on, or if none is carried, hold firm manual pressure on the packed wound.",
+      "sources": [
+        {
+          "citation": "CCATT CPG, Negative Pressure Wound Therapy (26 Feb 2025; CPG ID to confirm)",
+          "page": 10,
+          "quote": "maintain manual pressure using a team member rather than converting to a junctional tourniquet as manual pressure may be more reliable."
+        }
+      ]
+    }
+  ],
+  "watch": [
+    {
+      "text": "Junctional tourniquet on: transition to a pressure dressing within 2 hours when the criteria for conversion are met.",
+      "sources": [
+        {
+          "citation": "JTS CPG, Damage Control Resuscitation (DCR) in Prolonged Field Care (PFC) (01 Oct 2018; the text also carries 01 Sep 2023: owner to confirm the edition and CPG ID)",
+          "page": 5,
+          "quote": "Tourniquets (limb and junctional) should be transitioned to pressure dressings within 2 hours when criteria for conversion are met"
+        }
+      ]
+    }
+  ],
+  "signoff": false,
+  "reviewed_by": null,
+  "review_date": null
+}
