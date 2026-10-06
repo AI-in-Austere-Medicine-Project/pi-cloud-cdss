@@ -28,6 +28,7 @@ Rules the owner added on later items:
 - Do not merge an unsigned state; re-sign in the same PR.
 - A missing contract must hold; never serve an uncited value.
 - Benchmarks: if a key is missing or a model errors, record it and skip. Do not substitute.
+- **"Newly released" is a replay measure (owner, 2026-10-06, D2a review).** "0 newly released" applies to the replay: the same text through the same checks, before and after the change. A prompt or model change makes the model write different answers; those bench answers are not counted as released. Each one that moves (held to served, or served to held) is read, quoted in the PR's work-order section, and signed off by the owner one by one before the PR merges.
 
 ## Order
 
@@ -62,7 +63,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A20 | History amounts read as doses ("he took 240 mg of his calcium channel blocker") | **done**: #125, merged and deployed |
 | A21 | A dose in a clause with a limit word ("not", "max", "avoid") is checked; negation exempts only the dose it negates | **done**: #127, merged and deployed |
 | A22 | The local model sees its whole prompt: num_ctx 8192 on every call, an oversized prompt fails loudly | **done**: #133, merged |
-| A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | in review (owner, 2026-10-05: before D2a merges) |
+| A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | **done**: #135, merged |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -72,7 +73,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B2 | Generator section headers | **done**: #129, merged and deployed |
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
-| D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | in review; bench on top of A22 |
+| D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | approved by the owner, 2026-10-06 (replay 0 newly released; two bench movements signed off) |
 | D2b | The prompt's second template to the canonical headers (model-changing) | after D2a |
 | D3 | Retrieval trim to 4 chunks | after D2 |
 | D4 | Show the deterministic part first | after D3 |
@@ -674,7 +675,9 @@ How to read it:
   - **R2-BRADYCARDIA-AV-NODAL-BLOCKER-POS** ("what about diltiazem"): before, unsigned diltiazem doses (held); after, "What is the patient's rhythm? Is there a concern for WPW?", a clarifying question.
   - Cloud: G-ADV-03 goes the other way (served → held, cefazolin 500 mg). The rest vary within both trees (H-S1-b, G-TRA-07, G-DIC-04, R2-DEPRESSED-GCS-ORAL-ROUTE-POS).
 
-**Owner to decide:** the prefill gain is real and reproducible (−26% generator prefill, cold calls gone), but end-to-end latency barely moves, and on local qwen the new order moves three answers from held to served, one of them clinically wrong. Whether D2a merges as is, waits for D2b, or waits on a no-dose content check is the owner's call.
+**Owner sign-off (2026-10-06):** the replay meets "0 newly released" (the rule above). Bench movements approved one by one: **R2-BRADYCARDIA-AV-NODAL-BLOCKER-POS**, the clarifying question; **G-ADV-04**, the no-dose monitoring plan. H-S1-a is held in both trees under A23 (#135).
+
+**Was for the owner to decide:** the prefill gain is real and reproducible (−26% generator prefill, cold calls gone), but end-to-end latency barely moves, and on local qwen the new order moves three answers from held to served, one of them clinically wrong. Whether D2a merges as is, waits for D2b, or waits on a no-dose content check is the owner's call.
 
 Reorder the LLM prompt so that:
 - everything fixed comes first: system instructions, card format, tone rules;
