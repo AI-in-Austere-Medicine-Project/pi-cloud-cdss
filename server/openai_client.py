@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 21 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 22 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -5919,6 +5919,15 @@ def _junctional_card_if_signed() -> Optional[dict]:
     return None
 
 
+# Owner, 2026-10-07 (#139 review): while the junctional card is unsigned, ALL
+# junctional bleeding holds, including phrasings that reached the generic DCR
+# card before A24. The generic card has no junctional steps, and the hold
+# names no unsigned content.
+JUNCTIONAL_UNSIGNED_ISSUE = ("Junctional bleeding (groin, axilla or neck) is recorded, and EdgeCDSS has no "
+                             "signed junctional guidance yet. Control the bleeding per local protocol and "
+                             "contact medical control.")
+
+
 DCR_ID18_SOURCE = ("JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019): p.3 (DCR "
                    "algorithm), p.4 and p.11 (limit crystalloid; blood products first), "
                    "p.10 (recognition)")
@@ -6534,7 +6543,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    twenty-one early returns before retrieval — count them with the source_mode
+    twenty-two early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -7065,6 +7074,16 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             and not looks_like_sepsis(query)
             and not looks_like_poisoning(query)
         ):
+            if is_junctional_bleeding(query) and _junctional_card_if_signed() is None:
+                print("🛑 JUNCTIONAL BLEEDING — card unsigned, held")
+                return {
+                    "response": build_safety_hold([JUNCTIONAL_UNSIGNED_ISSUE], ""),
+                    "sources": [],
+                    "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "UNSAFE",
+                    "validator_issues": [JUNCTIONAL_UNSIGNED_ISSUE],
+                    "patient_context": patient_ctx.to_dict()
+                }
             print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
             return {
                 "response": build_hemorrhagic_shock_dcr_response(patient_ctx, query),
