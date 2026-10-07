@@ -3363,7 +3363,16 @@ def classify_retrieval(results: dict) -> RetrievalAssessment:
                 'confidence': round(score, 3)
             })
 
-    context_text = "\n\n".join(context_parts) if context_parts else ""
+    # D3: the model gets the CDSS_RAG_CONTEXT_K (4) best chunks by similarity,
+    # best first; the source mode and the chips still read all of them. A
+    # reranker would cost a second model pass on the Jetson; the retrieval's
+    # own score ranks them for nothing.
+    scored = []
+    if results and results.get("documents"):
+        dists = results.get("distances") or [[1.0] * len(results["documents"][0])]
+        scored = sorted(zip(results["documents"][0], dists[0]), key=lambda x: x[1])
+    keep = [doc for doc, _d in scored[:_env_number("CDSS_RAG_CONTEXT_K", 4, int)]]
+    context_text = "\n\n".join(keep) if keep else ""
     if top_score >= 0.35:
         source_mode = "JTS_GROUNDED"
     elif top_score >= 0.10 and context_text:
