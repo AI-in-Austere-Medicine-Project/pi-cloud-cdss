@@ -546,7 +546,7 @@ Newly held, each read:
 
 **Tests:** `server/tests/test_a24_junctional_bleeding.py`, committed failing first (12 failed): the G-MTN-04 question and four other junctional phrasings route to the DCR card (and the G-MTN-04 question through the pipeline gets it); nose, gums and "neck pain, no bleeding" are not junctional; the draft ships unsigned and changes nothing; every draft line cites a page with a quote; signed, the card serves the lines and cites ID18 p.8, and a non-junctional card is unchanged.
 
-**Replay** (main b133514 against A24): deterministic checks byte-identical (served 1,553, held 201, D5b teacher 274, live logs 1,770): **0 newly released**. Pipeline (model stubbed): 2 rows change route, both the G-MTN-04 question (bank and run), from the model (JTS_GROUNDED) to the DCR card (DETERMINISTIC_PRE_GATE). No other stored query reroutes.
+**Replay** (re-run after rebasing on main d7d756d, with A23b): deterministic checks byte-identical (served 1,553, held 201, D5b teacher 274, live logs 1,770): **0 newly released**. Pipeline (model stubbed): 2 rows change route, both the G-MTN-04 question (bank and run), from the model (JTS_GROUNDED; the stub answer held by A23b, UNSAFE) to the DCR card (DETERMINISTIC_PRE_GATE). No other stored query reroutes. (Against b133514, before A23b, the same two rows went from a served stub answer to the card.)
 
 ### B1: source-mode labelling
 
