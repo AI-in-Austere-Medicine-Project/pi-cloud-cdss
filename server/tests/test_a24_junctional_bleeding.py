@@ -49,9 +49,40 @@ class _NoRetrieval:
         return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
 
-def test_the_g_mtn_04_question_gets_the_dcr_card():
-    r = oc._query_with_rag_internal(G_MTN_04, _NoRetrieval())
+# Owner, 2026-10-07 (#139 review): while the junctional card is unsigned, ALL
+# junctional bleeding holds — the generic DCR card has no junctional steps.
+# That includes phrasings main already sent to the generic card ("groin wound
+# bleeding heavily", "junctional bleed").
+JUNCTIONAL_QUESTIONS = [
+    G_MTN_04,
+    "groin wound bleeding heavily",
+    "junctional bleed left groin",
+    "bleeding from the left axilla after a frag wound",
+]
+
+
+@pytest.mark.parametrize("query", JUNCTIONAL_QUESTIONS)
+def test_unsigned_junctional_bleeding_holds(query):
+    r = oc._query_with_rag_internal(query, _NoRetrieval())
     assert r["source_mode"] == "DETERMINISTIC_PRE_GATE", r["source_mode"]
+    assert r["validator_result"] == "UNSAFE", r["validator_result"]
+    assert r["response"].startswith("Clinical safety hold.")
+    assert any("junctional" in i.lower() and "signed" in i.lower() for i in r["validator_issues"])
+    assert "Control hemorrhage immediately" not in r["response"]
+
+
+@pytest.mark.parametrize("query", JUNCTIONAL_QUESTIONS)
+def test_signed_junctional_bleeding_gets_the_card_with_the_lines(query, monkeypatch):
+    signed = dict(oc.junctional_card(), signoff=True, reviewed_by="owner", review_date="2026-10-07")
+    monkeypatch.setattr(oc, "junctional_card", lambda: signed)
+    r = oc._query_with_rag_internal(query, _NoRetrieval())
+    assert r["validator_result"] == "DETERMINISTIC_CHECKED", r["validator_result"]
+    assert signed["do_this"][0]["text"] in r["response"]
+
+
+def test_non_junctional_haemorrhage_still_gets_the_generic_card():
+    r = oc._query_with_rag_internal("GSW left thigh, bleeding heavily, BP 80/40", _NoRetrieval())
+    assert r["validator_result"] == "DETERMINISTIC_CHECKED"
     assert "Control hemorrhage immediately" in r["response"]
 
 
