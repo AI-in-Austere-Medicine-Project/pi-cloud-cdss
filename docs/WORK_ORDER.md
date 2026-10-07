@@ -65,7 +65,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A22 | The local model sees its whole prompt: num_ctx 8192 on every call, an oversized prompt fails loudly | **done**: #133, merged |
 | A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | **done**: #135, merged |
 | A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | **done**: #138, merged |
-| A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | in review; draft unsigned (owner, 2026-10-06) |
+| A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card unsigned (owner to sign after checking the citations) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -76,7 +76,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
-| D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements G-MTN-04 and G-ADV-03 awaiting the owner's sign-off |
+| D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | after D2 |
 | D4 | Show the deterministic part first | after D3 |
 | E1 | Validator wording sensitivity | after D4 |
@@ -761,6 +761,8 @@ How to read it:
 | Local qwen2.5:3b ×3 | after | 7.78 / 15.00 s | 5,539 (6,725) | **0 / 72** | 54 / 221 | 29/29 ×3 |
 | gpt-4o-mini ×2 | before | 3.65 / 7.14 s | 5,360 (6,403) | 17 / 48 | 60 / 194 | 29/29 ×2 |
 | gpt-4o-mini ×2 | after | 3.64 / 5.50 s | 5,386 (6,574) | **0 / 48** | 57 / 200 | 29/29 ×2 |
+
+**Owner sign-off (2026-10-07):** G-MTN-04 **rejected**; G-ADV-03 **approved**. The rejected movement no longer serves: A23b (#138) holds those answers, and A24 (#139) holds every junctional-bleeding question deterministically, before the model, until the junctional card is signed.
 
 **Bench movements for the owner's sign-off (held in every before pass, served in every after pass):**
 
