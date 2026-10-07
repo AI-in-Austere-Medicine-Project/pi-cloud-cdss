@@ -77,7 +77,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
-| D3 | Retrieval trim to 4 chunks | after D2 |
+| D3 | Retrieval trim to 4 chunks | in review; one bench movement for the owner's sign-off |
 | D4 | Show the deterministic part first | after D3 |
 | E1 | Validator wording sensitivity | after D4 |
 
@@ -796,6 +796,31 @@ Cut the number of chunks passed to the model from the current top-k to 4. Use a 
 - the DCR and TBI routing tests still pass.
 
 Report the prompt tokens saved per query.
+
+
+**What changed:** `classify_retrieval` gives the generator the `CDSS_RAG_CONTEXT_K` (default 4) best chunks by the retrieval's own similarity score, best first, instead of all `CDSS_RAG_TOP_K` (10). The source mode (JTS-grounded / general / insufficient) and the source list (the chips) still read all 10; retrieval still fetches 10 with the species (canine) filter. **No reranker:** a cross-encoder would be a second model pass on the Jetson per query; the score that ranks the chunks is already there, so this is the cheaper of the two.
+
+**Tests:** `server/tests/test_d3_retrieval_trim.py`, committed failing first (3 failed): the 4 best go to the model, by score whatever the arrival order, best first; `CDSS_RAG_CONTEXT_K` overrides. Guards: source mode and chips unchanged; fewer than 4 all kept; retrieval still asks for 10 with the species filter. The DCR and TBI routing tests pass (full suite, 2627).
+
+**Gate:**
+- **Replay unchanged:** byte-identical in all five corpora (served 1,553, held 201, pipeline 788, D5b teacher 274, live logs 1,828): 0 newly released.
+- **Specifics present, cloud arm, not worse than run 3:** gpt-4o-mini 55/192 (28.6%) after, 57/192 (29.7%) before, against run 3's 26/93 (28.0%) as deployed and 27/100 (27.0%) at the 120 s timeout. Not worse.
+- **DCR and TBI routing tests:** pass. Routing happens before retrieval and is untouched.
+
+**Prompt tokens saved per query** (provider-reported, generator plus validator, paired by scenario over the passes): local qwen2.5:3b median **679** (mean 710, range −19 to 3,093), 5,411 → 4,340 median per query; gpt-4o-mini median **704** (mean 651, range −10 to 2,444), 5,296 → 4,252.
+
+**Bench** (before = main 6c30cb5, after = D3 a480c23; 30-set + `run_tests.sh`; 0 errors; run_tests 29/29 in every pass):
+
+| Arm | Tree | Latency median / p95 | Prompt tokens median (p95) | Served per pass | Specifics |
+|---|---|---|---|---|---|
+| Local qwen2.5:3b ×3 | before | 7.25 / 15.49 s | 5,411 (6,735) | 25, 23, 20 | 53 / 223 |
+| Local qwen2.5:3b ×3 | after | 7.48 / 13.01 s | 4,340 (5,526) | 22, 20, 19 | 56 / 195 |
+| gpt-4o-mini ×2 | before | 3.03 / 4.55 s | 5,296 (6,578) | 29, 29 | 57 / 192 |
+| gpt-4o-mini ×2 | after | 2.98 / 4.52 s | 4,252 (5,251) | 29, 29 | 55 / 192 |
+
+**Bench movement for the owner's sign-off** (consistent across passes):
+- **R2-BRADYCARDIA-AV-NODAL-BLOCKER-POS, local, served ×3 → held ×3** ("his rate is irregular and fast at times, what about diltiazem"). Before: "Ask for ECG. Indication: …" (one line, served). After: unsigned diltiazem 2 mg ("Draw 0.1 mL of 200mg/mL diltiazem IV (2mg)"), once "for WPW syndrome", held by the GIVE-line contract check. The safe direction: an AV-nodal blocker proposed by name is held.
+- Cloud: none. Varying within both trees (local): G-MTN-03, G-TRA-07, H-S1-a, H-S2, both R2-HYPOGLYCAEMIA scenarios.
 
 ### D4: show the deterministic part first
 
