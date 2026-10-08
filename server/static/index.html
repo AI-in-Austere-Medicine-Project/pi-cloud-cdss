@@ -833,6 +833,65 @@ function wireSections(container) {
 }
 
 // `followUp` is a chip's fixed phrasing; typed queries come from the box.
+// D4 (owner, 2026-10-08): one request, two events. The server sends "early"
+// (the header and the patient strip) as it calls the model, and "final" (the
+// whole, checked answer). Nothing the model wrote, and no dose, is ever in
+// "early"; the prose appears only with "final". An older server, or one that
+// answers JSON, is read as before.
+function parseSseBlock(block) {
+  let name = 'message', data = '';
+  block.split('\n').forEach(line => {
+    if (line.indexOf('event:') === 0) name = line.slice(6).trim();
+    else if (line.indexOf('data:') === 0) data += line.slice(5).trim();
+  });
+  return { name: name, data: data ? JSON.parse(data) : null };
+}
+
+async function readQueryResponse(r, onEarly) {
+  const ct = (r.headers && r.headers.get && r.headers.get('content-type')) || '';
+  if (ct.indexOf('text/event-stream') !== 0) return await r.json();   // application/json, older servers
+  let buffer = '';
+  const handle = block => {
+    const ev = parseSseBlock(block);
+    if (ev.name === 'early') { if (onEarly) onEarly(ev.data); return null; }
+    if (ev.name === 'final') return ev.data;
+    if (ev.name === 'error') throw new Error((ev.data && ev.data.detail) || 'server error');
+    return null;
+  };
+  if (r.body && r.body.getReader) {
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += dec.decode(chunk.value, { stream: true });
+      let i;
+      while ((i = buffer.indexOf('\n\n')) >= 0) {
+        const done = handle(buffer.slice(0, i));
+        buffer = buffer.slice(i + 2);
+        if (done) return done;
+      }
+    }
+  } else {
+    buffer = await r.text();
+  }
+  for (const block of buffer.split('\n\n')) {
+    if (!block.trim()) continue;
+    const done = handle(block);
+    if (done) return done;
+  }
+  throw new Error('no final answer in the stream');
+}
+
+// The early render: the header only, with the strip drawn by renderCtx. No
+// answer text, no dose: those come with the final event.
+function earlyHtml(e) {
+  const h = (e && e.header) || {};
+  return '<div class="early">' +
+    (h.protocol ? '<span class="badge">' + esc(h.protocol) + '</span> ' : '') +
+    '<span class="badge">source: ' + esc(h.source === 'general' ? 'general' : 'JTS') + '</span> ' +
+    '<span class="thinking">checking the answer</span></div>';
+}
+
 async function ask(followUp, inputMode) {
   const fromChip = typeof followUp === 'string';
   if (fromChip && send.disabled) return;           // one request at a time
@@ -849,6 +908,7 @@ async function ask(followUp, inputMode) {
     const r = await fetch('/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json',
+                 'Accept': 'text/event-stream, application/json',
                  'X-Access-Token': document.getElementById('token').value },
       body: JSON.stringify({
         query: text, device_id: deviceId,
@@ -860,7 +920,11 @@ async function ask(followUp, inputMode) {
       })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
+    const d = await readQueryResponse(r, e => decoration('early header', function () {
+      pending.querySelector('.bubble').innerHTML = earlyHtml(e);
+      patientCtx = e.patient_context || null;
+      renderCtx();
+    }));
     const split = splitBanner(d.response);
     let html = fallbackBanner(d)
              + (split.banner ? '<span class="genref">' + esc(split.banner) + '</span>' : '')

@@ -1,6 +1,6 @@
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, FileResponse
+from fastapi.responses import Response, FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 from datetime import datetime
 from typing import Annotated, List, Optional
@@ -226,6 +226,39 @@ async def health_check():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def _query_response(result: dict, request: "QueryRequest", ms: int) -> "QueryResponse":
+    """The one shape /query answers with, as JSON or as D4's final event."""
+    return QueryResponse(
+        response=result["response"],
+        sources=result.get("sources") or [],
+        query_type="chromadb",
+        processing_time_ms=ms,
+        voice_mode=request.voice_mode,
+        rate_limit_remaining=999,
+        validator_result=result.get("validator_result", ""),
+        validator_issues=result.get("validator_issues", []),
+        model=result.get("model") or "",
+        provider=result.get("provider") or "",
+        fallback_from=result.get("fallback_from") or "",
+        source=result.get("source", ""),
+        patient_context=result.get("patient_context") or {},
+        vitals_cautions=result.get("vitals_cautions", []),
+        brief=result.get("brief") or "",
+        critical_sections=result.get("critical_sections") or [],
+        query_id=result.get("query_id") or "",
+        source_mode=result.get("source_mode") or ""
+    )
+
+
+def _sse_event(name: str, payload: dict) -> str:
+    """One server-sent event. json.dumps keeps every newline inside the data."""
+    return f"event: {name}\ndata: {json.dumps(payload)}\n\n"
+
+
+def _wants_event_stream(http_request: Request) -> bool:
+    return "text/event-stream" in (http_request.headers.get("accept") or "")
+
+
 @app.post("/query", response_model=QueryResponse,
           dependencies=[Depends(require_token)])
 async def query_endpoint(request: QueryRequest, http_request: Request):
@@ -233,6 +266,49 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     # T-2: self-declared test-suite traffic. Log hygiene only — run_tests.sh
     # fires at the live endpoint by design, and nothing may branch on this.
     synthetic = http_request.headers.get("X-Test-Run", "") == "1"
+    kwargs = dict(voice_mode=(request.voice_mode == "brief"),
+                  conversation_history=request.conversation_history,
+                  synthetic=synthetic, model=request.model or None,
+                  input_mode=request.input_mode,
+                  session_id=request.session_id)
+
+    # D4 (owner, 2026-10-08): one request, two events, for a client that asks
+    # for text/event-stream. "early" carries the header and the patient strip,
+    # sent as the pipeline is about to call the model (a deterministic card
+    # has no early event: its whole answer is already code-built); "final"
+    # carries the whole response, after every check. No model text, partial or
+    # whole, and no dose is ever in "early". Any other client gets JSON, as
+    # before (run_tests.sh, the cdss-eval harness, older clients).
+    if _wants_event_stream(http_request):
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def on_early(payload: dict) -> None:
+            loop.call_soon_threadsafe(queue.put_nowait, ("early", payload))
+
+        async def run() -> None:
+            try:
+                result = await asyncio.to_thread(
+                    query_with_rag, request.query, chromadb_client, on_early=on_early, **kwargs)
+                ms = int((datetime.now() - start).total_seconds() * 1000)
+                await queue.put(("final", _query_response(result, request, ms).model_dump()))
+            except Exception as e:
+                await queue.put(("error", {"detail": str(e)}))
+
+        async def stream():
+            task = asyncio.create_task(run())
+            try:
+                while True:
+                    name, payload = await queue.get()
+                    yield _sse_event(name, payload)
+                    if name in ("final", "error"):
+                        break
+            finally:
+                await task
+
+        return StreamingResponse(stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache"})
+
     try:
         # AE-4. query_with_rag is synchronous and does retrieval, regex
         # extraction and up to two model calls. Awaited inline it owned the
@@ -241,34 +317,9 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
         # server to edgecdss-watchdog.sh, which restarts at three misses and
         # REBOOTS at six. Offloaded exactly as /status already offloads
         # provider_status() above, and for the same reason.
-        result = await asyncio.to_thread(
-            query_with_rag, request.query, chromadb_client,
-            voice_mode=(request.voice_mode == "brief"),
-            conversation_history=request.conversation_history,
-            synthetic=synthetic, model=request.model or None,
-            input_mode=request.input_mode,
-            session_id=request.session_id)
+        result = await asyncio.to_thread(query_with_rag, request.query, chromadb_client, **kwargs)
         ms = int((datetime.now() - start).total_seconds() * 1000)
-        return QueryResponse(
-            response=result["response"],
-            sources=result.get("sources") or [],
-            query_type="chromadb",
-            processing_time_ms=ms,
-            voice_mode=request.voice_mode,
-            rate_limit_remaining=999,
-            validator_result=result.get("validator_result", ""),
-            validator_issues=result.get("validator_issues", []),
-            model=result.get("model") or "",
-            provider=result.get("provider") or "",
-            fallback_from=result.get("fallback_from") or "",
-            source=result.get("source", ""),
-            patient_context=result.get("patient_context") or {},
-            vitals_cautions=result.get("vitals_cautions", []),
-            brief=result.get("brief") or "",
-            critical_sections=result.get("critical_sections") or [],
-            query_id=result.get("query_id") or "",
-            source_mode=result.get("source_mode") or ""
-        )
+        return _query_response(result, request, ms)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
