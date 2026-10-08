@@ -6634,9 +6634,13 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
 def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = False,
                              conversation_history: list = None,
                              session_ctx: Optional[PatientContext] = None,
-                             model: Optional[str] = None) -> dict:
-    """Run the pipeline, then apply what every response needs regardless of path."""
-    state: dict = {}
+                             model: Optional[str] = None,
+                             on_early=None) -> dict:
+    """Run the pipeline, then apply what every response needs regardless of path.
+
+    `on_early` (D4): called once, just before the generator is called, with
+    the header and the patient strip. Never with model text or a dose."""
+    state: dict = {"on_early": on_early}
     result = _run_pipeline(query, chromadb_client, voice_mode,
                            conversation_history, session_ctx, model, state)
     result = _finalise(result, state.get("patient_ctx"))
@@ -6679,6 +6683,8 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
     5. Deterministic dose candidates from full_query_history.
     6. Post-checks + validator + safety gate.
     """
+    if state is None:
+        state = {}
     # What the medic asked for, before it resolves: a model they selected is
     # waited for; the default keeps the fast fallback (generator_timeout_s).
     requested_model = model
@@ -7137,6 +7143,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 routing = _router.route(query, patient_ctx, full_query_history)
                 if routing.matched_protocol and routing.confidence in ['HIGH', 'MEDIUM']:
                     search_query = routing.enhanced_search_query
+                    state["protocol_title"] = routing.protocol_title
                     print(f"🗺️  Router: {routing.protocol_title} [{routing.confidence}]")
             except Exception as e:
                 print(f"Router error: {e}")
@@ -7214,6 +7221,18 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         messages.append({"role": "user", "content": f"Clinical query: {query}"})
         transcript_lines.append(f"CURRENT USER: {query}")
 
+        # D4 (owner, 2026-10-08): the deterministic part goes to the screen now,
+        # before the model is called: the header (the matched protocol, the
+        # knowledge source) and the patient strip. No model text, no ALLOWED_
+        # DOSES, no dose: those arrive only in the checked final response.
+        if state.get("on_early"):
+            try:
+                state["on_early"]({
+                    "header": {"protocol": state.get("protocol_title") or "",
+                               "source": knowledge_source(assessment.source_mode)},
+                    "patient_context": patient_ctx.to_dict()})
+            except Exception as e:
+                print(f"early event error (non-fatal): {e}")
         providers.reset_truncation()
         providers.reset_served()
         with providers.cloud_timeout_for(providers.generator_timeout_s(requested_model)):
@@ -7345,7 +7364,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    synthetic: bool = False,
                    model: Optional[str] = None,
                    input_mode: str = "typed",
-                   session_id: str = "") -> dict:
+                   session_id: str = "",
+                   on_early=None) -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
 
@@ -7360,16 +7380,19 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     kept distinct so the two are never compared as if interchangeable.
     """
     t0 = time.perf_counter()
+    # C1: one id per query, in the response and on its log line, so a feedback
+    # report can name the exact answer it is about. Log hygiene only. Minted
+    # first, so D4's early event carries it too.
+    query_id = uuid.uuid4().hex
+    early = (lambda payload: on_early(dict(payload, query_id=query_id))) if on_early else None
     result = _query_with_rag_internal(
         query, chromadb_client, voice_mode, conversation_history, session_ctx,
-        model=model
+        model=model, on_early=early
     )
     # Stamped once, here, so the client footer and the log entry can never
     # disagree about which knowledge source answered.
     result["source"] = knowledge_source(result.get("source_mode", "UNKNOWN"))
-    # C1: one id per query, in the response and on its log line, so a feedback
-    # report can name the exact answer it is about. Log hygiene only.
-    result["query_id"] = uuid.uuid4().hex
+    result["query_id"] = query_id
     pipeline_ms = int((time.perf_counter() - t0) * 1000)
     log_query(query, result, conversation_history,
               pipeline_ms=pipeline_ms, synthetic=synthetic,

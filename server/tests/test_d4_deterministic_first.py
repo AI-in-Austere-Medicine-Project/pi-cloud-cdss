@@ -109,15 +109,12 @@ def test_a_model_answer_streams_early_then_final(model):
     assert final["response"].startswith("**DO THIS**") or "Splint the femur" in final["response"]
 
 
-def test_the_early_event_goes_out_before_the_model_is_called(model, monkeypatch):
-    real = main._sse_event
-
-    def spy(name, payload):
-        if name == "early":
-            model["early"] = True
-        return real(name, payload)
-    monkeypatch.setattr(main, "_sse_event", spy)
-    _post(GENERATED_Q, SSE)
+def test_the_early_event_goes_out_before_the_model_is_called(model):
+    # The pipeline hands the early part over before it calls the generator;
+    # the server sends it while the model runs.
+    def on_early(payload):
+        model["early"] = True
+    oc._query_with_rag_internal(GENERATED_Q, _Retrieval(), on_early=on_early)
     assert model["early_seen_before_generator"] is True
 
 
@@ -174,3 +171,33 @@ def test_the_client_early_render_shows_no_answer_text():
     src = open(CLIENT).read()
     fn = src[src.index("function earlyHtml"):][:900]
     assert "response" not in fn and "brief" not in fn
+
+
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_the_client_reader_handles_a_real_stream():
+    src = open(CLIENT).read()
+    a = src.index("function parseSseBlock")
+    b = src.index("// The early render")
+    js = src[a:b] + r'''
+const text = 'event: early\ndata: {"query_id": "q1", "header": {"protocol": "Pain", "source": "jts"}, "patient_context": {}}\n\n' +
+             'event: final\ndata: {"response": "line one\\nline two", "query_id": "q1"}\n\n';
+const early = [];
+const fake = { headers: { get: () => 'text/event-stream; charset=utf-8' }, text: async () => text };
+const bad = { headers: { get: () => 'text/event-stream' }, text: async () => 'event: error\ndata: {"detail": "boom"}\n\n' };
+(async () => {
+  const d = await readQueryResponse(fake, e => early.push(e));
+  let err = null;
+  try { await readQueryResponse(bad, null); } catch (e) { err = e.message; }
+  const j = await readQueryResponse({ json: async () => ({ response: 'json' }) }, null);
+  console.log(JSON.stringify({ early: early, final: d, err: err, json: j }));
+})();
+'''
+    out = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, timeout=60).stdout)
+    assert out["early"][0]["header"]["protocol"] == "Pain"
+    assert out["final"]["response"] == "line one\nline two"
+    assert out["err"] == "boom"
+    assert out["json"]["response"] == "json"
