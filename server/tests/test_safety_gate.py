@@ -103,6 +103,19 @@ OVERRIDE_CASES = {
         "history": "gunshot wound to the thigh with arterial bleed, tourniquet applied",
         "neg_history": "septic patient with fever and pus draining, BP 80/40",
     },
+    # E1 (owner, 2026-10-08)
+    "airway_secured_post_rsi": {
+        "issues": ["Response recommends post-intubation sedation with ketamine without confirming the tube is in place."],
+        "response": _CLINICAL + "Post-intubation sedation: ketamine 40 mg IV.\n",
+        "history": "80kg male, we tubed him, what do I give after RSI",
+        "neg_history": "RSI an 80kg male trauma patient, what do I give after",
+    },
+    "no_volume_form": {
+        "issues": ["Response recommends 50 mcg fentanyl IV but does not confirm concentration to compute volume."],
+        "response": _CLINICAL + "- Fentanyl IV: 50 mcg. NO VOLUME — confirm concentration to compute volume.\n",
+        "neg_response": _CLINICAL + "- Draw 1 mL of 0.05mg/mL fentanyl IV (0.05mg).\n",
+        "history": "80 kg adult, severe pain, fentanyl IV",
+    },
 }
 
 # Declared by hand. test_every_override_has_coverage compares this against the
@@ -111,7 +124,7 @@ TESTED_OVERRIDES = {
     "pediatric_weight_confirmed", "cico_airway", "paralytic_with_induction",
     "tbi_steroid_absent", "sepsis_hemorrhage_no_dcr", "fluids_resuscitation",
     "tension_pneumo_decompression", "dangerous_reassurance_has_action",
-    "txa_clear_hemorrhage",
+    "txa_clear_hemorrhage", "airway_secured_post_rsi", "no_volume_form",
 }
 
 

@@ -101,7 +101,7 @@ def test_a_selected_model_that_still_times_out_falls_back_and_says_what_was_aske
 def test_every_fallback_is_logged_with_the_requested_model(monkeypatch):
     _cloud_fails_with(monkeypatch, APITimeoutError("Request timed out."))
     entry = log_and_read(run())
-    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 15  # C1: query_id, session_id
+    assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION == 16  # E1: validator_model_returned
     roles = {f["role"]: f for f in entry["fallbacks"]}
     assert roles["generator"]["requested"] == "openai/gpt-4o-mini"
     assert roles["generator"]["timeout_s"] == 8.0

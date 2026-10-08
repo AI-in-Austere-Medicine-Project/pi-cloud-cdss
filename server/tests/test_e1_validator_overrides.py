@@ -16,8 +16,9 @@ listed for the owner's one-by-one sign-off.
      compute volume" when the answer uses the dose block's own form, "NO VOLUME
      — confirm concentration to compute volume".
   3. TXA (run 3 finding 6): "TXA … without confirmed (traumatic) hemorrhage"
-     when the medic's words state active traumatic bleeding (A23's phrases);
-     not for a pregnant patient, not with an infection picture.
+     when the medic's words state active traumatic bleeding (A23's phrases):
+     the existing txa_clear_hemorrhage override, widened; never for a pregnant
+     patient, not with an infection picture.
 
 Also in E1: the session log records the model the validator's reply names
 (validator_model_returned), beside the generator's model_returned (schema 16).
@@ -94,7 +95,8 @@ TXA_ANSWER = "**GIVE**\n- TXA 2 g IV over 10 minutes. Indication: traumatic haem
      "Response recommends TXA for hemorrhage without confirming active bleeding or trauma context."),
 ])
 def test_stated_traumatic_bleeding_downgrades_the_txa_hold(history, issue):
-    _downgraded(_gate(history, TXA_ANSWER, [issue]), "txa_stated_traumatic_haemorrhage")
+    # The existing txa_clear_hemorrhage override, widened (it already covered GSW).
+    _downgraded(_gate(history, TXA_ANSWER, [issue]), "txa_clear_hemorrhage")
 
 
 @pytest.mark.parametrize("history, issue", [

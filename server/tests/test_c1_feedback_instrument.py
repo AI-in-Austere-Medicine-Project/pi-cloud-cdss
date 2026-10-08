@@ -151,7 +151,7 @@ def test_each_query_gets_an_id_that_the_log_line_carries(monkeypatch, tmp_path):
     lines = [json.loads(l) for f in tmp_path.glob("*.jsonl") for l in f.read_text().splitlines()]
     assert [l["query_id"] for l in lines] == [r1["query_id"], r2["query_id"]]
     assert all(l["session_id"] == "s-1234" for l in lines)
-    assert all(l["log_schema"] == 15 for l in lines)
+    assert all(l["log_schema"] == 16 for l in lines)
 
 
 # ── the client ───────────────────────────────────────────────────────────────
