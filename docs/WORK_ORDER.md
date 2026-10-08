@@ -65,7 +65,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A22 | The local model sees its whole prompt: num_ctx 8192 on every call, an oversized prompt fails loudly | **done**: #133, merged |
 | A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | **done**: #135, merged |
 | A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | **done**: #138, merged |
-| A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card **signed** by Andrew Azelton, 2026-10-08 (in review, its own PR) |
+| A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card signed by Andrew Azelton, 2026-10-08 (#144, merged); its replay movement approved |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -556,8 +556,8 @@ Newly held, each read:
 - TCCC's 3 minutes of direct pressure: **left out** (not in the corpus).
 - The 2-hour conversion: **confirmed junctional** in the source, ID73 p.5: "Tourniquets (limb and junctional) should be transitioned to pressure dressings within 2 hours when criteria for conversion are met".
 - `junctional_card.json`: `signoff` true, `reviewed_by` "Andrew Azelton", `review_date` 2026-10-08; the four lines' text unchanged from the reviewed draft (#139), pinned word for word by `server/tests/test_a24b_junctional_signed.py` (committed failing first, 5 failed). A24's unsigned-behaviour tests now pin an unsigned copy of the card, so the hold stays tested for any re-draft. Nothing in code unsets the signature if a line changes: the owner re-signs, and the test catches the change.
-- **Replay** (main a254043 against the signed card): deterministic checks and the gate replay unchanged (served 1,687, held 238, D5b teacher 274, live logs 1,970; gate 1,326). Pipeline: 2 rows, both the G-MTN-04 question ("he's bleeding from the groin"), go from the unsigned-card hold to the DCR card led by the three junctional lines, with the signed TXA entry, the junctional WATCH line, and "junctional: JTS CPG ID73 … p.5, p.21; JTS CPG ID18 … p.8; CCATT CPG ID49 … p.10" in SOURCE. **For the owner's sign-off.**
-- Noted, not changed: the card's generic step 4 ("Control hemorrhage immediately: pressure, tourniquet, wound packing, pelvic binder if indicated") follows the junctional steps and partly repeats them.
+- **Replay** (main a254043 against the signed card): deterministic checks and the gate replay unchanged (served 1,687, held 238, D5b teacher 274, live logs 1,970; gate 1,326). Pipeline: 2 rows, both the G-MTN-04 question ("he's bleeding from the groin"), go from the unsigned-card hold to the DCR card led by the three junctional lines, with the signed TXA entry, the junctional WATCH line, and "junctional: JTS CPG ID73 … p.5, p.21; JTS CPG ID18 … p.8; CCATT CPG ID49 … p.10" in SOURCE. **Approved by the owner, 2026-10-08.**
+- The card's generic step 4 ("Control hemorrhage immediately: pressure, tourniquet, wound packing, pelvic binder if indicated") follows the junctional steps and partly repeats them: **stays (owner, 2026-10-08).**
 
 ### B1: source-mode labelling
 
