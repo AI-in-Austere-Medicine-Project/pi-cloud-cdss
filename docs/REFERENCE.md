@@ -81,7 +81,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | D2b | The prompt's second template (TREAT, WATCH FOR, the condition explainer) to the canonical headers. Changes what the model writes. | Jetson | Done, #137 |
 | D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | Done, #140. ~700 prompt tokens saved per query (median, paired) |
 | D4 | Show the deterministic part first; the prose only after the dose check passes. | Jetson | Done, #141 |
-| E1 | Validator wording sensitivity: narrow overrides for the validator's false holds (a done airway before post-RSI sedation; the dose block's no-volume form; TXA for stated traumatic bleeding, never pregnancy or infection), served with the human-review banner, never SAFE. Logs the validator's returned model (schema 16). | Owner, 2026-09-29; rulings 2026-10-08 | Done, #142. Gate movements H-S1-a and H-S2 approved (2026-10-08) |
+| E1 | Validator wording sensitivity: narrow overrides for the validator's false holds (a done airway before post-RSI sedation; the dose block's no-volume form; TXA for stated traumatic bleeding, never pregnancy or infection), served with the human-review banner, never SAFE. Logs the validator's returned model (schema 16). | Server | Done, #142 (owner, 2026-09-29; rulings 2026-10-08). Gate movements H-S1-a and H-S2 approved (2026-10-08) |
 
 ## 5. B and C items: format and feedback
 
