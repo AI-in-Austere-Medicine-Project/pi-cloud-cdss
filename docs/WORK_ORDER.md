@@ -79,7 +79,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
 | D4 | Show the deterministic part first | **done**: #141, merged and deployed |
-| E1 | Validator wording sensitivity | in review; two gate movements for the owner's sign-off |
+| E1 | Validator wording sensitivity | **done**: #142, merged; gate movements H-S1-a and H-S2 approved by the owner, 2026-10-08 |
 
 Owner asks outside the lettered items:
 
@@ -1292,6 +1292,8 @@ Never loosen a gate: the replay must show 0 newly released.
 **Replay** (main a777d65 against E1):
 - Deterministic checks byte-identical (served 1,687, held 238, pipeline 788, D5b teacher 274, live logs 1,886).
 - **Gate replay** (new, `replay-out/gate_replay.py`): every stored model answer with a stored validator reply, 1,326, through each tree's whole gate (deterministic checks, the recorded validator verdict, the overrides). **2 change, both held → served with the review banner through `txa_clear_hemorrhage`; none the other way; nothing else changes.** The airway and no-volume overrides move no stored answer: their sightings were never stored with the validator's reply (the live harness and run_tests captures keep the response, not the validator's raw reply); the tests carry them.
+
+**Owner sign-off (2026-10-08):** H-S1-a and H-S2 both **approved**.
 
 **Gate movements for the owner's sign-off:**
 1. **H-S1-a, gemini-3.7-flash (run 3, 120 s pass)** — "have a marine that was hit by an IED - he is bleeding out". Validator: "Response recommends TXA for a patient with active bleeding from an IED blast without confirmed traumatic hemorrhage." Answer: "Apply limb tourniquets high and tight; pack junctional wounds with hemostatic gauze and hold direct pressure … Apply a pelvic binder … initiate warmed whole blood transfusion, and administer TXA per protocol within 3 hours of injury"; no TXA number. Recommended.
