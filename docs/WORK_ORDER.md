@@ -85,6 +85,7 @@ Owner asks outside the lettered items:
 
 | Item | Status |
 |---|---|
+| Unsigned contracts inventory (owner, 2026-10-08): the 40 unsigned drug-contract entries and P1, P2, with citations; none clean to sign (39 incomplete drafts; neonatal dextrose and P1, P2 uncertain) | listed in [docs/UNSIGNED_CONTRACTS_2026-10-08.md](UNSIGNED_CONTRACTS_2026-10-08.md); nothing signed (signing is the owner's act) |
 | 3% NaCl contract, signed at 7.5 g | **done**: #85, merged and deployed |
 | Multi-model benchmark run 3 | **done**: #87, merged and deployed |
 | This work order | **done**: #89, merged |
