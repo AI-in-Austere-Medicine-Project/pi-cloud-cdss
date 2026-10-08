@@ -65,7 +65,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A22 | Every local call asks Ollama's native API for num_ctx 8192 (CDSS_LOCAL_NUM_CTX) with truncate false; a prompt over it raises PromptExceedsContext (generator: system error; validator: hold), never a silent cut. | Found in the D2a bench (default 4,096 context cut 12 of 12 protocol-path prompts to ~2,050 tokens, keeping the end); owner, 2026-10-05 | Done, #133. Validator overflow holds (owner confirmed) |
 | A23 | When the current question says the patient is actively bleeding, an answer with no haemorrhage-control action (tourniquet, pressure, packing, haemostatic, binder, control/stop the bleeding) holds; clarifying questions pass. | Found in the D2a bench (H-S1-a: local qwen served vent settings and "cricothyrotomy now" for a bleeding patient); owner, 2026-10-05 | Done, #135 |
 | A23b | "Bleeding from [an external trauma site]" (groin, thigh, neck, axilla, stump, wound …; not nose, gums, rectum) is active bleeding; "bleeding control" is an action only with an action verb. | Found in the D2b bench (G-MTN-04, "he's bleeding from the groin"); owner, 2026-10-06 | Done, #138 |
-| A24 | "Bleeding from the groin / axilla / armpit / neck / inguinal" routes to the DCR card (JTS CPG ID82 p.13 junctional sites). The card's junctional lines (packing with a hemostatic dressing, a junctional tourniquet, manual pressure) are in junctional_card.json, cited, and served only once the owner signs; until then all junctional bleeding is a deterministic hold (owner, 2026-10-07). | Found in the D2b bench (G-MTN-04 went to the model); owner, 2026-10-06 | In review; content unsigned |
+| A24 | "Bleeding from the groin / axilla / armpit / neck / inguinal" routes to the DCR card (JTS CPG ID82 p.13 junctional sites). The card's junctional lines (packing with a hemostatic dressing, a junctional tourniquet, manual pressure) are in junctional_card.json, cited, and served only once the owner signs; until then all junctional bleeding is a deterministic hold (owner, 2026-10-07). | Found in the D2b bench (G-MTN-04 went to the model); owner, 2026-10-06 | Done, #139. Card unsigned: junctional bleeding holds until signed |
 
 ## 4. D items: data and speed
 
@@ -79,7 +79,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | D6 | The training toolchain: train, fuse, gguf, ship, bench. | Mac (bench runs on the Jetson over ssh) | Done, #93 |
 | D2a | Put the fixed prompt first, so Ollama reuses its cache: generator prefill −26%. Same content, new order; the duplicated patient block is gone. | Jetson | Done, #136 |
 | D2b | The prompt's second template (TREAT, WATCH FOR, the condition explainer) to the canonical headers. Changes what the model writes. | Jetson | Done, #137 |
-| D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | After D2 |
+| D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | In review. ~700 prompt tokens saved per query (median, paired) |
 | D4 | Show the deterministic part first; the prose only after the dose check passes. | Jetson | After D3 |
 
 ## 5. B and C items: format and feedback
