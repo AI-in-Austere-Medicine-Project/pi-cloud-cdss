@@ -65,7 +65,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A22 | The local model sees its whole prompt: num_ctx 8192 on every call, an oversized prompt fails loudly | **done**: #133, merged |
 | A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | **done**: #135, merged |
 | A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | **done**: #138, merged |
-| A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card unsigned (owner to sign after checking the citations) |
+| A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card **signed** by Andrew Azelton, 2026-10-08 (in review, its own PR) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -548,6 +548,16 @@ Newly held, each read:
 **Tests:** `server/tests/test_a24_junctional_bleeding.py`, committed failing first (12 failed; then, for the owner's #139 ruling, 4 more failing first: unsigned junctional bleeding holds, for the G-MTN-04 question, "groin wound bleeding heavily", "junctional bleed left groin" and an axilla bleed): the G-MTN-04 question and four other junctional phrasings route to the DCR card (and the G-MTN-04 question through the pipeline gets it); nose, gums and "neck pain, no bleeding" are not junctional; the draft ships unsigned and changes nothing; every draft line cites a page with a quote; signed, the card serves the lines and cites ID18 p.8, and a non-junctional card is unchanged.
 
 **Replay** (main d7d756d, with A23b, against A24 with the unsigned hold): deterministic checks byte-identical (served 1,553, held 201, D5b teacher 274, live logs 1,770): **0 newly released**. Pipeline (model stubbed): 2 rows change, both the G-MTN-04 question (bank and run): held before (the model's answer, by A23b) and held now (the junctional hold, DETERMINISTIC_PRE_GATE, UNSAFE), with no model call. No stored question in any corpus uses the site-first phrasing that main sent to the generic card, so option (b) newly holds nothing in the replay. The module docstring and `_finalise` now count 22 deterministic pre-gates.
+
+**Signed (2026-10-08, Andrew Azelton; its own PR).** The owner's decisions at signing:
+- DCR in PFC cited as the corpus prints it: **JTS CPG ID73**, Damage Control Resuscitation in Prolonged Field Care, 01 Oct 2018 (the page footer reads "CPG ID: 73"; "01 Sep 2023" is a rapid-update line, not a new edition).
+- CCATT cited as the corpus prints it: **CCATT CPG ID49**, Negative Pressure Wound Therapy during Aeromedical Evacuation, rev. 26 Feb 2025 (every page reads "CPG ID: 49"; it supersedes 11 Feb 2020).
+- Line 3 (manual pressure): **kept as cited** (CCATT ID49 p.10, aeromedical care of a non-life-threatening junctional bleed).
+- TCCC's 3 minutes of direct pressure: **left out** (not in the corpus).
+- The 2-hour conversion: **confirmed junctional** in the source, ID73 p.5: "Tourniquets (limb and junctional) should be transitioned to pressure dressings within 2 hours when criteria for conversion are met".
+- `junctional_card.json`: `signoff` true, `reviewed_by` "Andrew Azelton", `review_date` 2026-10-08; the four lines' text unchanged from the reviewed draft (#139), pinned word for word by `server/tests/test_a24b_junctional_signed.py` (committed failing first, 5 failed). A24's unsigned-behaviour tests now pin an unsigned copy of the card, so the hold stays tested for any re-draft. Nothing in code unsets the signature if a line changes: the owner re-signs, and the test catches the change.
+- **Replay** (main a254043 against the signed card): deterministic checks and the gate replay unchanged (served 1,687, held 238, D5b teacher 274, live logs 1,970; gate 1,326). Pipeline: 2 rows, both the G-MTN-04 question ("he's bleeding from the groin"), go from the unsigned-card hold to the DCR card led by the three junctional lines, with the signed TXA entry, the junctional WATCH line, and "junctional: JTS CPG ID73 … p.5, p.21; JTS CPG ID18 … p.8; CCATT CPG ID49 … p.10" in SOURCE. **For the owner's sign-off.**
+- Noted, not changed: the card's generic step 4 ("Control hemorrhage immediately: pressure, tourniquet, wound packing, pelvic binder if indicated") follows the junctional steps and partly repeats them.
 
 ### B1: source-mode labelling
 
