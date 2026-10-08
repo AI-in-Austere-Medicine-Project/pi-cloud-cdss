@@ -44,8 +44,14 @@ git -C "$PROD" log -1 --format='%H%n%H %ci %s' "$SHA" > "$W/target/PINNED_SHA"
 cp "$SCEN" "$W/scenarios.jsonl"
 cp "$SPEC" "$W/specifics.json"
 
+# A22: one context for every local client. The arms' provider calls ask Ollama
+# for CDSS_LOCAL_NUM_CTX (8192 by default, truncate false); the probe below asks
+# for the same, so nothing loads the model at Ollama's default 4096 (a different
+# setting, a 65 s reload, and a silent cut of a long prompt).
+export CDSS_LOCAL_NUM_CTX="${CDSS_LOCAL_NUM_CTX:-8192}"
+
 python3 - "$W" "$SHA" "$TAG" "$BASE" "$SCEN" "$BANK_PORT" "$RT_PORT" <<'EOF'
-import hashlib, json, subprocess, sys, datetime
+import hashlib, json, os, subprocess, sys, datetime
 W, sha, tag, base, scen, bp, rp = sys.argv[1:]
 sh = lambda c: subprocess.run(c, shell=True, capture_output=True, text=True).stdout.strip()
 drugs = json.load(open(f"{W}/target/drug_contracts.json"))["drugs"]
@@ -58,6 +64,7 @@ json.dump({
     "tag_id": ids.get(tag if ":" in tag else f"{tag}:latest"), "base_id": ids.get(base),
     "scenarios_src": scen, "scenarios_sha256": hashlib.sha256(open(scen, "rb").read()).hexdigest(),
     "bank_port": int(bp), "rt_port": int(rp),
+    "num_ctx": int(os.environ["CDSS_LOCAL_NUM_CTX"]),
     "started": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
 }, open(f"{W}/meta.json", "w"), indent=1)
 EOF
@@ -70,10 +77,11 @@ export CDSS_LLM_PROVIDER=local
 # ── generation tok/s: one single-line probe per model through the API ──────
 for pair in "base:$BASE" "tag:$TAG"; do
   python3 - "${pair%%:*}" "${pair#*:}" "$PROBE" >> "$W/tokps.jsonl" <<'EOF'
-import json, sys, urllib.request
+import json, os, sys, urllib.request
 label, model, probe = sys.argv[1:]
-body = json.dumps({"model": model, "prompt": probe, "stream": False,
-                   "options": {"temperature": 0, "seed": 0, "num_predict": 128}}).encode()
+body = json.dumps({"model": model, "prompt": probe, "stream": False, "truncate": False,
+                   "options": {"temperature": 0, "seed": 0, "num_predict": 128,
+                               "num_ctx": int(os.environ["CDSS_LOCAL_NUM_CTX"])}}).encode()
 def call():
     req = urllib.request.Request("http://127.0.0.1:11434/api/generate", body,
                                  {"Content-Type": "application/json"})
