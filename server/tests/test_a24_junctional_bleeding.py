@@ -44,6 +44,15 @@ def test_other_bleeds_are_not_junctional(query):
     assert not oc.is_junctional_bleeding(query), query
 
 
+@pytest.fixture
+def unsigned(monkeypatch):
+    """The card as an unsigned draft, whatever the file holds now (signed
+    2026-10-08): the unsigned behaviour stays tested for any re-draft."""
+    card = dict(oc.junctional_card(), signoff=False, reviewed_by=None, review_date=None)
+    monkeypatch.setattr(oc, "junctional_card", lambda: card)
+    return card
+
+
 class _NoRetrieval:
     def query(self, *a, **k):
         return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
@@ -62,7 +71,7 @@ JUNCTIONAL_QUESTIONS = [
 
 
 @pytest.mark.parametrize("query", JUNCTIONAL_QUESTIONS)
-def test_unsigned_junctional_bleeding_holds(query):
+def test_unsigned_junctional_bleeding_holds(query, unsigned):
     r = oc._query_with_rag_internal(query, _NoRetrieval())
     assert r["source_mode"] == "DETERMINISTIC_PRE_GATE", r["source_mode"]
     assert r["validator_result"] == "UNSAFE", r["validator_result"]
@@ -86,7 +95,7 @@ def test_non_junctional_haemorrhage_still_gets_the_generic_card():
     assert "Control hemorrhage immediately" in r["response"]
 
 
-def test_the_draft_ships_unsigned_and_the_card_is_unchanged():
+def test_an_unsigned_draft_changes_nothing(unsigned):
     card = oc.junctional_card()
     assert card["signoff"] is False
     assert oc.build_hemorrhagic_shock_dcr_response(None, G_MTN_04) == \
