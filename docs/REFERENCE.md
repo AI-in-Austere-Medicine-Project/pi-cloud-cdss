@@ -80,7 +80,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | D2a | Put the fixed prompt first, so Ollama reuses its cache: generator prefill −26%. Same content, new order; the duplicated patient block is gone. | Jetson | Done, #136 |
 | D2b | The prompt's second template (TREAT, WATCH FOR, the condition explainer) to the canonical headers. Changes what the model writes. | Jetson | Done, #137 |
 | D3 | Pass the model 4 retrieved chunks, not the current top-k. | Jetson | Done, #140. ~700 prompt tokens saved per query (median, paired) |
-| D4 | Show the deterministic part first; the prose only after the dose check passes. | Jetson | In review. /query streams "early" (header, patient strip) then "final" for clients that ask; JSON otherwise |
+| D4 | Show the deterministic part first; the prose only after the dose check passes. | Jetson | Done, #141 |
 
 ## 5. B and C items: format and feedback
 

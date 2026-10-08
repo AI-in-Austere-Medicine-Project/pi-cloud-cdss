@@ -255,7 +255,9 @@ def _get_log_file() -> pathlib.Path:
 # Schema 15 (C1) adds `query_id`, minted here once per query and returned to the
 # client, and `session_id`, the client's per-tab session (sessionStorage): a
 # /feedback report names both, so it can be joined to this line.
-LOG_SCHEMA_VERSION = 15
+# Schema 16 (E1) adds `validator_model_returned`: the model the provider's reply
+# named for the validator call, beside the generator's `model_returned`.
+LOG_SCHEMA_VERSION = 16
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -305,6 +307,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "debug_warn_only": DEBUG_WARN_ONLY,
             "synthetic": bool(synthetic),
             "input_mode": input_mode,
+            "validator_model_returned": result.get("validator_model_returned"),
             "query_id": result.get("query_id"),
             "session_id": session_id,
             "query": query,
@@ -4839,6 +4842,13 @@ def _has_confirmed_weight(_r, ctx, _h):
     return bool(getattr(ctx, "confirmed_weight_kg", None) if ctx else None)
 
 
+# E1: the dose block's no-volume form, as the generator is told to write it
+# (lowercased: overrides read the response lowercased).
+_NO_VOLUME_FORM_RE = re.compile(r"no volume\s*[—–-]\s*confirm concentration to compute volume")
+_PREGNANT_RE = re.compile(r"\bpregnan\w*|\bweeks?\s+(?:pregnant|gestation)|\bpostpartum\b|\bgravid\b",
+                          re.IGNORECASE)
+
+
 # Evaluation order is significant and matches v4.0 exactly.
 SAFETY_OVERRIDES = (
     # NOTE: requires_sole_issue=False preserves v4.0 behaviour — this branch
@@ -4900,7 +4910,28 @@ SAFETY_OVERRIDES = (
     SafetyOverride(
         name="txa_clear_hemorrhage",
         keywords=("txa", "tranexamic"),
-        condition=lambda r, ctx, h: has_clear_hemorrhage(h) and not looks_like_sepsis(h),
+        # E1 (owner, 2026-10-08; run 3 finding 6): also A23's active-bleeding
+        # phrases ("he is bleeding out" had no term here); never for a
+        # pregnant patient or with an infection picture (both only hold more).
+        condition=lambda r, ctx, h: ((has_clear_hemorrhage(h) or _ACTIVE_BLEEDING_RE.search(h or "") is not None)
+                                     and not looks_like_sepsis(h) and not has_infection_context(h or "")
+                                     and not _PREGNANT_RE.search(h or "")),
+    ),
+    # E1 (owner, 2026-10-08): the validator asked to confirm the tube when the
+    # medic had said it was in ("we tubed him", #86; "cric'd", #107). A3's
+    # detector reads a done airway; the issue must be about the tube.
+    SafetyOverride(
+        name="airway_secured_post_rsi",
+        keywords=("tube is in place", "tube placement", "confirming the tube", "confirming tube",
+                  "tube in place", "confirm the tube", "confirm tube"),
+        condition=lambda r, ctx, h: already_intubated(h or ""),
+    ),
+    # E1 (owner, 2026-10-08; D2a bench, run_tests B1): the validator held the
+    # dose block's own no-volume form for "not confirming concentration".
+    SafetyOverride(
+        name="no_volume_form",
+        keywords=("confirm concentration", "compute volume", "concentration to compute"),
+        condition=lambda r, ctx, h: _NO_VOLUME_FORM_RE.search(r) is not None,
     ),
 )
 
@@ -7256,6 +7287,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         llm_result = validate_response(full_transcript, response_text, patient_ctx,
                                        allowed_dose_block, now_ts=now_ts)
         validator_served = providers.last_chat_served()
+        validator_returned = providers.last_chat_returned_model()
         validator_fallback = providers.last_chat_fallback()
 
         # Step 7b: deterministic vitals conflicts. Python owns the explicit rule
@@ -7323,6 +7355,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             "provider": served_provider(generator_served),
             # D5a: the model the provider's reply named, for the log only.
             "model_returned": generator_returned,
+            # E1: the model the validator's reply named, for the log only.
+            "validator_model_returned": validator_returned,
             "validator_provider": served_provider(validator_served),
             # Every local fallback, with the model that was asked for. The
             # generator's requested model is what the portal names above the brief.

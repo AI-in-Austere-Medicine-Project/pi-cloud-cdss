@@ -46,9 +46,9 @@ def _log(result, query="q"):
 LONG = "**DO THIS**\n" + "\n".join(f"{i}. Step number {i} of a long answer." for i in range(1, 40))
 
 
-def test_schema_is_15():
-    assert oc.LOG_SCHEMA_VERSION == 15  # C1 (schema 15) adds query_id and session_id on top of D5a's 14
-    assert _log({"response": "x"})["log_schema"] == 15
+def test_schema_is_16():
+    assert oc.LOG_SCHEMA_VERSION == 16  # E1 (schema 16): validator_model_returned; C1 (15): query_id, session_id
+    assert _log({"response": "x"})["log_schema"] == 16
 
 
 def test_a_served_answer_is_logged_in_full():
