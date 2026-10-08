@@ -571,8 +571,8 @@ def refuse_unsigned_doses(rows: list):
     check = getattr(oc, "_distill_real_rdc", oc.run_deterministic_checks)
     bad = []
     for r in rows:
-        q, ctx, doses = r["check"]
-        issues = check(q, r["assistant"], ctx, doses).issues
+        q, ctx, doses, *current = r["check"]
+        issues = check(q, r["assistant"], ctx, doses, *current).issues
         if issues:
             bad.append((r["scenario_id"], issues))
     if bad:
@@ -650,10 +650,12 @@ class Capture:
         self.gen = {"system": system, "messages": copy.deepcopy(messages), "response": out}
         return out
 
-    def rdc(self, query, response_text, patient_ctx, allowed_doses=None):
+    def rdc(self, query, response_text, patient_ctx, allowed_doses=None, current_query=None):
+        # current_query (A23): the pipeline passes it; the recorded check keeps
+        # it, so the whole-set check repeats the pipeline's call exactly.
         if self.gen is not None and response_text == self.gen["response"] and self.check is None:
-            self.check = (query, copy.deepcopy(patient_ctx), list(allowed_doses or []))
-        return self.real_rdc(query, response_text, patient_ctx, allowed_doses)
+            self.check = (query, copy.deepcopy(patient_ctx), list(allowed_doses or []), current_query)
+        return self.real_rdc(query, response_text, patient_ctx, allowed_doses, current_query=current_query)
 
     def run(self, query, chroma, log):
         self.gen = self.check = self.validator_chars = None

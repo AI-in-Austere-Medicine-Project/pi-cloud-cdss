@@ -191,3 +191,41 @@ def test_the_output_is_never_the_source(tmp_path, teacher):
 
 def test_the_flag_exists():
     assert "reanswer_from" in {a.dest for a in bd.parser()._actions}
+
+
+# ── the actual cost: read from each API response's usage ─────────────────────
+def test_the_meter_prices_usage_at_the_list_rates():
+    m = bd.UsageMeter()
+    m.add("claude-opus-5", 1_000_000, 100_000)
+    m.add("gpt-4o-mini", 1_000_000, 0)
+    assert m.usd() == pytest.approx(5.0 + 2.5 + 0.15)
+    assert m.tokens["claude-opus-5"] == {"calls": 1, "in": 1_000_000, "out": 100_000}
+
+
+def test_the_meter_reads_the_sdk_responses():
+    from anthropic.resources.messages import Messages
+    from openai.resources.chat.completions import Completions
+    a_usage = types.SimpleNamespace(input_tokens=1000, output_tokens=500,
+                                    cache_creation_input_tokens=None, cache_read_input_tokens=200)
+    o_usage = types.SimpleNamespace(prompt_tokens=3000, completion_tokens=100)
+    real_a, real_o = Messages.create, Completions.create
+    stand_a = lambda self, **kw: types.SimpleNamespace(model=kw["model"], usage=a_usage)
+    stand_o = lambda self, **kw: types.SimpleNamespace(model=kw["model"], usage=o_usage)
+    Messages.create, Completions.create = stand_a, stand_o
+    try:
+        with bd.UsageMeter() as m:
+            Messages.create(None, model="claude-opus-5")
+            Completions.create(None, model="gpt-4o-mini")
+        assert m.tokens["claude-opus-5"] == {"calls": 1, "in": 1200, "out": 500}
+        assert m.tokens["gpt-4o-mini"] == {"calls": 1, "in": 3000, "out": 100}
+        assert Messages.create is stand_a and Completions.create is stand_o    # restored on exit
+    finally:
+        Messages.create, Completions.create = real_a, real_o
+
+
+def test_the_run_stops_when_actual_spend_passes_the_ceiling(tmp_path, teacher, monkeypatch):
+    monkeypatch.setattr(bd.UsageMeter, "usd", lambda self: 99.0)
+    src = _src(tmp_path, [(MODEL_Q, "train"), (MODEL_Q + " again", "train")])
+    with pytest.raises(bd.RefuseToRun):
+        _run(tmp_path, src)
+    assert teacher["teacher"] == 1
