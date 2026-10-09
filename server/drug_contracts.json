@@ -2508,23 +2508,115 @@
           "indication": "analgesia infusion",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 25.0,
+            "max": 250.0,
+            "units": "mcg/hr",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypotension (SMOG CY24 p.118)",
+            "Hypoxia (SMOG CY24 p.118)",
+            "Hypoventilation (SMOG CY24 p.118)",
+            "MAOI taken in the past 14 days (SMOG CY24 p.118)",
+            "Hypersensitivity to fentanyl"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Start the infusion when intermittent doses are needed more often than every 2 hours; stop intermittent dosing once it runs (Pain, Anxiety and Delirium ID29 p.24)."
+            },
+            {
+              "tier": "serve",
+              "text": "Titrate to a pain score of 3 or less (0-10), up to 250 mcg/hr (ID29 p.24; Burn Care ID12 p.24)."
+            },
+            {
+              "tier": "serve",
+              "text": "Breakthrough pain: 25-100 mcg IV bolus every 10 minutes as needed (ID29 p.24)."
+            },
+            {
+              "tier": "serve",
+              "text": "High-risk medication (ID29 p.24). Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics (ID29 p.7)."
+            },
+            {
+              "tier": "serve",
+              "text": "Head trauma or suspected raised ICP: use with extreme caution (SMOG p.118)."
+            },
+            {
+              "tier": "serve",
+              "text": "NEEDS_MANUAL_ENTRY: starting rate. Neither source states one: ID29 gives the range only, and ID12's order line leaves the rate blank (\"Fentanyl gtt at _____mcg/hr\")."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Appendix H: Sedation Orders — Analgesia, p.24",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-08",
+              "page": 24,
+              "pdf_page": 24,
+              "supports": "dose_range (25-250 mcg/hr); when to start; titration target; breakthrough bolus; high-risk",
+              "quote": "Start with Intermittent Dosing. If required more than Q 2 Hours, go to Continuous Infusion. … fentanyl IV mcg (25-250 mcg/hr), Intravenous, CONTINUOUS Titrate pain medication to achieve a level 3 or (pain scale 0-10). Stop intermittent dosing if continuous infusion initiated and notify Pharmacy Services. **High-Risk Medication** … fentanyl IV bolus mcg (25-100 mcg), Intravenous, EVERY 10 MINUTES AS NEEDED for breakthrough pain."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Burn Care, CPG ID12, 10 Jun 2025 — Appendix A: Physician's Order Set — 15. Analgesia/Sedation/PRN Medications, p.24",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Burn_Care_CPG_10_June_2025_ID12.pdf",
+              "retrieved_date": "2026-10-08",
+              "page": 24,
+              "pdf_page": 24,
+              "supports": "maximum rate (250 mcg/hr); the starting rate is left blank",
+              "quote": "15.3. _____Fentanyl gtt at _____mcg/hr titrate up to 250 mcg/hr"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Appendix A: Pain, Anxiety (Sedation) & Delirium Guidelines, p.16",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-08",
+              "page": 16,
+              "pdf_page": 16,
+              "supports": "indication: background pain in the intubated, haemodynamically stable patient",
+              "quote": "Intubated Hemodynamically … Stable, adequate gas exchange … Option 1: fentanyl drip or equivalent"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — p.7",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-08",
+              "page": 7,
+              "pdf_page": 7,
+              "supports": "caution: naloxone available",
+              "quote": "Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Fentanyl, Contraindications; Adverse Reactions / Precautions, p.118 — cited for contraindications and the head-trauma caution only, not the dose",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-08",
+              "page": 118,
+              "pdf_page": 118,
+              "supports": "contraindications; head-trauma caution",
+              "quote": "Contraindications • Hypersensitivity to fentanyl or any component of the formulation • MAOI taken in the past 14 days. • Hypotension • Hypoxia • Hypoventilation … Head trauma: Use with extreme caution in head injury, or suspected increased ICP;"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO v3.0 gives fentanyl as intermittent dosing only and describes no infusion. WHO lists only the transdermal patch, scoped to cancer pain. Neither approved source supports an infusion rate.",
+          "version": "0.3.0-draft",
+          "extraction_notes": "DRAFT 2026-10-08 (contract batch 1, analgesia), from the JTS corpus; not signed. Dose: ID29 p.24 (25-250 mcg/hr, continuous), cap corroborated by ID12 p.24 (titrate up to 250 mcg/hr). Setting: ID29's ICU sedation orders, and its algorithm's first option for background pain in the intubated, haemodynamically stable patient (ID29 p.16); ID12's burn ICU order set. Not a point-of-injury dose. Open for the owner: (1) STARTING RATE: no source states one, marked incomplete in cautions; (2) POPULATION: neither order set says adult; the flat mcg/hr rate reads as adult, and ID12's order set covers adults and children; (3) ID12's page header reads 'ID:20' while the file and the bank cite ID12. Excluded: SMOG p.57 / MWD CPG ID16 ('Fentanyl 2-10 mcg/kg/hour') are military working dog doses. Superseded note: 'NASEMSO v3.0 gives fentanyl as intermittent dosing only and describes no infusion. WHO lists only the transdermal patch, scoped to cancer pain.' JTS is now an approved tier 1 source.",
           "flags": [
-            "NOT_IN_SOURCE"
+            "STARTING_RATE_NOT_IN_SOURCE"
           ]
         },
         {
