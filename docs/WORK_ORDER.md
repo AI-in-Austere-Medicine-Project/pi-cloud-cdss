@@ -1262,7 +1262,19 @@ The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Ins
 - Cost estimate was $3.78 expected, $14.94 ceiling (approved $15).
 - The builder change stays (`--shorten-from`, `--recheck`, tests `server/tests/test_distill_v2_shorten.py`). The per-row manifest (ids, outcomes, token counts; no answer text) is kept outside the repo.
 
-**v3 (owner, 2026-10-03): next, after D2 ships and D5a has accumulated rows.** Rows from the D5a logs, generated under the D2 prompt, so answer length drops by design. No new experiments until then.
+**v3 (owner, 2026-10-03; superseded 2026-10-08, below): next, after D2 ships and D5a has accumulated rows.** Rows from the D5a logs, generated under the D2 prompt, so answer length drops by design. No new experiments until then.
+
+**v3, redefined (owner, 2026-10-08):** "v3 dataset: re-answer the 255 seeds under the current prompt. Cost plan first, before spending. Don't wait for more D5a log rows; those are v4." Cost plan approved by the owner at a $26.41 ceiling, raised to $26.46 when the measured validator prompts were included (owner, 2026-10-08).
+
+**v3 result (run 2026-10-08):** v1's 255 rows (D5b, built on `d0b44f4`), each question asked once more, unchanged, through `afe7d1c` (server code identical to main `0dfe7fb`), teacher `claude-opus-5`, validator `gpt-4o-mini`; `tools/build_distill_dataset.py --reanswer-from`. Not trained yet.
+- Exam exclusions: 0 (none of the 255 is in the exam set now).
+- Asked: 255; all reached the teacher.
+- Dropped by filter: 34 (unasked drug 20, the pipeline changed the teacher's text 8, held 6). No fallbacks, no errors.
+- Dropped by the junk rule: 0 (to review: 0).
+- Kept: **221** (train 205, valid 16; each row keeps its v1 split). `--recheck` on `afe7d1c`: 0 dropped.
+- Answer length (characters): mean 1,128 against v1's 1,317; p95 1,671 against 2,096.
+- Cost: **$7.74 actual** (claude-opus-5: 255 calls, 887,686 in / 129,513 out; gpt-4o-mini: 255 calls, 387,073 in / 17,511 out), against $7.32 expected and the $26.46 ceiling. The teacher's input is higher than the estimate's characters/4 (887k against 554k): the estimate's ratio undercounts Opus tokens; the output, 508 tokens per answer against v1's 698, more than made up for it.
+- Found and fixed on the way (failing test first): the builder's check wrapper did not take A23's `current_query`, so on today's tree every teacher answer raised inside the pipeline. The dataset is gitignored and not committed; the manifest is in `data/distill-v3/manifest.json`.
 
 **Settled (owner, 2026-10-03):** no length cap; the relaxed unasked-drug filter stays v4.
 

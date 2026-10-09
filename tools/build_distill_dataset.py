@@ -5,6 +5,8 @@
   python3 tools/build_distill_dataset.py            the run (stops over $40 unless approved)
   python3 tools/build_distill_dataset.py --shorten-from SRC --out DIR --tokenizer T --approve-cost N
                                                      D6 v2: re-run long answers once, shorter
+  python3 tools/build_distill_dataset.py --reanswer-from SRC --out DIR --approve-cost N
+                                                     D6 v3: SRC's questions, answered on this tree
   python3 tools/build_distill_dataset.py --recheck DIR  today's checks over DIR; no model call
 
 Source (owner, 2026-09-26, option a): the stored production queries that are
@@ -571,8 +573,8 @@ def refuse_unsigned_doses(rows: list):
     check = getattr(oc, "_distill_real_rdc", oc.run_deterministic_checks)
     bad = []
     for r in rows:
-        q, ctx, doses = r["check"]
-        issues = check(q, r["assistant"], ctx, doses).issues
+        q, ctx, doses, *current = r["check"]
+        issues = check(q, r["assistant"], ctx, doses, *current).issues
         if issues:
             bad.append((r["scenario_id"], issues))
     if bad:
@@ -650,10 +652,12 @@ class Capture:
         self.gen = {"system": system, "messages": copy.deepcopy(messages), "response": out}
         return out
 
-    def rdc(self, query, response_text, patient_ctx, allowed_doses=None):
+    def rdc(self, query, response_text, patient_ctx, allowed_doses=None, current_query=None):
+        # current_query (A23): the pipeline passes it; the recorded check keeps
+        # it, so the whole-set check repeats the pipeline's call exactly.
         if self.gen is not None and response_text == self.gen["response"] and self.check is None:
-            self.check = (query, copy.deepcopy(patient_ctx), list(allowed_doses or []))
-        return self.real_rdc(query, response_text, patient_ctx, allowed_doses)
+            self.check = (query, copy.deepcopy(patient_ctx), list(allowed_doses or []), current_query)
+        return self.real_rdc(query, response_text, patient_ctx, allowed_doses, current_query=current_query)
 
     def run(self, query, chroma, log):
         self.gen = self.check = self.validator_chars = None
@@ -717,6 +721,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--approve-cost", type=float, help="the owner's approved ceiling, in USD, over $40")
     p.add_argument("--shorten-from", help="D6 v2: the source dataset dir; rows over 320 answer "
                    "tokens are re-run once, shorter, on the tree they were built on (--server)")
+    p.add_argument("--reanswer-from", help="D6 v3: the source dataset dir; every row's question "
+                   "is asked again, unchanged, through this tree (--server) with the teacher")
     p.add_argument("--recheck", help="D6 v2: a dataset dir to check with today's checks (--server); "
                    "no model call")
     p.add_argument("--tokenizer", help="the base model's tokenizer.json, for answer length")
@@ -755,7 +761,7 @@ def main(argv=None):
         logs = dotenv_values(server / ".env").get("CDSS_LOG_DIR") or str(server / "logs/sessions")
     out = pathlib.Path(a.out).resolve()
     # Resolved now: main() changes into the server tree below.
-    for k in ("shorten_from", "recheck", "tokenizer", "env"):
+    for k in ("shorten_from", "reanswer_from", "recheck", "tokenizer", "env"):
         if getattr(a, k):
             setattr(a, k, str(pathlib.Path(getattr(a, k)).resolve()))
     if a.env:
@@ -772,6 +778,12 @@ def main(argv=None):
         raise RefuseToRun("the teacher would not be waited for 120 s")
     if a.recheck:
         return run_recheck(pathlib.Path(a.recheck).resolve(), snap)
+    if a.reanswer_from:
+        log = open(os.path.join(scratch, "pipeline.log"), "w")
+        reanswer(a.reanswer_from, out, snap, oc, providers, ChromaDBClient(), log,
+                 approve_cost=a.approve_cost, plan=a.plan, exam=exam, exclusion=exclusion,
+                 rulings=ReviewRulings.load(REPO))
+        return 0
     if a.shorten_from:
         return run_shorten(a, pathlib.Path(a.shorten_from).resolve(), out, snap, oc, providers,
                            ChromaDBClient, scratch)
@@ -1013,6 +1025,142 @@ def run_shorten(a, src, out, snap, oc, providers, ChromaDBClient, scratch) -> in
     print(f"\nkept unchanged {len(keep)}; re-run {len(rerun)}: {dict(outcomes)}")
     print(f"written: train {len(train)}, valid {len(valid)} -> {out}")
     return 0
+
+
+# ── D6 v3 (owner, 2026-10-08): v1's questions, answered under today's prompt ─
+class UsageMeter:
+    """The actual spend: each Anthropic and OpenAI SDK response's usage, priced
+    at RATES. Patches the SDKs' create methods while in use, restores them on exit."""
+
+    def __init__(self):
+        self.tokens = {}
+        self._restore = []
+
+    def add(self, model: str, t_in: int, t_out: int):
+        t = self.tokens.setdefault(model, {"calls": 0, "in": 0, "out": 0})
+        t["calls"] += 1
+        t["in"] += t_in
+        t["out"] += t_out
+
+    def usd(self) -> float:
+        return sum(t["in"] * RATES[m][0] / 1e6 + t["out"] * RATES[m][1] / 1e6
+                   for m, t in self.tokens.items())
+
+    def _wrap(self, cls, read):
+        real = cls.create
+        meter = self
+
+        def create(self_, *a, **kw):
+            result = real(self_, *a, **kw)
+            usage = getattr(result, "usage", None)
+            if usage is not None:
+                meter.add(kw.get("model") or getattr(result, "model", "?"), *read(usage))
+            return result
+        cls.create = create
+        self._restore.append((cls, real))
+
+    def __enter__(self):
+        from anthropic.resources.messages import Messages
+        from openai.resources.chat.completions import Completions
+        # Anthropic: input_tokens excludes cache reads and writes; both are
+        # counted at the input rate (an over-, never an under-count).
+        self._wrap(Messages, lambda u: (u.input_tokens + (u.cache_creation_input_tokens or 0)
+                                        + (u.cache_read_input_tokens or 0), u.output_tokens))
+        self._wrap(Completions, lambda u: (u.prompt_tokens, u.completion_tokens))
+        return self
+
+    def __exit__(self, *exc):
+        for cls, real in reversed(self._restore):
+            cls.create = real
+        self._restore.clear()
+        return False
+
+
+def reanswer(src, out, snap, oc, providers, chroma, log, *, approve_cost, plan, exam, exclusion,
+             rulings) -> dict:
+    """Every row of src (train and valid) asked once more, unchanged, through
+    this tree with the teacher; the same filters as a build, then the
+    refuse-to-run check, then the junk rule. Each kept row keeps its split."""
+    src, out = pathlib.Path(src), pathlib.Path(out)
+    check_out_dir(src, out)
+    pairs = _read_pairs(src, "train") + _read_pairs(src, "valid")
+    exam_excluded, asked = collections.Counter(), []
+    for row, meta in pairs:
+        why = _exam_reason(meta["query"], exam, exclusion)
+        if why:
+            exam_excluded[why] += 1
+        else:
+            asked.append((row, meta))
+    plan_cap = Capture(oc, providers, stub=True)
+    plans = []
+    for _row, meta in asked:
+        plan_cap.run(meta["query"], chroma, log)
+        if plan_cap.gen is not None:
+            g = plan_cap.gen
+            plans.append({"prompt_chars": len(g["system"]) + sum(len(m["content"]) for m in g["messages"]),
+                          "validator_chars": plan_cap.validator_chars})
+    est = estimate(plans)
+    print(f"source {src}: {len(pairs)} rows; exam exclusions {dict(exam_excluded)}; "
+          f"{len(plans)} of {len(asked)} reach the teacher on {snap['commit'][:7]}")
+    print(f"cost: expected ${est['expected_usd']:.2f}, ceiling ${est['ceiling_usd']:.2f}")
+    check_approved(est["ceiling_usd"], approve_cost)
+    summary = {"source": str(src), "source_rows": len(pairs), "exam_excluded": dict(exam_excluded),
+               "estimate": est, "approved_ceiling_usd": approve_cost}
+    if plan:
+        print("plan only: no model was called and nothing was written.")
+        return summary
+
+    cap = Capture(oc, providers, stub=False)
+    dropped, kept = collections.Counter(), []
+    with UsageMeter() as meter:
+        for i, (_row, meta) in enumerate(asked, 1):
+            result = cap.run(meta["query"], chroma, log)
+            why = exclusion_reason(result, cap.gen)
+            if why is None and (cap.check is None
+                                or cap.real_rdc(cap.check[0], cap.gen["response"], *cap.check[1:]).issues):
+                why = "deterministic_check"
+            if why is None:
+                signed = {d.drug for d in oc.indication_matched(cap.check[0], cap.check[2])}
+                if unasked_drugs(meta["query"], cap.gen["response"], signed):
+                    why = "unasked_drug"
+            print(f"  [{i}/{len(asked)}] {meta['split']:5s} {why or 'passed':20s} "
+                  f"${meter.usd():6.2f} {meta['query'][:50]!r}", flush=True)
+            if why:
+                dropped[why] += 1
+            else:
+                new_meta = {k: v for k, v in meta.items() if k not in ("clinical_signals", "ruling")}
+                new_meta.update({
+                    "model_returned": result.get("model_returned"),
+                    "validator_result": result.get("validator_result"),
+                    "source_mode": result.get("source_mode"),
+                    "scenario_type": scenario_type(oc, meta["query"]),
+                    "snapshot_commit": snap["commit"], "contract_bank": snap["contract_bank"],
+                    "concentrations_sha256": snap["concentrations_sha256"],
+                    "built": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    "v3": {"source_snapshot_commit": meta.get("snapshot_commit")}})
+                kept.append({"scenario_id": meta["scenario_id"], "assistant": cap.gen["response"],
+                             "check": cap.check, "meta": new_meta,
+                             "row": to_row(cap.gen["system"], cap.gen["messages"], cap.gen["response"])})
+            if meter.usd() > approve_cost:
+                raise RefuseToRun(f"actual spend ${meter.usd():.2f} passed the approved ${approve_cost:.2f} "
+                                  f"after {i} rows: stopped, nothing written")
+    refuse_unsigned_doses(kept)
+    kept, review = partition_junk(kept, rulings)
+    train, valid = by_original_split([(r["row"], r["meta"]) for r in kept])
+    write_split(out, train, valid)
+    with open(out / "review.jsonl", "w", encoding="utf-8") as f:
+        for r in review:
+            f.write(json.dumps({**r["row"], "meta": r["meta"]}, ensure_ascii=False) + "\n")
+    summary.update({"snapshot": snap, "teacher": TEACHER, "validator": providers.validator_model(),
+                    "asked": len(asked), "dropped_by_filter": dict(dropped), "junk_review": len(review),
+                    "kept": len(kept), "train": len(train), "valid": len(valid),
+                    "actual": {"usd": round(meter.usd(), 2), "tokens": meter.tokens},
+                    "pipeline_log": getattr(log, "name", None)})
+    (out / "manifest.json").write_text(json.dumps(summary, indent=2))
+    print(f"\nkept {len(kept)}: train {len(train)}, valid {len(valid)}; dropped by filter {dict(dropped)}; "
+          f"junk rule to review {len(review)}; exam exclusions {dict(exam_excluded)}")
+    print(f"actual cost ${meter.usd():.2f}: {meter.tokens}  -> {out}")
+    return summary
 
 
 def run_recheck(d, snap) -> int:
