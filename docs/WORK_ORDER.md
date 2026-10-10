@@ -1276,6 +1276,25 @@ The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Ins
 - Cost: **$7.74 actual** (claude-opus-5: 255 calls, 887,686 in / 129,513 out; gpt-4o-mini: 255 calls, 387,073 in / 17,511 out), against $7.32 expected and the $26.46 ceiling. The teacher's input is higher than the estimate's characters/4 (887k against 554k): the estimate's ratio undercounts Opus tokens; the output, 508 tokens per answer against v1's 698, more than made up for it.
 - Found and fixed on the way (failing test first): the builder's check wrapper did not take A23's `current_query`, so on today's tree every teacher answer raised inside the pipeline. The dataset is gitignored and not committed; the manifest is in `data/distill-v3/manifest.json`.
 
+**v3 bench (2026-10-09, [`DISTILL_BENCH_edgecdss-v3.md`](DISTILL_BENCH_edgecdss-v3.md)): fails the bar.** Trained on the v3 dataset (205 train / 16 valid; 300 iters, lr 1e-4, batch 1; val loss 2.880 → 0.625), shipped as `edgecdss-v3` (93a43d964fff), benched on main `b8902c1`. v1 was rerun on the same snapshot for the comparison (its 2026-10-01 doc ran before A22, D2 and D3).
+
+| | `qwen2.5:3b` (2 passes) | `edgecdss-v1` | `edgecdss-v3` |
+|---|---|---|---|
+| `run_tests.sh` | 29 / 29, 29 / 29 | 28 / 29 | **28 / 29: the bar fails** |
+| 30-set model answers served | 16, 15 of 23 | 0 of 23 | 0 of 23 |
+| Validator verdict unreadable | 0, 0 | 20 of 23 | 19 of 23 |
+| Specifics present, generator text, ungated (21 scenarios) | 6 / 74, 4 / 74 | 11 / 74 | 16 / 74 |
+| Generator answer, median tokens | 79, 84 | 261 | 255 |
+| Latency median / p95 | 9.0 / 15.5 s, 8.4 / 17.4 s | 34.1 / 52.1 s | 28.2 / 34.6 s |
+
+- **B1 failed on v3's own text:** the signed "fentanyl IV: 50 mcg" in GIVE, then "Draw 50 mcg of fentanyl IV (50 mg)" and an unasked naloxone 0.4 mg; the deterministic dose check held it. v1's B1 on the same snapshot was held only by its unreadable validator verdict.
+- **v3 cannot be the offline validator** (v1 bench finding 1, again). Since A19 an unreadable verdict holds, so every model answer in the v3 arm was held, 19 by the validator and 4 by the deterministic checks. Benching the generator alone needs a separate local validator; `providers.validator_model()` has none under `CDSS_LLM_PROVIDER=local`. Owner to place.
+- **Evidence that the gates are not optional (owner, 2026-10-10):** two v3 outputs that never passed through the gates.
+  - **The bare ship probe** (`ollama run`, no pipeline): given `ALLOWED_DOSES: ketamine IV 5 mg (0.2 mg/kg x 25 kg)`, v3 wrote "Dosing per the rule of two (0.2 mg/kg): Minimum 5 mg, Maximum: 0.4 mg/kg x 25 kg = 10 mg" and "100 mg/500 ml (2 mg/ml) … 1–2 vials". Neither the range nor the concentration is in the allowed doses; the "rule of two" is not a rule in the corpus.
+  - **v3 in the validator role** (H-S1-a): in place of a verdict it wrote a card with "10 units RBCs and 10 units WB within 2 hours of injury; stop at 40 units total without a scan". Held as unreadable, never served, but written to the log.
+  - A distilled model states doses, concentrations and transfusion volumes nobody signed, and does so in the probe and in the validator role alike. Whatever it is trained on, its output is served only through the deterministic checks and an independent validator.
+- Owner's verdict pending.
+
 **Settled (owner, 2026-10-03):** no length cap; the relaxed unasked-drug filter stays v4.
 
 **v4:** the relaxed unasked-drug filter (below).
@@ -1332,6 +1351,7 @@ Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here
 
 - [`docs/DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md): dry-run data, toolchain proof only, not a model result.
 - [`docs/DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md): v1, trained on the D5b dataset (255 rows). `run_tests.sh` 28/29, equal to the base. Not shippable as the offline model while the validator is the same model (see D6, first bench of `edgecdss-v1`).
+- [`docs/DISTILL_BENCH_edgecdss-v3.md`](DISTILL_BENCH_edgecdss-v3.md): v3, trained on the v3 dataset (221 rows re-answered under the current prompt). `run_tests.sh` 28/29 against the base's 29/29: **fails the bar**. Includes v1 rerun on the same snapshot (D6, v3 bench).
 
 ## Findings placement (benchmark run 3, docs/MULTI_MODEL_BENCHMARK_2026-09-25.md)
 
