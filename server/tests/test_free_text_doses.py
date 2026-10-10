@@ -117,7 +117,6 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
 
 @pytest.mark.parametrize("text", [
     "**GIVE**\n- Give fentanyl 80 mcg IN.",                     # the contract dose
-    "**TREAT**\n1. Give fentanyl 0.08 mg.",                      # same, in mg
     "**PREP**\n- Fentanyl 50 mcg/mL ampoule.",                   # a concentration
     "**TREAT**\n1. Never give fentanyl 300 mcg.",               # A21: a negated dose
     "**DON'T**\n- Fentanyl 1 mg IV.",                            # DON'T section
@@ -127,6 +126,14 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
 ])
 def test_what_is_not_a_freelanced_dose(text):
     assert oc.free_text_dose_issues(text, _allowed()) == [], text
+
+
+def test_the_contract_dose_in_another_unit_is_held():
+    """A25 (owner, 2026-10-10): this case was listed above as "same, in mg" and
+    passed. The signed IN dose is written in mcg; a dose in another unit holds,
+    even when it converts equal."""
+    (issue,) = oc.free_text_dose_issues("**TREAT**\n1. Give fentanyl 0.08 mg.", _allowed())
+    assert issue.startswith("The answer stated fentanyl 0.08 mg") and "written in mcg" in issue
 
 
 @pytest.mark.parametrize("text, shown", [
