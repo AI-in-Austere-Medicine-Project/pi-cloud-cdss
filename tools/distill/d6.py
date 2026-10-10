@@ -364,6 +364,8 @@ def cmd_report(a):
           f"| Kernel | {meta['kernel']} |",
           f"| Before | `{meta['base']}` ({meta['base_id']}) |",
           f"| After | `{meta['tag']}` ({meta['tag_id']}), same TEMPLATE, SYSTEM and LICENSE as the base |",
+          (f"| Validator | `{meta['validator']}` in both arms (`CDSS_VALIDATOR_MODEL`) |" if meta.get("validator")
+           else "| Validator | each arm's own generator model (before D7) |"),
           f"| 30-scenario set | `{meta['scenarios_src']}`, sha256 `{meta['scenarios_sha256'][:16]}…`, `--round all` |",
           f"| Isolation | 30-set on :{meta['bank_port']} (cdss-eval `run_bank.py`), `run_tests.sh` on a second uvicorn on :{meta['rt_port']}; "
           "no provider keys in the environment; the live service on :8000 and its `.env` untouched |"]
