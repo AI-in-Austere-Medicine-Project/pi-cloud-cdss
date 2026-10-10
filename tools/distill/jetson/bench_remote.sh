@@ -19,6 +19,9 @@ BANK_PORT=${BANK_PORT:-8123}
 RT_PORT=${RT_PORT:-8012}
 RT_TOKEN=d6-bench-$RT_PORT
 W=$HOME/edgecdss-distill-bench/$TAG-$STAMP
+# D7: the offline validator, in both arms. The generator is the arm's model; the
+# validator is not, or a distilled tag is benched as its own validator.
+VALIDATOR=${VALIDATOR:-qwen2.5:3b}
 die() { echo "bench: $*" >&2; exit 2; }
 
 # ── refuse before touching anything ─────────────────────────────────────────
@@ -34,6 +37,10 @@ git -C "$PROD" cat-file -e "$SHA^{commit}" 2>/dev/null || die "commit $SHA is no
 [ -f "$SCEN" ] || die "$SCEN missing"
 [ -f "$SPEC" ] || die "$SPEC missing"
 [ ! -e "$W" ] || die "$W already exists"
+ollama show "$VALIDATOR" --template >/dev/null 2>&1 || die "no ollama model $VALIDATOR (the validator)"
+# cdss-eval's run_bank.py drops CDSS_VALIDATOR_MODEL before it starts its
+# server, so the 30-set arm always gets the server default.
+[ "$VALIDATOR" = qwen2.5:3b ] || die "VALIDATOR=$VALIDATOR: run_bank.py drops CDSS_VALIDATOR_MODEL, so the 30-set would be validated by qwen2.5:3b, not $VALIDATOR"
 
 # ── pinned snapshot ─────────────────────────────────────────────────────────
 mkdir -p "$W/target" "$W/logs" "$W/rt-logs"
@@ -50,9 +57,9 @@ cp "$SPEC" "$W/specifics.json"
 # setting, a 65 s reload, and a silent cut of a long prompt).
 export CDSS_LOCAL_NUM_CTX="${CDSS_LOCAL_NUM_CTX:-8192}"
 
-python3 - "$W" "$SHA" "$TAG" "$BASE" "$SCEN" "$BANK_PORT" "$RT_PORT" <<'EOF'
+python3 - "$W" "$SHA" "$TAG" "$BASE" "$SCEN" "$BANK_PORT" "$RT_PORT" "$VALIDATOR" <<'EOF'
 import hashlib, json, os, subprocess, sys, datetime
-W, sha, tag, base, scen, bp, rp = sys.argv[1:]
+W, sha, tag, base, scen, bp, rp, validator = sys.argv[1:]
 sh = lambda c: subprocess.run(c, shell=True, capture_output=True, text=True).stdout.strip()
 drugs = json.load(open(f"{W}/target/drug_contracts.json"))["drugs"]
 E = [e for d in drugs for e in d.get("dose_entries", [])]
@@ -60,7 +67,7 @@ ids = {l.split()[0]: l.split()[1] for l in sh("ollama list").splitlines()[1:]}
 json.dump({
     "commit": sha, "signed": sum(e.get("signoff") is True for e in E), "entries": len(E),
     "ollama": sh("ollama --version"), "power": " ".join(sh("nvpmodel -q").split()),
-    "kernel": sh("uname -r"), "tag": tag, "base": base,
+    "kernel": sh("uname -r"), "tag": tag, "base": base, "validator": validator,
     "tag_id": ids.get(tag if ":" in tag else f"{tag}:latest"), "base_id": ids.get(base),
     "scenarios_src": scen, "scenarios_sha256": hashlib.sha256(open(scen, "rb").read()).hexdigest(),
     "bank_port": int(bp), "rt_port": int(rp),
@@ -73,6 +80,7 @@ EOF
 unset OPENAI_API_KEY ANTHROPIC_API_KEY GEMINI_API_KEY XAI_API_KEY CDSS_LOCAL_API_KEY \
       CDSS_DEFAULT_MODEL CDSS_VALIDATOR_MODEL CDSS_LOG_DIR FEEDBACK_LOG CHROMADB_PATH
 export CDSS_LLM_PROVIDER=local
+export CDSS_VALIDATOR_MODEL="$VALIDATOR"
 
 # ── generation tok/s: one single-line probe per model through the API ──────
 for pair in "base:$BASE" "tag:$TAG"; do
@@ -107,6 +115,14 @@ run_arm() {
   cp "$EVAL/runs/$rid/results.jsonl" "$W/$label.results.jsonl"
   cp "$EVAL/runs/$rid/instrument.jsonl" "$W/$label.instrument.jsonl"
   cp "$EVAL/runs/$rid/run_meta.json" "$W/$label.run_meta.json"
+  # D7: every validator call in this arm went to $VALIDATOR, or the run says so.
+  python3 - "$W/$label.instrument.jsonl" "$VALIDATOR" <<'EOF' || die "$label: a validator call did not go to $VALIDATOR (snapshot before D7?)"
+import json, sys
+path, want = sys.argv[1:]
+seen = {r.get("validator_model") for r in map(json.loads, open(path)) if r.get("validator_calls")}
+print(f"validator in this arm: {sorted(map(str, seen))}")
+sys.exit(0 if seen <= {want} else 1)
+EOF
   ss -ltn "sport = :$BANK_PORT" | grep -q LISTEN && die "the harness left :$BANK_PORT listening"
   return 0
 }

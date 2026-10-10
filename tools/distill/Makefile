@@ -26,6 +26,8 @@ JETSON    ?= jetson
 BASE_4BIT ?= mlx-community/Qwen2.5-3B-Instruct-4bit
 BASE_FULL ?= Qwen/Qwen2.5-3B-Instruct
 BASE_TAG  ?= qwen2.5:3b
+# D7: the offline validator in both bench arms, set apart from the generator.
+VALIDATOR ?= qwen2.5:3b
 
 ITERS ?= 600
 LR    ?= 1e-4
@@ -139,7 +141,7 @@ bench:
 	stamp=$$(date -u +%Y%m%dT%H%M%SZ); \
 	echo "bench: $(TAG) vs $(BASE_TAG) at $$sha"; \
 	scp $(HERE)/jetson/bench_remote.sh $(JETSON):edgecdss-models/bench_remote.sh; \
-	ssh -n $(JETSON) "bash edgecdss-models/bench_remote.sh $(TAG) $(BASE_TAG) $$sha $$stamp '$(PROBE)'"; \
+	ssh -n $(JETSON) "VALIDATOR=$(VALIDATOR) bash edgecdss-models/bench_remote.sh $(TAG) $(BASE_TAG) $$sha $$stamp '$(PROBE)'"; \
 	mkdir -p "$(BENCH_DIR)"; \
 	scp -rq $(JETSON):edgecdss-distill-bench/$(TAG)-$$stamp "$(BENCH_DIR)/"; \
 	$(PY) $(HERE)/d6.py stages "$(WORK)" "$$adapter" "$(TAG)" > "$(BENCH_DIR)/$(TAG)-$$stamp/stages.json"; \

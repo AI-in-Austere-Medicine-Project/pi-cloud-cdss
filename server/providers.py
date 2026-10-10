@@ -146,9 +146,10 @@ VALIDATOR_MODEL = _CONFIG.get("validator_model") or DEFAULT_MODEL
 # CDSS_LLM_MODEL      the model: default gpt-4o-mini for openai (providers.json's
 #                     default_model), qwen2.5:3b for local
 #
-# `local` sends the generator AND the validator to the on-device model: the
+# `local` sends the generator AND the validator to on-device models: the
 # point is answering with no internet, and a validator left on the cloud would
-# fail every query closed. `openai` is the registry exactly as it was — nothing
+# fail every query closed. CDSS_VALIDATOR_MODEL names the local validator
+# (default qwen2.5:3b), set apart from CDSS_LLM_MODEL (D7). `openai` is the registry exactly as it was — nothing
 # here changes a request while these variables are unset. Read live from the
 # environment, like CDSS_DEFAULT_MODEL, so a test or an A/B run can flip it.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -318,10 +319,21 @@ def validator_model() -> str:
     the validator, a difference in blocked-response rate could not be attributed
     to either. Change it here (providers.json 'validator_model') when that is the
     thing being measured.
+
+    D7 (owner, 2026-10-10): offline, CDSS_VALIDATOR_MODEL names the validator
+    too, default qwen2.5:3b, independent of CDSS_LLM_MODEL. A distilled
+    generator made its own validator answered the validator prompt with a field
+    card (edgecdss-v1, edgecdss-v3). A cloud model named there is not used
+    offline: it would fail every query closed.
     """
-    if llm_provider() == "local":
-        return local_model_spec().id
     requested = (os.getenv("CDSS_VALIDATOR_MODEL") or "").strip()
+    if llm_provider() == "local":
+        cloud = requested in MODELS and MODELS[requested].provider != LOCAL_PROVIDER
+        if cloud:
+            print(f"⚠️  CDSS_VALIDATOR_MODEL={requested!r} is a cloud model — "
+                  f"offline, the validator is {LOCAL_DEFAULT_MODEL}.")
+        return local_model_spec(LOCAL_DEFAULT_MODEL if cloud or not requested
+                                else requested).id
     return requested if requested in MODELS else VALIDATOR_MODEL
 
 
