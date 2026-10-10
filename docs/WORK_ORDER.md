@@ -80,7 +80,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
 | D4 | Show the deterministic part first | **done**: #141, merged and deployed |
 | E1 | Validator wording sensitivity | **done**: #142, merged; gate movements H-S1-a and H-S2 approved by the owner, 2026-10-08 |
-| D7 | Separate offline validator setting | **in review** |
+| D7 | Separate offline validator setting | **done**: #151, merged; v3 re-benched, verdict: fails on owner reading (2026-10-10) |
 
 Owner asks outside the lettered items:
 
@@ -1294,7 +1294,7 @@ The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Ins
   - **The bare ship probe** (`ollama run`, no pipeline): given `ALLOWED_DOSES: ketamine IV 5 mg (0.2 mg/kg x 25 kg)`, v3 wrote "Dosing per the rule of two (0.2 mg/kg): Minimum 5 mg, Maximum: 0.4 mg/kg x 25 kg = 10 mg" and "100 mg/500 ml (2 mg/ml) … 1–2 vials". Neither the range nor the concentration is in the allowed doses; the "rule of two" is not a rule in the corpus.
   - **v3 in the validator role** (H-S1-a): in place of a verdict it wrote a card with "10 units RBCs and 10 units WB within 2 hours of injury; stop at 40 units total without a scan". Held as unreadable, never served, but written to the log.
   - A distilled model states doses, concentrations and transfusion volumes nobody signed, and does so in the probe and in the validator role alike. Whatever it is trained on, its output is served only through the deterministic checks and an independent validator.
-- Owner's verdict pending.
+- Re-benched under D7 with `qwen2.5:3b` as validator (below). **Verdict (owner, 2026-10-10): fails on owner reading; `qwen2.5:3b` stays the offline model.**
 
 **Settled (owner, 2026-10-03):** no length cap; the relaxed unasked-drug filter stays v4.
 
@@ -1375,11 +1375,15 @@ Both are served with the human-review banner, not as SAFE.
 - **The served answers were read, and several of v3's are clinically wrong**, among them: H-IM-05 "tourniquet low and loose" and debridement before control of an arterial bleed; G-TRA-07 "reapply" a tourniquet on loss of pulse; G-TYP-07 "do not re-warm" a hypothermic arrest; G-TYP-06 "treat as a presumed cardiac arrest … chest compressions" for a seizing adult; G-TYP-02 no needle decompression for a tension pneumothorax (the base doesn't decompress either). `qwen2.5:3b` called most of them SAFE. The full reading, with the base's served answers beside v3's, is in the bench doc.
 - **Finding (owner to place):** `qwen2.5:3b` as the offline validator does not catch procedural errors from either generator. D7 makes the comparison measurable; it does not make the offline validator adequate.
 - The B1 mcg/mg slip did not recur in this pass (intermittent). A25 is next.
-- Owner's verdict on v3 pending.
+- **Owner's verdict on `edgecdss-v3` (2026-10-10): fails on owner reading. `qwen2.5:3b` stays the offline model.** The re-bench met the `run_tests.sh` bar (29/29), but the served answers read below include clinically wrong ones (a low-and-loose tourniquet for an arterial bleed, CPR for a seizing patient, no rewarming in a hypothermic arrest, no decompression for a tension pneumothorax).
+- **Bench counts are advisory (owner, 2026-10-10).** A distilled model ships only when the owner has read every served answer and found none clinically wrong. `run_tests.sh` equal to the base, the served/held counts, specifics present, answer length and latency are measurements; none of them is the ship decision.
+- Why each wrong answer missed its card: four items under *Found along the way* (2026-10-10).
 
 ## Distillation bench results
 
 Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here.
+
+**Bench counts are advisory (owner, 2026-10-10).** A distilled model ships only when the owner has read every served answer and found none clinically wrong. `run_tests.sh` equal to the base, the served/held counts, specifics present, answer length and latency are measurements; none of them is the ship decision.
 
 - [`docs/DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md): dry-run data, toolchain proof only, not a model result.
 - [`docs/DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md): v1, trained on the D5b dataset (255 rows). `run_tests.sh` 28/29, equal to the base. Not shippable as the offline model while the validator is the same model (see D6, first bench of `edgecdss-v1`).
@@ -1402,6 +1406,10 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 ## Found along the way, not yet placed
 
 
+- **An active arterial bleed without shock physiology gets no card** (found in the D7 v3 re-bench, H-IM-05; owner, 2026-10-10). `has_clear_hemorrhage` reads "arterial bleed", but the DCR card (`looks_like_hemorrhagic_shock`) also needs shock physiology, and no other card covers external bleeding control alone. "fresh arterial bleed from the leg" goes to the model; with "BP 80/50, HR 130" added, the DCR card fires. v3 served "tourniquet low and loose" and debridement before control (SAFE). Not a misspelling: the correctly spelled question misses too.
+- **The hypothermic-arrest card needs the literal words "cardiac arrest"** (found in the D7 v3 re-bench, G-TYP-07; owner, 2026-10-10). `build_general_case_response` fires on `"cardiac arrest" in q` plus a cold word. "hypothermic arrest, found in the snow, no pulse", correctly spelled, goes to the model, as does the bench's "arest"; only "hypothermic cardiac arrest" fires. v3 served "Do not re-warm until professional help arrives" (SAFE).
+- **The active-seizure card misses the misspelling "siezing"** (found in the D7 v3 re-bench, G-TYP-06; owner, 2026-10-10). `is_active_seizure_card_query` matches "seizing"; the bench's "pt siezing for 4 min now, adult, no iv yet" goes to the model, the correctly spelled one gets the ACTIVE SEIZURE card. v3 served "Treat as a presumed cardiac arrest … chest compressions … Defibrillation is the highest priority" (NEEDS_HUMAN_REVIEW, served with the banner).
+- **The tension-pneumothorax card misses "pneumo", and needle decompression has no signed procedure** (found in the D7 v3 re-bench, G-TYP-02; owner, 2026-10-10). `looks_like_tension_pneumothorax` needs two signs, or one sign plus chest trauma, and `\bpneumothorax\b` is the only name it reads as chest trauma. "suspected tension pneumo, trachea deviated", correctly spelled, is one sign and goes to the model; "…pneumothorax, trachea deviated" fires. v3 served repositioning and "secure the tube" with no decompression (SAFE); the base served "Intubate". The card itself is hard-coded text citing JTS ID74 pp.5, 8: `procedure_contracts.json` has no needle-decompression procedure, signed or unsigned. **Owner, 2026-10-10: the fix needs a signed needle-decompression procedure.**
 - **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.

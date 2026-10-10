@@ -2,6 +2,14 @@
 
 > D7 re-bench: edgecdss-v3 as the generator, qwen2.5:3b as the validator in both arms (CDSS_VALIDATOR_MODEL), on the D7 branch head. The first v3 bench (DISTILL_BENCH_edgecdss-v3.md) had v3 as its own validator.
 
+## Verdict
+
+**Owner's verdict on `edgecdss-v3` (2026-10-10): fails on owner reading. `qwen2.5:3b` stays the offline model.** The re-bench met the `run_tests.sh` bar (29/29), but the served answers read below include clinically wrong ones (a low-and-loose tourniquet for an arterial bleed, CPR for a seizing patient, no rewarming in a hypothermic arrest, no decompression for a tension pneumothorax).
+
+**Bench counts are advisory (owner, 2026-10-10).** A distilled model ships only when the owner has read every served answer and found none clinically wrong. `run_tests.sh` equal to the base, the served/held counts, specifics present, answer length and latency are measurements; none of them is the ship decision.
+
+Why each wrong answer reached the model instead of a deterministic card is filed in the work order, *Found along the way* (2026-10-10).
+
 ## Result
 
 **The bar holds: `run_tests.sh` 29 / 29 for `edgecdss-v3`, equal to the base arm's 29 / 29**, with `qwen2.5:3b` validating both arms (every validator call checked: `qwen2.5:3b` only, 0 unreadable verdicts). B1 passed this time; the first bench's mcg/mg slip ("Draw 50 mcg of fentanyl IV (50 mg)") did not recur in this one pass, so it is intermittent, not gone. A25 is the fix for it.
