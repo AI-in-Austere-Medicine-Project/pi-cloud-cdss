@@ -80,6 +80,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
 | D4 | Show the deterministic part first | **done**: #141, merged and deployed |
 | E1 | Validator wording sensitivity | **done**: #142, merged; gate movements H-S1-a and H-S2 approved by the owner, 2026-10-08 |
+| D7 | Separate offline validator setting | **in review** |
 
 Owner asks outside the lettered items:
 
@@ -1345,6 +1346,37 @@ Never loosen a gate: the replay must show 0 newly released.
 
 Both are served with the human-review banner, not as SAFE.
 
+### D7: the offline validator is its own setting (owner, 2026-10-10; its own PR)
+
+**Owner, 2026-10-10:** "separate validator model setting for offline mode (CDSS_VALIDATOR_MODEL, default qwen2.5:3b). Generator and validator must be independently configurable. Failing test first; replay unchanged since default behavior is unchanged. Then re-bench v3 as generator with qwen as validator; that's the real comparison." Default `qwen2.5:3b` means production behaviour is unchanged (owner, 2026-10-10).
+
+**Why:** under `CDSS_LLM_PROVIDER=local`, `providers.validator_model()` returned the generator model. A distilled tag benched as the generator was also its own validator, and answered the validator prompt with a field card: `edgecdss-v1` 20 of 23 calls, `edgecdss-v3` 19 of 23 on `b8902c1`. Since A19 that holds, so the v3 bench measured nothing about v3's answers (v1 bench finding 1; [`DISTILL_BENCH_edgecdss-v3.md`](DISTILL_BENCH_edgecdss-v3.md)).
+
+**What changed:**
+- `providers.validator_model()`, offline: `CDSS_VALIDATOR_MODEL`, else `qwen2.5:3b`, independent of `CDSS_LLM_MODEL`. A cloud model named there (the same `.env` line serves the cloud path) is not used offline: warned, `qwen2.5:3b`. Cloud unchanged.
+- `make bench`: `VALIDATOR ?= qwen2.5:3b`, passed to `bench_remote.sh`, which exports it as `CDSS_VALIDATOR_MODEL` for both arms, records it in `meta.json`, and checks after each 30-set arm that every validator call went to it. cdss-eval's `run_bank.py` drops `CDSS_VALIDATOR_MODEL` before starting its server, so any `VALIDATOR` but `qwen2.5:3b` is refused. `d6.py report` names the validator in Setup.
+
+**Tests**, committed failing first: `server/tests/test_d7_offline_validator.py` (5 failed, 3 guards passed: the default and cloud paths), `server/tests/test_d7_bench_validator.py` (8 failed). Suite: 2,648 passed, 54 skipped, 3 xfailed.
+
+**Replay** (`replay-out/` in the D7 worktree; main `965df8c` against D7):
+- Served, gate, live-log, held and pipeline replays (1,711, 1,366, 2,036, 296 and 797 rows): **byte-identical. 0 newly held, 0 newly released.**
+- Routing replay (new, `route_replay.py`): every stored row that records a model (2,996; 172 live), with the provider and model it ran under, asked which validator each tree picks. **119 change, all distilled bench tags' own bench rows** (`edgecdss-d6check` 25, `edgecdss-v1` 71, `edgecdss-v3` 23), from the tag to `qwen2.5:3b`. 0 live rows change; all 853 local `qwen2.5:3b` rows and every cloud row route as before.
+
+**v3 re-bench (2026-10-10, [`DISTILL_BENCH_edgecdss-v3-d7.md`](DISTILL_BENCH_edgecdss-v3-d7.md)):** `edgecdss-v3` as generator, `qwen2.5:3b` validating both arms, on the D7 branch head `b98bb2e`.
+
+| | `qwen2.5:3b` | `edgecdss-v3` (validator `qwen2.5:3b`) |
+|---|---|---|
+| `run_tests.sh` | 29 / 29 | **29 / 29: the bar holds** |
+| Model answers served (of 23) | 15 | 17 |
+| Specifics present, same served scenarios | 4 / 39 (10%) | 8 / 39 (21%) |
+| Mean served answer | 87 tokens | 234 tokens |
+| Latency median / p95 | 8.1 / 13.0 s | 16.4 / 23.5 s |
+
+- **The served answers were read, and several of v3's are clinically wrong**, among them: H-IM-05 "tourniquet low and loose" and debridement before control of an arterial bleed; G-TRA-07 "reapply" a tourniquet on loss of pulse; G-TYP-07 "do not re-warm" a hypothermic arrest; G-TYP-06 "treat as a presumed cardiac arrest … chest compressions" for a seizing adult; G-TYP-02 no needle decompression for a tension pneumothorax (the base doesn't decompress either). `qwen2.5:3b` called most of them SAFE. The full reading, with the base's served answers beside v3's, is in the bench doc.
+- **Finding (owner to place):** `qwen2.5:3b` as the offline validator does not catch procedural errors from either generator. D7 makes the comparison measurable; it does not make the offline validator adequate.
+- The B1 mcg/mg slip did not recur in this pass (intermittent). A25 is next.
+- Owner's verdict on v3 pending.
+
 ## Distillation bench results
 
 Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here.
@@ -1352,6 +1384,7 @@ Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here
 - [`docs/DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md): dry-run data, toolchain proof only, not a model result.
 - [`docs/DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md): v1, trained on the D5b dataset (255 rows). `run_tests.sh` 28/29, equal to the base. Not shippable as the offline model while the validator is the same model (see D6, first bench of `edgecdss-v1`).
 - [`docs/DISTILL_BENCH_edgecdss-v3.md`](DISTILL_BENCH_edgecdss-v3.md): v3, trained on the v3 dataset (221 rows re-answered under the current prompt). `run_tests.sh` 28/29 against the base's 29/29: **fails the bar**. Includes v1 rerun on the same snapshot (D6, v3 bench).
+- [`docs/DISTILL_BENCH_edgecdss-v3-d7.md`](DISTILL_BENCH_edgecdss-v3-d7.md): v3 re-benched as the generator with `qwen2.5:3b` as validator (D7). `run_tests.sh` 29/29, equal to the base: **the bar holds**. Served answers read: several of v3's are clinically wrong and passed the validator (D7).
 
 ## Findings placement (benchmark run 3, docs/MULTI_MODEL_BENCHMARK_2026-09-25.md)
 
