@@ -1,6 +1,8 @@
 # Caution edits for signing: no other drug's dose in a caution (2026-10-11)
 
-**Status: DRAFT, NOT SIGNED.** Nothing in `server/drug_contracts.json` has changed. Every edit below is to caution text in an entry; no dose, route, population, contraindication or source changes. Signing is the owner's act: once signed, the edits are applied to the JSON in the same pull request, with the signature recorded on each entry.
+**Status (2026-10-11): edits 1, 2, 3, 4, 7 and 8 signed by Andrew Azelton (owner) as drafted, and applied.** Each of the 42 signed entries they touch was unsigned, edited and re-signed with `server/tools/set_contract.py` (`--by AI-AIM --date 2026-10-11`, the owner's name and the edit number in `--reason`); 68 entries are signed before and after, and only `cautions` and `review_date` changed. Edits 2 and 8 are in unsigned drafts: their text changed, the entries stay unsigned. **Edits 5 and 6 are not signed** (owner, 2026-10-11): they are signed in the same pull request as an atropine paediatric RSI pre-dose entry, drafted from JTS ID39 for the owner to sign first.
+
+Every edit is to caution text only; no dose, route, population, contraindication or source changes.
 
 ## The rule (owner, 2026-10-11)
 

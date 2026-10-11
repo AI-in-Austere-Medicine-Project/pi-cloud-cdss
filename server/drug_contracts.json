@@ -111,7 +111,7 @@
             },
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -151,7 +151,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-19",
+          "review_date": "2026-10-11",
           "version": "0.4.0",
           "extraction_notes": "Migrated hardcode, 0.5 mg/kg q20-30min. OWNER RULING 2026-08-25 (ruling 7) selected this SHAPE over JTS ID61's load-then-infuse because an infusion pump is often unavailable in austere transport. A full search of ID61 plus ID91, ID29, ID80, ID39, ID40, ID57, ID63, ID70 and ID73 then found the shape well sourced and the VALUE stated nowhere. OWNER DECLARATION 2026-08-25 (ruling 8) therefore replaces MIGRATED_UNSOURCED: the number is declared on the owner's clinical judgement under OWNER_DECLARED, recorded in owner_declaration, and shown as owner-declared everywhere the dose is served. It is no longer a migrated hardcode awaiting corroboration — it is a value someone signed for by name. OWNER RULINGS 9 and 11, 2026-08-26: the single caution carrying both the repeat interval and the cross-reference was re-authored into two — the interval serves, the cross-reference is detail — and the hand-written declaration banner was deleted as a duplicate of the one serve_cautions() generates from owner_declaration itself. The declaration is re-made on the same value and the same reasoning, dated 2026-08-26.",
           "flags": [
@@ -401,7 +401,7 @@
             "NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour ONLY — not analgesia, and not RSI.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -430,7 +430,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
@@ -456,7 +456,7 @@
             "Onset of action 3-5 minutes by this route.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -485,7 +485,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
@@ -512,7 +512,7 @@
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -548,7 +548,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-19",
+          "review_date": "2026-10-11",
           "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
@@ -575,7 +575,7 @@
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -611,7 +611,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-19",
+          "review_date": "2026-10-11",
           "version": "0.3.0",
           "adjudication": "OWNER RULING 2026-08-25: ketamine is not contraindicated in head injury.",
           "adjudicated_on": "2026-08-25"
@@ -635,7 +635,7 @@
             "Give BEFORE the paralytic. Confirm weight and route.",
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             "JTS ID39: unstable patients require a reduced dosage of induction agent.",
-            "Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3 mg/kg IV/IO is listed second line.",
+            "Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate is listed second line.",
             {
               "tier": "detail",
               "text": "The cited guideline states no maximum single dose for this drug and indication."
@@ -667,7 +667,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.3.0",
           "extraction_notes": "TIER 1, JTS ID39 (28 Jan 2026), the current airway CPG. Conflicts with JTS ID40's 1 mg/kg and with the migrated 1.5 mg/kg.",
           "adjudication": "OWNER RULING 2026-08-25: this is the STANDARD induction dose. The reduced dose for haemodynamic compromise is a separate entry, not a competing value. The 1.5 mg/kg hardcode is retired as unsourced.",
@@ -963,7 +963,7 @@
             "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026).",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -981,7 +981,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-28",
+          "review_date": "2026-10-11",
           "version": "0.1.0",
           "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. IV covers IV or IO. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
           "flags": [
@@ -1040,7 +1040,7 @@
             "Onset of action 3-5 minutes by this route.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1058,7 +1058,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-28",
+          "review_date": "2026-10-11",
           "version": "0.1.0",
           "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. The IM range 3-4 mg/kg serves its minimum, 3 mg/kg (SIGNING.md: the engine serves a range's minimum); to serve 4 mg/kg set min and max to 4 and re-declare. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
           "flags": [
@@ -1117,7 +1117,7 @@
             "Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026).",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1142,7 +1142,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-28",
+          "review_date": "2026-10-11",
           "version": "0.1.0",
           "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. IV covers IV or IO. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
           "flags": [
@@ -1203,7 +1203,7 @@
             "Onset of action 3-5 minutes by this route.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1228,7 +1228,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-28",
+          "review_date": "2026-10-11",
           "version": "0.1.0",
           "extraction_notes": "Owner, #103 review 2026-09-28: \"Ketamine as second drug\" for status epilepticus after benzodiazepines, option B. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.",
           "flags": [
@@ -1330,7 +1330,7 @@
             "NASEMSO lists 'concentration of epinephrine in relation to route' as an explicit patient-safety consideration.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -1351,7 +1351,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1383,7 +1383,7 @@
             "May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -1404,7 +1404,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. | CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1634,7 +1634,7 @@
             "Titrate to a MAP greater than 65 mmHg.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1659,7 +1659,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1686,7 +1686,7 @@
             "Repeat every 2 minutes, titrated to MAP greater than 65 mmHg.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1711,7 +1711,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1737,7 +1737,7 @@
             "NASEMSO prefers norepinephrine in neurogenic and septic distributive shock.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1762,7 +1762,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1793,7 +1793,7 @@
             "Repeat every 3-5 minutes, titrated to goal MAP.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -1814,7 +1814,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1841,7 +1841,7 @@
             "Repeat every 3-5 minutes while heart rate remains below 60.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1866,7 +1866,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1893,7 +1893,7 @@
             "Patients who receive inhaled epinephrine should be transported to definitive care.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1918,7 +1918,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         },
@@ -1945,7 +1945,7 @@
             "If immediate reassessment after treatment shows no clinical improvement, escalate airway management.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -1970,7 +1970,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.1",
           "extraction_notes": "CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed."
         }
@@ -2039,7 +2039,7 @@
           "max_cumulative": null,
           "contraindications": [],
           "cautions": [
-            "JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1 mg/kg IV/IO or succinylcholine 1.5 mg/kg IV/IO.",
+            "JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium or succinylcholine.",
             "JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING.",
             {
               "tier": "detail",
@@ -2076,7 +2076,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-26",
+          "review_date": "2026-10-11",
           "version": "0.3.1",
           "adjudication": "OWNER RULING 2026-08-25: split by age per JTS ID39 — 1.2 mg/kg adult, 1.0 mg/kg paediatric. JTS ID40's 1-1.2 mg/kg band corroborates.",
           "adjudicated_on": "2026-08-25"
@@ -2403,7 +2403,7 @@
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -2424,7 +2424,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NO JTS PAEDIATRIC IV DOSE (checked 2026-09-19): no JTS CPG in the corpus states a paediatric IV fentanyl dose; the only 'fentanyl mcg/kg' in the CPGs is the Military Working Dog CPG (ID16). SMOG p.118's paediatric column is misprinted etomidate text and must not be used. PROPOSED BASIS: owner declaration on this NASEMSO value (1 mcg/kg, max 100 mcg initial, Pain Management p.94), the same basis as the signed fentanyl IN entry. NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is not set (null) because the guideline states a maximum INITIAL dose only.",
           "flags": [
@@ -2479,7 +2479,7 @@
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -2500,7 +2500,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IN, IM, IV and IO as one route list at the same 1 mcg/kg dose."
         },
@@ -2538,7 +2538,7 @@
             },
             {
               "tier": "serve",
-              "text": "High-risk medication (ID29 p.24). Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics (ID29 p.7)."
+              "text": "High-risk medication (ID29 p.24). Naloxone should be available when using opioid analgesics (ID29 p.7)."
             },
             {
               "tier": "serve",
@@ -2653,7 +2653,7 @@
             },
             {
               "tier": "serve",
-              "text": "Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics (Pain, Anxiety and Delirium ID29 p.7)."
+              "text": "Naloxone should be available when using opioid analgesics (Pain, Anxiety and Delirium ID29 p.7)."
             },
             {
               "tier": "serve",
@@ -2707,7 +2707,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-09-24",
+          "review_date": "2026-10-11",
           "version": "0.1.0",
           "extraction_notes": "VERIFIED 2026-09-19. PFC Analgesia ID61 p.8: \"ALTERNATIVE opioid: Fentanyl 50μg (range, 25–100μg) IV/IO every 30 minutes to 2 hours PRN (short acting, extremely fast onset, good for severe pain/procedures, greatest risk of respiratory depression)\". p.10 table: \"Fentanyl IV 25μg IV | 25–100μg IV\". Corroborated as a range by Burn Care ID12 p.24 (\"Fentanyl 25-100 mcg IV Q 15 minutes prn pain\") and Pain, Anxiety and Delirium ID29 p.24 (order set, \"25-100 mcg\"). PROVENANCE AND CONFLICT NOTES (not shown to the medic): ID61 p.8 states the dose as 50 mcg with a range of 25-100 mcg; the entry serves 50 mcg. | CONFLICT (found 2026-09-24): TBI-PFC ID63 p.7 and p.20, in severe TBI with SBP >160 mmHg or agitation: \"Fentanyl 25–50μg IV/IO\". Its ceiling is 50 mcg, half this entry's 100 mcg maximum; the entry's 50 mcg dose is within it. Owner to rule whether a TBI caution or a TBI-specific entry is needed.",
           "adjudication": "OWNER RULING 2026-09-24 (Andrew Azelton): conflict group fentanyl-iv-adult-analgesia is settled on this entry: JTS PFC Analgesia ID61 p.8, 50 mcg (range 25-100 mcg). The SMOG weight-based entry (0.5-1 mcg/kg, SMOG p.118) and the NASEMSO entry (1 mcg/kg, maximum initial 100 mcg, NASEMSO p.94) are retired as served and kept in retired_entries as documented alternates. Severe TBI caution added: 25–50 mcg (TBI-PFC ID63 p.7, p.20)."
@@ -2767,7 +2767,7 @@
             "NASEMSO states a preference for norepinephrine in both neurogenic and infectious (sepsis) causes of distributive shock.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -2792,7 +2792,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "Not present on the WHO Model List of Essential Medicines 24th list, and Tier 1 was unreachable at build time. No source supports a value."
         },
@@ -2820,7 +2820,7 @@
             "Titrate to physiologic targets.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -2845,7 +2845,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO's Shock guideline gives this range without splitting adult from paediatric."
         },
@@ -2874,7 +2874,7 @@
             "Titrate to a MAP greater than 65 mmHg.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -2899,7 +2899,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives a DIFFERENT range for bradycardia (0.02-0.4) than for shock (0.05-0.5). Both are NASEMSO and they are different indications in different guidelines, so this is not a source conflict — but the two must not be merged into one range."
         },
@@ -2927,7 +2927,7 @@
             "Titrate to physiologic targets.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -2952,7 +2952,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "A third NASEMSO range (0.02-2) for a third indication. The upper bound is 4x the Shock guideline's. Kept as its own indication rather than widened into the others."
         }
@@ -3457,7 +3457,7 @@
             "This is the dose when vascular access (IV or IO) is already present. NASEMSO prefers IN/IM over IV or IO for seizures and states IV placement is not necessary for treatment.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -3478,7 +3478,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO's Seizures guideline gives one weight-based dose under a single 'Patient Management' heading covering both populations."
         },
@@ -3510,7 +3510,7 @@
             "NASEMSO: recent evidence supports IM midazolam as at least as safe and effective as IV lorazepam for prehospital seizure cessation.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -3538,7 +3538,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
@@ -3618,7 +3618,7 @@
             "NASEMSO states the numbering of medications in this guideline is not a hierarchy or preference.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -3643,7 +3643,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0"
         },
         {
@@ -3766,7 +3766,7 @@
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -3787,7 +3787,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         },
@@ -3825,7 +3825,7 @@
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -3846,7 +3846,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         },
@@ -3884,7 +3884,7 @@
             "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -3905,7 +3905,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
         }
@@ -3976,7 +3976,7 @@
             "Avoid overshoot hyperglycaemia when correcting.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -4011,7 +4011,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
@@ -4047,7 +4047,7 @@
             "Avoid overshoot hyperglycaemia when correcting.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -4075,7 +4075,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
@@ -4337,7 +4337,7 @@
           "cautions": [
             "JTS ID40 gives this as the REDUCED dose for HYPOTENSIVE patients — propofol decreases systemic vascular resistance significantly, and this band is the mitigation, not the standard induction dose.",
             "JTS ID40: ongoing volume resuscitation is vital to prevent vascular collapse.",
-            "JTS ID39 does not list propofol as an RSI induction agent at all — ketamine first line, etomidate 0.3 mg/kg second.",
+            "JTS ID39 does not list propofol as an RSI induction agent at all — ketamine first line, etomidate second.",
             {
               "tier": "detail",
               "text": "The cited guideline states no maximum single dose for this drug and indication."
@@ -4689,7 +4689,7 @@
             "NASEMSO gives this for the dialysis / known hyperkalaemic patient as a reversible cause of cardiac arrest.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -4710,7 +4710,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
@@ -4774,7 +4774,7 @@
             "NASEMSO states no absolute mg ceiling for the paediatric dose.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -4799,7 +4799,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0"
         }
       ],
@@ -4857,7 +4857,7 @@
             "Naloxone has no benefit in cardiac arrest.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -4882,7 +4882,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives 0.4-2 mg as the typical INITIAL adult dose for IV and IM, and states no maximum for those routes (it caps IN at 4 mg and ETT at 5 mg)."
         },
@@ -4908,7 +4908,7 @@
             "Naloxone has no benefit in cardiac arrest.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -4933,7 +4933,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1."
         },
@@ -4963,7 +4963,7 @@
             "Naloxone has no benefit in cardiac arrest.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -4984,7 +4984,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives 0.1 mg/kg for IV, IM, IN and ETT, with different ceilings by route: 2 mg IV/IM/ETT, 4 mg IN."
         },
@@ -5192,7 +5192,7 @@
             "This is the dose when vascular access (IV or IO) is present. NASEMSO prefers IN/IM routes for seizures and notes IM midazolam is at least as safe and effective as IV lorazepam for prehospital seizure cessation.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             }
           ],
           "sources": [
@@ -5220,7 +5220,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "THE MIGRATION IS CONFIRMED BY TIER 1. NASEMSO Seizures p.102 gives lorazepam 0.1 mg/kg IV or IO, maximum 4 mg — exactly the hardcoded calculator's rule, and WHO corroborates the 2 mg/mL concentration. This entry now carries a tier 1 citation, so unlike the other three migrated drugs it is eligible to be signed.",
           "flags": [
@@ -5249,7 +5249,7 @@
             "Onset of action 2-5 minutes by this route.",
             {
               "tier": "detail",
-              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94)."
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
             },
             {
               "tier": "detail",
@@ -5274,7 +5274,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-08-25",
+          "review_date": "2026-10-11",
           "version": "0.2.0"
         }
       ],

@@ -6,10 +6,11 @@ a copied dose of another drug is held, even where that drug has a signed
 entry: edgecdss-v3's B1 answer copied fentanyl's "Naloxone (0.4 mg IV or IM)"
 and was held for it (found in A25).
 
-The edits that bring the bank to the rule are drafted for the owner to sign in
-docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md. Until they are signed and
-applied, the rule is an expected failure, and the list of breaking cautions is
-pinned so no new one is added meanwhile.
+The edits that bring the bank to the rule are in
+docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md. The owner signed 1, 2, 3, 4,
+7 and 8 (applied 2026-10-11); 5 and 6 are signed with an atropine RSI
+pre-dose entry. Until then the rule is an expected failure, and the two
+remaining cautions are pinned so no new one is added meanwhile.
 """
 import json
 import pathlib
@@ -20,16 +21,12 @@ import openai_client as oc
 
 CONTRACTS = pathlib.Path(oc.__file__).parent / "drug_contracts.json"
 
-# The eight caution texts the draft edits, by their first words.
+# Edits 1, 2, 3, 4, 7 and 8 were signed by the owner and applied on
+# 2026-10-11. Edits 5 and 6 (the paediatric RSI atropine pre-dose) stay
+# unsigned until an atropine RSI pre-dose entry is signed with them.
 DRAFTED = {
-    "Naloxone (0.4 mg IV or IM) should be available",                     # 1 fentanyl PFC IV
-    "High-risk medication (ID29 p.24). Naloxone (0.4 mg IV or IM)",       # 2 fentanyl infusion
-    "The cited guideline states no cumulative maximum",                    # 3 39 entries
-    "Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3",    # 4 ketamine RSI adult
     "JTS ID39 paediatric column: pre-dose atropine IV/IO 0.02",           # 5 ketamine RSI peds
     "Pre-dose atropine IV/IO 0.02",                                        # 6 succinylcholine peds
-    "JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1",  # 7 rocuronium
-    "JTS ID39 does not list propofol as an RSI induction agent",           # 8 propofol
 }
 
 
@@ -58,7 +55,7 @@ def test_no_caution_breaks_the_rule_beyond_the_draft():
     assert not undrafted, f"a caution states another drug's dose and is not in the draft: {undrafted}"
 
 
-@pytest.mark.xfail(strict=True, reason="the drafted caution edits await the owner's signature "
-                                       "(docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md)")
+@pytest.mark.xfail(strict=True, reason="edits 5 and 6 await an atropine RSI pre-dose entry and the owner's "
+                                       "signature (docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md)")
 def test_no_caution_states_another_drugs_dose():
     assert not _breaking_cautions()
