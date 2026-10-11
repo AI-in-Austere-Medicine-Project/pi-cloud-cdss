@@ -4502,8 +4502,10 @@ def run_deterministic_checks(query: str, response_text: str,
                     f"medication is not in the ALLOWED_DOSES contract.")
                 continue
             candidates = [d for d in allowed_doses if d.drug.lower() == matched_drug]
-            tol = lambda dm: max(0.5, dm * 0.05)
-            if not any(abs(stated_mg - d.dose_mg) <= tol(d.dose_mg) for d in candidates):
+            # A26: the free-text check's tolerance, 5% of the signed value. The
+            # old floor of 0.5 mg was wider than any signed dose under 10 mg
+            # and passed fentanyl "(0.5mg)" for 0.05 mg.
+            if not any(abs(stated_mg - d.dose_mg) <= d.dose_mg * 0.05 + 1e-9 for d in candidates):
                 allowed_vals = ", ".join(f"{d.dose_mg:g}mg {d.route}" for d in candidates)
                 issues.append(
                     f"GIVE line states {matched_drug} {stated_mg:g}mg, which does not "
