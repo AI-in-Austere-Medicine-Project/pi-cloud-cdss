@@ -1382,8 +1382,11 @@ SEIZURE_INDICATIONS = ("active seizure",)
 # words. The words here are anchored; "status" alone is not one of them
 # ("altered mental status").
 SEIZURE_TREATMENT_INDICATIONS = ("active seizure", "status epilepticus")
+# A28 (owner, 2026-10-11): the common misspellings too. "pt siezing for 4 min"
+# missed the card and was served CPR and defibrillation (G-TYP-06, v3 bench).
 _ACTIVE_SEIZURE_RE = re.compile(
-    r"\b(?:seizures?|seizing|szs?|convulsing|convulsions?|status\s+epilepticus)\b")
+    r"\b(?:seizures?|seizing|siezing|seizeing|siezures?|seizeures?|"
+    r"szs?|convulsing|convulsions?|status\s+epilepticus)\b")
 # In the same clause, before the word: not a seizure happening now.
 _NOT_ACTIVE_SEIZURE_RE = re.compile(
     r"\b(?:no|not|denies|without|negative for|rule out|history of|hx of|h/o|"
