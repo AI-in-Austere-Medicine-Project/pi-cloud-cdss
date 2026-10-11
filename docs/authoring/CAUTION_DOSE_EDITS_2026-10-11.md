@@ -96,6 +96,8 @@ Found by scanning every caution in the bank for a drug name followed by a dose (
 
 **Clinical note on 5 and 6:** no signed atropine entry covers the RSI pre-dose. Atropine's signed entries are symptomatic bradycardia (adult 1 mg, peds 0.02 mg/kg), nerve agent and organophosphate poisoning. Today these two cautions are the only place the pre-dose figure, with its minimum and maximum, reaches the medic. After the edit, asking for atropine on a paediatric RSI question builds the entries it has, each labelled with its own indication. Checked on main e96e6ab, for a 15 kg child, "RSI with succinylcholine, atropine pre-dose": symptomatic bradycardia IV 0.3 mg (0.02 mg/kg) and organophosphate or carbamate poisoning IV 0.75 mg (0.05 mg/kg). Neither is the RSI pre-dose, and neither carries its minimum of 0.1 mg or maximum of 0.5 mg. **Options:** sign 5 and 6 as drafted; or first author and sign an atropine "RSI pre-dose" peds entry from ID39 (0.02 mg/kg, minimum 0.1 mg, maximum 0.5 mg), then sign 5 and 6; or leave 5 and 6 unsigned for now.
 
+**Owner, 2026-10-11:** the second. The entry is drafted in `server/drug_contracts.json` (atropine, "RSI pre-dose — paediatric intubation", peds, IV; unsigned), from ID39 p.28 verbatim; 5 and 6 are signed in the same pull request as the entry.
+
 ### 7. Rocuronium, RSI paralytic, adult, IV (signed; untiered, so served)
 
 - Current: "JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1 mg/kg IV/IO or succinylcholine 1.5 mg/kg IV/IO."
