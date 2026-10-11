@@ -6568,6 +6568,10 @@
             {
               "tier": "serve",
               "text": "Always reference the Broselow tape (SMOG p.100)."
+            },
+            {
+              "tier": "detail",
+              "text": "ID39 p.28 states a maximum dose of 0.5 mg and no cumulative maximum for this pre-dose."
             }
           ],
           "sources": [
@@ -6597,7 +6601,7 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.1.0-draft",
-          "extraction_notes": "DRAFTED 2026-10-11 for the owner to sign (caution rule; edits 5 and 6 of docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md are signed with this entry). JTS CPG ID39 (28 Jan 2026), Appendix I, Recommendations for Pediatric Patients, item 2, p.28 (printed p.28 = PDF p.28; right column of a two-column page): \"Pre-dose with atropine IV/IO (0.02mg/kg, minimum dose 0.1mg, maximum dose 0.5mg) in all <1 years old, those <5 who are receiving succinylcholine, and in all who receive a 2nd dose of succinylcholine\". The 2017 edition (Airway Management of Traumatic Injuries, 17 Jul 2017, ID39) p.5 states the same passage. SMOG CY24 p.12 (Rapid Sequence Intubation, Pretreat): \"3 - 5 Minute prior to Sedative / Paralytic\" … \"Atropine 0.02 mg/kg IV to prevent bradycardia in Peds (age <1y)\". CONFLICT (found 2026-10-11): SMOG CY24 p.12: \"Atropine 0.02 mg/kg IV to prevent bradycardia in Peds (age <1y)\". Same dose per kg; narrower population (under 1 year only, not those under 5 receiving succinylcholine or a second dose) and no minimum or maximum. Owner to rule which population the entry serves; drafted to ID39. ROUTE: ID39 says IV/IO; written \"IV\" as the other ID39 RSI entries are. CONTRAINDICATIONS carried from the signed atropine paediatric bradycardia entry (SMOG CY24 p.100). Searched for other conflicts: every corpus PDF page naming atropine with intubation, RSI, succinylcholine or premedication (canine pp.57-63 left out); no other dose found."
+          "extraction_notes": "DRAFTED 2026-10-11 for the owner to sign (caution rule; edits 5 and 6 of docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md are signed with this entry). JTS CPG ID39 (28 Jan 2026), Appendix I, Recommendations for Pediatric Patients, item 2, p.28 (printed p.28 = PDF p.28; right column of a two-column page): \"Pre-dose with atropine IV/IO (0.02mg/kg, minimum dose 0.1mg, maximum dose 0.5mg) in all <1 years old, those <5 who are receiving succinylcholine, and in all who receive a 2nd dose of succinylcholine\". The 2017 edition (Airway Management of Traumatic Injuries, 17 Jul 2017, ID39) p.5 states the same passage. SMOG CY24 p.12 (Rapid Sequence Intubation, Pretreat): \"3 - 5 Minute prior to Sedative / Paralytic\" … \"Atropine 0.02 mg/kg IV to prevent bradycardia in Peds (age <1y)\". CONFLICT (found 2026-10-11): SMOG CY24 p.12: \"Atropine 0.02 mg/kg IV to prevent bradycardia in Peds (age <1y)\". Same dose per kg; narrower population (under 1 year only, not those under 5 receiving succinylcholine or a second dose) and no minimum or maximum. Owner to rule which population the entry serves; drafted to ID39. ROUTE: ID39 says IV/IO; written \"IV\" as the other ID39 RSI entries are. CONTRAINDICATIONS carried from the signed atropine paediatric bradycardia entry (SMOG CY24 p.100). Searched for other conflicts: every corpus PDF page naming atropine with intubation, RSI, succinylcholine or premedication (canine pp.57-63 left out); no other dose found. BUILT (checked 2026-10-11 on a scratch copy with this entry signed, never in the repo): asked for atropine, a child gets this entry alongside atropine's other paediatric entries, each labelled with its indication (3 kg: 0.1 mg, the minimum; 15 kg: 0.3 mg; 40 kg: 0.5 mg, the maximum)."
         }
       ]
     },
