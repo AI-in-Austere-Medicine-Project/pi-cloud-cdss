@@ -6570,6 +6570,24 @@ def build_vtach_response() -> str:
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
+# Owner, 2026-10-11 (G-TYP-07, D7 v3 re-bench): "no pulse" or "pulseless" with
+# hypothermia is a hypothermic arrest, not only the words "cardiac arrest". The
+# pulselessness must be the patient's: not "pulse ox", not a limb's pulse, not
+# "no radial pulse" (shock). Bare "cold" is not hypothermia here ("cold leg, no
+# pulse" is a limb); it stays on the "cardiac arrest" path.
+_HYPOTHERMIA_RE = re.compile(r"\bhypotherm\w*|\bsnow\b|\bfrozen\b|\bcold\s+water\b|\bfound\s+cold\b")
+_LIMB_RE = r"(?:(?:left|right)\s+)?(?:limb|leg|arm|foot|feet|hand|extremit\w*|toe\w*|finger\w*)"
+_PULSELESS_RE = re.compile(
+    r"\bpulseless\b(?!\s+" + _LIMB_RE + r")"
+    r"|\bno\s+(?:palpable\s+|central\s+|carotid\s+|femoral\s+)?pulses?\b"
+    r"(?!\s*-?\s*ox)(?!\s+(?:in|at|on)\s+(?:the\s+|his\s+|her\s+)?" + _LIMB_RE + r")")
+
+
+def is_hypothermic_pulseless(q: str) -> bool:
+    q = (q or "").lower()
+    return bool(_HYPOTHERMIA_RE.search(q) and _PULSELESS_RE.search(q))
+
+
 def build_general_case_response(query: str, ctx: Optional[PatientContext] = None,
                                 history: Optional[str] = None) -> Optional[str]:
     """The fixed common-case cards. Each is chosen by the CURRENT turn; only the
@@ -6582,7 +6600,8 @@ def build_general_case_response(query: str, ctx: Optional[PatientContext] = None
         return build_anaphylaxis_response()
     if is_active_seizure_card_query(q):
         return build_seizure_response(history or query, ctx)
-    if "cardiac arrest" in q and any(x in q for x in ["hypothermic", "snow", "cold", "frozen"]):
+    if (("cardiac arrest" in q and any(x in q for x in ["hypothermic", "snow", "cold", "frozen"]))
+            or is_hypothermic_pulseless(q)):
         return build_hypothermic_arrest_response()
     # Severe TBI is not dispatched here: it has its own step (2i-iii, A2,
     # 2026-09-24), a card that carries the ID30/ID63 specifics and the signed
