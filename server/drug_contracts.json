@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "68 of 108 dose entries across 16 of 34 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "68 of 109 dose entries across 16 of 34 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -6528,6 +6528,76 @@
           "version": "0.1.0",
           "extraction_notes": "VERIFIED 2026-09-19. SMOG CY24 p.100 PEDIATRIC: \"Organophosphate or carbamate insecticide: IV/IO: Initial: 0.05-0.1 mg/kg; repeat every 5-10 minutes as needed, double dose if previous dose does not induce atropinization.\" \"Severe Nerve Agent Poisoning: IV/IO 1mg every 3 min.\" PROVENANCE AND CONFLICT NOTES (not shown to the medic): SMOG gives a RANGE, 0.05-0.1 mg/kg; the engine serves the minimum unless the owner rules otherwise. | CONFLICT (found 2026-09-24): SMOG p.39, Toxic Ingestion, pediatric: \"Organophosphate: Atropine 0.02mg/ IV/IO q5 + 2-PAM 25mg/kg IV/IM\". The unit is cut off in print. Read as 0.02 mg/kg it is 2.5-5x below this entry's 0.05-0.1 mg/kg (SMOG p.100). Owner to rule.",
           "adjudication": "OWNER RULING 2026-09-24 (Andrew Azelton): served 0.05 mg/kg initial, doubled per protocol (SMOG p.100). SMOG p.39's \"0.02mg/\" is a misprint, noted and not served."
+        },
+        {
+          "indication": "RSI pre-dose — paediatric intubation",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.02,
+            "max": 0.02,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "min_single": {
+            "value": 0.1,
+            "units": "mg",
+            "rule": "minimum dose 0.1 mg (ID39 p.28)"
+          },
+          "max_single": {
+            "value": 0.5,
+            "units": "mg",
+            "rule": "maximum dose 0.5 mg (ID39 p.28)"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity to atropine (SMOG CY24 p.100)",
+            "Narrow-angle glaucoma (SMOG CY24 p.100)",
+            "Pyloric stenosis (SMOG CY24 p.100)",
+            "Prostatic hypertrophy (SMOG CY24 p.100)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Who gets it: all under 1 year, those under 5 receiving succinylcholine, and all who receive a second dose of succinylcholine (ID39 p.28)."
+            },
+            {
+              "tier": "serve",
+              "text": "Give 3-5 minutes before the sedative and paralytic (SMOG p.12)."
+            },
+            {
+              "tier": "serve",
+              "text": "Always reference the Broselow tape (SMOG p.100)."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Appendix I — Recommendations for Pediatric Patients, item 2, p.28",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "https://jts.health.mil/assets/docs/cpgs/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-10-11"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rapid Sequence Intubation, Pretreat, p.12 — cited for the timing and as a narrower conflict (below)",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-11"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Atropine Sulfate, Contraindications, p.100 — cited for the contraindications only",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-11"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "DRAFTED 2026-10-11 for the owner to sign (caution rule; edits 5 and 6 of docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md are signed with this entry). JTS CPG ID39 (28 Jan 2026), Appendix I, Recommendations for Pediatric Patients, item 2, p.28 (printed p.28 = PDF p.28; right column of a two-column page): \"Pre-dose with atropine IV/IO (0.02mg/kg, minimum dose 0.1mg, maximum dose 0.5mg) in all <1 years old, those <5 who are receiving succinylcholine, and in all who receive a 2nd dose of succinylcholine\". The 2017 edition (Airway Management of Traumatic Injuries, 17 Jul 2017, ID39) p.5 states the same passage. SMOG CY24 p.12 (Rapid Sequence Intubation, Pretreat): \"3 - 5 Minute prior to Sedative / Paralytic\" … \"Atropine 0.02 mg/kg IV to prevent bradycardia in Peds (age <1y)\". CONFLICT (found 2026-10-11): SMOG CY24 p.12: \"Atropine 0.02 mg/kg IV to prevent bradycardia in Peds (age <1y)\". Same dose per kg; narrower population (under 1 year only, not those under 5 receiving succinylcholine or a second dose) and no minimum or maximum. Owner to rule which population the entry serves; drafted to ID39. ROUTE: ID39 says IV/IO; written \"IV\" as the other ID39 RSI entries are. CONTRAINDICATIONS carried from the signed atropine paediatric bradycardia entry (SMOG CY24 p.100). Searched for other conflicts: every corpus PDF page naming atropine with intubation, RSI, succinylcholine or premedication (canine pp.57-63 left out); no other dose found."
         }
       ]
     },
