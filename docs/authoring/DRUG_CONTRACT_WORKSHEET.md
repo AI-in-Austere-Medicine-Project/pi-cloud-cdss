@@ -148,7 +148,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** After tube confirmed only. Not the induction dose. · _untiered, so it serves_
 - **cautions:** Repeat q20-30min. Preferred where there is no pump. · _untiered, so it serves_
 - **cautions:** If an infusion pump IS available, see ketamine · ongoing sedation — loading dose · IV: JTS ID61 gives 1 mg/kg IV over 60 seconds followed by an infusion. · _detail tier — shown on “why this dose?”, not with the dose_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: "Children <3 mo. age" is a contraindication to ketamine. OWNER RULING 2026-09-19 (#66): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside. · _detail tier — shown on “why this dose?”, not with the dose_
@@ -219,7 +219,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Onset of action about 1 minute by this route. · _untiered, so it serves_
 - **cautions:** NASEMSO offers ketamine here as an option for high violence risk. · _untiered, so it serves_
 - **cautions:** NASEMSO's Appendix III lists ketamine's indication as agitated or violent behaviour ONLY — not analgesia, and not RSI. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61 · retrieved 2026-08-24
@@ -235,7 +235,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** Onset of action 3-5 minutes by this route. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61 · retrieved 2026-08-24
@@ -251,7 +251,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Age < 3 months
 - **cautions:** NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61 · retrieved 2026-08-24
@@ -268,7 +268,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Age < 3 months
 - **cautions:** NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.61 · retrieved 2026-08-24
@@ -285,7 +285,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Give BEFORE the paralytic. Confirm weight and route. · _untiered, so it serves_
 - **cautions:** JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING. · _untiered, so it serves_
 - **cautions:** JTS ID39: unstable patients require a reduced dosage of induction agent. · _untiered, so it serves_
-- **cautions:** Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate 0.3 mg/kg IV/IO is listed second line. · _untiered, so it serves_
+- **cautions:** Ketamine is JTS ID39's FIRST-LINE induction agent; etomidate is listed second line. · _untiered, so it serves_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for. · _detail tier — shown on “why this dose?”, not with the dose_
@@ -395,7 +395,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Only after benzodiazepines have failed to stop the seizure. · _untiered, so it serves_
 - **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
 - **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): "Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures." · retrieved 2026-09-28
 - **why no value was written:** Owner, #103 review 2026-09-28: "Ketamine as second drug" for status epilepticus after benzodiazepines, option B. IV covers IV or IO. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.
@@ -425,7 +425,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
 - **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
 - **cautions:** Onset of action 3-5 minutes by this route. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): "Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures." · retrieved 2026-09-28
 - **why no value was written:** Owner, #103 review 2026-09-28: "Ketamine as second drug" for status epilepticus after benzodiazepines, option B. The IM range 3-4 mg/kg serves its minimum, 3 mg/kg (SIGNING.md: the engine serves a range's minimum); to serve 4 mg/kg set min and max to 4 and re-declare. No approved source states the dose, so it is OWNER_DECLARED. Evidence: docs/authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md. No randomized trial of prehospital second-line ketamine was found; the dose basis is two observational studies (Finney 2026, Scheppke 2024). Othman 2025 (Pediatr Neurol 167:24-32) is an RCT of ketamine ADDED to first-line midazolam in children, not second line.
@@ -455,7 +455,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Only after benzodiazepines have failed to stop the seizure. · _untiered, so it serves_
 - **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
 - **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): "Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures." · retrieved 2026-09-28
 - **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-28
@@ -487,7 +487,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Hypoxia: transient hypoxia in 22% after prehospital ketamine for this indication (Finney 2026). Monitor SpO2 and EtCO2 continuously. · _untiered, so it serves_
 - **cautions:** Have BVM and suction ready before giving: 31% needed bag-valve-mask support and 7% a supraglottic airway (Finney 2026). · _untiered, so it serves_
 - **cautions:** Onset of action 3-5 minutes by this route. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Role 1c neurologic management, p.28 (repeated p.29): "Immediate seizure treatment with benzodiazepines, consider ketamine for refractory seizures." · retrieved 2026-09-28
 - **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications ("Children <3 mo. age"), p.127 — cited for the age floor only, not the dose · retrieved 2026-09-28
@@ -515,7 +515,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Use the 1 mg/mL concentration for the IM route. · _untiered, so it serves_
 - **cautions:** May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose. · _untiered, so it serves_
 - **cautions:** NASEMSO lists 'concentration of epinephrine in relation to route' as an explicit patient-safety consideration. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
@@ -533,7 +533,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Give in the anterolateral thigh. · _untiered, so it serves_
 - **cautions:** Use the 1 mg/mL concentration for the IM route. · _untiered, so it serves_
 - **cautions:** May be repeated every 5-15 minutes if anaphylaxis and hypoperfusion persist after the first dose. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Anaphylaxis and Allergic Reaction, p.67 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1. | CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
@@ -608,7 +608,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Cardiac dilatation
 - **contraindications:** Coronary insufficiency
 - **cautions:** Titrate to a MAP greater than 65 mmHg. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -626,7 +626,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** This is a DILUTED preparation, not the ampoule. NASEMSO's example: prepare 10 mcg/mL by adding 1 mL of 0.1 mg/mL epinephrine to 9 mL of normal saline. · _untiered, so it serves_
 - **cautions:** 10-20 mcg equals 1-2 mL of that 10 mcg/mL dilution. · _untiered, so it serves_
 - **cautions:** Repeat every 2 minutes, titrated to MAP greater than 65 mmHg. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -643,7 +643,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Coronary insufficiency
 - **cautions:** Titrate to physiologic targets. · _untiered, so it serves_
 - **cautions:** NASEMSO prefers norepinephrine in neurogenic and septic distributive shock. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -661,7 +661,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** DILUTED preparation: prepare 10 mcg/mL by diluting 1 mL of epinephrine 0.1 mg/mL (1:10 000) in 9 mL of normal saline. · _untiered, so it serves_
 - **cautions:** 0.01 mg/kg equals 0.1 mL/kg of that dilution. · _untiered, so it serves_
 - **cautions:** Repeat every 3-5 minutes, titrated to goal MAP. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** CORRECTED 2026-09-24: NASEMSO Appendix III was cited at p.381; the epinephrine monograph begins on p.382. RE-SIGNED 2026-09-24 by Andrew Azelton (signer role AI-AIM), version 0.2.0 -> 0.2.1, previously signed by AI-AIM on 2026-08-25: citation corrected p.381→p.382, dose unchanged, re-affirmed.
@@ -678,7 +678,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Use the 0.1 mg/mL concentration. · _untiered, so it serves_
 - **cautions:** IV/IO preferred if access obtained. If unable to obtain access, NASEMSO gives 0.1 mg/kg via the ETT — a different, TEN-FOLD HIGHER number for a different route. Do not interchange them. · _untiered, so it serves_
 - **cautions:** Repeat every 3-5 minutes while heart rate remains below 60. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Neonatal Resuscitation, p.160 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -696,7 +696,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** 5 mg is 5 mL of the 1 mg/mL solution. · _untiered, so it serves_
 - **cautions:** May repeat in 20 minutes as needed; NASEMSO states these may be repeated at this dose with unlimited frequency for ongoing respiratory distress. · _untiered, so it serves_
 - **cautions:** Patients who receive inhaled epinephrine should be transported to definitive care. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Croup), p.156 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -714,7 +714,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** 5 mg is 5 mL of the 1 mg/mL solution. · _untiered, so it serves_
 - **cautions:** Indicated only if suctioning and oxygen have failed to produce clinical improvement. · _untiered, so it serves_
 - **cautions:** If immediate reassessment after treatment shows no clinical improvement, escalate airway management. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pediatric Respiratory Distress (Bronchiolitis), p.151 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -745,7 +745,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **max_single:** none stated by the cited source
 - **max_cumulative:** none stated by the cited source
 - **contraindications:** ⚠️ none recorded — this entry renders an empty do-not-give list at every serve
-- **cautions:** JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium 0.1 mg/kg IV/IO or succinylcholine 1.5 mg/kg IV/IO. · _untiered, so it serves_
+- **cautions:** JTS ID39 adult RSI pathway. Alternatives listed alongside: vecuronium or succinylcholine. · _untiered, so it serves_
 - **cautions:** JTS ID39: ALWAYS SEDATE PRIOR TO PARALYZING. · _untiered, so it serves_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
@@ -866,7 +866,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** NO JTS PAEDIATRIC IV DOSE (checked 2026-09-19): no JTS CPG in the corpus states a paediatric IV fentanyl dose; the only 'fentanyl mcg/kg' in the CPGs is the Military Working Dog CPG (ID16). SMOG p.118's paediatric column is misprinted etomidate text and must not be used. PROPOSED BASIS: owner declaration on this NASEMSO value (1 mcg/kg, max 100 mcg initial, Pain Management p.94), the same basis as the signed fentanyl IN entry. NASEMSO gives one weight-based dose for moderate to severe pain without splitting adult from paediatric; the same 1 mcg/kg line covers both. max_cumulative is not set (null) because the guideline states a maximum INITIAL dose only.
@@ -881,7 +881,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO warns: use with caution in the elderly and in patients with hypotension, suspected gastrointestinal obstruction, head injury, and concomitant CNS depressants. · _untiered, so it serves_
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for fentanyl. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.382 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO gives IN, IM, IV and IO as one route list at the same 1 mcg/kg dose.
@@ -889,15 +889,28 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 #### 3. analgesia infusion · adult · IV
 
 - **status:** ⬜ not live — signoff is not true
-- **flags:** `NOT_IN_SOURCE`
-  - **Absent.** The drug or the indication does not appear in the source that was searched.
-- **dose_range:** ❌ `NEEDS_MANUAL_ENTRY`
-- **max_single:** ❌ `NEEDS_MANUAL_ENTRY`
-- **max_cumulative:** ❌ `NEEDS_MANUAL_ENTRY`
-- **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
-- **cautions:** ❌ `NEEDS_MANUAL_ENTRY`
-- **sources:** ❌ none — no approved source supports this entry yet
-- **why no value was written:** NASEMSO v3.0 gives fentanyl as intermittent dosing only and describes no infusion. WHO lists only the transdermal patch, scoped to cancer pain. Neither approved source supports an infusion rate.
+- **flags:** `STARTING_RATE_NOT_IN_SOURCE`
+- **dose_range:** `25.0–250.0 mcg/hr` (flat)
+- **max_single:** none stated by the cited source
+- **max_cumulative:** none stated by the cited source
+- **contraindications:** Hypotension (SMOG CY24 p.118)
+- **contraindications:** Hypoxia (SMOG CY24 p.118)
+- **contraindications:** Hypoventilation (SMOG CY24 p.118)
+- **contraindications:** MAOI taken in the past 14 days (SMOG CY24 p.118)
+- **contraindications:** Hypersensitivity to fentanyl
+- **cautions:** Start the infusion when intermittent doses are needed more often than every 2 hours; stop intermittent dosing once it runs (Pain, Anxiety and Delirium ID29 p.24).
+- **cautions:** Titrate to a pain score of 3 or less (0-10), up to 250 mcg/hr (ID29 p.24; Burn Care ID12 p.24).
+- **cautions:** Breakthrough pain: 25-100 mcg IV bolus every 10 minutes as needed (ID29 p.24).
+- **cautions:** High-risk medication (ID29 p.24). Naloxone should be available when using opioid analgesics (ID29 p.7).
+- **cautions:** Head trauma or suspected raised ICP: use with extreme caution (SMOG p.118).
+- **cautions:** NEEDS_MANUAL_ENTRY: starting rate. Neither source states one: ID29 gives the range only, and ID12's order line leaves the rate blank ("Fentanyl gtt at _____mcg/hr").
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Appendix H: Sedation Orders — Analgesia, p.24 · retrieved 2026-10-08
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Burn Care, CPG ID12, 10 Jun 2025 — Appendix A: Physician's Order Set — 15. Analgesia/Sedation/PRN Medications, p.24 · retrieved 2026-10-08
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Appendix A: Pain, Anxiety (Sedation) & Delirium Guidelines, p.16 · retrieved 2026-10-08
+- **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — p.7 · retrieved 2026-10-08
+- **source:** tier 1 (SMOG) — U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Fentanyl, Contraindications; Adverse Reactions / Precautions, p.118 — cited for contraindications and the head-trauma caution only, not the dose · retrieved 2026-10-08
+- **why no value was written:** DRAFT 2026-10-08 (contract batch 1, analgesia), from the JTS corpus; not signed. Dose: ID29 p.24 (25-250 mcg/hr, continuous), cap corroborated by ID12 p.24 (titrate up to 250 mcg/hr). Setting: ID29's ICU sedation orders, and its algorithm's first option for background pain in the intubated, haemodynamically stable patient (ID29 p.16); ID12's burn ICU order set. Not a point-of-injury dose. Open for the owner: (1) STARTING RATE: no source states one, marked incomplete in cautions; (2) POPULATION: neither order set says adult; the flat mcg/hr rate reads as adult, and ID12's order set covers adults and children; (3) ID12's page header reads 'ID:20' while the file and the bank cite ID12. Excluded: SMOG p.57 / MWD CPG ID16 ('Fentanyl 2-10 mcg/kg/hour') are military working dog doses. Superseded note: 'NASEMSO v3.0 gives fentanyl as intermittent dosing only and describes no infusion. WHO lists only the transdermal patch, scoped to cancer pain.' JTS is now an approved tier 1 source.
 
 #### 4. acute pain / analgesia — JTS PFC fixed dose · adult · IV
 
@@ -912,7 +925,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Hypersensitivity to fentanyl
 - **cautions:** Slow IV push over 3-5 minutes: rapid administration may cause chest wall rigidity, impaired ventilation or respiratory arrest; be prepared to manage the airway (SMOG p.118).
 - **cautions:** Head trauma or suspected raised ICP: use with extreme caution (SMOG p.118).
-- **cautions:** Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics (Pain, Anxiety and Delirium ID29 p.7).
+- **cautions:** Naloxone should be available when using opioid analgesics (Pain, Anxiety and Delirium ID29 p.7).
 - **cautions:** Repeat every 30 minutes to 2 hours as needed (PFC Analgesia ID61 p.8).
 - **cautions:** Severe TBI: 25–50 mcg (ID63 p.7, p.20).
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
@@ -946,7 +959,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Do not use in the same IV line as alkaline solutions — they may deactivate it. · _untiered, so it serves_
 - **cautions:** Titrate to physiologic targets. · _untiered, so it serves_
 - **cautions:** NASEMSO states a preference for norepinephrine in both neurogenic and infectious (sepsis) causes of distributive shock. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -965,7 +978,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs. · _untiered, so it serves_
 - **cautions:** Do not use in the same IV line as alkaline solutions — they may deactivate it. · _untiered, so it serves_
 - **cautions:** Titrate to physiologic targets. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Shock, p.109 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -985,7 +998,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Do not use in the same IV line as alkaline solutions — they may deactivate it. · _untiered, so it serves_
 - **cautions:** Titrate to physiologic targets. · _untiered, so it serves_
 - **cautions:** Titrate to a MAP greater than 65 mmHg. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Bradycardia, p.36 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1004,7 +1017,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO warns: norepinephrine is a VESICANT and can cause severe tissue damage if extravasation occurs. · _untiered, so it serves_
 - **cautions:** Do not use in the same IV line as alkaline solutions — they may deactivate it. · _untiered, so it serves_
 - **cautions:** Titrate to physiologic targets. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Respiratory Distress (includes Bronchospasm, Pulmonary Edema), p.192 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1192,7 +1205,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** Sleep apnea
 - **cautions:** NASEMSO warns: may cause respiratory depression, arrest, or apnea. · _untiered, so it serves_
 - **cautions:** This is the dose when vascular access (IV or IO) is already present. NASEMSO prefers IN/IM over IV or IO for seizures and states IV placement is not necessary for treatment. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO's Seizures guideline gives one weight-based dose under a single 'Patient Management' heading covering both populations.
@@ -1210,7 +1223,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** This is the NO-VASCULAR-ACCESS dose and it is TWICE the IV/IO dose with a different ceiling — 0.2 mg/kg max 10 mg IM/IN versus 0.1 mg/kg max 4 mg IV/IO. Do not interchange them. · _untiered, so it serves_
 - **cautions:** IM is preferred over IN. · _untiered, so it serves_
 - **cautions:** NASEMSO: recent evidence supports IM midazolam as at least as safe and effective as IV lorazepam for prehospital seizure cessation. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.103 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1254,7 +1267,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO warns: may cause respiratory depression, arrest, or apnea. · _untiered, so it serves_
 - **cautions:** Onset of action 3-5 minutes by this route. · _untiered, so it serves_
 - **cautions:** NASEMSO states the numbering of medications in this guideline is not a hierarchy or preference. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.60 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1301,7 +1314,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** During labour when premature birth is anticipated (injectable)
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric.
@@ -1325,7 +1338,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** During labour when premature birth is anticipated (injectable)
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric.
@@ -1349,7 +1362,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** During labour when premature birth is anticipated (injectable)
 - **cautions:** Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry. · _untiered, so it serves_
 - **cautions:** This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric.
@@ -1381,7 +1394,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** NASEMSO: 10% dextrose is as effective and safer than stronger concentrations, and agencies may consider carrying no more than 25% for adults. · _untiered, so it serves_
 - **cautions:** 50% dextrose can cause local tissue damage on extravasation and carries risk for little clinical gain. · _untiered, so it serves_
 - **cautions:** Avoid overshoot hyperglycaemia when correcting. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.84 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86 · retrieved 2026-08-24
@@ -1405,7 +1418,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Concentration is age-limited: for children under 8 years, no more than 25%. · _untiered, so it serves_
 - **cautions:** As volume: 2-4 mL/kg of 25% dextrose for those over 8 years old, or 5-10 mL/kg of 10% dextrose. · _untiered, so it serves_
 - **cautions:** Avoid overshoot hyperglycaemia when correcting. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.85 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Hypoglycemia, p.86 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1479,7 +1492,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **contraindications:** ❌ `NEEDS_MANUAL_ENTRY`
 - **cautions:** JTS ID40 gives this as the REDUCED dose for HYPOTENSIVE patients — propofol decreases systemic vascular resistance significantly, and this band is the mitigation, not the standard induction dose. · _untiered, so it serves_
 - **cautions:** JTS ID40: ongoing volume resuscitation is vital to prevent vascular collapse. · _untiered, so it serves_
-- **cautions:** JTS ID39 does not list propofol as an RSI induction agent at all — ketamine first line, etomidate 0.3 mg/kg second. · _untiered, so it serves_
+- **cautions:** JTS ID39 does not list propofol as an RSI induction agent at all — ketamine first line, etomidate second. · _untiered, so it serves_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no cumulative maximum for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (JTS) — JTS Clinical Practice Guideline — Anesthesia for Trauma Patients, CPG ID40, 05 Apr 2021 — Induction of Anesthesia, item 4, p.3 · retrieved 2026-08-25
@@ -1578,7 +1591,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** 10% solution. · _untiered, so it serves_
 - **cautions:** May repeat the dose if there is no response. · _untiered, so it serves_
 - **cautions:** NASEMSO gives this for the dialysis / known hyperkalaemic patient as a reversible cause of cardiac arrest. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.119 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** Tier 2 (WHO EML) supplies the dosage form and strength only. The EML is a medicines list, not a dosing guideline; it states no mg/kg regimen. Dose awaits Tier 1.
@@ -1614,7 +1627,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** 10% solution. NASEMSO notes 100 mg/kg is 1 mL/kg of the 10% solution. · _untiered, so it serves_
 - **cautions:** May repeat the dose if there is no response. · _untiered, so it serves_
 - **cautions:** NASEMSO states no absolute mg ceiling for the paediatric dose. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Cardiac Arrest (VF/VT/Asystole/PEA), p.119 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.380 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1637,7 +1650,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone. · _untiered, so it serves_
 - **cautions:** Titrate the initial and subsequent doses incrementally until respiratory depression is reversed. · _untiered, so it serves_
 - **cautions:** Naloxone has no benefit in cardiac arrest. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1654,7 +1667,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone. · _untiered, so it serves_
 - **cautions:** Titrate the initial and subsequent doses incrementally until respiratory depression is reversed. · _untiered, so it serves_
 - **cautions:** Naloxone has no benefit in cardiac arrest. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
@@ -1671,7 +1684,7 @@ Order is the v4.3 discovery run, round 3: 125 dose-seeking scenarios, drug menti
 - **cautions:** Critical resuscitation — airway, oxygen, circulation — comes BEFORE naloxone. · _untiered, so it serves_
 - **cautions:** Titrate the initial and subsequent doses incrementally until respiratory depression is reversed. · _untiered, so it serves_
 - **cautions:** Naloxone has no benefit in cardiac arrest. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Opioid Poisoning/Overdose, p.304 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.388 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **why no value was written:** NASEMSO gives 0.1 mg/kg for IV, IM, IN and ETT, with different ceilings by route: 2 mg IV/IM/ETT, 4 mg IN.
@@ -2083,7 +2096,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **contraindications:** Sleep apnea
 - **cautions:** Monitor respiratory depression. · _untiered, so it serves_
 - **cautions:** This is the dose when vascular access (IV or IO) is present. NASEMSO prefers IN/IM routes for seizures and notes IM midazolam is at least as safe and effective as IV lorazepam for prehospital seizure cessation. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Seizures, p.102 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24
 - **source:** tier 0 (MIGRATION) — EdgeCDSS pre-contract hardcoded calculator: lorazepam_seizure_0.1mgkg_max4mg · retrieved 2026-08-24
@@ -2100,7 +2113,7 @@ The deployment's actual disease burden, and almost entirely absent from NASEMSO.
 - **contraindications:** Severe respiratory depression
 - **contraindications:** Sleep apnea
 - **cautions:** Onset of action 2-5 minutes by this route. · _untiered, so it serves_
-- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (ketamine 100 mg, hydromorphone 4 mg, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
+- **cautions:** The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94). · _detail tier — shown on “why this dose?”, not with the dose_
 - **cautions:** The cited guideline states no maximum single dose for this drug and indication. · _detail tier — shown on “why this dose?”, not with the dose_
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Agitated or Violent Patient/Behavioral Emergency, p.60 · retrieved 2026-08-24
 - **source:** tier 1 (NASEMSO) — NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.386 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23) · retrieved 2026-08-24

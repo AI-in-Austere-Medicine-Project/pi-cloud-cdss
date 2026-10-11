@@ -54,6 +54,8 @@ A citation that gives only the PDF page where the two differ is an error. Correc
 
 ## Write nothing the dose check reads as a dose
 
+**A caution never states another drug's dose (owner, 2026-10-11).** It may name the drug: "Naloxone should be available", not "Naloxone (0.4 mg IV or IM) should be available". A served caution is in the generator's block, the generator copies it, and only the asked drug's doses are built for a question, so a copied dose of another drug is held even when that drug has a signed entry. `server/tests/test_caution_no_other_dose.py` checks every caution.
+
 The deterministic dose check reads every **number followed by a mass unit** as a dose, whatever the word means where you wrote it. That covers mg, mcg, µg, μg, ug, g, microgram(s), milligram(s) and gram(s), in any case, with or without a space, and ranges such as "25-100". It also reads a mass per kg ("2 mg/kg") as a dose. It does not read a rate ("mg/kg/hr") or a concentration ("50 mg/mL").
 
 So in cards, cautions, notes and any contract text a medic sees:
