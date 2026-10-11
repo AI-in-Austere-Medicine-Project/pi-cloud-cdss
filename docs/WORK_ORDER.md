@@ -66,6 +66,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | **done**: #135, merged |
 | A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | **done**: #138, merged |
 | A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card signed by Andrew Azelton, 2026-10-08 (#144, merged); its replay movement approved |
+| A25 | A model-written dose in a unit other than the matched signed entry's unit holds (mcg vs mg), even when it converts equal | **in review** |
+| A26 | The canonical GIVE line's dose tolerance: a floor of 0.5 mg passes a tenfold error on any signed dose under 10 mg (fentanyl "(0.5mg)" for 0.05 mg serves) | next, after A25 (owner, 2026-10-10) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -562,6 +564,27 @@ Newly held, each read:
 - `junctional_card.json`: `signoff` true, `reviewed_by` "Andrew Azelton", `review_date` 2026-10-08; the four lines' text unchanged from the reviewed draft (#139), pinned word for word by `server/tests/test_a24b_junctional_signed.py` (committed failing first, 5 failed). A24's unsigned-behaviour tests now pin an unsigned copy of the card, so the hold stays tested for any re-draft. Nothing in code unsets the signature if a line changes: the owner re-signs, and the test catches the change.
 - **Replay** (main a254043 against the signed card): deterministic checks and the gate replay unchanged (served 1,687, held 238, D5b teacher 274, live logs 1,970; gate 1,326). Pipeline: 2 rows, both the G-MTN-04 question ("he's bleeding from the groin"), go from the unsigned-card hold to the DCR card led by the three junctional lines, with the signed TXA entry, the junctional WATCH line, and "junctional: JTS CPG ID73 … p.5, p.21; JTS CPG ID18 … p.8; CCATT CPG ID49 … p.10" in SOURCE. **Approved by the owner, 2026-10-08.**
 - The card's generic step 4 ("Control hemorrhage immediately: pressure, tourniquet, wound packing, pelvic binder if indicated") follows the junctional steps and partly repeats them: **stays (owner, 2026-10-08).**
+
+### A25: a dose in a unit other than its signed unit (owner, 2026-10-10; found in the D6 v3 bench)
+
+**Owner, 2026-10-10:** "a model-written dose whose unit differs from the signed dose for the same drug (mcg vs mg) holds. Failing test first from the B1 slip." Asked which case to hold (below): **"any other-unit dose"**, even when it converts to the signed value, and "50 mcg (0.05 mg)" too.
+
+**What was found first:** B1's slip, "Draw 50 mcg of fentanyl IV (50 mg)" (edgecdss-v3, 2026-10-09), **already holds on main**, by value: the free-text dose check converts every amount to mg, and 50 mg is not the signed 0.05 mg ("The answer stated fentanyl 50 mg, which is not the signed fentanyl dose for this patient"). A test from that line could not fail first; it is a guard. The gap was the other direction: **the signed value in another unit converts equal and served.** "Draw 0.05 mg of fentanyl IV" for the signed 50 mcg, and "50 mcg (0.05 mg)", passed.
+
+**What changed:** `free_text_dose_issues` keeps each built dose's unit (`display_units`, the unit the source writes it in). A stated amount whose value matches a signed entry must also be in the unit of an entry it matched (mcg, mg or g; "µg", "micrograms", "mcg/kg" count as mcg), or the answer holds: "The answer stated fentanyl 0.05 mg, but the signed fentanyl dose is written in mcg. A dose in another unit is held: ask again for fentanyl dosing to get the signed dose." The unit is named, never the signed number (owner ruling 12).
+- The unit is the **matched entry's**, not the drug's: epinephrine is signed in mg (IM 0.3 mg, arrest 1 mg) and in mcg (push dose 10 mcg); "0.01 mg" holds, "0.3 mg" IM passes.
+- An entry with no display unit (the older deterministic calculators) is not judged on unit: nothing new holds on an unknown unit.
+- The canonical GIVE line ("Draw X mL of Y mg/mL drug (Z mg)") is the pipeline's own mg format and stays out of this check. Its own dose check is A26.
+
+**Tests:** `server/tests/test_a25_unit_mismatch.py`, committed failing first (7 failed, 4 guards passed: the B1 slip still holds by value; signed units pass; a per-kg dose in the signed unit passes; the canonical GIVE line is not read). `test_free_text_doses.py` listed "Give fentanyl 0.08 mg" ("same, in mg", #70) as not a freelanced dose; under the ruling it holds, and it moved to its own held-case test in a separate commit. Suite: 2,659 passed, 54 skipped, 3 xfailed.
+
+**Replay** (`replay-out/` in the A25 worktree; main `fc256eb` against A25): served answers (1,738), gate (1,408), live session logs (2,102), held answers (308) and the full pipeline (800 stored queries, model stubbed): **all byte-identical. 0 newly held, 0 newly released, 0 cloud regressions.** No stored answer states a signed value in another unit; the change holds only the cases the tests pin.
+
+**Found along the way:** placed as A26 (owner, 2026-10-10), and one item under *Found along the way*.
+
+### A26: the canonical GIVE line's dose tolerance (owner, 2026-10-10: after A25; found in A25)
+
+**Found:** the canonical GIVE check accepts a stated mg within `max(0.5, 5%)` of a signed value. For any signed dose under 10 mg the 0.5 mg floor is wider than the dose. On main `fc256eb`, with the generator writing "Draw 10 mL of 0.05mg/mL fentanyl IV (0.5mg)" and the validator SAFE, the pipeline **serves "fentanyl 0.5 mg. NO VOLUME"** (NEEDS_HUMAN_REVIEW, with the banner): the deterministic checks pass the canonical line (the free-text check skips it), then the volume audit in `_finalise` finds no signed fentanyl concentration and rewrites the line to its mg dose. The same floor passes epinephrine IM "(0.8mg)" for 0.3 mg and the push dose "(0.5mg)" for 10 mcg. Failing test first; replay with 0 newly released.
 
 ### B1: source-mode labelling
 
@@ -1406,6 +1429,7 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 ## Found along the way, not yet placed
 
 
+- **The fentanyl entry's signed caution feeds the model an unsigned naloxone dose** (found in A25, from the v3 B1 answer). The ALLOWED_DOSES block carries fentanyl's caution "Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics (Pain, Anxiety …)". edgecdss-v3 copied it into its answer as "Naloxone (0.4 mg IV or IM) available", and the free-text check held it: no naloxone dose is signed for the question. A correct hold of text the system supplied. Any model that copies the caution is held the same way.
 - **An active arterial bleed without shock physiology gets no card** (found in the D7 v3 re-bench, H-IM-05; owner, 2026-10-10). `has_clear_hemorrhage` reads "arterial bleed", but the DCR card (`looks_like_hemorrhagic_shock`) also needs shock physiology, and no other card covers external bleeding control alone. "fresh arterial bleed from the leg" goes to the model; with "BP 80/50, HR 130" added, the DCR card fires. v3 served "tourniquet low and loose" and debridement before control (SAFE). Not a misspelling: the correctly spelled question misses too.
 - **The hypothermic-arrest card needs the literal words "cardiac arrest"** (found in the D7 v3 re-bench, G-TYP-07; owner, 2026-10-10). `build_general_case_response` fires on `"cardiac arrest" in q` plus a cold word. "hypothermic arrest, found in the snow, no pulse", correctly spelled, goes to the model, as does the bench's "arest"; only "hypothermic cardiac arrest" fires. v3 served "Do not re-warm until professional help arrives" (SAFE).
 - **The active-seizure card misses the misspelling "siezing"** (found in the D7 v3 re-bench, G-TYP-06; owner, 2026-10-10). `is_active_seizure_card_query` matches "seizing"; the bench's "pt siezing for 4 min now, adult, no iv yet" goes to the model, the correctly spelled one gets the ACTIVE SEIZURE card. v3 served "Treat as a presumed cardiac arrest … chest compressions … Defibrillation is the highest priority" (NEEDS_HUMAN_REVIEW, served with the banner).

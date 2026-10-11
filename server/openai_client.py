@@ -4142,9 +4142,10 @@ def free_text_dose_issues(response_text: str,
     given, collects (drug, [mg, ...]) for each dose that matched a signed
     value (B1's label reads it); it never changes the issues."""
     indications = rate_indications(query) if query else set()
-    allowed = {}
+    allowed, signed_units = {}, {}
     for d in allowed_doses or []:
         allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
+        signed_units.setdefault(d.drug.lower(), []).append(_mass_unit(d.display_units))
     weight = patient_ctx.dosing_weight_kg if patient_ctx is not None else None
     query_drugs = {sp[2] for sp in _drug_spans(query)} if query else set()
     query_drug = next(iter(query_drugs)) if len(query_drugs) == 1 else None
@@ -4202,6 +4203,17 @@ def free_text_dose_issues(response_text: str,
                     stated = values
                 if stated is not None and all(
                         any(abs(x - a) <= a * 0.05 + 1e-9 for a in ok) for x in stated):
+                    # A25: the value is signed; the unit must be the one the
+                    # matched entry is written in. An entry with no display
+                    # unit (the older calculators) is not judged on unit.
+                    units = signed_units.get(drug.lower(), [])
+                    matched = {units[i] for i, a in enumerate(ok)
+                               if any(abs(x - a) <= a * 0.05 + 1e-9 for x in stated)}
+                    said = _mass_unit(amt.group(3))
+                    if None not in matched and said not in matched:
+                        issues.append(_free_dose_unit_line(drug, amt.group(0).strip(),
+                                                           sorted(matched)))
+                        continue
                     if accepted is not None:
                         accepted.append((drug, stated))
                     continue
@@ -4317,6 +4329,24 @@ def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
                 f"confirmed. Give the weight in kg and ask for {drug} by name.")
     return (f"{said} with no signed {drug} dose for this question. Ask for {drug} "
             f"by name, with what it is for, to get the signed dose.")
+
+
+def _mass_unit(units: Optional[str]) -> Optional[str]:
+    """"mcg", "mg" or "g" for a stated or signed unit ("µg", "milligrams",
+    "mcg/kg" → "mcg"), or None when there is none."""
+    if not units:
+        return None
+    u = units.split("/")[0].strip().lower()
+    factor = _TO_MG_UNIT.get(u)
+    return {0.001: "mcg", 1.0: "mg", 1000.0: "g"}.get(factor) if factor else None
+
+
+def _free_dose_unit_line(drug: str, shown: str, signed_units: list) -> str:
+    """A25: the signed value in another unit. The unit is named, never the
+    signed number (owner ruling 12)."""
+    return (f"The answer stated {drug} {shown}, but the signed {drug} dose is "
+            f"written in {' or '.join(signed_units)}. A dose in another unit is held: "
+            f"ask again for {drug} dosing to get the signed dose.")
 
 
 def _free_dose_unattributed_line(shown: str) -> str:
