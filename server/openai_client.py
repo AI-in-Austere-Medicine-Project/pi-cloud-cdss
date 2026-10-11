@@ -2831,7 +2831,7 @@ _TENSION_SIGN_RES = (
 _THORACIC_TRAUMA_RE = re.compile(
     r"\b(?:chest|thora\w*|rib|ribs)\b[^.;]{0,30}\b(?:trauma|wound|injur\w*|gsw|stab\w*|blast|shot)\b"
     r"|\b(?:penetrating|gsw|gunshot|stab(?:s|bed|bing)?|shot|blast|blunt)\b[^.;]{0,30}\b(?:chest|thora\w*)\b"
-    r"|\bpneumothorax\b",
+    r"|\bpneumo(?:thorax)?\b",   # A29: "pneumo" too (G-TYP-02, "tension pneumo, trachea deviated")
     re.IGNORECASE)
 
 
@@ -2844,27 +2844,48 @@ def looks_like_tension_pneumothorax(query: str) -> bool:
     return signs >= 2 or (signs >= 1 and _THORACIC_TRAUMA_RE.search(q) is not None)
 
 
+# A29 (owner, 2026-10-11): the card's lines live in needle_decompression_card.json,
+# each with verbatim JTS CPG ID74 quotes, signed by the owner. Until it is
+# signed, a tension presentation is held with a line that names no unsigned
+# content (the junctional precedent, owner #139). The builder renders the file
+# whether signed or not; the pipeline serves it only when signed.
+_TENSION_CARD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "needle_decompression_card.json")
+TENSION_UNSIGNED_ISSUE = ("Signs of a tension pneumothorax are recorded, and EdgeCDSS has no signed "
+                          "needle-decompression procedure yet. Decompress per local protocol and "
+                          "contact medical control.")
+
+
+def tension_card() -> dict:
+    """The needle-decompression procedure, as written (signed or not)."""
+    with open(_TENSION_CARD_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _tension_card_if_signed() -> Optional[dict]:
+    card = tension_card()
+    if card.get("signoff") is True and card.get("reviewed_by") and card.get("review_date"):
+        return card
+    return None
+
+
 def build_tension_pneumothorax_response(with_dcr: bool = False) -> str:
-    reassess = ("\n**THEN**\n- After decompression, then reassess for hemorrhage — DCR "
-                "(damage-control resuscitation) if shock persists: control bleeding, blood "
-                "products, TXA within 3 hours.\n") if with_dcr else ""
+    card = tension_card()
+    bullets = lambda lines: "\n".join(f"- {line['text']}" for line in lines)
+    steps = "\n".join(f"{i}. {line['text']}" for i, line in enumerate(card["do_this"], 1))
+    reassess = f"\n**THEN**\n- {card['then_with_dcr']['text']}\n" if with_dcr else ""
     return f"""**DO THIS**
-1. Needle decompression now, on the affected side: large bore (14 gauge or larger) 3.25in/8cm catheter in the 4th or 5th intercostal space, anterior axillary line.
-2. Alternate site: 2nd intercostal space, mid-clavicular line (the primary site in children).
-3. Follow with tube thoracostomy as soon as feasible and safe. If it is delayed, be ready to repeat needle decompression.
+{steps}
 
 **WATCH**
-- Breathing, SpO2, BP and breath sounds after decompression; recurrence.
-- No improvement after two needle decompressions most likely means another diagnosis.
+{bullets(card["watch"])}
 
 **DON'T**
-- Do not use short (5 cm) venous-access catheters: they rarely reach the chest cavity.
-- Do not wait for imaging: absent or markedly decreased breath sounds after chest trauma indicate intervention without further testing.
+{bullets(card["dont"])}
 {reassess}
 **TLDR**
-- Suspected tension pneumothorax: needle decompress, 14 gauge 8cm catheter, 4th/5th ICS anterior axillary line, then tube thoracostomy.
+- {card["tldr"]["text"]}
 
-**SOURCE**: JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018), p.5 (recognition), p.8 (needle decompression)
+**SOURCE**: {card["source_line"]}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
@@ -7009,6 +7030,16 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         if looks_like_tension_pneumothorax(query):
             age, paediatric = _patient_age(query.lower())
             with_dcr = _dcr_shock_physiology(query.lower(), age, paediatric)
+            if _tension_card_if_signed() is None:
+                print("🛑 TENSION PNEUMOTHORAX — procedure unsigned, held")
+                return {
+                    "response": build_safety_hold([TENSION_UNSIGNED_ISSUE], ""),
+                    "sources": [],
+                    "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "UNSAFE",
+                    "validator_issues": [TENSION_UNSIGNED_ISSUE],
+                    "patient_context": patient_ctx.to_dict()
+                }
             print("🫁 TENSION PNEUMOTHORAX PRE-GATE" + (" (+ DCR reassess)" if with_dcr else ""))
             return {
                 "response": build_tension_pneumothorax_response(with_dcr=with_dcr),
