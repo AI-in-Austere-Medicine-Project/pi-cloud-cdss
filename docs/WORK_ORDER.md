@@ -67,7 +67,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | **done**: #138, merged |
 | A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card signed by Andrew Azelton, 2026-10-08 (#144, merged); its replay movement approved |
 | A25 | A model-written dose in a unit other than the matched signed entry's unit holds (mcg vs mg), even when it converts equal | **in review** |
-| A26 | The canonical GIVE line's dose tolerance: a floor of 0.5 mg passes a tenfold error on any signed dose under 10 mg (fentanyl "(0.5mg)" for 0.05 mg serves) | next, after A25 (owner, 2026-10-10) |
+| A26 | The canonical GIVE line's dose tolerance: a floor of 0.5 mg passes a tenfold error on any signed dose under 10 mg (fentanyl "(0.5mg)" for 0.05 mg serves) | **in review** |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -585,6 +585,14 @@ Newly held, each read:
 ### A26: the canonical GIVE line's dose tolerance (owner, 2026-10-10: after A25; found in A25)
 
 **Found:** the canonical GIVE check accepts a stated mg within `max(0.5, 5%)` of a signed value. For any signed dose under 10 mg the 0.5 mg floor is wider than the dose. On main `fc256eb`, with the generator writing "Draw 10 mL of 0.05mg/mL fentanyl IV (0.5mg)" and the validator SAFE, the pipeline **serves "fentanyl 0.5 mg. NO VOLUME"** (NEEDS_HUMAN_REVIEW, with the banner): the deterministic checks pass the canonical line (the free-text check skips it), then the volume audit in `_finalise` finds no signed fentanyl concentration and rewrites the line to its mg dose. The same floor passes epinephrine IM "(0.8mg)" for 0.3 mg and the push dose "(0.5mg)" for 10 mcg. Failing test first; replay with 0 newly released.
+
+**Owner, 2026-10-11:** "a parenthetical or secondary dose figure for a signed drug is checked the same as the GIVE line; fentanyl “(0.5mg)” holds. Failing test first."
+
+**What changed:** the canonical GIVE check now accepts the line's (Z mg) only within 5% of a signed value, the free-text check's tolerance; the 0.5 mg floor is gone. A secondary figure written outside the canonical line ("50 mcg (0.05 mg)") is already the free-text check's, with A25's unit rule.
+
+**Tests:** `server/tests/test_a26_give_tolerance.py`, committed failing first (4 failed: fentanyl "(0.5mg)" at the check and end to end, where it had served as "fentanyl 0.5 mg. NO VOLUME" with NEEDS_HUMAN_REVIEW; epinephrine IM "(0.8mg)"; epinephrine "(0.5mg)", no signed value). Guards: the signed value passes, ketamine 84 mg for 80 (5%) passes, 86 mg holds. No existing test depended on the floor. Suite: 2,665 passed, 54 skipped, 3 xfailed.
+
+**Replay** (`replay-out/` in the A26 worktree; main `f7592dc` against A26): served answers (1,738), gate (1,408), live session logs (2,160), held answers (308) and the full pipeline (800 stored queries, model stubbed): **all byte-identical. 0 newly held, 0 newly released, 0 cloud regressions.** No stored canonical GIVE line sat between 5% and the old floor. Live harness: `run_tests.sh` 29/29 against a second uvicorn on :8012 (offline, no keys).
 
 ### B1: source-mode labelling
 
