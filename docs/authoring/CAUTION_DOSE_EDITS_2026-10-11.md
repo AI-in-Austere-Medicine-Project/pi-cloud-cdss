@@ -4,6 +4,8 @@
 
 Every edit is to caution text only; no dose, route, population, contraindication or source changes.
 
+Replay (main `e96e6ab` against the applied edits): served answers (1,738), gate (1,408), live session logs (2,218) and held answers (308) byte-identical; the full pipeline (800 stored queries, model stubbed) differs on 22, in served text only: every added line is a signed edit's new wording, and the route, verdict and built doses are unchanged on every row. **0 newly held, 0 newly released.** Suite: 2,666 passed, 54 skipped, 4 xfailed (the adult RSI card's pinned cautions updated to edits 4 and 7).
+
 ## The rule (owner, 2026-10-11)
 
 **A caution never states another drug's dose.** It may name the drug. First stated as "cautions name the drug, never a dose, unless the drug has its own signed entry"; tightened the same day after naloxone was found to have signed entries of its own (IV and IM adult, 0.4–2 mg), so the exception would have kept the dose that caused the finding.
