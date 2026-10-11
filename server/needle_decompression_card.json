@@ -1,0 +1,119 @@
+{
+ "_comment": "A29 (owner, 2026-10-11): the tension-pneumothorax card's lines, each with verbatim JTS CPG ID74 quotes (printed page = PDF page throughout). DRAFT for the owner to sign: while signoff is false, a tension presentation is held with a line that names no unsigned content (the junctional precedent, owner #139). The lines are the card served since owner ruling 1 (2026-09-24), with one change: the WATCH line 'Breathing, SpO2, BP and breath sounds after decompression; recurrence.' is now 'Recurrence after decompression.' (ID74 states no vital-sign monitoring for this step). The THEN line's DCR steps are the signed DCR card's; ID74 is cited for the order. If a line's text changes, the owner re-signs.",
+ "id": "tension_pneumothorax_needle_decompression",
+ "do_this": [
+  {
+   "text": "Needle decompression now, on the affected side: large bore (14 gauge or larger) 3.25in/8cm catheter in the 4th or 5th intercostal space, anterior axillary line.",
+   "sources": [
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "Clinical suspicion of tension pneumothorax requires rapid treatment, either with needle decompression and subsequent tube thoracostomy, or with immediate tube thoracostomy."
+    },
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "Needle decompression should be performed with a large bore (14 gauge or larger) 3.25in/8cm catheter in the 4th or 5th intercostal space, anterior axillary line."
+    }
+   ]
+  },
+  {
+   "text": "Alternate site: 2nd intercostal space, mid-clavicular line (the primary site in children).",
+   "sources": [
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "The alternate needle decompression site is the 2nd intercostal space at the mid-clavicular line (this is the primary site in children)."
+    }
+   ]
+  },
+  {
+   "text": "Follow with tube thoracostomy as soon as feasible and safe. If it is delayed, be ready to repeat needle decompression.",
+   "sources": [
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "Needle decompression alone is insufficient treatment for a pneumothorax and certainly ineffective for hemothorax and should in most cases be followed by placement of a tube thoracostomy as soon as feasible and safe."
+    },
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "If tube thoracostomy placement is delayed, providers should be prepared to repeat needle decompression as needed."
+    }
+   ]
+  }
+ ],
+ "watch": [
+  {
+   "text": "Recurrence after decompression.",
+   "sources": [
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "If tube thoracostomy placement is delayed, providers should be prepared to repeat needle decompression as needed."
+    }
+   ]
+  },
+  {
+   "text": "No improvement after two needle decompressions most likely means another diagnosis.",
+   "sources": [
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "Failure to improve after two needle decompressions most likely indicates an alternative diagnosis to pneumothorax (e.g., hemothorax, pulmonary contusion, and diaphragm injury)."
+    }
+   ]
+  }
+ ],
+ "dont": [
+  {
+   "text": "Do not use short (5 cm) venous-access catheters: they rarely reach the chest cavity.",
+   "sources": [
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 8,
+     "quote": "shorter (5cm) catheters used for venous access should be avoided as these will rarely penetrate the thoracic cavity and thus be ineffective."
+    }
+   ]
+  },
+  {
+   "text": "Do not wait for imaging: absent or markedly decreased breath sounds after chest trauma indicate intervention without further testing.",
+   "sources": [
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 5,
+     "quote": "Absent or markedly decreased breath sounds in a patient with known thoracic trauma indicate the need for intervention without additional diagnostic testing."
+    }
+   ]
+  }
+ ],
+ "then_with_dcr": {
+  "text": "After decompression, then reassess for hemorrhage — DCR (damage-control resuscitation) if shock persists: control bleeding, blood products, TXA within 3 hours.",
+  "sources": [
+   {
+    "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+    "page": 5,
+    "quote": "While a patient with thoracic trauma and a pneumothorax may present with multiple injuries and an alternate explanation for hypotension (such as cardiac tamponade, intraabdominal bleeding, or hemothorax), immediate needle or tube thoracostomy is the necessary first step in this scenario."
+   }
+  ]
+ },
+ "tldr": {
+  "text": "Suspected tension pneumothorax: needle decompress, 14 gauge 8cm catheter, 4th/5th ICS anterior axillary line, then tube thoracostomy.",
+  "sources": [
+   {
+    "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+    "page": 8,
+    "quote": "Needle decompression should be performed with a large bore (14 gauge or larger) 3.25in/8cm catheter in the 4th or 5th intercostal space, anterior axillary line."
+   },
+   {
+    "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+    "page": 8,
+    "quote": "Needle decompression alone is insufficient treatment for a pneumothorax and certainly ineffective for hemothorax and should in most cases be followed by placement of a tube thoracostomy as soon as feasible and safe."
+   }
+  ]
+ },
+ "source_line": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018), p.5 (recognition), p.8 (needle decompression)",
+ "signoff": false,
+ "reviewed_by": null,
+ "review_date": null
+}
