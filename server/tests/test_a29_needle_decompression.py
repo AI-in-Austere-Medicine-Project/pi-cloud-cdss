@@ -80,9 +80,12 @@ def test_signed_with_shock_the_dcr_line_follows(tmp_path, monkeypatch):
     assert card["then_with_dcr"]["text"] in r["response"]
 
 
-def test_unsigned_a_tension_presentation_holds(monkeypatch):
+def test_unsigned_a_tension_presentation_holds(tmp_path, monkeypatch):
     card = json.load(open(oc._TENSION_CARD_FILE, encoding="utf-8"))
-    assert card["signoff"] is not True, "this test is for the unsigned draft"
+    card.update(signoff=False, reviewed_by=None, review_date=None)
+    p = tmp_path / "needle_decompression_card.json"
+    p.write_text(json.dumps(card), encoding="utf-8")
+    monkeypatch.setattr(oc, "_TENSION_CARD_FILE", str(p))
     r = _run(BENCH, monkeypatch)
     assert r["validator_result"] == "UNSAFE"
     assert oc.TENSION_UNSIGNED_ISSUE in r["validator_issues"]
