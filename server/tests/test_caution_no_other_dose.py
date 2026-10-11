@@ -6,29 +6,17 @@ a copied dose of another drug is held, even where that drug has a signed
 entry: edgecdss-v3's B1 answer copied fentanyl's "Naloxone (0.4 mg IV or IM)"
 and was held for it (found in A25).
 
-The edits that bring the bank to the rule are in
-docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md. The owner signed 1, 2, 3, 4,
-7 and 8 (applied 2026-10-11); 5 and 6 are signed with an atropine RSI
-pre-dose entry. Until then the rule is an expected failure, and the two
-remaining cautions are pinned so no new one is added meanwhile.
+The edits that brought the bank to the rule are in
+docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md: 1, 2, 3, 4, 7 and 8 signed
+and applied on 2026-10-11 (#155); 5 and 6 signed the same day with the atropine
+paediatric RSI pre-dose entry (JTS ID39 p.28), which now carries that dose.
 """
 import json
 import pathlib
 
-import pytest
-
 import openai_client as oc
 
 CONTRACTS = pathlib.Path(oc.__file__).parent / "drug_contracts.json"
-
-# Edits 1, 2, 3, 4, 7 and 8 were signed by the owner and applied on
-# 2026-10-11. Edits 5 and 6 (the paediatric RSI atropine pre-dose) stay
-# unsigned until an atropine RSI pre-dose entry is signed with them.
-DRAFTED = {
-    "JTS ID39 paediatric column: pre-dose atropine IV/IO 0.02",           # 5 ketamine RSI peds
-    "Pre-dose atropine IV/IO 0.02",                                        # 6 succinylcholine peds
-}
-
 
 def _breaking_cautions():
     """(owner drug, caution text) for every caution that states a dose of
@@ -49,13 +37,5 @@ def _breaking_cautions():
     return found
 
 
-def test_no_caution_breaks_the_rule_beyond_the_draft():
-    texts = {t for _, t in _breaking_cautions()}
-    undrafted = {t for t in texts if not any(t.startswith(p) for p in DRAFTED)}
-    assert not undrafted, f"a caution states another drug's dose and is not in the draft: {undrafted}"
-
-
-@pytest.mark.xfail(strict=True, reason="edits 5 and 6 await an atropine RSI pre-dose entry and the owner's "
-                                       "signature (docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md)")
 def test_no_caution_states_another_drugs_dose():
-    assert not _breaking_cautions()
+    assert not _breaking_cautions(), _breaking_cautions()
