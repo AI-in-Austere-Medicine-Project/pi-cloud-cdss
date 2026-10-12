@@ -80,6 +80,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B2 | Generator section headers | **done**: #129, merged and deployed |
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
+| C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **in review** |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -760,6 +761,26 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 - Not clinical: #7 ("prompt user to change question style") and #10 ("voice not working") were filed as clinical flags with query "test" because there was nowhere else. The new comment box takes these now; a separate "something's broken" button is the review's suggestion, not built here.
 - Three reports carry no text to place (#9 "amiorderone", #15, #21).
 - The six later reports (#23 to #28, to 2026-09-25) fit the same list: #23, #26, #27 held or refused something safe; #24 missing critical step; #28 a drip question; #25 has no text.
+
+### C2: on-device models in the portal picker (owner, 2026-10-12; v1.1)
+
+**Owner, 2026-10-12:** "the portal model picker lists the on-device Ollama models (qwen2.5:3b, edgecdss-v3) alongside the cloud models, labelled '(on device)'. Selecting one routes that request to the local provider with CDSS_VALIDATOR_MODEL as validator, no cloud call. The served answer shows which model wrote it (model_used). Default unchanged."
+
+**Rulings (owner, 2026-10-12), asked before the work:**
+- **This un-defers "the local-model portal toggle"** (it was under *Deferred (do not touch)*).
+- **edgecdss-v3 is listed, as specified.** Asked against the v3 verdict ("fails on owner reading; qwen2.5:3b stays the offline model") and the rule that a distilled model ships only after every served answer is read: the owner ruled that the verdict does not bar v3 from the picker. A medic can select it on the live service; `qwen2.5:3b` stays the offline default.
+- **The validator for an on-device pick is D7's rule:** `CDSS_VALIDATOR_MODEL` if it names an on-device model, else `qwen2.5:3b`; never a cloud model. On the live service, where `CDSS_VALIDATOR_MODEL` is unset or names the cloud validator, that is `qwen2.5:3b`.
+
+**What changed:**
+- `providers.json` `on_device_models`: `qwen2.5:3b` ("Qwen2.5 3B (on device)") and `edgecdss-v3` ("EdgeCDSS v3 (on device)"), on the local provider. **Listed only when Ollama reports the tag installed** (`_ollama_tags`: Ollama's `/api/tags`, 2 s timeout, cached like the provider status), so a host without Ollama, or without the tag, lists nothing it cannot serve.
+- `resolve_model` honours an on-device pick, offline too; a cloud pick offline still answers on the device. `validator_model(generator)` applies D7's rule when the generator is on-device; `validate_response` passes the request's model. `/models` carries `on_device_validator_model`.
+- The portal: the answer already names its model ("Answered by local/edgecdss-v3"). The badge for an on-device answer now reads "on-device model" (it read "local model · offline", wrong for a medic online who chose it); a cloud-unreachable fallback keeps "local model · offline" and its banner. The picker's tooltip says where each kind of model is validated.
+
+**Tests:** `server/tests/test_c2_on_device_picker.py`, committed failing first (13 failed or errored). Adapted in their own commit: an autouse stub in `conftest.py` makes Ollama absent unless a test provides tags (on the Jetson the suite had reached the real Ollama), three `validator_model` stubs take the new argument, and `test_local_llm`'s "no local model on the menu" (the deferred toggle, pinned) now pins "none without Ollama". Suite: 2,726 passed, 54 skipped, 3 xfailed.
+
+**Live check** (a second uvicorn on :8012 with no cloud keys, the real Ollama): `/models` lists both on-device models, labelled, with `on_device_validator_model` `qwen2.5:3b`; a query with `model: edgecdss-v3` is served as `local/edgecdss-v3`, provider `local`, the log showing the generator returned `edgecdss-v3` and the validator `qwen2.5:3b`, no fallback; a query with no model still goes to the cloud default (and errors there for want of a key), so the default did not move.
+
+**Replay** (`replay-out/` in the worktree; main `8007ec5` against C2): served answers (1,738), gate (1,408), live session logs (2,626), held answers (308) and the full pipeline (800 stored queries, model stubbed): **all byte-identical. 0 newly held, 0 newly released.** The default path did not change.
 
 ### D1: evaluation hygiene (one PR; done, #112)
 
@@ -1526,8 +1547,9 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 
 ## Deferred (do not touch)
 
+"The local-model portal toggle" was un-deferred by the owner on 2026-10-12 (C2).
+
 - neonatal dextrose;
 - the fentanyl adult label rename;
 - voice;
-- the local-model portal toggle;
 - the Go sentinel.

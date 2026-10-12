@@ -50,6 +50,7 @@ Read these before relying on any served answer.
 - **Signed content is as good as its source and its signature.** Signing records who said a number is safe and on what page; it is not an independent clinical validation. 40 contract entries and two procedure rows (P1, P2) are unsigned and hold.
 - **The guideline corpus is a snapshot.** The editions are the ones in the knowledge base when it was built; a newer guideline is not used until it is ingested and its citations rechecked.
 - **Benchmark counts are advisory.** A model is adopted only when the owner has read every answer it served and found none clinically wrong. No distilled model has passed; `qwen2.5:3b` is the offline model.
+- **The portal can offer a model the owner did not adopt.** The picker lists the on-device models Ollama has, including `edgecdss-v3` (owner ruling, 2026-10-12): a medic who selects it gets that model's answer, validated on the device by `qwen2.5:3b`, under every deterministic check. The default model is unchanged.
 
 The open items are in the v1.1 section of the work order.
 
