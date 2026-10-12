@@ -65,7 +65,11 @@ The global rules of [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md) apply to every ch
 
 ## Offline operation
 
-The offline model is `qwen2.5:3b`, under the Qwen RESEARCH LICENSE AGREEMENT (non-commercial use only; see the README). Every local call asks for an 8192-token context and refuses to truncate. The deterministic layer, every check and every hold work the same offline; the validator is the on-device model.
+The offline model is `qwen2.5:3b`, under the Qwen RESEARCH LICENSE AGREEMENT (non-commercial use only; see the README). Every local call asks for an 8192-token context and refuses to truncate. The deterministic layer, every check and every hold work the same offline; the validator is the on-device model (`CDSS_VALIDATOR_MODEL`, default `qwen2.5:3b`).
+
+**The portal is local-only in local mode:** the picker offers only the on-device models Ollama has, no cloud provider is contacted, voice is off, and the portal path makes no outbound call. The startup log line names the mode; check it after any change to `.env`.
+
+**An `edgecdss-v3` pick is slow on an 8 GB Jetson:** with `qwen2.5:3b` validating, both models stay loaded, v3 runs partly on the CPU, and an answer took 113–174 s (16 s for `qwen2.5:3b`).
 
 ## Reporting a problem
 

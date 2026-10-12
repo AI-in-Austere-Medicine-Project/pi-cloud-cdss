@@ -81,6 +81,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **in review** |
+| C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **in review** |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -781,6 +782,28 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 **Live check** (a second uvicorn on :8012 with no cloud keys, the real Ollama): `/models` lists both on-device models, labelled, with `on_device_validator_model` `qwen2.5:3b`; a query with `model: edgecdss-v3` is served as `local/edgecdss-v3`, provider `local`, the log showing the generator returned `edgecdss-v3` and the validator `qwen2.5:3b`, no fallback; a query with no model still goes to the cloud default (and errors there for want of a key), so the default did not move.
 
 **Replay** (`replay-out/` in the worktree; main `8007ec5` against C2): served answers (1,738), gate (1,408), live session logs (2,626), held answers (308) and the full pipeline (800 stored queries, model stubbed): **all byte-identical. 0 newly held, 0 newly released.** The default path did not change.
+
+### C3: the portal is local-only in local mode (owner, 2026-10-12; v1.1; on C2)
+
+**Owner, 2026-10-12:** "Current state: API keys removed from .env, CDSS_LLM_PROVIDER=local. Portal shows 'MODEL: no model available' and every query returns SYSTEM ERROR. v1.1 item: the portal becomes local-only. Picker offers exactly qwen2.5:3b and edgecdss-v3 (on-device via Ollama), default from CDSS_LLM_MODEL; no cloud entries. Validator is CDSS_VALIDATOR_MODEL for both. Served answers show model_used. Service starts clean with no API keys."
+
+**Diagnosis of the live state (read-only: the session log, the unit file, timestamps; the live `.env` not read, the service not restarted):**
+- **The SYSTEM ERROR is not a code bug.** The last model-path query on the live service (20:55 UTC) was sent to OpenAI: "OpenAI is not configured (OPENAI_API_KEY is unset)". The running process is in cloud mode. It started one second after `.env` was saved; the unit sets no environment, so `CDSS_LLM_PROVIDER` can come only from `load_dotenv()` reading `server/.env`, and it did not take. **For the owner:** check the `CDSS_LLM_PROVIDER` line in `server/.env` (name, value, stray characters), then restart. Main already serves in local mode with no keys: checked on a second server (`local/qwen2.5:3b`, SAFE).
+- **"No model available" is a code gap:** in local mode `/models` listed nothing, even when local mode works.
+
+**What changed (under `CDSS_LLM_PROVIDER=local`; cloud mode unchanged):**
+- The picker is **exactly the `on_device_models` Ollama has** (`qwen2.5:3b`, `edgecdss-v3`): no cloud entry, even with a key left set, and not every Ollama tag. The default is `CDSS_LLM_MODEL`; the validator is `CDSS_VALIDATOR_MODEL` (D7's rule) for both.
+- `/status` reports each cloud provider **off, with no network call** ("off in local mode … no cloud call is made"); the local provider is available when Ollama answers.
+- **Voice is off** (it is a cloud call to ElevenLabs).
+- **The startup line names the mode:** "LLM provider: local (Ollama at …) · model … · validator … · no cloud calls". In cloud mode it names the provider too. A setting that did not take now shows in the log's first lines.
+
+**Tests:** `server/tests/test_local_only_portal.py`, committed failing first (5 failed, 6 passed: C2's routing already held). The app-level test drives `/models`, `/status` and `/query` through FastAPI's test client in local mode with no keys and every outbound socket refused; nothing connects. Suite: 2,737 passed, 54 skipped, 3 xfailed.
+
+**Live check** (second uvicorn on :8012, local, no keys, the real Ollama): the startup line as above; `/models` exactly the two, default `qwen2.5:3b`; voice off; every cloud provider off with no call; the default query served as `local/qwen2.5:3b` (SAFE, 16 s), an `edgecdss-v3` pick as `local/edgecdss-v3`, validated by `qwen2.5:3b`, no fallback.
+
+**Found (owner to place):** **on this 8 GB Jetson, an `edgecdss-v3` pick takes 113–174 s**, against 16 s for `qwen2.5:3b`. With v3 generating and `qwen2.5:3b` validating, both stay loaded (2.4 and 2.6 GB at an 8192 context); v3 no longer fits on the GPU and runs 15% on the CPU (`ollama ps`: 15%/85% CPU/GPU; RAM 6.6 of 7.5 GB; swap in use). The first attempt exceeded a 300 s client timeout. A capacity limit, not a defect of this change.
+
+**Replay** (main `543e7e1` against this branch, which carries C2): served answers (1,738), gate (1,408), live session logs (2,626), held answers (308) and the full pipeline (800): **all byte-identical. 0 newly held, 0 newly released.**
 
 ### D1: evaluation hygiene (one PR; done, #112)
 

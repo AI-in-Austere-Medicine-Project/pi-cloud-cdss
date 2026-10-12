@@ -14,6 +14,8 @@ One line per name. The plan of record is [`WORK_ORDER.md`](WORK_ORDER.md); this 
 
 **On-device pick (C2):** in cloud mode, a medic can pick an on-device model from the portal; that request alone goes to the device, validated there, with no cloud call.
 
+**Local-only portal (C3):** under `CDSS_LLM_PROVIDER=local` the picker offers only the on-device models, no cloud provider is contacted, voice is off, and the startup log line names the mode.
+
 Switching the offline model is one `.env` line: `CDSS_LLM_MODEL=<tag>`. The offline validator is another: `CDSS_VALIDATOR_MODEL=<tag>` (default `qwen2.5:3b`; a cloud model named there is ignored offline). Before D7 the validator was the generator.
 
 ## 2. Model names
@@ -100,6 +102,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | B3 | The vitals caution stops appending "anything by mouth carries an aspiration risk" to an answer that already refuses oral intake. Format only. | Done, #130. Permission beside a refusal still gets the caution |
 | C1 | The feedback instrument: session id, the full context in `/feedback`, a working comment field. | Done, #131. Log schema 15 (query_id, session_id). Issue tags: server/issue_tags.json, applied in their own PR |
 | C2 | The portal picker lists the on-device Ollama models (`qwen2.5:3b`, `edgecdss-v3`), labelled "(on device)", when Ollama has them. A pick goes to the device and is validated there (D7's rule: `qwen2.5:3b` on the live service), with no cloud call; the answer names its model. Un-deferred the local-model portal toggle; v3 listed on the owner's ruling. Default unchanged. | In review |
+| C3 | Under `CDSS_LLM_PROVIDER=local` the portal is local-only: the picker is exactly the on-device models Ollama has (`qwen2.5:3b`, `edgecdss-v3`), default `CDSS_LLM_MODEL`, validator `CDSS_VALIDATOR_MODEL`; cloud providers are reported off with no network call; voice is off; the startup line names the mode. No outbound HTTP on the portal path. Found: an `edgecdss-v3` pick takes 113–174 s on the 8 GB Jetson (two models resident, v3 partly on CPU). | In review (on C2) |
 
 ## 6. Training vocabulary
 
