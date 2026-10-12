@@ -94,13 +94,22 @@ def test_unsigned_a_tension_presentation_holds(tmp_path, monkeypatch):
 
 # ── the procedure file ───────────────────────────────────────────────────────
 
-def test_every_line_is_cited_to_id74_with_a_quote():
+def test_every_line_is_cited_with_a_verbatim_quote():
+    """ID74 p.5 and p.8; the WATCH reassessment line also SMOG CY24 p.22 (owner, 2026-10-11)."""
     card = json.load(open(oc._TENSION_CARD_FILE, encoding="utf-8"))
     lines = card["do_this"] + card["watch"] + card["dont"] + [card["then_with_dcr"], card["tldr"]]
+    allowed = {("ID74", 5), ("ID74", 8), ("SMOG", 22)}
     for line in lines:
-        assert line["sources"], line["text"]
+        assert any("ID74" in s["citation"] for s in line["sources"]), line["text"]
         for s in line["sources"]:
-            assert "ID74" in s["citation"] and s["page"] in (5, 8) and len(s["quote"]) > 40, s
+            doc = "ID74" if "ID74" in s["citation"] else "SMOG" if "SMOG" in s["citation"] else None
+            assert (doc, s["page"]) in allowed and len(s["quote"]) > 40, s
+
+
+def test_the_card_is_the_card_served_before_word_for_word():
+    """Owner, 2026-10-11: the WATCH line keeps post-decompression reassessment."""
+    text = oc.build_tension_pneumothorax_response(with_dcr=False)
+    assert "- Breathing, SpO2, BP and breath sounds after decompression; recurrence." in text
 
 
 def test_the_card_states_no_dose():

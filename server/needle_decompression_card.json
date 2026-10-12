@@ -1,5 +1,5 @@
 {
- "_comment": "A29 (owner, 2026-10-11): the tension-pneumothorax card's lines, each with verbatim JTS CPG ID74 quotes (printed page = PDF page throughout). DRAFT for the owner to sign: while signoff is false, a tension presentation is held with a line that names no unsigned content (the junctional precedent, owner #139). The lines are the card served since owner ruling 1 (2026-09-24), with one change: the WATCH line 'Breathing, SpO2, BP and breath sounds after decompression; recurrence.' is now 'Recurrence after decompression.' (ID74 states no vital-sign monitoring for this step). The THEN line's DCR steps are the signed DCR card's; ID74 is cited for the order. If a line's text changes, the owner re-signs.",
+ "_comment": "A29 (owner, 2026-10-11): the tension-pneumothorax card's lines, each with verbatim quotes from JTS CPG ID74 (26 Dec 2018; the current edition, checked against jts.health.mil 2026-10-11, byte-identical to the corpus copy; printed page = PDF page) and, for the WATCH reassessment line, SMOG CY24 p.22 (owner, 2026-10-11: keep post-decompression reassessment; SMOG p.22 gives the breathing and SpO2 goal after needle thoracostomy and the repeat; ID74 p.5 supports BP and breath sounds as the signs that define the condition; no SpO2 target written). DRAFT for the owner to sign: while signoff is false, a tension presentation is held with a line that names no unsigned content (the junctional precedent, owner #139). The lines are the card served since owner ruling 1 (2026-09-24), word for word. The THEN line's DCR steps are the signed DCR card's; ID74 is cited for the order. If a line's text changes, the owner re-signs.",
  "id": "tension_pneumothorax_needle_decompression",
  "do_this": [
   {
@@ -45,8 +45,28 @@
  ],
  "watch": [
   {
-   "text": "Recurrence after decompression.",
+   "text": "Breathing, SpO2, BP and breath sounds after decompression; recurrence.",
    "sources": [
+    {
+     "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Chest Trauma",
+     "page": 22,
+     "quote": "Goal: SPO2>90%; Improved RR; Equal rise/fall"
+    },
+    {
+     "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Chest Trauma",
+     "page": 22,
+     "quote": "Needle Thoracostomy may need to be repeated"
+    },
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 5,
+     "quote": "Differentiating between a simple pneumothorax and a tension pneumothorax is based on the presence of hemodynamic effects (hypotension and decreased perfusion) in the latter condition."
+    },
+    {
+     "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
+     "page": 5,
+     "quote": "Absent or markedly decreased breath sounds in a patient with known thoracic trauma indicate the need for intervention without additional diagnostic testing."
+    },
     {
      "citation": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018)",
      "page": 8,
