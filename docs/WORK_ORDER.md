@@ -66,15 +66,15 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A23 | An actively bleeding patient, an answer with no haemorrhage-control step: held (no-dose harmful advice) | **done**: #135, merged |
 | A23b | A23 reads "bleeding from [an external site]"; "for bleeding control" is not an action | **done**: #138, merged |
 | A24 | Junctional bleeding routes to the DCR card; junctional content drafted for the owner to sign | **done**: #139, merged; junctional card signed by Andrew Azelton, 2026-10-08 (#144, merged); its replay movement approved |
-| A25 | A model-written dose in a unit other than the matched signed entry's unit holds (mcg vs mg), even when it converts equal | **in review** |
-| A26 | The canonical GIVE line's dose tolerance: a floor of 0.5 mg passes a tenfold error on any signed dose under 10 mg (fentanyl "(0.5mg)" for 0.05 mg serves) | **in review** |
+| A25 | A model-written dose in a unit other than the matched signed entry's unit holds (mcg vs mg), even when it converts equal | **done**: #153, merged and deployed |
+| A26 | The canonical GIVE line's dose tolerance: a floor of 0.5 mg passes a tenfold error on any signed dose under 10 mg (fentanyl "(0.5mg)" for 0.05 mg serves) | **done**: #154, merged and deployed |
 | A27 | The hypothermic-arrest card fires on "no pulse" / "pulseless" with hypothermia, not only "cardiac arrest" | **done**: #157, merged and deployed; G-TYP-07 movement approved (owner, 2026-10-11) |
 | A28 | The seizure trigger tolerates common misspellings (siezing, seizeing, siezure) | **done**: #158, merged and deployed; G-TYP-06 movement approved (owner, 2026-10-11) |
-| A29 | Needle-decompression procedure (verbatim ID74) signed by the owner, the tension card served from it; "pneumo" read as pneumothorax | **in review**; procedure **signed by Andrew Azelton, 2026-10-12** |
+| A29 | Needle-decompression procedure (verbatim ID74) signed by the owner, the tension card served from it; "pneumo" read as pneumothorax | **done**: #159, merged and deployed; procedure signed by Andrew Azelton, 2026-10-12; G-TYP-02 movement approved |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
-| D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up in review: unclear seeds never paraphrased, fragment hold made complete, v1 source recorded (255 rows) |
+| D5b | Second dataset run: junk rule, seeds, paraphrases | **done**: #114 (owner approved 2026-10-01); follow-up #116, merged |
 | D1b | Authored 30-set: draft docs/EVALUATION_SET_30.md for owner sign-off | **signed** by the owner, 2026-10-01 (#119) |
 | B1 | Source-mode labelling | **done**: #128, merged and deployed |
 | B2 | Generator section headers | **done**: #129, merged and deployed |
@@ -90,12 +90,12 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 Owner asks outside the lettered items:
 
 | Item | Status |
-| Caution rule (owner, 2026-10-11): a caution never states another drug's dose. Found in A25 (fentanyl's naloxone caution, copied by v3 and held). 8 caution texts in 46 entries break it; the edits are drafted in `docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md` | done: edits 1, 2, 3, 4, 7, 8 **signed by the owner and applied** (2026-10-11, #155); 5 and 6 signed with the atropine RSI pre-dose entry (2026-10-11, next PR). Replay (main `e96e6ab` against the applied edits): served answers (1,738), gate (1,408), live session logs (2,218) and held answers (308) byte-identical; the full pipeline (800 stored queries, model stubbed) differs on 22, in served text only: every added line is a signed edit's new wording, and the route, verdict and built doses are unchanged on every row. **0 newly held, 0 newly released.** Suite: 2,666 passed, 54 skipped, 4 xfailed (the adult RSI card's pinned cautions updated to edits 4 and 7). |
-| Atropine paediatric RSI pre-dose entry (owner, 2026-10-11): drafted from JTS CPG ID39 (28 Jan 2026) Appendix I item 2, p.28, verbatim: 0.02 mg/kg IV/IO, minimum 0.1 mg, maximum 0.5 mg, in all under 1 year, those under 5 receiving succinylcholine, and all who receive a second dose of succinylcholine. 2017 ID39 p.5 agrees. CONFLICT recorded for the owner: SMOG CY24 p.12 gives the same per-kg dose for under 1 year only, with no minimum or maximum. Caution edits 5 and 6 are signed in the same PR. **Owner ruling, 2026-10-11:** ID39 (28 Jan 2026) is the primary source; SMOG CY24 p.12 is recorded as a noted narrower population | **signed by the owner, 2026-10-11**, with caution edits 5 and 6; in review (replay main `b1a036a` against the signed tree: served 1,738, gate 1,408, live logs 2,276 and held 308 byte-identical; the pipeline (800) differs on 4 rows, in served text only, each an edit 5 or 6 line, with route, verdict and built doses unchanged: **0 newly held, 0 newly released**. Suite 2,666 passed, 54 skipped, 3 xfailed. Live harness 29/29 offline) |
+| Caution rule (owner, 2026-10-11): a caution never states another drug's dose. Found in A25 (fentanyl's naloxone caution, copied by v3 and held). 8 caution texts in 46 entries break it; the edits are drafted in `docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md` | **done**: #155 (edits 1, 2, 3, 4, 7, 8) and #156 (edits 5, 6), merged; the bank meets the rule |
+| Atropine paediatric RSI pre-dose entry (owner, 2026-10-11): drafted from JTS CPG ID39 (28 Jan 2026) Appendix I item 2, p.28, verbatim: 0.02 mg/kg IV/IO, minimum 0.1 mg, maximum 0.5 mg, in all under 1 year, those under 5 receiving succinylcholine, and all who receive a second dose of succinylcholine. 2017 ID39 p.5 agrees. CONFLICT recorded for the owner: SMOG CY24 p.12 gives the same per-kg dose for under 1 year only, with no minimum or maximum. Caution edits 5 and 6 are signed in the same PR. **Owner ruling, 2026-10-11:** ID39 (28 Jan 2026) is the primary source; SMOG CY24 p.12 is recorded as a noted narrower population | **done**: #156, merged; signed by the owner, 2026-10-11 |
 |---|---|
-| Unsigned contracts inventory (owner, 2026-10-08): the 40 unsigned drug-contract entries and P1, P2, with citations; none clean to sign (39 incomplete drafts; neonatal dextrose and P1, P2 uncertain) | listed in [docs/UNSIGNED_CONTRACTS_2026-10-08.md](UNSIGNED_CONTRACTS_2026-10-08.md); nothing signed (signing is the owner's act) |
-| Contract batch 1, analgesia (owner, 2026-10-08): from the unsigned inventory, analgesia only. One entry is in the class: fentanyl, analgesia infusion, IV, adult (ketamine analgesia and morphine are already signed; ketamine's prolonged sedation infusion and naloxone IN are not analgesia). Drafted at 25-250 mcg/hr from JTS ID29 p.24, capped by ID12 p.24, every source with page and verbatim quote (checked against the PDFs). Starting rate: no source states one, left incomplete. The canine 2-10 mcg/kg/hour (SMOG p.57, MWD ID16) is excluded | in review; unsigned (signing is the owner's act) |
-| D6 bench script uses A22's context (owner, 2026-10-08): bench_remote.sh's tok/s probe asked Ollama for no num_ctx (default 4096: a different setting from the arms, a reload, a silent cut); it now asks for CDSS_LOCAL_NUM_CTX (8192) with truncate false, exported once for every local client and recorded in meta.json. Checked live: 8192, 100% GPU; an oversized prompt is refused, not cut. `make probe` (`ollama run`, a one-line prompt) is unchanged: it cannot set num_ctx and its prompt is short | in review |
+| Unsigned contracts inventory (owner, 2026-10-08): the 40 unsigned drug-contract entries and P1, P2, with citations; none clean to sign (39 incomplete drafts; neonatal dextrose and P1, P2 uncertain) | **done**: #146, merged (the inventory); signing the drafts is v1.1 |
+| Contract batch 1, analgesia (owner, 2026-10-08): from the unsigned inventory, analgesia only. One entry is in the class: fentanyl, analgesia infusion, IV, adult (ketamine analgesia and morphine are already signed; ketamine's prolonged sedation infusion and naloxone IN are not analgesia). Drafted at 25-250 mcg/hr from JTS ID29 p.24, capped by ID12 p.24, every source with page and verbatim quote (checked against the PDFs). Starting rate: no source states one, left incomplete. The canine 2-10 mcg/kg/hour (SMOG p.57, MWD ID16) is excluded | **done**: #148, merged (the draft); the entry is unsigned, v1.1 |
+| D6 bench script uses A22's context (owner, 2026-10-08): bench_remote.sh's tok/s probe asked Ollama for no num_ctx (default 4096: a different setting from the arms, a reload, a silent cut); it now asks for CDSS_LOCAL_NUM_CTX (8192) with truncate false, exported once for every local client and recorded in meta.json. Checked live: 8192, 100% GPU; an oversized prompt is refused, not cut. `make probe` (`ollama run`, a one-line prompt) is unchanged: it cannot set num_ctx and its prompt is short | **done**: #147, merged |
 | 3% NaCl contract, signed at 7.5 g | **done**: #85, merged and deployed |
 | Multi-model benchmark run 3 | **done**: #87, merged and deployed |
 | This work order | **done**: #89, merged |
@@ -111,6 +111,25 @@ Owner asks outside the lettered items:
 **Owner, 2026-10-02 (#120 review):** A18 is top of the queue, then A19. Both come from the first `edgecdss-v1` bench (D6). B1's v1 hold stays off E1: it was the free-text dose check, not the validator.
 
 **Owner, 2026-10-03 (#121 review):** #120 and #121 merged and deployed. A18's hold of a history amount ("He took calcium channel blocker 240 mg this morning.") is accepted; the fix is A20, after A19. Replay output goes under the worktree's own folder, never a shared path (CLAUDE.md).
+
+## Release 5.0.0: the v1.0 scope (owner, 2026-10-11)
+
+**Owner, 2026-10-11:** "v1.0 scope is frozen: (1) hypothermic arrest trigger, (2) seizure misspellings, (3) needle decompression contract + pneumo trigger, (4) release prep: README quickstart, SAFETY.md, CHANGELOG, LICENSE check, tag. Everything else on the found list moves to a v1.1 section of the work order. One PR each, in that order."
+
+**Version (owner, 2026-10-12): 5.0.0.** The repository was already at 4.3.0 (`server/version.py`, tag `v4.3.0`, README), and CHANGELOG records a 1.0.0 from 2026-04-21, so a `v1.0.0` tag would sort below `v4.3.0`. "v1.0 scope" names the work; the version, the CHANGELOG section and the tag are 5.0.0.
+
+| # | Item | Status |
+|---|---|---|
+| 1 | A27: hypothermic arrest trigger | **done**: #157 |
+| 2 | A28: seizure misspellings | **done**: #158 |
+| 3 | A29: needle-decompression procedure (signed) and "pneumo" | **done**: #159 |
+| 4 | Release prep: version 5.0.0, README quick start, `SAFETY.md`, CHANGELOG, LICENSE check, v1.1 section, `edgecdss-v3` model card draft | **in review**; the `v5.0.0` tag is created after merge, on the owner's go |
+
+**LICENSE check (2026-10-12):**
+- The repository is MIT (`LICENSE`, Copyright (c) 2026 AI in Austere Medicine Project). The tracked PDFs are the project's own documents. The guideline corpus (`server/data/`) and every model weight are outside git.
+- **Qwen2.5-3B-Instruct, the offline model (`qwen2.5:3b`) and the base of every `edgecdss-*` tag, is under the Qwen RESEARCH LICENSE AGREEMENT (Alibaba Cloud): non-commercial use (research or evaluation) only; commercial use needs a licence from Alibaba Cloud.** The repository ships no Qwen weights, so the MIT licence is unaffected; a deployment that runs the offline model is bound by Qwen's terms, and the README now says so.
+- **A distributed `edgecdss-*` model is a Qwen derivative:** it must ship a copy of the Qwen agreement, mark modified files, carry the notice "Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT, Copyright (c) Alibaba Cloud. All Rights Reserved.", and display "Built with Qwen". The `edgecdss-v3` model card draft does.
+- **For the owner before any weights are published:** the training answers were written by `claude-opus-5` (and checked by `gpt-4o-mini`). Whether those providers' terms permit publishing a model trained on their outputs is not checked here.
 
 ## Items
 
@@ -1481,14 +1500,18 @@ Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here
 
 Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (owner, 2026-09-29).
 
-## Found along the way, not yet placed
+## v1.1 (owner, 2026-10-11: everything on the found list not in the v1.0 scope)
 
+Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest trigger (A27), seizure misspellings (A28), the needle-decompression procedure and "pneumo" (A29). Everything else on the found list, and the open items below, are v1.1. Each is placed by the owner before work starts.
 
-- **A served caution hands the model another drug's dose** (found in A25, from `edgecdss-v3`'s B1 answer; placed by the owner, 2026-10-11). Fentanyl's signed PFC IV caution reads "Naloxone (0.4 mg IV or IM) should be available when using opioid analgesics"; v3 copied it, and the free-text check held the answer: naloxone has signed entries (IV and IM adult, 0.4–2 mg), but only the asked drug's doses are built for a question. **Rule (owner, 2026-10-11): a caution never states another drug's dose; it may name the drug.** A scan of the bank finds 8 caution texts that break it, in 46 entries (44 signed, 2 unsigned drafts). The edits: [`docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md`](authoring/CAUTION_DOSE_EDITS_2026-10-11.md). **Owner, 2026-10-11: edits 1, 2, 3, 4, 7 and 8 signed as drafted and applied; 5 and 6 left unsigned.** Those two (the paediatric RSI atropine pre-dose) would remove the only served statement of that dose, since no signed atropine entry covers it: an atropine paediatric RSI pre-dose entry is drafted from JTS ID39 for the owner to sign first, and 5 and 6 are signed in the same pull request. Enforced by `server/tests/test_caution_no_other_dose.py` (strict expected failure until signed; no new breaking caution meanwhile).
+**From the D6 and D7 benches:**
+
+- **`qwen2.5:3b` as the offline validator does not catch procedural errors** (D7 v3 re-bench finding, owner to place). It called a low-and-loose tourniquet, "reapply" a tourniquet on loss of pulse and "do not re-warm" a hypothermic arrest SAFE. D7 made the comparison measurable; it did not make the offline validator adequate.
+- **Open contract drafts:** the 39 incomplete drafts and P1, P2 (unsigned inventory, #146); the fentanyl analgesia infusion entry (#148). Signing is the owner's act.
+
+**The found list:**
+
 - **An active arterial bleed without shock physiology gets no card** (found in the D7 v3 re-bench, H-IM-05; owner, 2026-10-10). `has_clear_hemorrhage` reads "arterial bleed", but the DCR card (`looks_like_hemorrhagic_shock`) also needs shock physiology, and no other card covers external bleeding control alone. "fresh arterial bleed from the leg" goes to the model; with "BP 80/50, HR 130" added, the DCR card fires. v3 served "tourniquet low and loose" and debridement before control (SAFE). Not a misspelling: the correctly spelled question misses too.
-- **The hypothermic-arrest card needs the literal words "cardiac arrest"** (found in the D7 v3 re-bench, G-TYP-07; owner, 2026-10-10). `build_general_case_response` fires on `"cardiac arrest" in q` plus a cold word. "hypothermic arrest, found in the snow, no pulse", correctly spelled, goes to the model, as does the bench's "arest"; only "hypothermic cardiac arrest" fires. v3 served "Do not re-warm until professional help arrives" (SAFE). **Placed as A27 (owner, 2026-10-11): in review.**
-- **The active-seizure card misses the misspelling "siezing"** (found in the D7 v3 re-bench, G-TYP-06; owner, 2026-10-10). `is_active_seizure_card_query` matches "seizing"; the bench's "pt siezing for 4 min now, adult, no iv yet" goes to the model, the correctly spelled one gets the ACTIVE SEIZURE card. v3 served "Treat as a presumed cardiac arrest … chest compressions … Defibrillation is the highest priority" (NEEDS_HUMAN_REVIEW, served with the banner). **Placed as A28 (owner, 2026-10-11): in review.**
-- **The tension-pneumothorax card misses "pneumo", and needle decompression has no signed procedure** (found in the D7 v3 re-bench, G-TYP-02; owner, 2026-10-10). `looks_like_tension_pneumothorax` needs two signs, or one sign plus chest trauma, and `\bpneumothorax\b` is the only name it reads as chest trauma. "suspected tension pneumo, trachea deviated", correctly spelled, is one sign and goes to the model; "…pneumothorax, trachea deviated" fires. v3 served repositioning and "secure the tube" with no decompression (SAFE); the base served "Intubate". The card itself is hard-coded text citing JTS ID74 pp.5, 8: `procedure_contracts.json` has no needle-decompression procedure, signed or unsigned. **Owner, 2026-10-10: the fix needs a signed needle-decompression procedure.** **Placed as A29 (owner, 2026-10-11): in review; procedure signed 2026-10-12.**
 - **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now).
 - A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
 - A unitless weight ("he is 150") silently skips the RSI card.
