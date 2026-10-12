@@ -115,3 +115,48 @@ def test_the_card_is_the_card_served_before_word_for_word():
 def test_the_card_states_no_dose():
     text = oc.build_tension_pneumothorax_response(with_dcr=True)
     assert not oc.free_text_dose_issues(text, [])
+
+
+# ── the signed text (owner, 2026-10-12) ──────────────────────────────────────
+
+SIGNED = {
+    "do_this": [
+        "Needle decompression now, on the affected side: large bore (14 gauge or larger) 3.25in/8cm catheter in the 4th or 5th intercostal space, anterior axillary line.",
+        "Alternate site: 2nd intercostal space, mid-clavicular line (the primary site in children).",
+        "Follow with tube thoracostomy as soon as feasible and safe. If it is delayed, be ready to repeat needle decompression."
+    ],
+    "watch": [
+        "Breathing, SpO2, BP and breath sounds after decompression; recurrence.",
+        "No improvement after two needle decompressions most likely means another diagnosis."
+    ],
+    "dont": [
+        "Do not use short (5 cm) venous-access catheters: they rarely reach the chest cavity.",
+        "Do not wait for imaging: absent or markedly decreased breath sounds after chest trauma indicate intervention without further testing."
+    ],
+    "then_with_dcr": "After decompression, then reassess for hemorrhage — DCR (damage-control resuscitation) if shock persists: control bleeding, blood products, TXA within 3 hours.",
+    "tldr": "Suspected tension pneumothorax: needle decompress, 14 gauge 8cm catheter, 4th/5th ICS anterior axillary line, then tube thoracostomy.",
+    "source_line": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018), p.5 (recognition), p.8 (needle decompression)"
+}
+
+
+def test_the_procedure_is_signed_by_the_owner():
+    card = json.load(open(oc._TENSION_CARD_FILE, encoding="utf-8"))
+    assert card["signoff"] is True
+    assert card["reviewed_by"] == "Andrew Azelton" and card["review_date"] == "2026-10-12"
+
+
+def test_the_signed_text_is_pinned_word_for_word():
+    """A changed line needs a new signature: this test fails until the owner re-signs."""
+    card = json.load(open(oc._TENSION_CARD_FILE, encoding="utf-8"))
+    assert [l["text"] for l in card["do_this"]] == SIGNED["do_this"]
+    assert [l["text"] for l in card["watch"]] == SIGNED["watch"]
+    assert [l["text"] for l in card["dont"]] == SIGNED["dont"]
+    assert card["then_with_dcr"]["text"] == SIGNED["then_with_dcr"]
+    assert card["tldr"]["text"] == SIGNED["tldr"]
+    assert card["source_line"] == SIGNED["source_line"]
+
+
+def test_the_bench_question_gets_the_signed_card(monkeypatch):
+    r = _run(BENCH, monkeypatch)
+    assert r["validator_result"] == "DETERMINISTIC_CHECKED"
+    assert SIGNED["do_this"][0] in r["response"]

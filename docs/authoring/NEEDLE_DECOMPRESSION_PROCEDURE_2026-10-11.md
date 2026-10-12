@@ -1,6 +1,6 @@
 # Needle-decompression procedure for signing (A29, 2026-10-11)
 
-**Status: DRAFT, NOT SIGNED.** `server/needle_decompression_card.json` has `signoff: false`. Signing is the owner's act; on signature, `signoff`, `reviewed_by` and `review_date` are set in the same pull request, a test pins the signed text word for word, and the replay runs on the signed state.
+**Status: SIGNED 2026-10-12 by Andrew Azelton (owner), as drafted.** `server/needle_decompression_card.json` carries `signoff: true`, `reviewed_by` and `review_date`; `test_a29_needle_decompression.py` pins the signed text word for word, so a changed line fails until it is re-signed.
 
 **Edition (checked 2026-10-11):** JTS CPG ID74, Wartime Thoracic Injury, **26 Dec 2018, is the current edition.** The live index at jts.health.mil lists it, no newer chest or thoracic CPG supersedes it, and the PDF downloaded from JTS is byte-identical to the corpus copy (SHA-256 `a48c1df8…`). Printed page = PDF page throughout.
 
