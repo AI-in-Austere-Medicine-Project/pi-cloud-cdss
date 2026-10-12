@@ -517,7 +517,20 @@ def provider_status(force: bool = False) -> dict:
     """
     out = {}
     now = time.monotonic()
+    local_only = llm_provider() == "local"
     for provider_id, provider in PROVIDERS.items():
+        if local_only:
+            # Local-only portal (owner, 2026-10-12): offline, a cloud provider
+            # is off and is not checked over the network, even with a key left
+            # set; the local provider is available when Ollama answers.
+            if provider_id == LOCAL_PROVIDER:
+                detail = (None if _ollama_tags(force=force) is not None
+                          else f"Ollama is not answering at {_ollama_native_url('')}")
+            else:
+                detail = "off in local mode (CDSS_LLM_PROVIDER=local): no cloud call is made"
+            out[provider_id] = {"label": provider.get("label", provider_id),
+                                "available": detail is None, "detail": detail or ""}
+            continue
         with _status_lock:
             cached = _status_cache.get(provider_id)
             fresh = cached and not force and (now - cached[0]) < _STATUS_TTL_S
@@ -574,6 +587,12 @@ def available_models(force: bool = False) -> list:
     A provider with no key or a dead key contributes nothing here, so an
     unusable model can never be selected in the first place.
     """
+    if llm_provider() == "local":
+        # Local-only portal: exactly the on-device entries Ollama has; no cloud.
+        tags = _ollama_tags(force=force) or set()
+        return [{"id": spec.id, "label": spec.label, "provider": spec.provider,
+                 "provider_label": PROVIDERS.get(spec.provider, {}).get("label", spec.provider)}
+                for spec in MODELS.values() if spec.on_device and spec.id in tags]
     status = provider_status(force=force)
     on_device = [s for s in MODELS.values() if s.on_device]
     tags = (_ollama_tags(force=force) or set()) if on_device else set()

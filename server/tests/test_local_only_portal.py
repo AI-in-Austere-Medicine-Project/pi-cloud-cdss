@@ -133,8 +133,7 @@ def test_the_portal_path_serves_with_no_outbound_call(local, monkeypatch, no_net
     monkeypatch.setattr(main, "chromadb_client", type("Fake", (), {
         "query": lambda self, *a, **k: _JtsHit().query(),
         "get_collection_count": lambda self: 1})())
-    token = "local-only-test"
-    monkeypatch.setenv("CDSS_ACCESS_TOKEN", token)
+    token = main.ACCESS_TOKEN          # read once, at import
     client = TestClient(main.app)
     models = client.get("/models").json()
     assert {m["id"] for m in models["models"]} == ON_DEVICE and models["default_model"] == "qwen2.5:3b"
