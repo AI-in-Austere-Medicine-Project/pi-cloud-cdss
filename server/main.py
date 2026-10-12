@@ -216,6 +216,7 @@ async def models():
     return {"models": await asyncio.to_thread(providers.available_models),
             "default_model": providers.default_model(),
             "validator_model": providers.validator_model(),
+            "on_device_validator_model": providers.on_device_validator_model(),
             "provider_detail": await asyncio.to_thread(providers.provider_status)}
 
 @app.get("/health")

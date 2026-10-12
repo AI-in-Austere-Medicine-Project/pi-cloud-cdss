@@ -95,6 +95,8 @@ class ModelSpec:
     supports_temperature: bool = True
     effort: Optional[str] = None
     reserve_tokens: int = 0
+    # C2: an Ollama model offered in the picker; listed only when Ollama has it.
+    on_device: bool = False
 
 
 def _load_config() -> dict:
@@ -131,6 +133,15 @@ for _m in _CONFIG["models"]:
         effort=_m.get("effort"),
         reserve_tokens=int(_m.get("reserve_tokens") or 0),
     )
+
+# C2 (owner, 2026-10-12): the on-device Ollama models the picker offers beside
+# the cloud ones, labelled "(on device)". On the local provider; listed only
+# when Ollama reports the tag installed (available_models); a request for one
+# goes to the device with an on-device validator and no cloud call.
+for _m in _CONFIG.get("on_device_models") or []:
+    MODELS[_m["id"]] = ModelSpec(id=_m["id"], provider="local",
+                                 label=_m.get("label", f"{_m['id']} (on device)"),
+                                 on_device=True)
 
 _CONFIGURED_MODELS = frozenset(MODELS)
 DEFAULT_MODEL = _CONFIG.get("default_model") or next(iter(MODELS), "")
@@ -311,7 +322,12 @@ def default_model() -> str:
     return requested if requested in MODELS else DEFAULT_MODEL
 
 
-def validator_model() -> str:
+def _is_on_device(model_id: Optional[str]) -> bool:
+    spec = MODELS.get(model_id or "")
+    return spec is not None and spec.provider == LOCAL_PROVIDER
+
+
+def validator_model(generator: Optional[str] = None) -> str:
     """The safety validator's model.
 
     Deliberately NOT the model the client dropdown selects. The validator is the
@@ -327,7 +343,9 @@ def validator_model() -> str:
     offline: it would fail every query closed.
     """
     requested = (os.getenv("CDSS_VALIDATOR_MODEL") or "").strip()
-    if llm_provider() == "local":
+    # C2: a request the medic sent to an on-device model is validated on the
+    # device by the same rule, with no cloud call.
+    if llm_provider() == "local" or _is_on_device(generator):
         cloud = requested in MODELS and MODELS[requested].provider != LOCAL_PROVIDER
         if cloud:
             print(f"⚠️  CDSS_VALIDATOR_MODEL={requested!r} is a cloud model — "
@@ -519,6 +537,37 @@ def provider_status(force: bool = False) -> dict:
     return out
 
 
+_OLLAMA_TAGS_TIMEOUT_S = 2.0
+_ollama_cache: dict = {}
+
+
+def _ollama_tags(force: bool = False) -> Optional[set]:
+    """The model tags Ollama reports installed ("name" and "name:latest" both),
+    or None when Ollama does not answer. Cached like provider_status, with a
+    short timeout, so a host without Ollama costs one quick failed call per TTL."""
+    import urllib.request
+    now = time.monotonic()
+    with _status_lock:
+        cached = _ollama_cache.get("tags")
+        if cached and not force and (now - cached[0]) < _STATUS_TTL_S:
+            return cached[1]
+    try:
+        with urllib.request.urlopen(_ollama_native_url("/api/tags"), timeout=_OLLAMA_TAGS_TIMEOUT_S) as r:
+            names = {m.get("name", "") for m in json.load(r).get("models", [])}
+        tags = names | {n[:-len(":latest")] for n in names if n.endswith(":latest")}
+    except Exception:
+        tags = None
+    with _status_lock:
+        _ollama_cache["tags"] = (now, tags)
+    return tags
+
+
+def on_device_validator_model() -> str:
+    """The validator an on-device pick gets (D7's rule), for the picker."""
+    first = next((m for m, s in MODELS.items() if s.on_device), LOCAL_DEFAULT_MODEL)
+    return validator_model(first)
+
+
 def available_models(force: bool = False) -> list:
     """Menu contents: every model whose provider authenticates, in config order.
 
@@ -526,12 +575,14 @@ def available_models(force: bool = False) -> list:
     unusable model can never be selected in the first place.
     """
     status = provider_status(force=force)
+    on_device = [s for s in MODELS.values() if s.on_device]
+    tags = (_ollama_tags(force=force) or set()) if on_device else set()
     return [
         {"id": spec.id, "label": spec.label,
          "provider": spec.provider,
          "provider_label": status.get(spec.provider, {}).get("label", spec.provider)}
         for spec in MODELS.values()
-        if status.get(spec.provider, {}).get("available")
+        if (spec.id in tags if spec.on_device else status.get(spec.provider, {}).get("available"))
     ]
 
 
@@ -547,6 +598,9 @@ def resolve_model(requested: Optional[str]) -> str:
     cached before the link dropped would fail every query.
     """
     if llm_provider() == "local":
+        # C2: an on-device model picked from the menu is honoured offline too.
+        if requested and requested in MODELS and MODELS[requested].on_device:
+            return requested
         return local_model_spec().id
     if requested and requested in MODELS:
         return requested

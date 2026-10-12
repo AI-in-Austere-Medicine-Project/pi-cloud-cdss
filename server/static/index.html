@@ -461,7 +461,9 @@ async function refreshModels() {
     sel.value = models.some(m => m.id === previous) ? previous
               : (d.default_model || models[0].id);
     sel.title = 'Answers this session. The safety validator stays on '
-              + (d.validator_model || 'its configured model') + ' regardless.';
+              + (d.validator_model || 'its configured model')
+              + ' for cloud models; an on-device model is validated on the device by '
+              + (d.on_device_validator_model || 'the on-device validator') + ', with no cloud call.';
   } catch (e) {
     sel.innerHTML = '<option value="">unavailable</option>';
   }
@@ -492,9 +494,9 @@ refreshStatus(); setInterval(refreshStatus, 60000);
 // In the always-visible meta row rather than inside SOURCES, which folds.
 function providerBadge(p) {
   if (p !== 'local' && p !== 'local-fallback') return '';
-  const why = p === 'local' ? 'Answered by the on-device model'
-                            : 'Cloud unreachable; answered by the on-device model';
-  return '<span class="badge local" title="' + why + '">local model · offline</span>';
+  if (p === 'local')
+    return '<span class="badge local" title="Answered and validated by the on-device model">on-device model</span>';
+  return '<span class="badge local" title="Cloud unreachable; answered by the on-device model">local model · offline</span>';
 }
 
 // A fallback is a substitution the medic did not choose: the cloud model they
