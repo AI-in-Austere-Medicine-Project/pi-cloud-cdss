@@ -115,7 +115,7 @@ def test_the_validator_receives_the_block_the_logs_print(live_ctx, monkeypatch):
         return '{"result":"SAFE","issues":[],"rationale":"ok"}'
 
     monkeypatch.setattr(oc.providers, "chat", fake_chat)
-    monkeypatch.setattr(oc.providers, "validator_model", lambda: "test-model")
+    monkeypatch.setattr(oc.providers, "validator_model", lambda *a, **k: "test-model")
     oc.validate_response("CURRENT USER: " + LIVE_QUERY,
                          "Start Parkland at 2 mL/kg/%TBSA.", live_ctx, now_ts=TS)
 

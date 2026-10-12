@@ -40,7 +40,7 @@ QUERY = "give him tacky cardia meds, rate is 180 and he's clammy"
 
 def _validate(monkeypatch, raw):
     monkeypatch.setattr(oc.providers, "chat", lambda *a, **k: raw)
-    monkeypatch.setattr(oc.providers, "validator_model", lambda: "local/edgecdss-v1")
+    monkeypatch.setattr(oc.providers, "validator_model", lambda *a, **k: "local/edgecdss-v1")
     ctx = oc.rebuild_patient_context_from_history(QUERY)
     return oc.validate_response("CURRENT USER: " + QUERY, V1_ANSWER, ctx, "")
 
@@ -101,7 +101,7 @@ def test_an_outage_keeps_serving_with_the_review_banner(monkeypatch):
     def down(*a, **k):
         raise TimeoutError("validator provider unreachable")
     monkeypatch.setattr(oc.providers, "chat", down)
-    monkeypatch.setattr(oc.providers, "validator_model", lambda: "gpt-4o-mini")
+    monkeypatch.setattr(oc.providers, "validator_model", lambda *a, **k: "gpt-4o-mini")
     ctx = oc.rebuild_patient_context_from_history(QUERY)
     out = _gate(oc.validate_response("CURRENT USER: " + QUERY, V1_ANSWER, ctx, ""))
     assert not out.blocked and out.verdict == "NEEDS_HUMAN_REVIEW"

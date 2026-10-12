@@ -174,9 +174,12 @@ def test_openai_takes_its_model_from_cdss_llm_model(monkeypatch):
         "the validator stays the control on the cloud path"
 
 
-def test_openai_does_not_put_the_local_model_on_the_menu():
+def test_openai_puts_no_on_device_model_on_the_menu_without_ollama():
+    """C2 (owner, 2026-10-12) un-deferred the local-model portal toggle: the
+    on-device models are registered, and listed only when Ollama has them.
+    Without Ollama (the suite's default), the menu holds no local model."""
     assert providers.config_problem("local") is not None
-    assert "qwen2.5:3b" not in providers.MODELS
+    assert not any(m["provider"] == "local" for m in providers.available_models(force=True))
 
 
 # ── every response says what answered it ─────────────────────────────────────

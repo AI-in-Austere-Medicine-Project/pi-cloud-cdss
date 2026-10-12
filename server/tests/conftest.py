@@ -81,3 +81,15 @@ def _install_test_kit():
 
 
 _install_test_kit()
+
+
+# C2: the menu asks Ollama which on-device models are installed. The offline
+# suite never touches the network: here Ollama is absent unless a test says
+# otherwise (test_c2_on_device_picker.py's `ollama` fixture).
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _no_ollama(monkeypatch):
+    import providers
+    monkeypatch.setattr(providers, "_ollama_tags", lambda force=False: None)
