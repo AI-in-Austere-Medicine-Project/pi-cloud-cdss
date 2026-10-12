@@ -2,6 +2,72 @@
 
 ## [Unreleased]
 
+## [5.0.0] — 2026-10-12
+
+The v1.0 scope (owner, 2026-10-11): 110 merged changes since 4.3.0, nearly all of them to the safety layer. The plan and every ruling behind them are in [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md); each item's one-line meaning and status is in [`docs/REFERENCE.md`](docs/REFERENCE.md). What the system does and does not guarantee is in [`SAFETY.md`](SAFETY.md).
+
+### Only signed content serves a dose
+
+- **The contract bank: 69 of 109 dose entries signed, across 34 drugs.** Signing is the owner's act, by [`docs/authoring/SIGNING.md`](docs/authoring/SIGNING.md): verbatim quotes, the printed page, every known conflict recorded (#73, #76, #77, #78, #79). A missing contract holds; an uncited value is never served.
+- **Minimum single dose:** a source-stated floor raises the dose, and gates signing (#74). A fixed adult dose needs no weight (#71).
+- **New signed entries:** 3% NaCl for herniation in severe TBI (#85); ketamine for benzodiazepine-refractory seizure (A15, #105); atropine paediatric RSI pre-dose, JTS ID39 p.28 (#156).
+- **Cautions never state another drug's dose** (#155, #156): a served caution is in the generator's block, and a copied dose of another drug was held.
+- **Signed procedures and cards:** contraindicated procedures P3 (nasal airway, mid-face trauma) and P5 (succinylcholine) (A6, #99, #100); the junctional bleeding card (A24, A24b, #139, #144); the needle-decompression procedure behind the tension-pneumothorax card, verbatim JTS ID74 (A29, #159).
+
+### Deterministic cards for time-critical presentations
+
+- Haemorrhage with shock physiology reaches the DCR card (A1, #82); junctional bleeding (groin, axilla, neck) gets its signed lines (A24).
+- A severe-TBI card (A2, #84).
+- Tension pneumothorax: "absent lung sounds" is a sign (A14, #106); "pneumo" is read as pneumothorax (A29); the card comes from the signed procedure.
+- Active seizure: every phrasing, and the common misspellings, get the card and its signed dose (A9, #103; A28, #158).
+- Hypothermic arrest: "no pulse" or "pulseless" with hypothermia fires the card (A27, #157).
+- A norepinephrine drip card (A16); the CICO card does not fire on a completed surgical airway (A10, #107); a completed airway never gets the RSI bundle (A3, #86).
+
+### The free-text dose check
+
+Every dose the model writes is checked against the signed value, wherever it appears: a drug lexicon (#72); per-kg doses and doses across a label (#81); infusion rates, indication-specific (A11, A11b, #108, #110); the router's slang ("amio", "mag", "levo"; A17, #115); a dose in a line that names no drug (A18, #121); history amounts are not doses (A20, #125); a clause with a limit word is checked (A21, #127); the indication must match, not only the value (A1b, #91); a dose in a unit other than the signed unit holds (A25, #153); the canonical GIVE line is held to 5% with no 0.5 mg floor (A26, #154).
+
+### Holds for harmful advice with no dose in it
+
+Oral intake with depressed consciousness (A4, #95); a contraindicated procedure under its condition (A6); an answer to an actively bleeding patient with no haemorrhage-control step (A23, A23b, #135, #138); succinylcholine leaves the allowed doses under a P5 condition (A12, #109).
+
+### The validator
+
+Unreadable validator output fails closed (A19, #123). Narrow overrides for its wording-driven false holds, served with the review banner, never SAFE (E1, #142). Offline, the validator is its own setting, `CDSS_VALIDATOR_MODEL`, default `qwen2.5:3b`, independent of the generator (D7, #151).
+
+### Patient context
+
+After a patient boundary, only the new patient is read (A0, #90). One GCS parser for every form (A7, #101). "status post" and "altered mental status" are not seizures (A8, #102). Hypothermia reads in Celsius; the temperature floor is 25 °C / 77 °F (#60).
+
+### Offline and hybrid operation
+
+The on-device model answers when offline, through the same client, with a hybrid fallback stamped `local-fallback` (#70); a model the medic selected is waited for 60 s (#88); every local call asks for an 8192-token context and an oversized prompt fails loudly (A22, #133).
+
+### What the medic reads
+
+Brief first, depth on request (#58); a cut-off answer is flagged (#62); a dose from a JTS-cited contract is labelled JTS (B1, #128); canonical section headers (B2, #129); the oral-route caution does not fire on an answer that already refuses oral intake (B3, #130); the header and patient strip arrive first, the checked answer second (D4, #141). The generator prompt puts its fixed part first (prefill −26%, D2a, #136), asks for the canonical headers (D2b, #137), and gets the 4 best retrieved chunks (D3, #140).
+
+### Logging, feedback and evaluation
+
+The full answer is logged (log schema 14, D5a, #111; schema 16 with the validator's returned model, E1). A feedback instrument with session id, answer context and comments (C1, #131, #132). The 30-scenario evaluation set, signed by the owner (D1b, #119); evaluation hygiene and the benchmark protocol (D1, #112); multi-model benchmark run 3 (#87).
+
+### Distillation research (not adopted)
+
+A training toolchain under `tools/distill` (D6, #93). `edgecdss-v1` (baseline-matched, longer), `edgecdss-v2` (closed, negative) and `edgecdss-v3` (fails on owner reading, #150–#152) were benched; **`qwen2.5:3b` stays the offline model**. Owner rule: bench counts are advisory; a distilled model ships only when every served answer has been read and none is clinically wrong.
+
+### For anyone deploying
+
+- **Offline validator:** under `CDSS_LLM_PROVIDER=local` the validator is `CDSS_VALIDATOR_MODEL` (default `qwen2.5:3b`), no longer the generator model. With the generator on its default, nothing changes.
+- **A card served from a signed file holds if the file is unsigned** (junctional, needle decompression). Both ship signed.
+- **Log schema is 16.**
+- **Licence:** the offline model, Qwen2.5-3B-Instruct, is under the Qwen RESEARCH LICENSE AGREEMENT: non-commercial use only. The repository is MIT and ships no Qwen weights. See the README.
+
+### Known limits
+
+See [`SAFETY.md`](SAFETY.md) and the v1.1 section of the work order: among them, `qwen2.5:3b` as the offline validator does not catch procedural errors, and an active arterial bleed without shock physiology gets no card.
+
+### Earlier notes in this release (2026-09-17 to 2026-09-20)
+
 ### Minimum single dose — 2026-09-20
 
 The dose contract could hold a maximum and not a minimum. Some sources state

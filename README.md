@@ -5,7 +5,9 @@ Open source. Edge deployed. Safety findings published.
 
 > ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
-**Current release: 4.3.0** — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [changelog entry](CHANGELOG.md#430--2026-08-26) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/TECH_NOTES_v4.3.md) — both also cover 4.2, which shipped without either · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Current release: 5.0.0** — [changelog entry](CHANGELOG.md#500--2026-10-12) · [`SAFETY.md`](SAFETY.md): what the system guarantees and what it does not · [work order](docs/WORK_ORDER.md) and [one-line reference](docs/REFERENCE.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+
+Previous release: 4.3.0 — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/TECH_NOTES_v4.3.md)
 
 ---
 
@@ -16,6 +18,17 @@ EdgeCDSS is a self-hosted clinical decision support system for austere, remote, 
 The entire system — knowledge base, retrieval engine, safety gates, web interface, feedback system, and audit logs — runs on a single **NVIDIA Jetson Orin Nano** at the point of care. Public access flows through an outbound-only Cloudflare Tunnel. The deployment is network agnostic: satellite, broadband, Wi-Fi, Ethernet, or LTE/5G.
 
 **Try it:** the live portal is at **https://cdss.arcanekg.com** (demo access token is pre-filled in the interface).
+
+## What's new in 5.0
+
+5.0 is the safety release: 110 changes since 4.3, nearly all to the layer between the model and the medic. The full list is in the [changelog](CHANGELOG.md#500--2026-10-12); what it adds up to is in [`SAFETY.md`](SAFETY.md).
+
+- **Only signed content serves a dose.** 69 of 109 contract entries are signed by the program owner, each with verbatim source quotes. Cautions never state another drug's dose.
+- **Deterministic cards** for haemorrhagic shock and junctional bleeding, severe TBI, tension pneumothorax (from a signed needle-decompression procedure, JTS ID74), active seizure (any phrasing, common misspellings) and hypothermic arrest.
+- **Every dose the model writes is checked** against the signed value: by value, unit, indication and route, wherever it appears in the answer.
+- **Harmful advice with no dose in it holds:** oral intake with depressed consciousness, a contraindicated procedure, an answer to an actively bleeding patient with no step that controls the bleeding.
+- **Offline operation** on the device's own model (`qwen2.5:3b`), with its own validator setting.
+- **Distilled models are research only.** Three were trained and benched; none is adopted.
 
 ## What's new in 4.3
 
@@ -197,11 +210,24 @@ python tools/build_protocol_index.py     # builds the clinical router index
 
 On a Jetson, `jetson_cdss_setup_v2.sh` performs the full deployment (packages, venv, systemd service) in one run.
 
+**Run it offline** (no internet; the on-device model answers and validates):
+
+```bash
+ollama pull qwen2.5:3b                         # the offline model; see Licences below
+# in server/.env
+CDSS_LLM_PROVIDER=local
+CDSS_LLM_BASE_URL=http://localhost:11434/v1    # Ollama
+CDSS_LLM_MODEL=qwen2.5:3b                      # the generator (default)
+CDSS_VALIDATOR_MODEL=qwen2.5:3b                # the validator (default), set apart from the generator
+```
+
+Every local call asks Ollama for an 8192-token context (`CDSS_LOCAL_NUM_CTX`) and refuses to truncate: a prompt that does not fit fails loudly instead of losing its start. The deterministic cards, the dose checks and every hold work the same offline. **Read [`SAFETY.md`](SAFETY.md) before relying on the offline validator:** it is a 3B model.
+
 **Test it:**
 
 ```bash
-cd server && ./run_unit_tests.sh   # 1,150 offline tests, ~11s — no network, no API key, no ChromaDB
-bash server/run_tests.sh           # 24 clinical cases against the live endpoint
+cd server && ./run_unit_tests.sh   # ~2,700 offline tests, 1-3 minutes — no network, no API key, no ChromaDB
+bash server/run_tests.sh           # 29 clinical cases against a running endpoint
 ```
 
 The offline suite is the gate for every change to the deterministic layer. It needs
@@ -351,9 +377,11 @@ CDSS_LLM_BASE_URL=http://localhost:11434/v1    # default when local: Ollama on t
 CDSS_LLM_MODEL=qwen2.5:3b                      # default when local; gpt-4o-mini for openai
 ```
 
-With `local` the on-device model answers whatever the dropdown asked for. The
-validator moves with it, because a cloud validator would fail every offline query
-closed. Every response carries `model` and `provider`, and the session log records
+With `local` the on-device model answers whatever the dropdown asked for, and the
+validator is on the device too, because a cloud validator would fail every offline
+query closed. The offline validator is its own setting, `CDSS_VALIDATOR_MODEL`
+(default `qwen2.5:3b`), independent of the generator: a model under test as the
+generator is not also its own validator. A cloud model named there is ignored offline. Every response carries `model` and `provider`, and the session log records
 both, plus `validator_provider` (log schema 12). Both are null on a deterministic
 card, which no model wrote. With the variables unset, the cloud request is exactly
 what it was.
@@ -375,8 +403,10 @@ measured.
 
 ## Validation status
 
-- Offline regression suite: **1,150 tests, ~11s** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it
-- Automated clinical suite: **24 cases** against the live public endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
+- Offline regression suite: **~2,700 tests** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it, committed failing before the fix
+- Automated clinical suite: **29 cases** (`server/run_tests.sh`) against a running endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
+- Every safety change is replayed against the stored answers (served, held, live logs, the full pipeline): 0 newly released is required, and every movement is read and signed off by the owner
+- A signed 30-scenario evaluation set ([`docs/EVALUATION_SET_30.md`](docs/EVALUATION_SET_30.md)); benchmark counts are advisory, and a model ships only when every served answer has been read
 - Convention for safety-relevant fixes: **one fix, one commit, one regression test**, plus a mutation check — revert the fix, confirm the named test fails, restore — recorded in the commit message
 - Active field beta with structured clinical feedback: severity triage, issue categories, protocol-cited corrections — reported failures are reproduced from audit logs and fixed with regression tests
 - Prior-version evaluation history: [`docs/archive/v3/`](docs/archive/v3/)
@@ -385,7 +415,9 @@ measured.
 
 | Document | What it is |
 |---|---|
-| [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 4.3 entry |
+| [`SAFETY.md`](SAFETY.md) | What the system guarantees, what it does not, and how a change is made safely |
+| [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 5.0 entry |
+| [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md) · [`docs/REFERENCE.md`](docs/REFERENCE.md) | The work order of record, and the one-line meaning and status of every item |
 | [`FINDINGS.md`](FINDINGS.md) | The finding-identifier legend — what `F-`, `S-`, `AE-` and `DP-` mean, where each canonical list lives, and what states a finding can be in |
 | [`TODO.md`](TODO.md) | Roadmap, and every audit finding a release knowingly deferred with its residual risk |
 | [`docs/TECH_NOTES_v4.3.md`](docs/TECH_NOTES_v4.3.md) | **Current** technical notes — architecture, changes in 4.3, testing, known limitations |
@@ -405,9 +437,13 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md). All contributions welcome — clinical
 **Technical:** Python, FastAPI, RAG, prompt engineering, edge hardware
 **Hardware:** off-grid comms, solar power, satellite connectivity, LoRa mesh
 
-## License
+## Licences
 
 MIT — see [`LICENSE`](LICENSE). Copyright (c) 2026 AI in Austere Medicine Project.
+
+**The offline model is not MIT.** `qwen2.5:3b` (Qwen2.5-3B-Instruct), and every `edgecdss-*` model distilled from it, is under the [Qwen RESEARCH LICENSE AGREEMENT](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/blob/main/LICENSE) (Alibaba Cloud): **non-commercial use (research or evaluation) only**; commercial use needs a licence from Alibaba Cloud. This repository ships no Qwen weights; a deployment that pulls and runs the model is bound by its terms. Built with Qwen.
+
+The guideline corpus (JTS CPGs, the SMOG and others) is not in this repository; `scripts/fetch_jts_cpgs.sh` retrieves the public JTS guidelines. Contract entries quote their sources verbatim, with citations.
 
 Technologies and provider names identify components used by the project and do not imply endorsement, sponsorship, or affiliation.
 

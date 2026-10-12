@@ -66,11 +66,11 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A23 | When the current question says the patient is actively bleeding, an answer with no haemorrhage-control action (tourniquet, pressure, packing, haemostatic, binder, control/stop the bleeding) holds; clarifying questions pass. | Found in the D2a bench (H-S1-a: local qwen served vent settings and "cricothyrotomy now" for a bleeding patient); owner, 2026-10-05 | Done, #135 |
 | A23b | "Bleeding from [an external trauma site]" (groin, thigh, neck, axilla, stump, wound …; not nose, gums, rectum) is active bleeding; "bleeding control" is an action only with an action verb. | Found in the D2b bench (G-MTN-04, "he's bleeding from the groin"); owner, 2026-10-06 | Done, #138 |
 | A24 | "Bleeding from the groin / axilla / armpit / neck / inguinal" routes to the DCR card (JTS CPG ID82 p.13 junctional sites). The card's junctional lines (packing with a hemostatic dressing, a junctional tourniquet, manual pressure) are in junctional_card.json, cited, and served only once the owner signs; until then all junctional bleeding is a deterministic hold (owner, 2026-10-07). | Found in the D2b bench (G-MTN-04 went to the model); owner, 2026-10-06 | Done, #139. Junctional card signed by Andrew Azelton, 2026-10-08 (#144) |
-| A25 | A dose the model writes in a unit other than the unit of the signed entry its value matched (fentanyl "0.05 mg" for the 50 mcg entry, epinephrine "0.01 mg" for the 10 mcg push dose, dextrose "25000 mg" for 25 g) holds, even when it converts equal; "50 mcg (0.05 mg)" too (owner, 2026-10-10). The hold names the signed unit, never the number. The canonical GIVE line is out of scope (A26). | Found in the D6 v3 bench (B1's "(50 mg)" slip, which already held by value); owner, 2026-10-10 | In review |
-| A26 | The canonical GIVE line's tolerance, max(0.5 mg, 5%), passes a tenfold error on any signed dose under 10 mg: fentanyl "(0.5mg)" for 0.05 mg is served as "fentanyl 0.5 mg" after the volume audit strips the mL. | Found in A25; owner, 2026-10-10: after A25 | In review. Fixed: the (Z mg) is held to 5% of a signed value, no floor (owner, 2026-10-11) |
+| A25 | A dose the model writes in a unit other than the unit of the signed entry its value matched (fentanyl "0.05 mg" for the 50 mcg entry, epinephrine "0.01 mg" for the 10 mcg push dose, dextrose "25000 mg" for 25 g) holds, even when it converts equal; "50 mcg (0.05 mg)" too (owner, 2026-10-10). The hold names the signed unit, never the number. The canonical GIVE line is out of scope (A26). | Found in the D6 v3 bench (B1's "(50 mg)" slip, which already held by value); owner, 2026-10-10 | Done, #153 |
+| A26 | The canonical GIVE line's tolerance, max(0.5 mg, 5%), passes a tenfold error on any signed dose under 10 mg: fentanyl "(0.5mg)" for 0.05 mg is served as "fentanyl 0.5 mg" after the volume audit strips the mL. | Found in A25; owner, 2026-10-10: after A25 | Done, #154. The (Z mg) is held to 5% of a signed value, no floor |
 | A27 | The hypothermic-arrest card fires on a patient's "no pulse" or "pulseless" with hypothermia wording (hypotherm-, snow, frozen, cold water, found cold), as well as on "cardiac arrest" with a cold word. Pulse ox, a limb's pulse and "no radial pulse" are not arrest. | Found in the D7 v3 re-bench (G-TYP-07); owner, 2026-10-11 | Done, #157. G-TYP-07 movement approved |
 | A28 | The active-seizure detector (card and dose builder) reads the common misspellings siezing, seizeing, siezure(s), seizeure(s). Negated, past, prophylactic and eclamptic seizures are still excluded. | Found in the D7 v3 re-bench (G-TYP-06); owner, 2026-10-11 | Done, #158. G-TYP-06 movement approved |
-| A29 | The tension-pneumothorax card is served from `needle_decompression_card.json`, a needle-decompression procedure with verbatim JTS CPG ID74 quotes (p.5, p.8) signed by the owner; unsigned, a tension presentation holds. "pneumo" counts as chest trauma for the tension detector. | Found in the D7 v3 re-bench (G-TYP-02); owner, 2026-10-11 | In review; procedure signed by Andrew Azelton, 2026-10-12 |
+| A29 | The tension-pneumothorax card is served from `needle_decompression_card.json`, a needle-decompression procedure with verbatim JTS CPG ID74 quotes (p.5, p.8) signed by the owner; unsigned, a tension presentation holds. "pneumo" counts as chest trauma for the tension detector. | Found in the D7 v3 re-bench (G-TYP-02); owner, 2026-10-11 | Done, #159. Procedure signed by Andrew Azelton, 2026-10-12; G-TYP-02 movement approved |
 
 ## 4. D items: data and speed
 
@@ -148,6 +148,9 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | [`MULTI_MODEL_BENCHMARK_2026-09-25.md`](MULTI_MODEL_BENCHMARK_2026-09-25.md) | Run 3: nine arms, hold lists, specifics, findings 1–8 |
 | [`LOCAL_LLM_BENCHMARK.md`](LOCAL_LLM_BENCHMARK.md) | Cloud vs `qwen2.5:3b`: the 2026-09-19 baseline, repeat 1, post-signing run 2. The base model's record; bench results are not appended to it. |
 | `DISTILL_BENCH_<tag>.md` | One per `make bench`: before/after against `qwen2.5:3b` |
+| [`../SAFETY.md`](../SAFETY.md) | What the system guarantees, what it does not, how a change is made (5.0.0) |
+| [`../CHANGELOG.md`](../CHANGELOG.md) | Release history; 5.0.0 is the v1.0 scope |
+| [`model_cards/edgecdss-v3.md`](model_cards/edgecdss-v3.md) | Hugging Face model card draft for `edgecdss-v3`: research artifact, not adopted; Qwen research licence. Not published |
 | [`FEEDBACK_REVIEW_2026-09-03.md`](FEEDBACK_REVIEW_2026-09-03.md) | The field feedback behind A3 and C1 |
 | [`A6_CONTRAINDICATED_PROCEDURES_DESIGN.md`](A6_CONTRAINDICATED_PROCEDURES_DESIGN.md) | A6's proposal: the procedure table, matching, false-positive risks, signing |
 | [`authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md`](authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md) | Sources and dose options for A15, ketamine as a second-line seizure drug |
@@ -171,13 +174,15 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 - Secrets never go in GitHub: no `.env`, no keys.
 - Each machine has one job: the Mac trains and quantizes, and the Jetson serves, probes and benches.
 
-## 9. Found, not yet placed
+## 9. v1.1 (not in the v1.0 scope)
 
-Mirrors the list of the same name in `WORK_ORDER.md`.
+Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on the found list not in the v1.0 scope). Release 5.0.0 is the v1.0 scope.
 
 | Finding | Found in |
 |---|---|
-| The validator holds a correct post-tube sedation answer ("we tubed him"; also "cric'd", #107). | #86 |
+| `qwen2.5:3b` as the offline validator does not catch procedural errors (a low-and-loose tourniquet, "do not re-warm" in hypothermic arrest called SAFE). Owner to place. | D7 v3 re-bench |
+| An active arterial bleed without shock physiology gets no card; the DCR card needs shock physiology. | D7 v3 re-bench (H-IM-05) |
+| Open contract drafts: 39 incomplete drafts, P1, P2, and the fentanyl analgesia infusion entry. Signing is the owner's. | #146, #148 |
 | A correct signed dose is held when the question names the indication, not the drug (epinephrine 1 mg in asystole). Fixing it releases holds and needs an owner ruling. | #97 |
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
