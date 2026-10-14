@@ -223,6 +223,8 @@ CDSS_VALIDATOR_MODEL=qwen2.5:3b                # the validator (default), set ap
 
 Every local call asks Ollama for an 8192-token context (`CDSS_LOCAL_NUM_CTX`) and refuses to truncate: a prompt that does not fit fails loudly instead of losing its start. The deterministic cards, the dose checks and every hold work the same offline. **Read [`SAFETY.md`](SAFETY.md) before relying on the offline validator:** it is a 3B model.
 
+In local mode the portal is local-only: the picker offers exactly the on-device models Ollama has (`qwen2.5:3b`, `edgecdss-v3`), defaulting to `CDSS_LLM_MODEL`; no cloud provider is contacted (`/status` reports them off), voice is off, and nothing on the portal path calls out. No API key is needed, and the first log lines say "LLM provider: local". If they say anything else, the setting did not take.
+
 **Test it:**
 
 ```bash

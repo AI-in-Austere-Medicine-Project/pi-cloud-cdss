@@ -209,5 +209,15 @@
       "effort": null,
       "reserve_tokens": 3000
     }
+  ],
+  "on_device_models": [
+    {
+      "id": "qwen2.5:3b",
+      "label": "Qwen2.5 3B (on device)"
+    },
+    {
+      "id": "edgecdss-v3",
+      "label": "EdgeCDSS v3 (on device)"
+    }
   ]
 }

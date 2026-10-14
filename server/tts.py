@@ -61,6 +61,10 @@ def config_problem():
     Deliberately conservative: this only rejects values that CANNOT be a key.
     A well-formed but revoked or out-of-quota key still has to fail upstream.
     """
+    # Local-only portal (owner, 2026-10-12): voice output is a cloud call
+    # (ElevenLabs), so it is off when the server answers on the device.
+    if (os.getenv("CDSS_LLM_PROVIDER") or "").strip().lower() == "local":
+        return "voice output is off in local mode: it needs the cloud (ElevenLabs)"
     key = (os.getenv("ELEVENLABS_API_KEY") or "").strip()
     if not key:
         return ("voice output is not configured on this server "

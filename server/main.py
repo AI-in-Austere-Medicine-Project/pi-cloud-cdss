@@ -22,7 +22,12 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False,
 
 try:
     chromadb_client = ChromaDBClient()
-    print("✅ ChromaDB and OpenAI clients initialized")
+    if providers.llm_provider() == "local":
+        # Said at startup, so a misread setting shows in the first lines of the log.
+        print(f"✅ ChromaDB initialized · LLM provider: local (Ollama at {providers.local_base_url()}) · "
+              f"model {providers.default_model()} · validator {providers.validator_model()} · no cloud calls")
+    else:
+        print(f"✅ ChromaDB and OpenAI clients initialized · LLM provider: {providers.llm_provider()}")
 except Exception as e:
     print(f"❌ Error: {e}")
     raise
@@ -216,6 +221,7 @@ async def models():
     return {"models": await asyncio.to_thread(providers.available_models),
             "default_model": providers.default_model(),
             "validator_model": providers.validator_model(),
+            "on_device_validator_model": providers.on_device_validator_model(),
             "provider_detail": await asyncio.to_thread(providers.provider_status)}
 
 @app.get("/health")

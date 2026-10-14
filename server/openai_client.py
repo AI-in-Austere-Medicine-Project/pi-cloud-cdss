@@ -4750,7 +4750,7 @@ def _validator_unreadable(why: str, issue: str = VALIDATOR_UNREADABLE_ISSUE) -> 
 def validate_response(full_transcript: str, response_text: str,
                       patient_ctx: PatientContext,
                       allowed_dose_block: str = "",
-                      now_ts=None) -> dict:
+                      now_ts=None, generator_model: Optional[str] = None) -> dict:
     """
     LLM semantic validator. Receives full conversation transcript.
     Fail-closed: errors return NEEDS_HUMAN_REVIEW, not SAFE.
@@ -4778,7 +4778,7 @@ def validate_response(full_transcript: str, response_text: str,
         raw = providers.chat(
             VALIDATOR_PROMPT,
             [{"role": "user", "content": validation_input}],
-            model=providers.validator_model(),
+            model=providers.validator_model(generator_model),  # C2: on-device pick, on-device validator
             temperature=0,
             max_tokens=300,
         ).strip()
@@ -7370,7 +7370,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         full_transcript = "\n".join(transcript_lines)
         providers.reset_served()
         llm_result = validate_response(full_transcript, response_text, patient_ctx,
-                                       allowed_dose_block, now_ts=now_ts)
+                                       allowed_dose_block, now_ts=now_ts, generator_model=model)
         validator_served = providers.last_chat_served()
         validator_returned = providers.last_chat_returned_model()
         validator_fallback = providers.last_chat_fallback()
