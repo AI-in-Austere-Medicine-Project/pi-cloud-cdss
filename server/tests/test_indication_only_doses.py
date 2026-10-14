@@ -126,3 +126,35 @@ def test_an_arrest_named_without_a_drug_is_offered_the_signed_arrest_dose(q):
 ])
 def test_a_pulseless_limb_is_not_an_arrest(q):
     assert not [d for d in _doses(q) if d.indication == "cardiac arrest"]
+
+
+# ── Narrowed by the replay (2026-10-14): an offer is close to an instruction ──
+# The generator must copy a GIVE line when ALLOWED_DOSES is present, so a
+# drugless question is offered a dose only when THIS turn asks about the
+# indication. Each case below was offered a dose in the first replay.
+
+@pytest.mark.parametrize("q", [
+    "antibiotic dose for the open femur fracture",
+    "open book pelvic fracture from a fall, how do I bind it and what do I watch for",
+    "suspected typhoid with abdominal pain, what antibiotic",
+    "scratch that, wrong patient, this one is a 70yo with chest pain and a rate of 38",
+    "Hey, I just are aside a post cardiac arrest patient blood pressure is 90/70. Heart rate is 110",
+    "70 kg adult, ROSC after cardiac arrest, what now",
+    "give her keta mean for the pain",
+])
+def test_no_offer_when_the_turn_is_not_asking_about_that_indication(q):
+    assert oc.indication_only_patterns(q) == []
+
+
+def test_an_earlier_turns_pain_is_not_this_turns_question():
+    history = "80 kg adult, severe pain from a closed femur fracture, IV access he is bleeding out from a leg wound, what do I give him"
+    current = "he is bleeding out from a leg wound, what do I give him"
+    ctx = oc.rebuild_patient_context_from_history(history)
+    assert not [d for d in oc.build_allowed_doses(history, ctx, current_query=current)
+                if "pain" in d.indication]
+
+
+def test_an_opioid_is_not_volunteered_against_a_respiratory_caution():
+    q = "femur fracture, screaming in pain, RR is 8, what analgesia do I give"
+    offered = {d.drug for d in _doses(q)}
+    assert not offered & {"fentanyl", "morphine"}, offered
