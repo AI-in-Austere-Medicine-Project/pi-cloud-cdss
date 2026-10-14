@@ -1827,32 +1827,72 @@ def _contract_candidate(name: str, entry: dict, w: Optional[float]) -> Optional[
 # name, so "severe pain from a closed femur fracture, what can I give" got an
 # empty ALLOWED_DOSES, the generator wrote a ketamine dose of its own, and the
 # check held it although ketamine analgesia is signed. Each row maps what the
-# question says to the indication labels of signed entries; only signed
-# entries can come back, and the check is unchanged. "Pulseless" alone is not
-# an arrest cue: a pulseless limb is not a cardiac arrest.
+# CURRENT turn says to the indication labels of signed entries; only signed
+# entries come back, and the check is unchanged.
+#
+# An offer is close to an instruction (the generator must copy a GIVE line
+# when ALLOWED_DOSES is present), so every row is narrow and each exclusion is
+# a case the replay showed:
+# - pain: "pain" or "analgesia", not "fracture" alone ("antibiotic dose for the
+#   open femur fracture", "how do I bind it"); not chest, abdominal or
+#   epigastric pain, which are presentations, not injuries; not when the turn
+#   asks for an antibiotic.
+# - arrest: asystole, cardiac arrest, PEA, VF; not post-arrest or ROSC (a
+#   patient with a pulse), and "pulseless" alone is not a cue (a limb).
 INDICATION_ONLY_LOOKUPS = (
-    (re.compile(r"\b(?:pain\w*|analgesi\w*|fractur\w*|fx)\b"), ("pain",)),
+    (re.compile(r"\b(?:pain|painful|analgesi\w*)\b"),
+     re.compile(r"\b(?:chest|abdominal|abdomen|belly|stomach|epigastric)\s+pain\b|\bantibiotic"),
+     ("pain",)),
     (re.compile(r"\b(?:asystol\w*|cardiac arrest|pea arrest|pulseless electrical activity"
-                r"|ventricular fibrillation|v-?fib)\b"), ("cardiac arrest",)),
+                r"|ventricular fibrillation|v-?fib)\b"),
+     re.compile(r"\bpost[- ]?(?:cardiac[- ])?arrest|\brosc\b|return of spontaneous|resuscitated"),
+     ("cardiac arrest",)),
 )
 
 
-def indication_only_patterns(query: str) -> list:
-    """The signed-indication patterns a drugless question selects, or []."""
+def _names_a_proposed_alias(q: str) -> bool:
+    """A drug the bank only PROPOSES as an alias ("keta mean") was probably
+    named: it is not the indication-only case, so nothing is offered for it."""
+    for drug in (drug_contracts.DRUGS or {}).values():
+        for a in drug.get("proposed_aliases") or []:
+            if re.search(rf"\b{re.escape(a.lower())}\b", q):
+                return True
+    return False
+
+
+def indication_only_patterns(query: str, current_query: Optional[str] = None) -> list:
+    """The signed-indication patterns a drugless question selects, or [].
+
+    Read from the current turn: an earlier turn's "pain" is not this turn's
+    question ("he is bleeding out from a leg wound" after a pain question).
+    No drug may be named anywhere in the history, as for the drug lookup.
+    """
     if drug_contracts is None or drug_contracts.resolve_drugs(query):
         return []
-    q = (query or "").lower()
-    return [p for rx, pats in INDICATION_ONLY_LOOKUPS if rx.search(q) for p in pats]
+    q = (current_query if current_query is not None else query or "").lower()
+    if drug_contracts.resolve_drugs(q) or _names_a_proposed_alias(q):
+        return []
+    return [p for cue, unless, pats in INDICATION_ONLY_LOOKUPS
+            if cue.search(q) and not unless.search(q) for p in pats]
 
 
-def _indication_only_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
-    """Signed entries for the indication a drugless question names."""
-    patterns = indication_only_patterns(query)
+def _indication_only_candidates(query: str, ctx: PatientContext,
+                                current_query: Optional[str] = None) -> List[DoseCandidate]:
+    """Signed entries for the indication a drugless question names.
+
+    A drug the recorded vitals raise a caution against (an opioid at RR 8) is
+    not offered: a medic who names it still gets it, with the caution, but the
+    system does not volunteer it.
+    """
+    patterns = indication_only_patterns(query, current_query)
     if not patterns:
         return []
+    flags = {"ams_stated": ctx.ams_stated}
     out = []
     for name, entry in drug_contracts.signed_entries_by_indication(
             patterns, ctx.is_pediatric, ctx.age_years):
+        if vitals_mod.conflicts(f"give {name}", ctx.vitals, flags=flags):
+            continue
         d = _contract_candidate(name, entry, ctx.dosing_weight_kg)
         if d is not None:
             out.append(d)
@@ -1879,7 +1919,8 @@ def _finish_doses(doses: List[DoseCandidate],
     return [resolve_dose_volume(d, ctx) for d in unique]
 
 
-def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+def build_allowed_doses(query: str, ctx: PatientContext,
+                        current_query: Optional[str] = None) -> List[DoseCandidate]:
     """Build route-specific deterministic dose candidates for the current query.
 
     Two paths, and the split is temporary by design:
@@ -1919,7 +1960,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             return []
         return _finish_doses(stated_indication_first(query, indication_matched(
             query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)
-                                                + _indication_only_candidates(query, ctx)))), ctx)
+                                                + _indication_only_candidates(query, ctx, current_query)))), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
@@ -2049,7 +2090,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
-    doses.extend(_indication_only_candidates(query, ctx))
+    doses.extend(_indication_only_candidates(query, ctx, current_query))
     return _finish_doses(stated_indication_first(query, indication_matched(
         query, _without_contraindicated_sux(query, doses))), ctx)
 
@@ -7464,7 +7505,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
               f"cos {retrieval_cosine(assessment.top_score):.2f})")
 
         # Step 4: Build dose candidates from full history, not only current query.
-        allowed_doses = build_allowed_doses(full_query_history, patient_ctx)
+        allowed_doses = build_allowed_doses(full_query_history, patient_ctx, current_query=query)
         allowed_dose_block = build_allowed_dose_block(allowed_doses)
         print(f"💊 {len(allowed_doses)} dose candidates built")
 
