@@ -267,21 +267,25 @@ def test_a_chip_goes_out_through_the_history_path_tagged_chip(rendered):
 
 # ── the local-model badge ────────────────────────────────────────────────────
 
-BADGE = "local model · offline"
+# C2: an on-device pick reads "on-device model" (a medic online chose it);
+# a cloud-unreachable fallback keeps "local model · offline".
+BADGES = {"local": "on-device model", "local-fallback": "local model · offline"}
 
 
 @pytest.mark.parametrize("provider", ["local", "local-fallback"])
 def test_a_local_answer_carries_the_badge(rendered, provider):
+    badge = BADGES[provider]
     bubble = rendered[f"provider_{provider}"]["bubble"]
-    assert bubble.count(BADGE) == 1
+    assert len(re.findall(r'<span class="badge local"[^>]*>' + re.escape(badge) + '</span>', bubble)) == 1
     meta = bubble[bubble.index('<div class="meta">', bubble.index("</details>")):]
-    assert BADGE in meta, "the badge is not in the always-visible meta row"
+    assert badge in meta, "the badge is not in the always-visible meta row"
 
 
 @pytest.mark.parametrize("provider", ["openai", "null"])
 def test_a_cloud_or_card_answer_has_no_badge(rendered, provider):
     # "null": a deterministic card, which no model wrote.
-    assert BADGE not in rendered[f"provider_{provider}"]["bubble"]
+    bubble = rendered[f"provider_{provider}"]["bubble"]
+    assert not any(b in bubble for b in BADGES.values())
 
 
 FALLBACK_RE = r'<div class="fallback"[^>]*>.*?</div>'
@@ -311,7 +315,7 @@ def test_a_fallback_answer_says_so_above_the_brief(rendered):
     banner = m.group(0)
     assert "anthropic/claude-opus-5" in banner, "the banner does not name the requested model"
     assert "on-device model" in banner
-    assert bubble.count(BADGE) == 1, "the footer badge is still there, once"
+    assert bubble.count(BADGES["local-fallback"]) == 1, "the footer badge is still there, once"
 
 
 @pytest.mark.parametrize("provider", ["local", "openai", "null"])
