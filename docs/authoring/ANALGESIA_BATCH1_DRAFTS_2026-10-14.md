@@ -4,6 +4,37 @@ The owner asked for (2026-10-14): ketamine (IV/IM/IN analgesia, adult and paedia
 
 Every quote was checked against its cited page: `server/tests/test_contracts_analgesia_batch1b.py` reads the PDFs (with `JTS_PDF_DIR` and `NASEMSO_PDF` set), SMOG one column at a time. A quote leaves text out only where it shows `…`; `[sic]` marks a printed typo kept on purpose. Every page is the printed page; in these four documents the printed page and the PDF page are the same.
 
+## Owner rulings, 2026-10-14
+
+| Entry | Ruling |
+|---|---|
+| 1. ketamine IM adult\|peds 0.25 mg/kg (NASEMSO) | **Unsigned**: a documented alternate |
+| 2. ketamine IM adult | **Redrafted to 0.5–1.0 mg/kg** (SMOG p.127 leads; ID61, TCCC corroborate); signed after the owner reads it |
+| 3. ketamine IN adult 0.5–0.75 mg/kg | **Signed** |
+| 4. ketamine IM paediatric 0.5 mg/kg | **Signed** (age floor added to contraindications, then re-signed) |
+| 5. ketamine IN paediatric | Incomplete: no source |
+| 6. morphine IM paediatric 0.1 mg/kg | **Signed** |
+| 7–10. acetaminophen PO/IV, adult/paediatric | **Signed** |
+| 11–15. ketorolac | **Not signed**: excluded on SMOG p.129, "Not for use as pain management for battlefield trauma patient!" |
+
+Ruling 5's route-aware ceiling (48ef201) is accepted. The tables below show the drafts as first submitted; `drug_contracts.json` holds the current state.
+
+## Entry 2 as redrafted, for the owner's read (2026-10-14)
+
+**breakthrough pain — IM/IN (prolonged field care) · adult · IM: 0.5–1 mg/kg** · max single: none stated · max cumulative: none stated · unsigned
+
+- **Contraindications:** Hypersensitivity
+- **Cautions served:** JTS ID61: repeat every 15 minutes until the goal is achieved or nystagmus occurs. · Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.
+- **Notes:** Redrafted 2026-10-14 on the owner's ruling: 0.5–1.0 mg/kg IM. The range is SMOG CY24 p.127 (adult "IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn"); JTS ID61 p.11 (0.5–0.75 mg/kg, 40–60 mg), ID61 p.8 (80 mg IM, 0.4–0.8 mg/kg) and ID29 p.7 (TCCC 50 mg IM) lie inside or at it. Intervals differ: ID61 every 15 minutes (the caution served), SMOG 10-30, TCCC 30. The indication name is still ID61's; the dose is now SMOG-led. Awaiting the owner's read before signing. Ruled CONFLICT (group ketamine-im-analgesia, closed 2026-10-14): NASEMSO p.94 gives 0.25 mg/kg IM, capped at 25 mg initial; left unsigned.
+- **Ruling:** OWNER RULING 2026-10-14 (Andrew Azelton): sign the IM ketamine entry at 0.5–1.0 mg/kg (ID61/SMOG/TCCC); NASEMSO's 0.25 mg/kg IM left unsigned. Signed after the owner reads this redraft.
+
+| Source (printed page) | Supports | Verbatim quote |
+|---|---|---|
+| U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (ADULT column), p.127 | dose range 0.5–1.0 mg/kg IM (adult analgesia, low dose) | “LOW DOSE: Analgesia: IV/IO Push (over 1 min) • 0.1-0.3 mg/kg, repeat q 10-30 prn IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn” |
+| JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Ketamine (Ketalar), p.11 | corroborates: IM/IN 40–60 mg (0.5–0.75 mg/kg), every 15 minutes | “Breakthrough pain in hemodynamically stable or unstable … IM/IN: every 15 minutes until goal achieved or nystagmus … 40–60mg (or 0.5–0.75mg/kg)” |
+| JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia — footnote 1, ketamine push (for pain), p.8 | corroborates: 80 mg IM (0.4–0.8 mg/kg IM) when no IV/IO | “Ketamine push (for pain): 20mg (range, 0.1–0.2mg/kg) IV/IO every 10–30 minutes PRN. If an IV/IO is not available, quadruple the ketamine dose to give 80mg IM (range, 0.4–0.8mg/kg IM).” |
+| JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Role 1 Treatment of Pain (TCCC triple analgesia, Option 3), p.7 | corroborates: TCCC 50 mg IM (inside the range at 50–100 kg) | “Option 3, for moderate to severe pain when the casualty is in hemorrhagic shock or respiratory distress or the casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine 20 mg slow IV or IO. Ketamine doses can be repeated every 30 minutes for IM or IN and every 20 minutes for IV or IO administration.” |
+
 ## What was already in the bank (unchanged)
 
 | Drug | Entry | State |

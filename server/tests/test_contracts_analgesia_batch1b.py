@@ -58,8 +58,9 @@ DRAFTS = [
     ("ketorolac", KETOROLAC_SMOG, "peds", "IM"),
 ]
 
-# Where the sources disagree on the dose: both sides kept as entries, flagged,
-# grouped, and the conflict written out. The owner rules each group.
+# Where the sources disagreed on the dose: both sides were kept as entries and
+# the conflict written out. Ruled 2026-10-14: the flag and group are gone and
+# each side carries the owner's adjudication.
 CONFLICTS = {
     ("ketamine", KETAMINE_PAIN, "adult|peds", "IM"): "ketamine-im-analgesia",
     ("ketamine", KETAMINE_PFC, "adult", "IM"): "ketamine-im-analgesia",
@@ -90,13 +91,48 @@ def _entry(drug, indication, population, route):
     return hits[0], d
 
 
+# Owner rulings, 2026-10-14: signed as drafted, by AI-AIM for Andrew Azelton.
+SIGNED = [
+    ("ketamine", KETAMINE_PFC, "adult", "IN"),
+    ("ketamine", KETAMINE_PAIN, "peds", "IM"),
+    ("morphine", "acute pain / analgesia", "peds", "IM"),
+    ("acetaminophen", APAP_PAIN, "adult", "PO"),
+    ("acetaminophen", APAP_PAIN, "adult", "IV"),
+    ("acetaminophen", APAP_PAIN, "peds", "PO"),
+    ("acetaminophen", APAP_PAIN, "peds", "IV"),
+]
+
+
 @pytest.mark.parametrize("key", DRAFTS, ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
-def test_the_draft_exists_unsigned_and_not_servable(key):
+def test_only_the_ruled_entries_are_signed_and_servable(key):
     e, d = _entry(*key)
-    assert e["signoff"] is False
-    assert e["reviewed_by"] == "PENDING_CLINICAL_SIGNOFF"
-    ok, _why = drug_contracts.entry_is_servable(e, d)
-    assert not ok
+    ok, why = drug_contracts.entry_is_servable(e, d)
+    if key in SIGNED:
+        assert e["signoff"] is True and e["reviewed_by"] == "AI-AIM" and e["review_date"] == "2026-10-14"
+        assert ok, why
+    else:
+        assert e["signoff"] is False
+        assert e["reviewed_by"] == "PENDING_CLINICAL_SIGNOFF"
+        assert not ok
+
+
+def test_the_im_ketamine_entry_is_redrafted_to_the_ruled_range_and_awaits_the_owners_read():
+    e, _ = _entry("ketamine", KETAMINE_PFC, "adult", "IM")
+    assert e["dose_range"] == {"min": 0.5, "max": 1.0, "units": "mg/kg", "per_kg": True}
+    assert e["sources"][0]["source_class"] == "SMOG" and "0.5 - 1.0 mg/kg" in e["sources"][0]["quote"]
+    assert e["signoff"] is False and "owner reads" in e["adjudication"]
+
+
+def test_nasemso_im_stays_unsigned_as_a_documented_alternate():
+    e, _ = _entry("ketamine", KETAMINE_PAIN, "adult|peds", "IM")
+    assert e["signoff"] is False and "left unsigned" in e["adjudication"]
+
+
+def test_ketorolac_is_excluded_with_the_smog_quote():
+    for e in _drug("ketorolac")["dose_entries"]:
+        assert e["signoff"] is False
+        assert "OWNER_EXCLUDED" in e["flags"]
+        assert "Not for use as pain management for battlefield trauma patient!" in e["adjudication"]
 
 
 @pytest.mark.parametrize("key", DRAFTS, ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
@@ -137,10 +173,10 @@ def test_what_no_source_states_stays_marked_incomplete(key):
 
 
 @pytest.mark.parametrize("key", list(CONFLICTS), ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
-def test_a_source_conflict_is_flagged_grouped_and_written_out(key):
+def test_a_ruled_conflict_carries_the_owners_adjudication(key):
     e, _ = _entry(*key)
-    assert "SOURCE_CONFLICT" in e["flags"]
-    assert e["conflict_group"] == CONFLICTS[key]
+    assert "SOURCE_CONFLICT" not in e["flags"] and "conflict_group" not in e
+    assert e["adjudication"].startswith("OWNER RULING 2026-10-14 (Andrew Azelton)")
     assert "CONFLICT" in e["extraction_notes"]
 
 

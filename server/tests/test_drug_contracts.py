@@ -592,7 +592,8 @@ STILL_AWAITING_A_RULING = set()
 # both sides of each kept as unsigned drafts. ketamine-im-analgesia: NASEMSO
 # 0.25 mg/kg IM against JTS ID61 0.5-0.75 mg/kg and SMOG 0.5 mg/kg (peds).
 # ketorolac-im-analgesia-peds: NASEMSO 0.5 mg/kg against SMOG 1 mg/kg.
-STILL_AWAITING_A_RULING |= {"ketamine-im-analgesia", "ketorolac-im-analgesia-peds"}
+# Ruled 2026-10-14 (owner): ketamine IM at 0.5-1.0 mg/kg (JTS/SMOG), NASEMSO
+# left unsigned; ketorolac excluded (SMOG p.129, battlefield trauma). Both closed.
 
 
 def test_no_source_conflict_is_still_open():
