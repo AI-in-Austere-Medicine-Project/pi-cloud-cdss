@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "69 of 109 dose entries across 16 of 34 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "69 of 124 dose entries across 16 of 36 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -80,7 +80,8 @@
       "routes": [
         "IV",
         "IO",
-        "IM"
+        "IM",
+        "IN"
       ],
       "tropical_priority": false,
       "discovery_rank": 1,
@@ -1265,6 +1266,408 @@
             ]
           },
           "min_age_months": 3
+        },
+        {
+          "indication": "moderate to severe pain / analgesia",
+          "population": "adult|peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 0.25,
+            "max": 0.25,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 25.0,
+            "units": "mg",
+            "rule": "maximum initial dose 25 mg"
+          },
+          "max_cumulative": {
+            "value": 100.0,
+            "units": "mg",
+            "rule": "maximum cumulative dose 100 mg"
+          },
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "min_age_months": 3,
+          "cautions": [
+            "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            },
+            {
+              "tier": "detail",
+              "text": "AGE FLOOR, ENFORCED NOT LISTED. SMOG CY24 p.127: \"Children <3 mo. age\" is a contraindication to ketamine. OWNER RULING 2026-09-19 (#66): a STATED age under 3 months blocks this entry (min_age_months). Not written into this entry's contraindications because it also serves adults, whose cards should not carry an infant-only line; a child's card gets it from the paediatric entry served alongside."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "dose (0.25 mg/kg), route IM, maximum initial 25 mg, cumulative 100 mg",
+              "quote": "d. Ketamine: i. 0.25 mg/kg IM, IV or IO (maximum initial dose 25 mg; maximum cumulative dose 100 mg)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (ADULT column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "adult IM/IN analgesia 0.5–1.0 mg/kg",
+              "quote": "LOW DOSE: Analgesia: IV/IO Push (over 1 min) • 0.1-0.3 mg/kg, repeat q 10-30 prn IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (PEDIATRIC column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "paediatric IM analgesia 0.5 mg/kg; the column gives IM and IV only, no IN",
+              "quote": "Analgesia: IM: • 0.5 mg/kg, repeat q 10-30 prn IV: • 0.1 – 0.2 mg/kg, repeat q 10-30 prn"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Ketamine (Ketalar), p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 11,
+              "pdf_page": 11,
+              "supports": "dose 40–60 mg (0.5–0.75 mg/kg) by IM or IN for breakthrough pain; interval",
+              "quote": "Breakthrough pain in hemodynamically stable or unstable … IM/IN: every 15 minutes until goal achieved or nystagmus … 40–60mg (or 0.5–0.75mg/kg)"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia — footnote 1, ketamine push (for pain), p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 8,
+              "pdf_page": 8,
+              "supports": "IM when no IV/IO: 80 mg (0.4–0.8 mg/kg IM), quadruple the IV dose",
+              "quote": "Ketamine push (for pain): 20mg (range, 0.1–0.2mg/kg) IV/IO every 10–30 minutes PRN. If an IV/IO is not available, quadruple the ketamine dose to give 80mg IM (range, 0.4–0.8mg/kg IM)."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Role 1 Treatment of Pain (TCCC triple analgesia, Option 3), p.7",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 7,
+              "pdf_page": 7,
+              "supports": "TCCC fixed dose 50 mg IM or IN; repeat every 30 minutes",
+              "quote": "Option 3, for moderate to severe pain when the casualty is in hemorrhagic shock or respiratory distress or the casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine 20 mg slow IV or IO. Ketamine doses can be repeated every 30 minutes for IM or IN and every 20 minutes for IV or IO administration."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications, p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "age floor (under 3 months)",
+              "quote": "Children <3 mo. age"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). The dose is NASEMSO p.94, which states one dose for IM, IV and IO: the IV entry is already signed at the same 0.25 mg/kg. CONFLICT: every other source gives a higher IM dose. SMOG CY24 p.127: adult IM/IN 0.5 - 1.0 mg/kg, paediatric IM 0.5 mg/kg. JTS ID61 p.11: IM/IN 40–60 mg (0.5–0.75 mg/kg). JTS ID61 p.8: when there is no IV/IO, quadruple the IV dose, 80 mg IM (0.4–0.8 mg/kg IM). JTS ID29 p.7 (TCCC): 50 mg IM or IN. For 80 kg, NASEMSO gives 20 mg (capped at 25 mg), the JTS sources 40–80 mg. The owner rules which IM dose serves; signing this entry and the PFC IM entry together would put two IM analgesia doses in front of one question.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-im-analgesia"
+        },
+        {
+          "indication": "breakthrough pain — IM/IN (prolonged field care)",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": {
+            "min": 0.5,
+            "max": 0.75,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "cautions": [
+            "JTS ID61: repeat every 15 minutes until the goal is achieved or nystagmus occurs.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Ketamine (Ketalar), p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 11,
+              "pdf_page": 11,
+              "supports": "dose 40–60 mg (0.5–0.75 mg/kg) by IM or IN for breakthrough pain; interval",
+              "quote": "Breakthrough pain in hemodynamically stable or unstable … IM/IN: every 15 minutes until goal achieved or nystagmus … 40–60mg (or 0.5–0.75mg/kg)"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Analgesia — footnote 1, ketamine push (for pain), p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 8,
+              "pdf_page": 8,
+              "supports": "IM when no IV/IO: 80 mg (0.4–0.8 mg/kg IM), quadruple the IV dose",
+              "quote": "Ketamine push (for pain): 20mg (range, 0.1–0.2mg/kg) IV/IO every 10–30 minutes PRN. If an IV/IO is not available, quadruple the ketamine dose to give 80mg IM (range, 0.4–0.8mg/kg IM)."
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). JTS ID61 p.11: IM/IN 40–60 mg (or 0.5–0.75 mg/kg) every 15 minutes for breakthrough pain. ID61 p.8 gives a slightly wider IM range in the same CPG: quadruple the IV dose, 80 mg IM (range 0.4–0.8 mg/kg IM). CONFLICT with NASEMSO p.94, 0.25 mg/kg IM capped at 25 mg initial and 100 mg cumulative (the unsigned IM twin of the signed IV entry). ID61 is a prolonged-field-care CPG for adult casualties; population drafted adult.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-im-analgesia"
+        },
+        {
+          "indication": "breakthrough pain — IM/IN (prolonged field care)",
+          "population": "adult",
+          "route": "IN",
+          "dose_range": {
+            "min": 0.5,
+            "max": 0.75,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "cautions": [
+            "JTS ID61: repeat every 15 minutes until the goal is achieved or nystagmus occurs.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Ketamine (Ketalar), p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 11,
+              "pdf_page": 11,
+              "supports": "dose 40–60 mg (0.5–0.75 mg/kg) by IM or IN for breakthrough pain; interval",
+              "quote": "Breakthrough pain in hemodynamically stable or unstable … IM/IN: every 15 minutes until goal achieved or nystagmus … 40–60mg (or 0.5–0.75mg/kg)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (ADULT column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "adult IM/IN analgesia 0.5–1.0 mg/kg",
+              "quote": "LOW DOSE: Analgesia: IV/IO Push (over 1 min) • 0.1-0.3 mg/kg, repeat q 10-30 prn IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Role 1 Treatment of Pain (TCCC triple analgesia, Option 3), p.7",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 7,
+              "pdf_page": 7,
+              "supports": "TCCC fixed dose 50 mg IM or IN; repeat every 30 minutes",
+              "quote": "Option 3, for moderate to severe pain when the casualty is in hemorrhagic shock or respiratory distress or the casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine 20 mg slow IV or IO. Ketamine doses can be repeated every 30 minutes for IM or IN and every 20 minutes for IV or IO administration."
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). JTS ID61 p.11: IM/IN 40–60 mg (or 0.5–0.75 mg/kg) every 15 minutes for breakthrough pain. Corroborating, not identical: SMOG CY24 p.127 adult IM/IN 0.5 - 1.0 mg/kg repeat q 10-30 prn; JTS ID29 p.7 (TCCC) 50 mg IN, repeat every 30 minutes. Not flagged as a conflict: ID61's range lies inside SMOG's (whose upper bound, 1.0 mg/kg, is higher), and TCCC's 50 mg is inside ID61's range at 67-100 kg. The intervals differ (ID61 15 minutes, SMOG 10-30, TCCC 30). NASEMSO gives no IN ketamine. No source states an IN volume limit per nostril.",
+          "flags": []
+        },
+        {
+          "indication": "moderate to severe pain / analgesia",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 0.5,
+            "max": 0.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "min_age_months": 3,
+          "cautions": [
+            "SMOG CY24: repeat every 10-30 minutes as needed.",
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (PEDIATRIC column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "paediatric IM analgesia 0.5 mg/kg; the column gives IM and IV only, no IN",
+              "quote": "Analgesia: IM: • 0.5 mg/kg, repeat q 10-30 prn IV: • 0.1 – 0.2 mg/kg, repeat q 10-30 prn"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications, p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "age floor (under 3 months)",
+              "quote": "Children <3 mo. age"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "dose (0.25 mg/kg), route IM, maximum initial 25 mg, cumulative 100 mg",
+              "quote": "d. Ketamine: i. 0.25 mg/kg IM, IV or IO (maximum initial dose 25 mg; maximum cumulative dose 100 mg)"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). SMOG CY24 p.127 PEDIATRIC column: IM 0.5 mg/kg, repeat q 10-30 prn. CONFLICT with NASEMSO p.94, 0.25 mg/kg IM (maximum initial 25 mg, cumulative 100 mg) for adults and children alike, which is the unsigned adult|peds IM entry. Both serve a paediatric IM question if both are signed; the owner picks one. Age floor 3 months from SMOG's contraindication, as on the signed IV entries. OWNER QUESTION: SMOG CY24 p.127, PEDIATRIC column, under the infusion lines: \"**NOTE** Avoid sub-dissociative doses to prevent emergence phenomenon.\" Read it against this sub-dissociative analgesic dose before signing.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-im-analgesia"
+        },
+        {
+          "indication": "moderate to severe pain / analgesia",
+          "population": "peds",
+          "route": "IN",
+          "dose_range": "NEEDS_MANUAL_ENTRY",
+          "max_single": "NEEDS_MANUAL_ENTRY",
+          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "contraindications": [
+            "Hypersensitivity"
+          ],
+          "min_age_months": 3,
+          "cautions": [
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            {
+              "tier": "detail",
+              "text": "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDICATION. NASEMSO Appendix III (2022, sourced from medscape 2021) lists head trauma and intracranial mass/haemorrhage as relative/controversial contraindications. OWNER RULING 2026-08-25: ruled with JTS ID61, which states ketamine is safe in TBI and/or eye injury — the ICP concern is substantially overturned in current literature and JTS reflects current practice. Recorded so the reasoning is visible, not to steer away from first-line induction in the population JTS specifically endorses it for."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (PEDIATRIC column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "checked: the paediatric column gives IM and IV analgesia, no IN",
+              "quote": "Analgesia: IM: • 0.5 mg/kg, repeat q 10-30 prn IV: • 0.1 – 0.2 mg/kg, repeat q 10-30 prn"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "checked: ketamine IM, IV or IO only, no IN",
+              "quote": "d. Ketamine: i. 0.25 mg/kg IM, IV or IO (maximum initial dose 25 mg; maximum cumulative dose 100 mg)"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Role 1 Treatment of Pain (TCCC triple analgesia, Option 3), p.7",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 7,
+              "pdf_page": 7,
+              "supports": "checked: TCCC 50 mg IN is a casualty (adult) fixed dose, no paediatric dose",
+              "quote": "Option 3, for moderate to severe pain when the casualty is in hemorrhagic shock or respiratory distress or the casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine 20 mg slow IV or IO. Ketamine doses can be repeated every 30 minutes for IM or IN and every 20 minutes for IV or IO administration."
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "INCOMPLETE: no source in the corpus states a paediatric intranasal ketamine dose. SMOG CY24 p.127 (paediatric: IM, IV), NASEMSO p.94 (IM, IV, IO) and JTS ID29 p.7 (adult casualty, 50 mg IN) were read. ID61 p.11's IM/IN 0.5–0.75 mg/kg is in an adult PFC CPG and is not carried across to children. The entry exists so the gap is visible; it refuses even if signed.",
+          "flags": [
+            "DOSE_NOT_IN_SOURCE"
+          ]
         }
       ],
       "proposed_aliases": [
@@ -3908,6 +4311,74 @@
           "review_date": "2026-10-11",
           "version": "0.2.0",
           "extraction_notes": "NASEMSO gives IM, IV and IO as one route list at the same 0.1 mg/kg dose, without splitting adult from paediatric."
+        },
+        {
+          "indication": "acute pain / analgesia",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 0.1,
+            "max": 0.1,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 10.0,
+            "units": "mg",
+            "rule": "maximum initial dose 10 mg"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity",
+            "Paralytic ileus",
+            "Toxin-mediated diarrhoea",
+            "Respiratory depression",
+            "Acute or severe bronchial asthma",
+            "Upper airway obstruction",
+            "Head injuries",
+            "Brain tumours",
+            "Delirium tremens",
+            "Seizure disorders",
+            "During labour when premature birth is anticipated (injectable)"
+          ],
+          "cautions": [
+            "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
+            "This is the MAXIMUM INITIAL dose. NASEMSO states no cumulative maximum for morphine.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication. That is meaningful silence, not a gap in extraction: the same guideline DOES state cumulative maxima where it means to (for ketamine and for hydromorphone, Pain Management p.94)."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "dose 0.1 mg/kg, route IM, maximum initial 10 mg",
+              "quote": "a. Morphine sulfate: i. 0.1 mg/kg IM, IV or IO (maximum initial dose is 10 mg)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Morphine, Dose and Administration (PEDIATRIC column), p.141",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 141,
+              "pdf_page": 141,
+              "supports": "advice against the IM route (no dose)",
+              "quote": "IM, SubQ: The use of IM/ SubQ injections is no longer recommended especially for repeated administration due to painful administration, variable absorption and lag time to peak effect."
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft",
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). NASEMSO p.94 gives 0.1 mg/kg IM, IV or IO (maximum initial dose 10 mg) without splitting adult from paediatric; the paediatric IV and adult IM entries are signed from the same line. SMOG CY24 p.141 (both columns) says IM/SubQ injection is no longer recommended, especially for repeated doses: painful, variable absorption, slow to peak. That is advice against the route, not a different dose; the owner rules whether a paediatric IM morphine dose should serve at all.",
+          "flags": []
         }
       ]
     },
@@ -6697,6 +7168,798 @@
         }
       ],
       "notes": "Added 2026-09-25 for the severe-TBI card (A2). Not 'saline' as an alias: normal saline is not this drug."
+    },
+    {
+      "generic_name": "acetaminophen",
+      "aliases": [
+        "paracetamol",
+        "tylenol"
+      ],
+      "drug_class": "analgesic / antipyretic",
+      "forms": [],
+      "routes": [
+        "PO",
+        "IV"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "proposed_aliases": [],
+      "dose_entries": [
+        {
+          "indication": "mild to moderate pain / analgesia",
+          "population": "adult",
+          "route": "PO",
+          "dose_range": {
+            "min": 500.0,
+            "max": 1000.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 1000.0,
+            "units": "mg",
+            "rule": "maximum single dose 1000 mg"
+          },
+          "max_cumulative": {
+            "value": 4000.0,
+            "units": "mg",
+            "rule": "maximum 4,000 mg in 24 hours, all acetaminophen-containing products"
+          },
+          "contraindications": [
+            "Hypersensitivity to acetaminophen or any component of the formulation (SMOG CY24 p.92)",
+            "Hepatic impairment or liver disease (SMOG CY24 p.92)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.92: use the IV form cautiously in volume-depleted patients.",
+            "SMOG CY24 p.92: avoid in alcohol toxicity, known alcohol abuse, or renal impairment.",
+            "Count every acetaminophen-containing product (e.g., Percocet) toward the daily limit (JTS ID61 p.13)."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Acetaminophen (Tylenol), p.13",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 13,
+              "pdf_page": 13,
+              "supports": "adult IV/PO 500–1000 mg every 6 hours; daily limit 4,000 mg",
+              "quote": "For mild to moderate pain: IV/PO: 500–1000mg every 6 hours … limit daily dose of acetaminophen and acetaminophen-containing products (e.g., Percocet) to 4,000mg"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Dose and Administration (ADULT column), p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "adult PO 325-500 mg every 4-6 hours or 1000 mg 3-4 times daily, maximum 4 g/day",
+              "quote": "Pain or fever: (Limit total daily dose to <4 g/day) PO: • Regular release: 325-500 mg every 4-6 hours or 1000 mg 3-4 times daily (maximum: 4 g/day)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Contraindications, p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to acetaminophen or any component of the formulation … Hepatic impairment or liver disease"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.93",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 93,
+              "pdf_page": 93,
+              "supports": "15 mg/kg PO or IV, maximum dose 1 g, adults and children alike",
+              "quote": "a. Acetaminophen 15 mg/kg PO or IV (maximum dose 1 g)"
+            }
+          ],
+          "flags": [],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). JTS ID61 p.13: IV/PO 500–1000 mg every 6 hours, daily limit 4,000 mg. SMOG CY24 p.92 agrees in range (325-500 mg every 4-6 hours, or 1000 mg 3-4 times daily, maximum 4 g/day). NASEMSO p.93 gives 15 mg/kg with a 1 g maximum single dose: the same ceiling. Interval every 6 hours (ID61).",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        },
+        {
+          "indication": "mild to moderate pain / analgesia",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 500.0,
+            "max": 1000.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 1000.0,
+            "units": "mg",
+            "rule": "maximum single dose 1000 mg"
+          },
+          "max_cumulative": {
+            "value": 4000.0,
+            "units": "mg",
+            "rule": "maximum 4,000 mg in 24 hours, all acetaminophen-containing products"
+          },
+          "contraindications": [
+            "Hypersensitivity to acetaminophen or any component of the formulation (SMOG CY24 p.92)",
+            "Hepatic impairment or liver disease (SMOG CY24 p.92)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.92: use the IV form cautiously in volume-depleted patients.",
+            "SMOG CY24 p.92: avoid in alcohol toxicity, known alcohol abuse, or renal impairment.",
+            "Count every acetaminophen-containing product (e.g., Percocet) toward the daily limit (JTS ID61 p.13)."
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Acetaminophen (Tylenol), p.13",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 13,
+              "pdf_page": 13,
+              "supports": "adult IV/PO 500–1000 mg every 6 hours; daily limit 4,000 mg",
+              "quote": "For mild to moderate pain: IV/PO: 500–1000mg every 6 hours … limit daily dose of acetaminophen and acetaminophen-containing products (e.g., Percocet) to 4,000mg"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Dose and Administration (ADULT column), p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "adult IV 500-1000 mg every 6 hours; daily limit under 4 g",
+              "quote": "Pain or fever: (Limit total daily dose to <4 g/day) … IV: • 500-1000 mg every 6 hours"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Contraindications, p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to acetaminophen or any component of the formulation … Hepatic impairment or liver disease"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.93",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 93,
+              "pdf_page": 93,
+              "supports": "15 mg/kg PO or IV, maximum dose 1 g, adults and children alike",
+              "quote": "a. Acetaminophen 15 mg/kg PO or IV (maximum dose 1 g)"
+            }
+          ],
+          "flags": [],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). JTS ID61 p.13 and SMOG CY24 p.92 agree: IV 500-1000 mg every 6 hours; daily limit 4,000 mg (ID61) / under 4 g (SMOG). NASEMSO p.93: maximum single dose 1 g.",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        },
+        {
+          "indication": "mild to moderate pain / analgesia",
+          "population": "peds",
+          "route": "PO",
+          "dose_range": {
+            "min": 10.0,
+            "max": 15.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 1.0,
+            "units": "g",
+            "rule": "maximum single dose 1 g (NASEMSO p.93)"
+          },
+          "max_cumulative": {
+            "value": 4.0,
+            "units": "g",
+            "rule": "do not exceed 5 doses (4 g/day) in 24 hours (SMOG p.92)"
+          },
+          "contraindications": [
+            "Hypersensitivity to acetaminophen or any component of the formulation (SMOG CY24 p.92)",
+            "Hepatic impairment or liver disease (SMOG CY24 p.92)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.92: use the IV form cautiously in volume-depleted patients.",
+            "SMOG CY24 p.92: avoid in alcohol toxicity, known alcohol abuse, or renal impairment.",
+            "Count every acetaminophen-containing product (e.g., Percocet) toward the daily limit (JTS ID61 p.13)."
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Dose and Administration (PEDIATRIC column), p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "paediatric PO 10-15 mg/kg every 4-6 hours, under 12 years; at most 5 doses (4 g/day) in 24 hours",
+              "quote": "PO: • Infants and Children <12 years: 10-15 mg/kg/dose every 4-6 hours as needed; do not exceed 5 doses (4 g/day) in 24 hours"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.93",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 93,
+              "pdf_page": 93,
+              "supports": "15 mg/kg PO or IV, maximum dose 1 g, adults and children alike",
+              "quote": "a. Acetaminophen 15 mg/kg PO or IV (maximum dose 1 g)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Contraindications, p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to acetaminophen or any component of the formulation … Hepatic impairment or liver disease"
+            }
+          ],
+          "flags": [],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). SMOG CY24 p.92 PEDIATRIC: infants and children under 12 years, 10-15 mg/kg every 4-6 hours, at most 5 doses (4 g/day) in 24 hours; 12 and over take the adult dose. NASEMSO p.93: 15 mg/kg, maximum dose 1 g. The 1 g single cap is NASEMSO's; SMOG states none for PO. No source gives a neonatal dose or a lower age limit for PO.",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        },
+        {
+          "indication": "mild to moderate pain / analgesia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 15.0,
+            "max": 15.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 750.0,
+            "units": "mg",
+            "rule": "maximum single dose 750 mg (SMOG p.92, 2-12 years)"
+          },
+          "max_cumulative": {
+            "value": 3.75,
+            "units": "g",
+            "rule": "maximum 75 mg/kg/day, not over 3.75 g daily (SMOG p.92, 2-12 years)"
+          },
+          "contraindications": [
+            "Hypersensitivity to acetaminophen or any component of the formulation (SMOG CY24 p.92)",
+            "Hepatic impairment or liver disease (SMOG CY24 p.92)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.92: use the IV form cautiously in volume-depleted patients.",
+            "SMOG CY24 p.92: avoid in alcohol toxicity, known alcohol abuse, or renal impairment.",
+            "Count every acetaminophen-containing product (e.g., Percocet) toward the daily limit (JTS ID61 p.13)."
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Dose and Administration (PEDIATRIC column), p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "paediatric IV 15 mg/kg every 6 hours; max single 750 mg, max daily 75 mg/kg (3.75 g), 2-12 years",
+              "quote": "Infants and children <2 years 15 mg/kg every 6 hours … Children 2-12 years: 15 mg/kg every 6 hours s [sic] … Max single dose: 15 mg/kg/dose (≤750 mg/dose) … Max daily dose: 75 mg/kg/day (≤3.75 g daily) … Note: Children ≥12 years & Adolescents: Refer to adult dosing"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.93",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 93,
+              "pdf_page": 93,
+              "supports": "15 mg/kg PO or IV, maximum dose 1 g, adults and children alike",
+              "quote": "a. Acetaminophen 15 mg/kg PO or IV (maximum dose 1 g)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Acetaminophen, Contraindications, p.92",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 92,
+              "pdf_page": 92,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to acetaminophen or any component of the formulation … Hepatic impairment or liver disease"
+            }
+          ],
+          "flags": [],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). SMOG CY24 p.92 PEDIATRIC IV: 15 mg/kg every 6 hours for children under 2 and 2-12 years; for 2-12 years, maximum single dose 750 mg and daily 75 mg/kg (3.75 g). The printed line for 2-12 years ends in a stray \"s\" (kept as [sic]). SMOG states the caps for 2-12 years only; whether they apply under 2 is not stated. NASEMSO p.93: 15 mg/kg, maximum 1 g, which is above SMOG's 750 mg; the lower cap is drafted. No neonatal dose.",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        }
+      ]
+    },
+    {
+      "generic_name": "ketorolac",
+      "aliases": [
+        "toradol"
+      ],
+      "drug_class": "NSAID (non-steroidal anti-inflammatory)",
+      "forms": [],
+      "routes": [
+        "IM",
+        "IV"
+      ],
+      "tropical_priority": false,
+      "discovery_rank": null,
+      "discovery_query_count": 0,
+      "proposed_aliases": [],
+      "dose_entries": [
+        {
+          "indication": "moderate to severe acute pain / analgesia",
+          "population": "adult",
+          "route": "IM",
+          "dose_range": {
+            "min": 15.0,
+            "max": 30.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 30.0,
+            "units": "mg",
+            "rule": "maximum single dose 30 mg"
+          },
+          "max_cumulative": {
+            "value": 120.0,
+            "units": "mg",
+            "rule": "maximum 120 mg daily; 60 mg daily if over 65 years or under 50 kg (SMOG p.129)"
+          },
+          "contraindications": [
+            "Battlefield trauma: SMOG CY24 p.129, \"Not for use as pain management for battlefield trauma patient!\"",
+            "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation (SMOG CY24 p.129)",
+            "High risk of bleeding, recent GI bleeding or perforation, known peptic ulcer disease (SMOG CY24 p.129; NASEMSO p.94)",
+            "Suspected cerebrovascular bleeding (SMOG CY24 p.129)",
+            "Risk of renal failure from volume depletion; renal insufficiency (SMOG CY24 p.129; NASEMSO p.94)",
+            "Hypotension (NASEMSO p.94: renal toxicity)",
+            "Concurrent use with other NSAIDs (SMOG CY24 p.129)",
+            "NSAID allergy or aspirin-sensitive asthma (NASEMSO p.94)",
+            "Pregnancy (NASEMSO p.94)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.129: inhibits platelet function; may increase the risk of GI bleeding and perforation.",
+            "SMOG CY24 p.129: may cause severe bronchospasm in patients with asthma."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "adult 30 mg IM or 15 mg IV; age 2-16 0.5 mg/kg, maximum 30 mg IM or 15 mg IV",
+              "quote": "ii. Ketorolac 1. Adult: 30 mg IM or 15 mg IV 2. Pediatric age 2–16 years old: 0.5 mg/kg (maximum dose of 30 mg IM or 15 mg IV)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Dose and Administration (ADULT column), p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "adult IM 15-30 mg / IV 15 mg every 6 hours; daily maximum 120 mg (60 mg over 65 years or under 50 kg)",
+              "quote": "Patients ≥50 kg IM: • 15-30 mg every 6 hours (maximum daily dose: 120 mg) IV: • 15 mg every 6 hours (maximum daily dose: 120 mg) Adults >65 years and/or adults <50 kg IM: • 15-30 mg every 6 hours (maximum daily dose: 60 mg) IV: • 15 mg every 6 hours (maximum daily dose: 60 mg)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Contraindications, p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "contraindications, including battlefield trauma",
+              "quote": "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation. … High risk of bleeding, recent history of GI bleeding or perforation, known history of peptic ulcer disease. … Not for use as pain management for battlefield trauma patient! … Suspected cerebrovascular bleeding … Risk of renal failure secondary to volume depletion … Concurrent use with other NSAIDs"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management — Patient Safety Considerations, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "contraindications",
+              "quote": "4. Avoid non-steroidal anti-inflammatory medications such as ibuprofen and ketorolac in patients with NSAID allergy, aspirin-sensitive asthma, renal insufficiency, pregnancy, or known peptic ulcer disease 5. Ketorolac should not be used in patients with hypotension (due to renal toxicity)"
+            }
+          ],
+          "flags": [],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). SMOG CY24 p.129: IM 15-30 mg every 6 hours, daily maximum 120 mg (60 mg over 65 years or under 50 kg). NASEMSO p.94: 30 mg IM, inside SMOG's range. OWNER QUESTION: SMOG lists \"battlefield trauma patient\" as a contraindication, and the contraindication list includes high bleeding risk and volume depletion. This bank serves trauma care; the owner rules whether a ketorolac entry should be signed at all, or only with an indication that excludes trauma.",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        },
+        {
+          "indication": "moderate to severe acute pain / analgesia",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 15.0,
+            "max": 15.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": {
+            "value": 15.0,
+            "units": "mg",
+            "rule": "maximum single dose 15 mg"
+          },
+          "max_cumulative": {
+            "value": 120.0,
+            "units": "mg",
+            "rule": "maximum 120 mg daily; 60 mg daily if over 65 years or under 50 kg (SMOG p.129)"
+          },
+          "contraindications": [
+            "Battlefield trauma: SMOG CY24 p.129, \"Not for use as pain management for battlefield trauma patient!\"",
+            "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation (SMOG CY24 p.129)",
+            "High risk of bleeding, recent GI bleeding or perforation, known peptic ulcer disease (SMOG CY24 p.129; NASEMSO p.94)",
+            "Suspected cerebrovascular bleeding (SMOG CY24 p.129)",
+            "Risk of renal failure from volume depletion; renal insufficiency (SMOG CY24 p.129; NASEMSO p.94)",
+            "Hypotension (NASEMSO p.94: renal toxicity)",
+            "Concurrent use with other NSAIDs (SMOG CY24 p.129)",
+            "NSAID allergy or aspirin-sensitive asthma (NASEMSO p.94)",
+            "Pregnancy (NASEMSO p.94)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.129: inhibits platelet function; may increase the risk of GI bleeding and perforation.",
+            "SMOG CY24 p.129: may cause severe bronchospasm in patients with asthma."
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "adult 30 mg IM or 15 mg IV; age 2-16 0.5 mg/kg, maximum 30 mg IM or 15 mg IV",
+              "quote": "ii. Ketorolac 1. Adult: 30 mg IM or 15 mg IV 2. Pediatric age 2–16 years old: 0.5 mg/kg (maximum dose of 30 mg IM or 15 mg IV)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Dose and Administration (ADULT column), p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "adult IM 15-30 mg / IV 15 mg every 6 hours; daily maximum 120 mg (60 mg over 65 years or under 50 kg)",
+              "quote": "Patients ≥50 kg IM: • 15-30 mg every 6 hours (maximum daily dose: 120 mg) IV: • 15 mg every 6 hours (maximum daily dose: 120 mg) Adults >65 years and/or adults <50 kg IM: • 15-30 mg every 6 hours (maximum daily dose: 60 mg) IV: • 15 mg every 6 hours (maximum daily dose: 60 mg)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Contraindications, p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "contraindications, including battlefield trauma",
+              "quote": "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation. … High risk of bleeding, recent history of GI bleeding or perforation, known history of peptic ulcer disease. … Not for use as pain management for battlefield trauma patient! … Suspected cerebrovascular bleeding … Risk of renal failure secondary to volume depletion … Concurrent use with other NSAIDs"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management — Patient Safety Considerations, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "contraindications",
+              "quote": "4. Avoid non-steroidal anti-inflammatory medications such as ibuprofen and ketorolac in patients with NSAID allergy, aspirin-sensitive asthma, renal insufficiency, pregnancy, or known peptic ulcer disease 5. Ketorolac should not be used in patients with hypotension (due to renal toxicity)"
+            }
+          ],
+          "flags": [],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). NASEMSO p.94 and SMOG CY24 p.129 agree: 15 mg IV; SMOG every 6 hours, daily maximum 120 mg (60 mg over 65 years or under 50 kg). OWNER QUESTION: SMOG lists \"battlefield trauma patient\" as a contraindication, and the contraindication list includes high bleeding risk and volume depletion. This bank serves trauma care; the owner rules whether a ketorolac entry should be signed at all, or only with an indication that excludes trauma.",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        },
+        {
+          "indication": "moderate to severe acute pain / analgesia",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 0.5,
+            "max": 0.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 30.0,
+            "units": "mg",
+            "rule": "maximum dose 30 mg IM (NASEMSO p.94)"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Battlefield trauma: SMOG CY24 p.129, \"Not for use as pain management for battlefield trauma patient!\"",
+            "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation (SMOG CY24 p.129)",
+            "High risk of bleeding, recent GI bleeding or perforation, known peptic ulcer disease (SMOG CY24 p.129; NASEMSO p.94)",
+            "Suspected cerebrovascular bleeding (SMOG CY24 p.129)",
+            "Risk of renal failure from volume depletion; renal insufficiency (SMOG CY24 p.129; NASEMSO p.94)",
+            "Hypotension (NASEMSO p.94: renal toxicity)",
+            "Concurrent use with other NSAIDs (SMOG CY24 p.129)",
+            "NSAID allergy or aspirin-sensitive asthma (NASEMSO p.94)",
+            "Pregnancy (NASEMSO p.94)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.129: inhibits platelet function; may increase the risk of GI bleeding and perforation.",
+            "SMOG CY24 p.129: may cause severe bronchospasm in patients with asthma.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "adult 30 mg IM or 15 mg IV; age 2-16 0.5 mg/kg, maximum 30 mg IM or 15 mg IV",
+              "quote": "ii. Ketorolac 1. Adult: 30 mg IM or 15 mg IV 2. Pediatric age 2–16 years old: 0.5 mg/kg (maximum dose of 30 mg IM or 15 mg IV)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Dose and Administration (PEDIATRIC column), p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "paediatric 2-16 years: 1 mg/kg IM (moderate), 0.5 mg/kg IV (severe)",
+              "quote": "Children 2-16 y/o: • Moderate discomfort: 1 mg/kg IM • Severe discomfort: 0.5 mg/kg IV"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Contraindications, p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "contraindications, including battlefield trauma",
+              "quote": "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation. … High risk of bleeding, recent history of GI bleeding or perforation, known history of peptic ulcer disease. … Not for use as pain management for battlefield trauma patient! … Suspected cerebrovascular bleeding … Risk of renal failure secondary to volume depletion … Concurrent use with other NSAIDs"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management — Patient Safety Considerations, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "contraindications",
+              "quote": "4. Avoid non-steroidal anti-inflammatory medications such as ibuprofen and ketorolac in patients with NSAID allergy, aspirin-sensitive asthma, renal insufficiency, pregnancy, or known peptic ulcer disease 5. Ketorolac should not be used in patients with hypotension (due to renal toxicity)"
+            }
+          ],
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). NASEMSO p.94: age 2-16, 0.5 mg/kg, maximum 30 mg IM. CONFLICT: SMOG CY24 p.129 gives 1 mg/kg IM for moderate discomfort in children 2-16, twice NASEMSO's dose, with no cap stated. The lower dose is drafted; the owner rules. No cumulative maximum stated for children. OWNER QUESTION: SMOG lists \"battlefield trauma patient\" as a contraindication, and the contraindication list includes high bleeding risk and volume depletion. This bank serves trauma care; the owner rules whether a ketorolac entry should be signed at all, or only with an indication that excludes trauma.",
+          "min_age_months": 24,
+          "conflict_group": "ketorolac-im-analgesia-peds",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        },
+        {
+          "indication": "moderate to severe acute pain / analgesia — SMOG weight-based",
+          "population": "peds",
+          "route": "IM",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Battlefield trauma: SMOG CY24 p.129, \"Not for use as pain management for battlefield trauma patient!\"",
+            "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation (SMOG CY24 p.129)",
+            "High risk of bleeding, recent GI bleeding or perforation, known peptic ulcer disease (SMOG CY24 p.129; NASEMSO p.94)",
+            "Suspected cerebrovascular bleeding (SMOG CY24 p.129)",
+            "Risk of renal failure from volume depletion; renal insufficiency (SMOG CY24 p.129; NASEMSO p.94)",
+            "Hypotension (NASEMSO p.94: renal toxicity)",
+            "Concurrent use with other NSAIDs (SMOG CY24 p.129)",
+            "NSAID allergy or aspirin-sensitive asthma (NASEMSO p.94)",
+            "Pregnancy (NASEMSO p.94)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.129: inhibits platelet function; may increase the risk of GI bleeding and perforation.",
+            "SMOG CY24 p.129: may cause severe bronchospasm in patients with asthma.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Dose and Administration (PEDIATRIC column), p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "paediatric 2-16 years: 1 mg/kg IM (moderate), 0.5 mg/kg IV (severe)",
+              "quote": "Children 2-16 y/o: • Moderate discomfort: 1 mg/kg IM • Severe discomfort: 0.5 mg/kg IV"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Contraindications, p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "contraindications, including battlefield trauma",
+              "quote": "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation. … High risk of bleeding, recent history of GI bleeding or perforation, known history of peptic ulcer disease. … Not for use as pain management for battlefield trauma patient! … Suspected cerebrovascular bleeding … Risk of renal failure secondary to volume depletion … Concurrent use with other NSAIDs"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "adult 30 mg IM or 15 mg IV; age 2-16 0.5 mg/kg, maximum 30 mg IM or 15 mg IV",
+              "quote": "ii. Ketorolac 1. Adult: 30 mg IM or 15 mg IV 2. Pediatric age 2–16 years old: 0.5 mg/kg (maximum dose of 30 mg IM or 15 mg IV)"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management — Patient Safety Considerations, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "contraindications",
+              "quote": "4. Avoid non-steroidal anti-inflammatory medications such as ibuprofen and ketorolac in patients with NSAID allergy, aspirin-sensitive asthma, renal insufficiency, pregnancy, or known peptic ulcer disease 5. Ketorolac should not be used in patients with hypotension (due to renal toxicity)"
+            }
+          ],
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1): the other side of the paediatric IM conflict, kept so neither is dropped silently. SMOG CY24 p.129: children 2-16, moderate discomfort 1 mg/kg IM; no cap stated. CONFLICT: NASEMSO p.94 gives 0.5 mg/kg, maximum 30 mg IM. OWNER QUESTION: SMOG lists \"battlefield trauma patient\" as a contraindication, and the contraindication list includes high bleeding risk and volume depletion. This bank serves trauma care; the owner rules whether a ketorolac entry should be signed at all, or only with an indication that excludes trauma.",
+          "min_age_months": 24,
+          "conflict_group": "ketorolac-im-analgesia-peds",
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        },
+        {
+          "indication": "moderate to severe acute pain / analgesia",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.5,
+            "max": 0.5,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": {
+            "value": 15.0,
+            "units": "mg",
+            "rule": "maximum dose 15 mg IV (NASEMSO p.94)"
+          },
+          "max_cumulative": null,
+          "contraindications": [
+            "Battlefield trauma: SMOG CY24 p.129, \"Not for use as pain management for battlefield trauma patient!\"",
+            "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation (SMOG CY24 p.129)",
+            "High risk of bleeding, recent GI bleeding or perforation, known peptic ulcer disease (SMOG CY24 p.129; NASEMSO p.94)",
+            "Suspected cerebrovascular bleeding (SMOG CY24 p.129)",
+            "Risk of renal failure from volume depletion; renal insufficiency (SMOG CY24 p.129; NASEMSO p.94)",
+            "Hypotension (NASEMSO p.94: renal toxicity)",
+            "Concurrent use with other NSAIDs (SMOG CY24 p.129)",
+            "NSAID allergy or aspirin-sensitive asthma (NASEMSO p.94)",
+            "Pregnancy (NASEMSO p.94)"
+          ],
+          "cautions": [
+            "SMOG CY24 p.129: inhibits platelet function; may increase the risk of GI bleeding and perforation.",
+            "SMOG CY24 p.129: may cause severe bronchospasm in patients with asthma.",
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "adult 30 mg IM or 15 mg IV; age 2-16 0.5 mg/kg, maximum 30 mg IM or 15 mg IV",
+              "quote": "ii. Ketorolac 1. Adult: 30 mg IM or 15 mg IV 2. Pediatric age 2–16 years old: 0.5 mg/kg (maximum dose of 30 mg IM or 15 mg IV)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Dose and Administration (PEDIATRIC column), p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "paediatric 2-16 years: 1 mg/kg IM (moderate), 0.5 mg/kg IV (severe)",
+              "quote": "Children 2-16 y/o: • Moderate discomfort: 1 mg/kg IM • Severe discomfort: 0.5 mg/kg IV"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketorolac, Contraindications, p.129",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 129,
+              "pdf_page": 129,
+              "supports": "contraindications, including battlefield trauma",
+              "quote": "Hypersensitivity to ketorolac, aspirin, other NSAIDs, or any component of the formulation. … High risk of bleeding, recent history of GI bleeding or perforation, known history of peptic ulcer disease. … Not for use as pain management for battlefield trauma patient! … Suspected cerebrovascular bleeding … Risk of renal failure secondary to volume depletion … Concurrent use with other NSAIDs"
+            },
+            {
+              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Pain Management — Patient Safety Considerations, p.94",
+              "tier": 1,
+              "source_class": "NASEMSO",
+              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 94,
+              "pdf_page": 94,
+              "supports": "contraindications",
+              "quote": "4. Avoid non-steroidal anti-inflammatory medications such as ibuprofen and ketorolac in patients with NSAID allergy, aspirin-sensitive asthma, renal insufficiency, pregnancy, or known peptic ulcer disease 5. Ketorolac should not be used in patients with hypotension (due to renal toxicity)"
+            }
+          ],
+          "flags": [],
+          "extraction_notes": "Drafted 2026-10-14 (signing batch 1). NASEMSO p.94 and SMOG CY24 p.129 agree: 0.5 mg/kg IV, ages 2-16; NASEMSO caps it at 15 mg. No cumulative maximum stated for children. OWNER QUESTION: SMOG lists \"battlefield trauma patient\" as a contraindication, and the contraindication list includes high bleeding risk and volume depletion. This bank serves trauma care; the owner rules whether a ketorolac entry should be signed at all, or only with an indication that excludes trauma.",
+          "min_age_months": 24,
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.1.0-draft"
+        }
+      ]
     }
   ],
   "retired_entries": [

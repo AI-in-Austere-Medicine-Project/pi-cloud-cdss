@@ -588,6 +588,12 @@ def test_nothing_was_signed_by_the_jts_extraction():
 # as served and kept as documented alternates.
 STILL_AWAITING_A_RULING = set()
 
+# 2026-10-14, signing batch 1 (analgesia): two new groups for the owner to rule,
+# both sides of each kept as unsigned drafts. ketamine-im-analgesia: NASEMSO
+# 0.25 mg/kg IM against JTS ID61 0.5-0.75 mg/kg and SMOG 0.5 mg/kg (peds).
+# ketorolac-im-analgesia-peds: NASEMSO 0.5 mg/kg against SMOG 1 mg/kg.
+STILL_AWAITING_A_RULING |= {"ketamine-im-analgesia", "ketorolac-im-analgesia-peds"}
+
 
 def test_no_source_conflict_is_still_open():
     """All seven are ruled. A new SOURCE_CONFLICT must be adjudicated, not

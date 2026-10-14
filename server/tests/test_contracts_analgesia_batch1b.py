@@ -37,6 +37,7 @@ KETAMINE_PAIN = "moderate to severe pain / analgesia"
 KETAMINE_PFC = "breakthrough pain — IM/IN (prolonged field care)"
 APAP_PAIN = "mild to moderate pain / analgesia"
 KETOROLAC_PAIN = "moderate to severe acute pain / analgesia"
+KETOROLAC_SMOG = "moderate to severe acute pain / analgesia — SMOG weight-based"
 
 # (drug, indication, population, route): every entry this batch drafts.
 DRAFTS = [
@@ -54,16 +55,18 @@ DRAFTS = [
     ("ketorolac", KETOROLAC_PAIN, "adult", "IV"),
     ("ketorolac", KETOROLAC_PAIN, "peds", "IM"),
     ("ketorolac", KETOROLAC_PAIN, "peds", "IV"),
+    ("ketorolac", KETOROLAC_SMOG, "peds", "IM"),
 ]
 
-# Where the sources disagree on the dose: flagged, and the conflict written out.
-CONFLICTS = [
-    ("ketamine", KETAMINE_PAIN, "adult|peds", "IM"),
-    ("ketamine", KETAMINE_PFC, "adult", "IM"),
-    ("ketamine", KETAMINE_PFC, "adult", "IN"),
-    ("ketamine", KETAMINE_PAIN, "peds", "IM"),
-    ("ketorolac", KETOROLAC_PAIN, "peds", "IM"),
-]
+# Where the sources disagree on the dose: both sides kept as entries, flagged,
+# grouped, and the conflict written out. The owner rules each group.
+CONFLICTS = {
+    ("ketamine", KETAMINE_PAIN, "adult|peds", "IM"): "ketamine-im-analgesia",
+    ("ketamine", KETAMINE_PFC, "adult", "IM"): "ketamine-im-analgesia",
+    ("ketamine", KETAMINE_PAIN, "peds", "IM"): "ketamine-im-analgesia",
+    ("ketorolac", KETOROLAC_PAIN, "peds", "IM"): "ketorolac-im-analgesia-peds",
+    ("ketorolac", KETOROLAC_SMOG, "peds", "IM"): "ketorolac-im-analgesia-peds",
+}
 
 # No source states a dose: the entry exists, marked incomplete.
 INCOMPLETE = [
@@ -133,10 +136,11 @@ def test_what_no_source_states_stays_marked_incomplete(key):
     assert "DOSE_NOT_IN_SOURCE" in e["flags"]
 
 
-@pytest.mark.parametrize("key", CONFLICTS, ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
-def test_a_source_conflict_is_flagged_and_written_out(key):
+@pytest.mark.parametrize("key", list(CONFLICTS), ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
+def test_a_source_conflict_is_flagged_grouped_and_written_out(key):
     e, _ = _entry(*key)
     assert "SOURCE_CONFLICT" in e["flags"]
+    assert e["conflict_group"] == CONFLICTS[key]
     assert "CONFLICT" in e["extraction_notes"]
 
 
@@ -157,7 +161,7 @@ def test_the_new_drugs_carry_the_lexicon_aliases():
     lexicon = json.loads((SERVER / "drug_lexicon.json").read_text())
     for name in ("acetaminophen", "ketorolac"):
         d = _drug(name)
-        lex = lexicon[name]
+        lex = lexicon["drugs"][name]
         aliases = lex["aliases"] if isinstance(lex, dict) else lex
         assert set(aliases) <= set(d["aliases"]), name
 
