@@ -16,6 +16,8 @@ How each was checked: the entry was signed in memory (signoff true, reviewed_by 
 
 **Update 2026-10-08 (contract batch 1, analgesia):** fentanyl, analgesia infusion, IV, adult, is now drafted with cited values (25-250 mcg/hr, JTS ID29 p.24 and ID12 p.24, verbatim quotes). It stays unsigned and still refuses as signed: its starting rate is in no source and is left incomplete.
 
+**Update 2026-10-14 (signing batch 1, analgesia):** 15 new unsigned entries outside this inventory's count: ketamine IM/IN (5, one incomplete), morphine paediatric IM, acetaminophen (4) and ketorolac (5), each cited verbatim. Two conflict groups await a ruling. See [`authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md`](authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md).
+
 A signature would not make these servable: `entry_is_servable` still refuses them. 38 have no dose (`dose_range` empty), 14 of those have no source either, and propofol induction has a sentinel in its contraindications. They need authoring — values with page citations — before they can be reviewed.
 
 | Drug | Indication | Route | Population | Dose | Sources | Refused because |

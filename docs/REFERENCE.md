@@ -101,8 +101,8 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | B2 | Brief-mode section headers are normalised to DO THIS, GIVE, WATCH, DON'T, EVAC, TLDR, SOURCE. | Done, #129. Served generator answers only; BRIEF, GATE QUESTION, DRIP, VENT, POST-INTUBATION SEDATION kept; the portal's retrieval chips sit inside SOURCE |
 | B3 | The vitals caution stops appending "anything by mouth carries an aspiration risk" to an answer that already refuses oral intake. Format only. | Done, #130. Permission beside a refusal still gets the caution |
 | C1 | The feedback instrument: session id, the full context in `/feedback`, a working comment field. | Done, #131. Log schema 15 (query_id, session_id). Issue tags: server/issue_tags.json, applied in their own PR |
-| C2 | The portal picker lists the on-device Ollama models (`qwen2.5:3b`, `edgecdss-v3`), labelled "(on device)", when Ollama has them. A pick goes to the device and is validated there (D7's rule: `qwen2.5:3b` on the live service), with no cloud call; the answer names its model. Un-deferred the local-model portal toggle; v3 listed on the owner's ruling. Default unchanged. | In review |
-| C3 | Under `CDSS_LLM_PROVIDER=local` the portal is local-only: the picker is exactly the on-device models Ollama has (`qwen2.5:3b`, `edgecdss-v3`), default `CDSS_LLM_MODEL`, validator `CDSS_VALIDATOR_MODEL`; cloud providers are reported off with no network call; voice is off; the startup line names the mode. No outbound HTTP on the portal path. Found: an `edgecdss-v3` pick takes 113–174 s on the 8 GB Jetson (two models resident, v3 partly on CPU). | In review (on C2) |
+| C2 | The portal picker lists the on-device Ollama models (`qwen2.5:3b`, `edgecdss-v3`), labelled "(on device)", when Ollama has them. A pick goes to the device and is validated there (D7's rule: `qwen2.5:3b` on the live service), with no cloud call; the answer names its model. Un-deferred the local-model portal toggle; v3 listed on the owner's ruling. Default unchanged. | Done, #162 |
+| C3 | Under `CDSS_LLM_PROVIDER=local` the portal is local-only: the picker is exactly the on-device models Ollama has (`qwen2.5:3b`, `edgecdss-v3`), default `CDSS_LLM_MODEL`, validator `CDSS_VALIDATOR_MODEL`; cloud providers are reported off with no network call; voice is off; the startup line names the mode. No outbound HTTP on the portal path. Found: an `edgecdss-v3` pick takes 113–174 s on the 8 GB Jetson (two models resident, v3 partly on CPU). | Done, #162 |
 
 ## 6. Training vocabulary
 
@@ -143,7 +143,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | Deterministic identity | Answers that never reach a model must be byte-identical across arms and runs. | Run 3: 32 queries, byte-identical across all 11 as-deployed passes |
 | Replay | Re-run stored answers through the changed checks, and compare against main. | 537 served answers at the time of the order |
 | Newly held / newly released | Replay deltas. Every new hold is read and classified. A new release must be 0, and so must a cloud regression. | Required: 0 newly released |
-| Signed entries | Contract doses the owner has signed; the only doses that serve. | 64 of 104 (d6check bench, `5053399`) |
+| Signed entries | Contract doses the owner has signed; the only doses that serve. | 69 of 124 entries, 16 of 36 drugs (2026-10-14, with signing batch 1's 15 unsigned drafts) |
 | Caution | A line a signed entry carries with its dose. Serve-tier (or untiered) cautions are shown with the dose and are in the generator's block; detail-tier ones are kept for the record. **A caution never states another drug's dose (owner, 2026-10-11)**; 8 caution texts broke it: 6 edits signed and applied (2026-10-11); the 2 paediatric RSI atropine pre-dose cautions were signed with the atropine paediatric RSI pre-dose entry (ID39 p.28; owner, 2026-10-11). All 8 applied; the bank now meets the rule. | `cautions[]` in `drug_contracts.json`; `docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md`; `test_caution_no_other_dose.py` |
 | Fallback | A turn written by local qwen because the cloud call didn't connect in time. Attributed per row by `model_used`. | Run 3 at 8 s: 20 of 25 Opus turns and 24 of 25 gemini-3.1-pro turns were qwen. 60 s for a selected model since #88 |
 
@@ -188,7 +188,7 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 |---|---|
 | `qwen2.5:3b` as the offline validator does not catch procedural errors (a low-and-loose tourniquet, "do not re-warm" in hypothermic arrest called SAFE). Owner to place. | D7 v3 re-bench |
 | An active arterial bleed without shock physiology gets no card; the DCR card needs shock physiology. | D7 v3 re-bench (H-IM-05) |
-| Open contract drafts: 39 incomplete drafts, P1, P2, and the fentanyl analgesia infusion entry. Signing is the owner's. | #146, #148 |
+| Open contract drafts: 39 incomplete drafts, P1, P2, the fentanyl analgesia infusion entry, and signing batch 1 (analgesia: 15 drafts, conflict groups `ketamine-im-analgesia` and `ketorolac-im-analgesia-peds`). Signing is the owner's. | #146, #148, signing batch 1 |
 | A correct signed dose is held when the question names the indication, not the drug (epinephrine 1 mg in asystole). Fixing it releases holds and needs an owner ruling. | #97 |
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
