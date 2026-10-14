@@ -123,7 +123,10 @@ def test_the_im_ketamine_entry_is_the_ruled_range_with_the_tccc_maximum_checked(
     assert e["sources"][0]["source_class"] == "SMOG" and "0.5 - 1.0 mg/kg" in e["sources"][0]["quote"]
     # Owner: add the TCCC maximum if stated. Neither TCCC-derived source states one.
     assert any("CPG ID91" in s["citation"] and "0.5-1 mg/kg" in s["quote"] for s in e["sources"])
-    assert e["max_single"] is None and "TCCC MAXIMUM CHECKED" in e["extraction_notes"]
+    assert "TCCC MAXIMUM CHECKED" in e["extraction_notes"]
+    # Owner, 2026-10-14: cap the single dose at 100 mg per ID91's stated 50-100 mg; repeat q20-30 min.
+    assert e["max_single"]["value"] == 100.0 and e["max_single"]["units"] == "mg"
+    assert any("every 20-30 minutes" in c for c in e["cautions"] if isinstance(c, str))
 
 
 def test_nasemso_im_stays_unsigned_as_a_documented_alternate():

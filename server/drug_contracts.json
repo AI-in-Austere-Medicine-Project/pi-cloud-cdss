@@ -1401,18 +1401,18 @@
             "units": "mg/kg",
             "per_kg": true
           },
-          "max_single": null,
+          "max_single": {
+            "value": 100.0,
+            "units": "mg",
+            "rule": "maximum single dose 100 mg (ID91 p.33: 50-100 mg IM or IN)"
+          },
           "max_cumulative": null,
           "contraindications": [
             "Hypersensitivity"
           ],
           "cautions": [
-            "JTS ID61: repeat every 15 minutes until the goal is achieved or nystagmus occurs.",
+            "JTS ID91: repeat every 20-30 minutes as needed; each dose no more than 100 mg.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
-            {
-              "tier": "detail",
-              "text": "The cited guideline states no maximum single dose for this drug and indication."
-            },
             {
               "tier": "detail",
               "text": "The cited guideline states no cumulative maximum for this drug and indication."
@@ -1482,10 +1482,10 @@
           "signoff": true,
           "reviewed_by": "AI-AIM",
           "review_date": "2026-10-14",
-          "version": "0.2.0",
-          "extraction_notes": "Redrafted 2026-10-14 on the owner's ruling: 0.5–1.0 mg/kg IM. The range is SMOG CY24 p.127 (adult \"IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn\"); JTS ID61 p.11 (0.5–0.75 mg/kg, 40–60 mg), ID61 p.8 (80 mg IM, 0.4–0.8 mg/kg) and ID29 p.7 (TCCC 50 mg IM) lie inside or at it. Intervals differ: ID61 every 15 minutes (the caution served), SMOG 10-30, TCCC 30. The indication name is still ID61's; the dose is now SMOG-led. Awaiting the owner's read before signing. Ruled CONFLICT (group ketamine-im-analgesia, closed 2026-10-14): NASEMSO p.94 gives 0.25 mg/kg IM, capped at 25 mg initial; left unsigned. TCCC MAXIMUM CHECKED 2026-10-14 (owner: add it if stated): not stated. The TCCC guideline itself is not in the corpus; its excerpt in ID29 p.7 gives 50 mg IM or IN repeated every 30 minutes with no maximum, and the TCCC-based Prolonged Casualty Care CPG ID91 p.33 gives 50-100 mg (or 0.5-1 mg/kg) IM or IN every 20-30 min, \"May repeat\", with no maximum. ID91's 50-100 mg is a fixed-dose range beside the per-kg one, not a stated cap, so max_single stays null.",
+          "version": "0.3.0",
+          "extraction_notes": "Redrafted 2026-10-14 on the owner's ruling: 0.5–1.0 mg/kg IM. The range is SMOG CY24 p.127 (adult \"IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn\"); JTS ID61 p.11 (0.5–0.75 mg/kg, 40–60 mg), ID61 p.8 (80 mg IM, 0.4–0.8 mg/kg) and ID29 p.7 (TCCC 50 mg IM) lie inside or at it. Intervals differ: ID91 every 20-30 minutes (the caution served, owner 2026-10-14), ID61 every 15 minutes, SMOG 10-30, TCCC 30. The indication name is still ID61's; the dose is now SMOG-led. Awaiting the owner's read before signing. Ruled CONFLICT (group ketamine-im-analgesia, closed 2026-10-14): NASEMSO p.94 gives 0.25 mg/kg IM, capped at 25 mg initial; left unsigned. TCCC MAXIMUM CHECKED 2026-10-14 (owner: add it if stated): not stated. The TCCC guideline itself is not in the corpus; its excerpt in ID29 p.7 gives 50 mg IM or IN repeated every 30 minutes with no maximum, and the TCCC-based Prolonged Casualty Care CPG ID91 p.33 gives 50-100 mg (or 0.5-1 mg/kg) IM or IN every 20-30 min, \"May repeat\", with no maximum. ID91's 50-100 mg is a fixed-dose range beside the per-kg one, not a stated cap. OWNER RULING 2026-10-14 (Andrew Azelton): cap the single dose at 100 mg per ID91's stated 50-100 mg range, repeat every 20-30 minutes retained.",
           "flags": [],
-          "adjudication": "OWNER RULING 2026-10-14 (Andrew Azelton): sign the IM ketamine entry at 0.5–1.0 mg/kg (ID61/SMOG/TCCC); NASEMSO's 0.25 mg/kg IM left unsigned. Read by the owner and signed 2026-10-14; TCCC maximum checked first: none stated (ID29 p.7, ID91 p.33).",
+          "adjudication": "OWNER RULING 2026-10-14 (Andrew Azelton): sign the IM ketamine entry at 0.5–1.0 mg/kg (ID61/SMOG/TCCC); NASEMSO's 0.25 mg/kg IM left unsigned. Read by the owner and signed 2026-10-14; TCCC maximum checked first: none stated (ID29 p.7, ID91 p.33). Re-signed 2026-10-14 with max_single 100 mg (ID91 p.33's 50-100 mg range), repeat every 20-30 minutes.",
           "adjudicated_on": "2026-10-14"
         },
         {

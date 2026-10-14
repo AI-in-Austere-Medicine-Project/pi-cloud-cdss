@@ -9,7 +9,7 @@ Every quote was checked against its cited page: `server/tests/test_contracts_ana
 | Entry | Ruling |
 |---|---|
 | 1. ketamine IM adult\|peds 0.25 mg/kg (NASEMSO) | **Unsigned**: a documented alternate |
-| 2. ketamine IM adult | **Redrafted to 0.5–1.0 mg/kg** (SMOG p.127 leads; ID61, TCCC, ID91 p.33 corroborate); read by the owner and **signed**; TCCC maximum checked: none stated |
+| 2. ketamine IM adult | **Redrafted to 0.5–1.0 mg/kg** (SMOG p.127 leads; ID61, TCCC, ID91 p.33 corroborate); read by the owner and **signed**; TCCC maximum checked: none stated; then **capped at 100 mg single dose** (ID91's 50–100 mg), repeat every 20–30 minutes, and re-signed |
 | 3. ketamine IN adult 0.5–0.75 mg/kg | **Signed** |
 | 4. ketamine IM paediatric 0.5 mg/kg | **Signed** (age floor added to contraindications, then re-signed) |
 | 5. ketamine IN paediatric | Incomplete: no source |
