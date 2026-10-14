@@ -676,20 +676,32 @@ def test_ruling_4_rocuronium_is_split_by_age():
             assert any("CORROBORATING" in c for c in dc.caution_texts(e))
 
 
+# The sub-dissociative ceiling by route. IV/IO: NASEMSO's 0.25 mg/kg, ruling 5
+# as written. IM/IN (signing batch 1, 2026-10-14; OWNER TO CONFIRM): every
+# source gives a higher IM/IN analgesic dose (ID61 p.11 0.5-0.75, SMOG p.127
+# "LOW DOSE: Analgesia" IM/IN 0.5 - 1.0 mg/kg), so the IM/IN ceiling is SMOG's
+# 1.0 mg/kg: still half the retired 2 mg/kg and a quarter of the 4 mg/kg IM
+# dissociative dose.
+SUB_DISSOCIATIVE_MAX = {"IV": 0.25, "IO": 0.25, "IM": 1.0, "IN": 1.0}
+
+
 def test_ruling_5_the_mislabelled_im_dose_is_gone():
     """2 mg/kg IM was the IV sedation number on the IM route, called analgesia."""
     for e in dc.DRUGS["ketamine"]["dose_entries"]:
-        if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict):
-            assert e["dose_range"]["min"] <= 0.25, \
-                f"{e['indication']} is not sub-dissociative"
+        ind = e["indication"]
+        if ("analgesia" in ind or "pain" in ind) and isinstance(e["dose_range"], dict):
+            assert e["dose_range"]["max"] <= SUB_DISSOCIATIVE_MAX[e["route"]], \
+                f"{ind} ({e['route']}) is not sub-dissociative"
 
 
 def test_ruling_5_the_two_analgesia_sources_are_no_longer_a_conflict():
     # The adult-applicable pair. The paediatric SMOG entry (ruling 2026-09-18)
     # is a population split, not a third source in this conflict.
+    # The ruled pair is IV. IM/IN drafts (signing batch 1) are their own
+    # conflict group, ketamine-im-analgesia.
     analg = [e for e in dc.DRUGS["ketamine"]["dose_entries"]
              if "analgesia" in e["indication"] and isinstance(e["dose_range"], dict)
-             and e["population"] != "peds"]
+             and e["population"] != "peds" and e["route"] == "IV"]
     assert len(analg) == 2
     for e in analg:
         assert "SOURCE_CONFLICT" not in (e.get("flags") or [])
