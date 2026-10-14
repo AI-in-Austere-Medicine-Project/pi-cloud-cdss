@@ -143,7 +143,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | Deterministic identity | Answers that never reach a model must be byte-identical across arms and runs. | Run 3: 32 queries, byte-identical across all 11 as-deployed passes |
 | Replay | Re-run stored answers through the changed checks, and compare against main. | 537 served answers at the time of the order |
 | Newly held / newly released | Replay deltas. Every new hold is read and classified. A new release must be 0, and so must a cloud regression. | Required: 0 newly released |
-| Signed entries | Contract doses the owner has signed; the only doses that serve. | 76 of 124 entries, 17 of 36 drugs (2026-10-14, after signing batch 1's rulings) |
+| Signed entries | Contract doses the owner has signed; the only doses that serve. | 77 of 124 entries, 17 of 36 drugs (2026-10-14, after signing batch 1's rulings) |
 | Caution | A line a signed entry carries with its dose. Serve-tier (or untiered) cautions are shown with the dose and are in the generator's block; detail-tier ones are kept for the record. **A caution never states another drug's dose (owner, 2026-10-11)**; 8 caution texts broke it: 6 edits signed and applied (2026-10-11); the 2 paediatric RSI atropine pre-dose cautions were signed with the atropine paediatric RSI pre-dose entry (ID39 p.28; owner, 2026-10-11). All 8 applied; the bank now meets the rule. | `cautions[]` in `drug_contracts.json`; `docs/authoring/CAUTION_DOSE_EDITS_2026-10-11.md`; `test_caution_no_other_dose.py` |
 | Fallback | A turn written by local qwen because the cloud call didn't connect in time. Attributed per row by `model_used`. | Run 3 at 8 s: 20 of 25 Opus turns and 24 of 25 gemini-3.1-pro turns were qwen. 60 s for a selected model since #88 |
 
@@ -188,8 +188,9 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 |---|---|
 | `qwen2.5:3b` as the offline validator does not catch procedural errors (a low-and-loose tourniquet, "do not re-warm" in hypothermic arrest called SAFE). Owner to place. | D7 v3 re-bench |
 | An active arterial bleed without shock physiology gets no card; the DCR card needs shock physiology. | D7 v3 re-bench (H-IM-05) |
-| Open contract drafts: 39 incomplete drafts, P1, P2, the fentanyl analgesia infusion entry, and signing batch 1's unsigned remainder (adult IM ketamine redrafted to 0.5–1.0 mg/kg, awaiting the owner's read; NASEMSO IM ketamine; paediatric IN ketamine, incomplete; ketorolac, excluded on SMOG p.129). Signing is the owner's. | #146, #148, signing batch 1 |
+| Open contract drafts: 39 incomplete drafts, P1, P2, the fentanyl analgesia infusion entry, and signing batch 1's unsigned remainder (NASEMSO IM ketamine; paediatric IN ketamine, incomplete; ketorolac, excluded on SMOG p.129). Signing is the owner's. | #146, #148, signing batch 1 |
 | A correct signed dose is held when the question names the indication, not the drug (epinephrine 1 mg in asystole). Fixing it releases holds and needs an owner ruling. | #97 |
+| A named drug is offered its therapeutic dose in an overdose question ("acetaminophen overdose, NAC dose" → acetaminophen 500 mg). Indication matching, A1b family. | Signing batch 1 |
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
 | An eclamptic seizure is served lorazepam with no magnesium; the bank has no signed magnesium entry. SMOG p.37 puts magnesium first line in pregnancy. | #103 |

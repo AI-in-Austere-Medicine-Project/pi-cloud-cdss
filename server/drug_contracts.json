@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "76 of 124 dose entries across 17 of 36 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "77 of 124 dose entries across 17 of 36 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -1466,15 +1466,26 @@
               "pdf_page": 7,
               "supports": "corroborates: TCCC 50 mg IM (inside the range at 50–100 kg)",
               "quote": "Option 3, for moderate to severe pain when the casualty is in hemorrhagic shock or respiratory distress or the casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine 20 mg slow IV or IO. Ketamine doses can be repeated every 30 minutes for IM or IN and every 20 minutes for IV or IO administration."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — PCC Role-based Guideline for Pain Management (Analgesia and Sedation), p.33",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-10-14",
+              "page": 33,
+              "pdf_page": 33,
+              "supports": "corroborates the range: 50-100 mg (0.5-1 mg/kg) IM or IN every 20-30 min; states no maximum",
+              "quote": "Ketamine 50-100 mg (or 0.5-1 mg/kg) IM or IN every 20-30 min"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "Redrafted 2026-10-14 on the owner's ruling: 0.5–1.0 mg/kg IM. The range is SMOG CY24 p.127 (adult \"IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn\"); JTS ID61 p.11 (0.5–0.75 mg/kg, 40–60 mg), ID61 p.8 (80 mg IM, 0.4–0.8 mg/kg) and ID29 p.7 (TCCC 50 mg IM) lie inside or at it. Intervals differ: ID61 every 15 minutes (the caution served), SMOG 10-30, TCCC 30. The indication name is still ID61's; the dose is now SMOG-led. Awaiting the owner's read before signing. Ruled CONFLICT (group ketamine-im-analgesia, closed 2026-10-14): NASEMSO p.94 gives 0.25 mg/kg IM, capped at 25 mg initial; left unsigned.",
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-10-14",
+          "version": "0.2.0",
+          "extraction_notes": "Redrafted 2026-10-14 on the owner's ruling: 0.5–1.0 mg/kg IM. The range is SMOG CY24 p.127 (adult \"IM/IN • 0.5 - 1.0 mg/kg, repeat q 10-30 prn\"); JTS ID61 p.11 (0.5–0.75 mg/kg, 40–60 mg), ID61 p.8 (80 mg IM, 0.4–0.8 mg/kg) and ID29 p.7 (TCCC 50 mg IM) lie inside or at it. Intervals differ: ID61 every 15 minutes (the caution served), SMOG 10-30, TCCC 30. The indication name is still ID61's; the dose is now SMOG-led. Awaiting the owner's read before signing. Ruled CONFLICT (group ketamine-im-analgesia, closed 2026-10-14): NASEMSO p.94 gives 0.25 mg/kg IM, capped at 25 mg initial; left unsigned. TCCC MAXIMUM CHECKED 2026-10-14 (owner: add it if stated): not stated. The TCCC guideline itself is not in the corpus; its excerpt in ID29 p.7 gives 50 mg IM or IN repeated every 30 minutes with no maximum, and the TCCC-based Prolonged Casualty Care CPG ID91 p.33 gives 50-100 mg (or 0.5-1 mg/kg) IM or IN every 20-30 min, \"May repeat\", with no maximum. ID91's 50-100 mg is a fixed-dose range beside the per-kg one, not a stated cap, so max_single stays null.",
           "flags": [],
-          "adjudication": "OWNER RULING 2026-10-14 (Andrew Azelton): sign the IM ketamine entry at 0.5–1.0 mg/kg (ID61/SMOG/TCCC); NASEMSO's 0.25 mg/kg IM left unsigned. Signed after the owner reads this redraft.",
+          "adjudication": "OWNER RULING 2026-10-14 (Andrew Azelton): sign the IM ketamine entry at 0.5–1.0 mg/kg (ID61/SMOG/TCCC); NASEMSO's 0.25 mg/kg IM left unsigned. Read by the owner and signed 2026-10-14; TCCC maximum checked first: none stated (ID29 p.7, ID91 p.33).",
           "adjudicated_on": "2026-10-14"
         },
         {

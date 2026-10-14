@@ -93,6 +93,7 @@ def _entry(drug, indication, population, route):
 
 # Owner rulings, 2026-10-14: signed as drafted, by AI-AIM for Andrew Azelton.
 SIGNED = [
+    ("ketamine", KETAMINE_PFC, "adult", "IM"),      # redrafted to 0.5-1.0 mg/kg, read, then signed
     ("ketamine", KETAMINE_PFC, "adult", "IN"),
     ("ketamine", KETAMINE_PAIN, "peds", "IM"),
     ("morphine", "acute pain / analgesia", "peds", "IM"),
@@ -116,11 +117,13 @@ def test_only_the_ruled_entries_are_signed_and_servable(key):
         assert not ok
 
 
-def test_the_im_ketamine_entry_is_redrafted_to_the_ruled_range_and_awaits_the_owners_read():
+def test_the_im_ketamine_entry_is_the_ruled_range_with_the_tccc_maximum_checked():
     e, _ = _entry("ketamine", KETAMINE_PFC, "adult", "IM")
     assert e["dose_range"] == {"min": 0.5, "max": 1.0, "units": "mg/kg", "per_kg": True}
     assert e["sources"][0]["source_class"] == "SMOG" and "0.5 - 1.0 mg/kg" in e["sources"][0]["quote"]
-    assert e["signoff"] is False and "owner reads" in e["adjudication"]
+    # Owner: add the TCCC maximum if stated. Neither TCCC-derived source states one.
+    assert any("CPG ID91" in s["citation"] and "0.5-1 mg/kg" in s["quote"] for s in e["sources"])
+    assert e["max_single"] is None and "TCCC MAXIMUM CHECKED" in e["extraction_notes"]
 
 
 def test_nasemso_im_stays_unsigned_as_a_documented_alternate():
