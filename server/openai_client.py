@@ -1777,37 +1777,85 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
     for name, entry in drug_contracts.signed_entries_for(
             query, route=None, is_pediatric=ctx.is_pediatric,
             age_years=ctx.age_years):
-        # Units are resolved by drug_contracts, which converts explicitly and
-        # FAILS CLOSED on anything it does not recognise. This loop used to do
-        # `base * w if per_kg else base` and call the answer milligrams
-        # whatever the entry said, so "25 g" became 25 mg and "10 mcg" became
-        # 10 mg. Nothing downstream could catch it: the volume audit checks a
-        # volume against the STATED milligrams, and a wrongly-parsed dose that
-        # is internally consistent passes.
-        resolved = drug_contracts.resolve_dose(entry, w)
-        if resolved["dose_mg"] is None:
-            # A rate, or a unit we refuse to guess at. Either way it is not a
-            # bolus and must not become a volume.
-            continue
+        d = _contract_candidate(name, entry, w)
+        if d is not None:
+            out.append(d)
+    return out
 
-        # A floored dose leads its own cautions. The entry's static cautions
-        # may also name the minimum, but they say it in the abstract; this one
-        # says it happened, to this patient, to the number on the screen.
-        cautions = list(drug_contracts.serve_cautions(entry))
-        if resolved.get("floor_applied"):
-            cautions.insert(0, resolved["floor_note"])
 
-        out.append(DoseCandidate(
-            drug=name, indication=entry["indication"], route=entry["route"],
-            dose_mg=round(resolved["dose_mg"], 4),
-            display_value=resolved["display_value"],
-            display_units=resolved["display_units"],
-            source=_contract_source(name, entry),
-            cautions=cautions,
-            contraindications=list(drug_contracts.serve_contraindications(entry)),
-            dilution=drug_contracts.push_dilution(entry),
-            warning="; ".join(cautions) or None,
-        ))
+def _contract_candidate(name: str, entry: dict, w: Optional[float]) -> Optional[DoseCandidate]:
+    """One signed entry as a DoseCandidate, or None when it resolves to no bolus.
+
+    Shared by the drug-named lookup and the indication-only lookup, so a dose
+    is built the same way whichever question reached it.
+    """
+    # Units are resolved by drug_contracts, which converts explicitly and
+    # FAILS CLOSED on anything it does not recognise. This loop used to do
+    # `base * w if per_kg else base` and call the answer milligrams
+    # whatever the entry said, so "25 g" became 25 mg and "10 mcg" became
+    # 10 mg. Nothing downstream could catch it: the volume audit checks a
+    # volume against the STATED milligrams, and a wrongly-parsed dose that
+    # is internally consistent passes.
+    resolved = drug_contracts.resolve_dose(entry, w)
+    if resolved["dose_mg"] is None:
+        # A rate, or a unit we refuse to guess at. Either way it is not a
+        # bolus and must not become a volume.
+        return None
+
+    # A floored dose leads its own cautions. The entry's static cautions
+    # may also name the minimum, but they say it in the abstract; this one
+    # says it happened, to this patient, to the number on the screen.
+    cautions = list(drug_contracts.serve_cautions(entry))
+    if resolved.get("floor_applied"):
+        cautions.insert(0, resolved["floor_note"])
+
+    return DoseCandidate(
+        drug=name, indication=entry["indication"], route=entry["route"],
+        dose_mg=round(resolved["dose_mg"], 4),
+        display_value=resolved["display_value"],
+        display_units=resolved["display_units"],
+        source=_contract_source(name, entry),
+        cautions=cautions,
+        contraindications=list(drug_contracts.serve_contraindications(entry)),
+        dilution=drug_contracts.push_dilution(entry),
+        warning="; ".join(cautions) or None,
+    )
+
+
+# A question that names an injury or an indication but no drug (owner,
+# 2026-10-14; the v1.1 finding from #97). The builder looks doses up by drug
+# name, so "severe pain from a closed femur fracture, what can I give" got an
+# empty ALLOWED_DOSES, the generator wrote a ketamine dose of its own, and the
+# check held it although ketamine analgesia is signed. Each row maps what the
+# question says to the indication labels of signed entries; only signed
+# entries can come back, and the check is unchanged. "Pulseless" alone is not
+# an arrest cue: a pulseless limb is not a cardiac arrest.
+INDICATION_ONLY_LOOKUPS = (
+    (re.compile(r"\b(?:pain\w*|analgesi\w*|fractur\w*|fx)\b"), ("pain",)),
+    (re.compile(r"\b(?:asystol\w*|cardiac arrest|pea arrest|pulseless electrical activity"
+                r"|ventricular fibrillation|v-?fib)\b"), ("cardiac arrest",)),
+)
+
+
+def indication_only_patterns(query: str) -> list:
+    """The signed-indication patterns a drugless question selects, or []."""
+    if drug_contracts is None or drug_contracts.resolve_drugs(query):
+        return []
+    q = (query or "").lower()
+    return [p for rx, pats in INDICATION_ONLY_LOOKUPS if rx.search(q) for p in pats]
+
+
+def _indication_only_candidates(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+    """Signed entries for the indication a drugless question names."""
+    patterns = indication_only_patterns(query)
+    if not patterns:
+        return []
+    out = []
+    for name, entry in drug_contracts.signed_entries_by_indication(
+            patterns, ctx.is_pediatric, ctx.age_years):
+        d = _contract_candidate(name, entry, ctx.dosing_weight_kg)
+        if d is not None:
+            out.append(d)
     return out
 
 
@@ -1870,7 +1918,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         if ctx.is_pediatric:
             return []
         return _finish_doses(stated_indication_first(query, indication_matched(
-            query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)))), ctx)
+            query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)
+                                                + _indication_only_candidates(query, ctx)))), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
@@ -2000,6 +2049,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
+    doses.extend(_indication_only_candidates(query, ctx))
     return _finish_doses(stated_indication_first(query, indication_matched(
         query, _without_contraindicated_sux(query, doses))), ctx)
 
