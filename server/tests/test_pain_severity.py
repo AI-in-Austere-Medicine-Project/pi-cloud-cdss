@@ -217,6 +217,6 @@ def test_with_no_weight_the_question_says_which_drugs_need_one():
     severe = next(l for l in text.splitlines() if re.match(r"\W*severe\b", l, re.I))
     offered = severe.split("→")[1].split("(")[0]
     assert "ketamine" not in offered and "morphine" not in offered, severe
-    assert "need a weight" in severe and "ketamine" in severe, severe
+    assert re.search(r"needs? a weight", severe) and "ketamine" in severe, severe
     got = {d.drug for d in oc.build_allowed_doses(q + ". Pain severity: severe", _ctx(q))}
     assert got <= set(re.findall(r"[a-z]+", offered)), (got, severe)

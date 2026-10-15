@@ -1968,11 +1968,12 @@ def severity_cue_query(query: str, conversation_history: Optional[list]) -> str:
 
 
 def _pain_entries_by_severity(ctx: PatientContext) -> dict:
-    """{severity: ([drugs offered], {drug withheld: [triggers]})} for this patient."""
+    """{severity: ([drugs offered], {drug withheld: [triggers]}, [drugs that
+    need a weight])} for this patient: what the builder would really offer."""
     flags = {"ams_stated": ctx.ams_stated}
     out = {}
     for level, _criteria in PAIN_SEVERITIES:
-        offered, withheld = [], {}
+        offered, withheld, unweighed = [], {}, []
         for name, entry in drug_contracts.signed_entries_by_indication(
                 ("pain",), ctx.is_pediatric, ctx.age_years):
             if level not in entry_pain_severities(entry["indication"]):
@@ -1980,9 +1981,12 @@ def _pain_entries_by_severity(ctx: PatientContext) -> dict:
             why = vitals_mod.armed_triggers(name, ctx.vitals, flags)
             if why:
                 withheld.setdefault(name, why)
+            elif _contract_candidate(name, entry, ctx.dosing_weight_kg) is None:
+                unweighed.append(name)      # a per-kg entry with no weight resolves to nothing
             elif name not in offered:
                 offered.append(name)
-        out[level] = (offered, {n: w for n, w in withheld.items() if n not in offered})
+        out[level] = (offered, {n: w for n, w in withheld.items() if n not in offered},
+                      [n for n in dict.fromkeys(unweighed) if n not in offered and n not in withheld])
     return out
 
 
@@ -1993,16 +1997,18 @@ def pain_severity_question(ctx: PatientContext) -> Optional[str]:
     if drug_contracts is None:
         return None
     sets = _pain_entries_by_severity(ctx)
-    if len({tuple(sorted(o)) for o, _w in sets.values()}) < 2:
+    if len({tuple(sorted(o + u)) for o, _w, u in sets.values()}) < 2:
         return None
     lines = [f"{PAIN_SEVERITY_QUESTION_PREFIX} Choose one; it selects the dose set:"]
     for level, criteria in PAIN_SEVERITIES:
-        offered, withheld = sets[level]
+        offered, withheld, unweighed = sets[level]
         what = (", ".join(offered) + " dosing") if offered else "no dose offered"
         line = f"- {level} ({criteria}) → {what}"
         if withheld:
             triggers = sorted({t for w in withheld.values() for t in w})
             line += f" ({', '.join(withheld)} not offered: {'; '.join(triggers)})"
+        if unweighed:
+            line += f" ({', '.join(unweighed)} {'needs' if len(unweighed) == 1 else 'need'} a weight)"
         lines.append(line)
     return "\n".join(lines)
 
