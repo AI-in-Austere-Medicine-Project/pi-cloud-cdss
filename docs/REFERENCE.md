@@ -190,7 +190,7 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 | `qwen2.5:3b` as the offline validator does not catch procedural errors (a low-and-loose tourniquet, "do not re-warm" in hypothermic arrest called SAFE). Owner to place. | D7 v3 re-bench |
 | An active arterial bleed without shock physiology gets no card; the DCR card needs shock physiology. | D7 v3 re-bench (H-IM-05) |
 | Open contract drafts: 39 incomplete drafts, P1, P2, the fentanyl analgesia infusion entry, and signing batch 1's unsigned remainder (NASEMSO IM ketamine; paediatric IN ketamine, incomplete; ketorolac, excluded on SMOG p.129). Signing is the owner's. | #146, #148, signing batch 1 |
-| A correct signed dose is held when the question names the indication, not the drug (epinephrine 1 mg in asystole). **In review (2026-10-14):** pain and cardiac-arrest questions with no drug are offered the signed entries for that indication. | #97, indication-only doses |
+| A correct signed dose is held when the question names the indication, not the drug (epinephrine 1 mg in asystole). **In review (2026-10-14):** pain and cardiac-arrest questions with no drug are offered the signed entries for that indication; pain severity is clinician-declared (asked when undeclared, selects the set; advisory for mild at RR ≤ 8); the RR caution states its trigger (stays RR < 10; paediatric table #168). Doctrine: DESIGN_PRINCIPLES.md. | #97, indication-only doses |
 | A named drug is offered its therapeutic dose in an overdose question ("acetaminophen overdose, NAC dose" → acetaminophen 500 mg). Indication matching, A1b family. | Signing batch 1 |
 | A ketamine drip for pain gets the RSI bundle. | #86 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
