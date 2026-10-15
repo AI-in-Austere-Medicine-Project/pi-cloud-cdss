@@ -813,7 +813,7 @@ def test_every_caution_template_formats():
     """A template naming a field the rule does not arm would raise at runtime."""
     for rule in v.CAUTIONS:
         fields = {name: "0" for name in (rule.get("when") or {})}
-        rule["caution"].format(drug="testdrug", **fields)
+        rule["caution"].format(drug="testdrug", trigger=v.trigger_text(rule), **fields)
 
 
 def test_a_flag_rule_arms_without_any_reading():
@@ -857,7 +857,7 @@ def run(query, history=None, now=T9, **kw):
 
 
 def test_vitals_reach_the_generator_prompt(stub_llm):
-    run("80kg male HR 128 BP 82/40 sats 91, analgesia options?")
+    run("80kg male HR 128 BP 82/40 sats 91, severe pain, analgesia options?")
     generator_prompt = stub_llm["systems"][0]
     assert "RECORDED VITALS" in generator_prompt
     assert "BP 82/40" in generator_prompt
@@ -865,7 +865,7 @@ def test_vitals_reach_the_generator_prompt(stub_llm):
 
 
 def test_vitals_reach_the_validator(stub_llm):
-    run("80kg male HR 128 BP 82/40 sats 91, analgesia options?")
+    run("80kg male HR 128 BP 82/40 sats 91, severe pain, analgesia options?")
     validator_prompt = next(s for s in stub_llm["systems"]
                             if "Clinical Safety Validator" in s)
     assert "VITALS CONFLICT" in validator_prompt
@@ -880,7 +880,7 @@ FENTANYL_NO_DOSE = "**GIVE**\n- Fentanyl IV for pain.\n"
 
 def test_a_conflicting_recommendation_gets_a_visible_caution(stub_llm):
     stub_llm["reply"] = FENTANYL_NO_DOSE
-    result = run("80kg male BP 82/40, analgesia options?")
+    result = run("80kg male BP 82/40, severe pain, analgesia options?")
     assert result["validator_result"] == "NEEDS_HUMAN_REVIEW"
     assert "VITALS CAUTION" in result["response"]
     assert result["vitals_cautions"], "the caution must be recoverable for the log"
@@ -889,21 +889,21 @@ def test_a_conflicting_recommendation_gets_a_visible_caution(stub_llm):
 
 def test_no_caution_when_vitals_and_recommendation_agree(stub_llm):
     stub_llm["reply"] = FENTANYL_NO_DOSE
-    result = run("80kg male BP 130/80, analgesia options?")
+    result = run("80kg male BP 130/80, severe pain, analgesia options?")
     assert result["validator_result"] == "SAFE"
     assert "VITALS CAUTION" not in result["response"]
     assert result["vitals_cautions"] == []
 
 
 def test_a_rejected_vital_is_surfaced_in_the_response(stub_llm):
-    result = run("80kg male bp 400/300, analgesia options?")
+    result = run("80kg male bp 400/300, severe pain, analgesia options?")
     assert "Couldn't read that vital" in result["response"]
     assert "400/300" in result["response"]
     assert result["patient_context"]["vitals"] == {}
 
 
 def test_the_response_carries_the_context_the_client_strip_renders(stub_llm):
-    result = run("80kg male HR 128 BP 82/40 sats 91, analgesia options?")
+    result = run("80kg male HR 128 BP 82/40 sats 91, severe pain, analgesia options?")
     ctx = result["patient_context"]
     assert ctx["confirmed_weight_kg"] == 80.0
     assert ctx["vitals"]["sbp"]["value"] == 82
@@ -941,7 +941,7 @@ def test_the_log_records_vitals_state_and_cautions(stub_llm, tmp_path, monkeypat
     import pathlib as _pathlib
     stub_llm["reply"] = FENTANYL_NO_DOSE
     monkeypatch.setattr(oc, "_LOG_DIR", _pathlib.Path(tmp_path))
-    oc.query_with_rag("80kg male BP 82/40, analgesia options?", FakeChroma(),
+    oc.query_with_rag("80kg male BP 82/40, severe pain, analgesia options?", FakeChroma(),
                       conversation_history=[])
     entry = json.loads(sorted(tmp_path.glob("*.jsonl"))[0].read_text().strip())
     assert entry["log_schema"] == oc.LOG_SCHEMA_VERSION
@@ -979,7 +979,7 @@ def test_the_log_records_the_map_and_says_it_was_derived(stub_llm, tmp_path, mon
     import json
     import pathlib as _pathlib
     monkeypatch.setattr(oc, "_LOG_DIR", _pathlib.Path(tmp_path))
-    oc.query_with_rag("80kg male BP 90/30, analgesia options?", FakeChroma(),
+    oc.query_with_rag("80kg male BP 90/30, severe pain, analgesia options?", FakeChroma(),
                       conversation_history=[])
     entry = json.loads(sorted(tmp_path.glob("*.jsonl"))[0].read_text().strip())
     assert entry["vitals"]["map"]["value"] == 50.0
@@ -1002,7 +1002,7 @@ def test_a_low_map_downgrades_a_safe_verdict(stub_llm):
     """The caution pathway, end to end and unchanged: it appends a visible line
     and softens SAFE. It does not block, and it cannot release."""
     stub_llm["reply"] = FENTANYL_NO_DOSE
-    result = run("80kg male BP 90/30, analgesia options?")
+    result = run("80kg male BP 90/30, severe pain, analgesia options?")
     assert "MAP is 50" in result["response"]
     assert result["validator_result"] == "NEEDS_HUMAN_REVIEW"
     assert result["vitals_cautions"]

@@ -1011,6 +1011,41 @@ def _rule_armed(rule: dict, readings: dict, flags: Optional[dict] = None):
     return armed
 
 
+_COMPARATOR_SIGNS = {"lt": "<", "lte": "≤", "gt": ">", "gte": "≥"}
+
+
+def trigger_text(rule: dict) -> str:
+    """What arms a rule, as the medic reads it: "RR < 10".
+
+    Written from the rule's own `when`, so a caution sentence that quotes it
+    cannot drift from the threshold (owner, #164 review: the warning shows
+    its trigger). Patient flags are not measurements and are left out.
+    """
+    parts = []
+    for name, test in (rule.get("when") or {}).items():
+        if name in PATIENT_FLAGS:
+            continue
+        label = (RANGES.get(name) or {}).get("label", name.upper())
+        for comparator, threshold in test.items():
+            sign = _COMPARATOR_SIGNS.get(comparator)
+            if sign:
+                parts.append(f"{label} {sign} {threshold:g}")
+    return " and ".join(parts)
+
+
+def armed_triggers(drug: str, readings: dict, flags: Optional[dict] = None) -> list:
+    """The triggers of every armed rule that names this drug: why the vitals
+    raise a caution against it, said the way the caution says it."""
+    out = []
+    for rule in CAUTIONS:
+        if drug.lower() in (d.lower() for d in rule.get("drugs", [])) \
+                and _rule_armed(rule, readings, flags) is not None:
+            text = trigger_text(rule)
+            if text and text not in out:
+                out.append(text)
+    return out
+
+
 def _caution_value(reading: VitalReading) -> str:
     """A reading as it appears inside a caution line, with its unit if it has
     a second one. Single-unit vitals name their unit in the caution template."""
@@ -1067,7 +1102,7 @@ def conflicts(response_text: str, readings: dict,
             if armed is None:
                 continue
             values = {name: _caution_value(r) for name, r in armed.items()}
-            out.append(rule.get("caution", "").format(drug="", **values))
+            out.append(rule.get("caution", "").format(drug="", trigger=trigger_text(rule), **values))
             spoken_for.add(group)
             continue
         armed = _rule_armed(rule, readings, flags)
@@ -1079,7 +1114,7 @@ def conflicts(response_text: str, readings: dict,
             # Quoted back in the unit the medic used. The comparison was
             # canonical; the sentence they read should be the number they typed.
             values = {name: _caution_value(r) for name, r in armed.items()}
-            out.append(rule.get("caution", "").format(drug=drug, **values))
+            out.append(rule.get("caution", "").format(drug=drug, trigger=trigger_text(rule), **values))
             if group is not None:
                 spoken_for.add(group)
             break            # one caution per rule, named for the first agent found

@@ -1216,11 +1216,12 @@ def has_pending_route_sensitive_request(prior_queries: str) -> bool:
 
 
 def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
-             last_response: str = "") -> tuple:
+             last_response: str = "", cue_query: Optional[str] = None) -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
+    `cue_query` is the turn indication cues are read from (severity_cue_query).
     """
     combined_ctx = (prior_queries + " " + query).lower()
     current_or_pending_med_request = (
@@ -1279,6 +1280,15 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
     replying_to_ask = (last_response or "").startswith("Which ")
     if current_or_pending_med_request or replying_to_ask:
         question = which_indication_question(combined_ctx, ctx)
+        if question:
+            return "ASK", question
+
+    # Pain severity (owner, #164 review): asked, never inferred. After weight
+    # and route, which gate the milligrams; outside the dose-request test,
+    # because "what can I give for the pain" is the question it exists for.
+    if _pain_severity_unanswered(f"{prior_queries} {query}".strip(),
+                                 cue_query if cue_query is not None else query):
+        question = pain_severity_question(ctx)
         if question:
             return "ASK", question
 
@@ -1876,6 +1886,162 @@ def indication_only_patterns(query: str, current_query: Optional[str] = None) ->
             if cue.search(q) and not unless.search(q) for p in pats]
 
 
+# Pain severity is the clinician's to declare (owner, #164 review, 2026-10-15).
+# With #163 signed, acetaminophen ("mild to moderate pain") matched "severe
+# pain" too: the pain row read no severity. Severity is a judgment call, so it
+# is never inferred (not from vitals, not from "screaming"): a drugless pain
+# question that declares none is asked, with each choice's criteria on its
+# own line and what that choice selects. The choice selects the dose set.
+# Doctrine: docs/DESIGN_PRINCIPLES.md.
+PAIN_SEVERITY_QUESTION_PREFIX = "Pain severity?"
+PAIN_SEVERITIES = (
+    ("mild", "NRS 1–3: noticeable, does not limit movement or rest"),
+    ("moderate", "NRS 4–6: limits movement or rest, can still cooperate"),
+    ("severe", "NRS 7–10: cannot move the injured part, pain dominates"),
+)
+_SEVERITY_WORD = r"(mild|moderate|severe)"
+_SEVERITY_RANGE = rf"{_SEVERITY_WORD}(?:\s*(?:to|-|–|/|or)\s*{_SEVERITY_WORD})?"
+_DECLARED_SEVERITY_RES = (
+    re.compile(rf"\b{_SEVERITY_RANGE}\s+(?:\w+\s+){{0,2}}?pain\b"),        # "severe femur pain"
+    re.compile(rf"\bpain(?:\s+severity)?\s*(?:is\s+|:\s*|of\s+)?{_SEVERITY_RANGE}\b"),
+)
+_PAIN_SCORE_RES = (
+    re.compile(r"\bpain\b[^.,;]{0,15}?\b(10|[0-9])\s*/\s*10\b"),
+    re.compile(r"\b(10|[0-9])\s*/\s*10\s+(?:\w+\s+)?pain\b"),
+)
+SEVERITY_ANSWER_RE = re.compile(
+    r"^\W*(?:(?:it'?s|its|pain is|he'?s|she'?s|they'?re)\s+)?(mild|moderate|severe)(?:\s+pain)?\W*$")
+
+
+def _score_severity(score: int) -> Optional[str]:
+    if score <= 0:
+        return None
+    return "mild" if score <= 3 else "moderate" if score <= 6 else "severe"
+
+
+def declared_pain_severity(text: str) -> Optional[frozenset]:
+    """The severities the medic declared, latest declaration wins, or None.
+
+    A word ("severe pain", "pain is mild", "moderate to severe pain") or a
+    stated score ("pain 8/10", read by the same NRS bands the question shows).
+    A range declares both ends. Nothing else counts: no vital, no adjective.
+    """
+    t = (text or "").lower()
+    found = []
+    for rx in _DECLARED_SEVERITY_RES:
+        for m in rx.finditer(t):
+            found.append((m.start(), frozenset(g for g in m.groups() if g)))
+    for rx in _PAIN_SCORE_RES:
+        for m in rx.finditer(t):
+            level = _score_severity(int(m.group(1)))
+            if level:
+                found.append((m.start(), frozenset({level})))
+    return max(found, key=lambda f: f[0])[1] if found else None
+
+
+def entry_pain_severities(indication: str) -> frozenset:
+    """The severities a signed pain entry serves, read from its label.
+
+    "mild to moderate" and "moderate to severe" say so. A label that states
+    none ("acute pain", "breakthrough pain", "background pain") is served at
+    moderate and severe: an opioid or ketamine is not volunteered for pain
+    the medic called mild. Owner to confirm (#164 review).
+    """
+    label = (indication or "").lower()
+    if "mild to moderate" in label:
+        return frozenset({"mild", "moderate"})
+    return frozenset({"moderate", "severe"})
+
+
+def severity_cue_query(query: str, conversation_history: Optional[list]) -> str:
+    """The turn the indication cue is read from.
+
+    A bare answer to the severity question ("severe") carries no "pain"; it is
+    read with the question it answers, so the answer selects the set.
+    """
+    last = (conversation_history or [{}])[-1] or {}
+    if (SEVERITY_ANSWER_RE.match((query or "").lower().strip())
+            and (last.get("response") or "").startswith(PAIN_SEVERITY_QUESTION_PREFIX)):
+        level = SEVERITY_ANSWER_RE.match(query.lower().strip()).group(1)
+        return f"{last.get('query') or ''}. Pain severity: {level}"
+    return query
+
+
+def _pain_entries_by_severity(ctx: PatientContext) -> dict:
+    """{severity: ([drugs offered], {drug withheld: [triggers]})} for this patient."""
+    flags = {"ams_stated": ctx.ams_stated}
+    out = {}
+    for level, _criteria in PAIN_SEVERITIES:
+        offered, withheld = [], {}
+        for name, entry in drug_contracts.signed_entries_by_indication(
+                ("pain",), ctx.is_pediatric, ctx.age_years):
+            if level not in entry_pain_severities(entry["indication"]):
+                continue
+            why = vitals_mod.armed_triggers(name, ctx.vitals, flags)
+            if why:
+                withheld.setdefault(name, why)
+            elif name not in offered:
+                offered.append(name)
+        out[level] = (offered, {n: w for n, w in withheld.items() if n not in offered})
+    return out
+
+
+def pain_severity_question(ctx: PatientContext) -> Optional[str]:
+    """Mild / moderate / severe, one line each: the criteria, then what the
+    choice selects for this patient and, where the vitals keep a drug back,
+    the trigger that does. None when the choice would change nothing."""
+    if drug_contracts is None:
+        return None
+    sets = _pain_entries_by_severity(ctx)
+    if len({tuple(sorted(o)) for o, _w in sets.values()}) < 2:
+        return None
+    lines = [f"{PAIN_SEVERITY_QUESTION_PREFIX} Choose one; it selects the dose set:"]
+    for level, criteria in PAIN_SEVERITIES:
+        offered, withheld = sets[level]
+        what = (", ".join(offered) + " dosing") if offered else "no dose offered"
+        line = f"- {level} ({criteria}) → {what}"
+        if withheld:
+            triggers = sorted({t for w in withheld.values() for t in w})
+            line += f" ({', '.join(withheld)} not offered: {'; '.join(triggers)})"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _pain_severity_unanswered(history: str, current_query: Optional[str]) -> bool:
+    """A drugless pain question with no declared severity."""
+    cue = current_query if current_query is not None else history
+    return ("pain" in indication_only_patterns(history, cue)
+            and declared_pain_severity(f"{history} {cue}") is None)
+
+
+SEVERITY_ADVISORY_HEADING = "\n\nℹ️ **SEVERITY ADVISORY**\n"
+ADULT_RESPIRATORY_DEPRESSION_RR = 8      # inclusive; adults only (owner, #164 review)
+
+
+def severity_advisory(history: str, current_query: Optional[str],
+                      ctx: PatientContext) -> Optional[str]:
+    """A soft note when the vitals grossly contradict the declared severity.
+
+    Owner's case: "mild" with RR <= 8. It never blocks, never changes the
+    verdict and never changes the dose set: severity is the clinician's call.
+    Adults only. Paediatric RR thresholds must come from an age-banded table,
+    never this constant, and there is none yet, so a child gets no advisory.
+    """
+    if ctx.is_pediatric:
+        return None
+    cue = current_query if current_query is not None else history
+    if "pain" not in indication_only_patterns(history, cue):
+        return None
+    if declared_pain_severity(f"{history} {cue}") != frozenset({"mild"}):
+        return None
+    rr = (ctx.vitals or {}).get("rr")
+    if rr is None or rr.canonical > ADULT_RESPIRATORY_DEPRESSION_RR:
+        return None
+    return (f"- Severity is recorded as mild, but the recorded RR is {rr.value:g}/min "
+            f"(RR ≤ {ADULT_RESPIRATORY_DEPRESSION_RR}: respiratory depression). "
+            "Reassess; the mild selection stands and nothing is held.")
+
+
 def _indication_only_candidates(query: str, ctx: PatientContext,
                                 current_query: Optional[str] = None) -> List[DoseCandidate]:
     """Signed entries for the indication a drugless question names.
@@ -1888,10 +2054,16 @@ def _indication_only_candidates(query: str, ctx: PatientContext,
     if not patterns:
         return []
     flags = {"ams_stated": ctx.ams_stated}
+    cue = current_query if current_query is not None else query
+    severity = declared_pain_severity(f"{query} {cue}") if "pain" in patterns else None
     out = []
     for name, entry in drug_contracts.signed_entries_by_indication(
             patterns, ctx.is_pediatric, ctx.age_years):
         if vitals_mod.conflicts(f"give {name}", ctx.vitals, flags=flags):
+            continue
+        # The declared severity selects the set; undeclared, the pre-gate asks.
+        if (severity is not None and "pain" in entry["indication"].lower()
+                and not severity & entry_pain_severities(entry["indication"])):
             continue
         d = _contract_candidate(name, entry, ctx.dosing_weight_kg)
         if d is not None:
@@ -7457,9 +7629,11 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2l: Standard pre-gate (weight/route) — after all deterministic cases
+        cue_query = severity_cue_query(query, conversation_history)
         gate_action, gate_response = pre_gate(
             query, patient_ctx, prior_queries,
-            last_response=((conversation_history or [{}])[-1] or {}).get("response") or "")
+            last_response=((conversation_history or [{}])[-1] or {}).get("response") or "",
+            cue_query=cue_query)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
             # The "Vial math" chip lands on the which-vial question. Where the
@@ -7505,7 +7679,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
               f"cos {retrieval_cosine(assessment.top_score):.2f})")
 
         # Step 4: Build dose candidates from full history, not only current query.
-        allowed_doses = build_allowed_doses(full_query_history, patient_ctx, current_query=query)
+        allowed_doses = build_allowed_doses(full_query_history, patient_ctx, current_query=cue_query)
         allowed_dose_block = build_allowed_dose_block(allowed_doses)
         print(f"💊 {len(allowed_doses)} dose candidates built")
 
@@ -7657,6 +7831,12 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
                 final_response = with_contract_source_line(
                     final_response, cites, assessment.source_mode == "JTS_GROUNDED")
                 assessment.source_mode = "JTS_GROUNDED"
+        # Severity advisory (owner, #164 review): after the gate, served answers
+        # only, like every label above. Soft: the verdict and the doses stand.
+        advisory = (None if outcome.blocked
+                    else severity_advisory(full_query_history, cue_query, patient_ctx))
+        if advisory:
+            final_response += SEVERITY_ADVISORY_HEADING + advisory
         # The rejected-vital and boundary notices are applied by _finalise, which
         # sees every return path rather than only this one.
 
