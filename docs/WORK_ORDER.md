@@ -806,6 +806,16 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 
 **Found (owner to place):** **on this 8 GB Jetson, an `edgecdss-v3` pick takes 113–174 s**, against 16 s for `qwen2.5:3b`. With v3 generating and `qwen2.5:3b` validating, both stay loaded (2.4 and 2.6 GB at an 8192 context); v3 no longer fits on the GPU and runs 15% on the CPU (`ollama ps`: 15%/85% CPU/GPU; RAM 6.6 of 7.5 GB; swap in use). The first attempt exceeded a 300 s client timeout. A capacity limit, not a defect of this change.
 
+**Tested and dropped (owner, 2026-10-15):** the rule tested was one on-device model resident at a time. Before every on-device call, any other portal model Ollama holds is unloaded (`keep_alive: 0`), so the answering model has the GPU to itself.
+- With the rule, the swap worked: one model resident, 100% on the GPU. But on this Jetson a reload costs more than the CPU spill it avoids.
+  - Measured with the same prompt (about 4,800 tokens in, 120 out), edgecdss-v3 took 17–51 s, 35 s of it loading, and qwen2.5:3b took 78–89 s, 73 s of it loading.
+  - With both resident, as on main, edgecdss-v3 took 23 s cold and 8 s warm at 73% GPU, and qwen2.5:3b took 3–4 s.
+  - Under the rule, a v3 question pays two reloads, about 110 s, before generating.
+  - The models are on NVMe, so the disk is not the cause.
+- **The 113–174 s above is therefore re-attributed to cold loads and memory pressure at the time, not to v3's CPU spill.** That spill costs a few seconds on this workload.
+- The item is dropped. **The live service stays both-models-resident.**
+- The branch (`local-one-resident`: a test and `providers._unload_other_local_models`) is kept locally at `~/projects/cdss-keepalive` as the record of the negative result. It is not pushed and has no PR.
+
 **Replay** (main `543e7e1` against this branch, which carries C2): served answers (1,738), gate (1,408), live session logs (2,626), held answers (308) and the full pipeline (800): **all byte-identical. 0 newly held, 0 newly released.**
 
 ### Indication-only doses (owner, 2026-10-14; v1.1, the finding from #97)
