@@ -103,6 +103,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | C1 | The feedback instrument: session id, the full context in `/feedback`, a working comment field. | Done, #131. Log schema 15 (query_id, session_id). Issue tags: server/issue_tags.json, applied in their own PR |
 | C2 | The portal picker lists the on-device Ollama models (`qwen2.5:3b`, `edgecdss-v3`), labelled "(on device)", when Ollama has them. A pick goes to the device and is validated there (D7's rule: `qwen2.5:3b` on the live service), with no cloud call; the answer names its model. Un-deferred the local-model portal toggle; v3 listed on the owner's ruling. Default unchanged. | Done, #162 |
 | C3 | Under `CDSS_LLM_PROVIDER=local` the portal is local-only: the picker is exactly the on-device models Ollama has (`qwen2.5:3b`, `edgecdss-v3`), default `CDSS_LLM_MODEL`, validator `CDSS_VALIDATOR_MODEL`; cloud providers are reported off with no network call; voice is off; the startup line names the mode. No outbound HTTP on the portal path. Found: an `edgecdss-v3` pick takes 113–174 s on the 8 GB Jetson (two models resident, v3 partly on CPU). | Done, #162 |
+| Which indication | A drug named with no indication, offered in more than one indication class, is asked "Which indication for <drug> — …?" after the vial question; the answer keeps the drug's offers to the stated class. Found live 2026-10-15: ketamine post-intubation sedation served to a patient who was not intubated. | In review |
 
 ## 6. Training vocabulary
 
