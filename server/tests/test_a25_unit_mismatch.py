@@ -20,6 +20,10 @@ import openai_client as oc
 
 B1_QUERY = "80 kg adult, severe pain from a femur fracture, fentanyl IV"
 EPI_QUERY = "70kg, anaphylaxis, epinephrine IM"
+# The push dose is its own question: an anaphylaxis question is offered the
+# anaphylaxis entry only, since the indication it states selects the entries
+# (owner, 2026-10-15).
+EPI_PUSH_QUERY = "70kg, symptomatic bradycardia, push-dose epinephrine IV"
 DEX_QUERY = "soldier collapsed, sugar 32, dextrose IV"
 
 
@@ -46,7 +50,7 @@ def test_both_units_side_by_side_hold():
 
 
 def test_epinephrine_push_dose_in_mg_holds():
-    issues = _issues(EPI_QUERY, 70.0, "**DO THIS**\n1. Push-dose epinephrine 0.01 mg IV.")
+    issues = _issues(EPI_PUSH_QUERY, 70.0, "**DO THIS**\n1. Push-dose epinephrine 0.01 mg IV.")
     assert _unit_issue(issues, "epinephrine"), issues
 
 
@@ -79,7 +83,7 @@ def test_signed_units_pass():
     assert _issues(B1_QUERY, 80.0, "**DO THIS**\n2. Draw 50 mcg of fentanyl IV.") == []
     assert _issues(B1_QUERY, 80.0, "**GIVE**\n- fentanyl IV: 50 mcg. NO VOLUME — confirm concentration to compute volume.") == []
     assert _issues(EPI_QUERY, 70.0, "**DO THIS**\n1. Epinephrine 0.3 mg IM, anterolateral thigh.") == []
-    assert _issues(EPI_QUERY, 70.0, "**DO THIS**\n1. Push-dose epinephrine 10 mcg IV.") == []
+    assert _issues(EPI_PUSH_QUERY, 70.0, "**DO THIS**\n1. Push-dose epinephrine 10 mcg IV.") == []
     assert _issues(DEX_QUERY, 80.0, "**DO THIS**\n1. Give dextrose 25 g IV.") == []
 
 

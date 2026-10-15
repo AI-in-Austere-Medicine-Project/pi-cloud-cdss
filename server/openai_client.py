@@ -1215,7 +1215,8 @@ def has_pending_route_sensitive_request(prior_queries: str) -> bool:
     return route_changes_dose(prior_queries or "")
 
 
-def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
+def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
+             last_response: str = "") -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
@@ -1270,6 +1271,16 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "") -> tuple:
                     question = drug_concentrations.confirmation_question(drug)
                     if question:
                         return "ASK", question
+
+    # Which indication? After the vial, for the same reason the vial is after
+    # weight and route. Also on the reply to a question this gate (or the
+    # vial gate) asked: "500" is not a dose request on its own words, and it
+    # was the turn that served post-intubation sedation live.
+    replying_to_ask = (last_response or "").startswith("Which ")
+    if current_or_pending_med_request or replying_to_ask:
+        question = which_indication_question(combined_ctx, ctx)
+        if question:
+            return "ASK", question
 
     return "CONTINUE", None
 
@@ -1450,6 +1461,112 @@ def indication_matched(query: str, doses: list) -> list:
     return [d for d in doses
             if d.drug not in seizure_drugs
             or is_seizure_treatment_indication(d.indication)]
+
+
+# ── Which indication? (owner, 2026-10-15) ─────────────────────────────────────
+# Live: "Need to give ketamine 89kg IV established", then "500", was offered
+# all 12 signed ketamine entries, and the model served post-intubation
+# sedation to a patient who was not intubated. A drug named with no indication
+# is now asked about, the way the vial is, and the answer selects the entries.
+#
+# Each class is (name, the word the question offers, what an entry's label
+# says, what a question says). The labels are read in order, so the specific
+# ones come first: "dissociative sedation" for the agitated patient is
+# agitation, not sedation; "RSI pre-dose" is RSI. Every signed label must land
+# in a class (test_every_signed_indication_has_a_class), so a new signature
+# cannot be offered with no way to ask about it.
+INDICATION_CLASSES = [
+    ("TBI seizure prophylaxis", "TBI seizure prophylaxis", r"prophylaxis",
+     r"\btbi\b|head injur\w*|brain injur\w*|prophyla\w*"),
+    ("neonatal resuscitation", "neonatal resuscitation", r"neonatal",
+     r"neonat\w*|newborn"),
+    ("agitation", "agitation", r"agitat|violent|behaviou?r",
+     r"agitat\w*|violent|combative|aggressi\w*|excited delirium|behaviou?r\w*|psychos\w*"
+     r"|restrain\w*|thrashing"),
+    ("RSI", "RSI", r"\brsi\b|induction",
+     r"\brsi\b|intubat\w*|rapid sequence|induction"),
+    ("sedation", "sedation (already intubated)", r"sedation",
+     r"(?<!procedural )sedat\w*|intubated|post[- ]?intubation|\btubed\b|on the vent|ventilat\w*"),
+    ("seizure", "seizure", r"seizure|epilep",
+     r"seiz\w*|fitting|convuls\w*|epilep\w*|post-?ictal"),
+    ("pain", "pain", r"pain|analges",
+     r"pain\w*|analges\w*|fractur\w*|\bfx\b|injur\w*|burn\w*|hurt\w*|broken|wound\w*"
+     r"|lacerat\w*|dislocat\w*"),
+    ("cardiac arrest", "cardiac arrest", r"cardiac arrest",
+     r"arrest|asystol\w*|\bpea\b|v-?fib|pulseless|\bcpr\b|no pulse"),
+    ("bradycardia", "bradycardia", r"bradycardia",
+     r"brady\w*|heart block|slow (?:heart|pulse)"),
+    ("shock", "shock", r"shock",
+     r"shock|hypotens\w*|pressor\w*|\bsbp\b|\bmap\b|blood pressure|\bbp\b"),
+    ("croup", "croup", r"croup", r"croup|stridor|barking"),
+    ("bronchiolitis", "bronchiolitis", r"bronchiolitis", r"bronchiolit\w*|wheez\w*|\brsv\b"),
+    ("haemorrhage", "haemorrhage", r"haemorrhag|hemorrhag",
+     r"bleed\w*|ha?emorrhag\w*|blood loss|exsanguin\w*|amputat\w*"),
+    ("hypoglycaemia", "hypoglycaemia", r"hypoglyc",
+     r"hypoglyc\w*|glucose|sugar|\bbgl\b|\bbsl\b|diabet\w*"),
+    ("poisoning", "nerve agent / organophosphate poisoning", r"nerve agent|organophosph|carbamate",
+     r"nerve agent|organophosph\w*|carbamate|sarin|pesticide|cholinergic|poison\w*"),
+    ("anaphylaxis", "anaphylaxis", r"anaphylaxis",
+     r"anaphyla\w*|allerg\w*|angioedema|hives|urticaria|\bsting\w*|epi-?pen"),
+    ("TBI herniation", "TBI with herniation", r"herniation",
+     r"herniat\w*|\btbi\b|head injur\w*|brain injur\w*|blown pupil|cushing"),
+    ("hyperkalaemia", "hyperkalaemia", r"hyperkal",
+     r"hyperkal\w*|potassium|\bk\+|peaked t|crush\w*"),
+    ("opioid overdose", "opioid overdose", r"opioid",
+     r"opioid\w*|opiate\w*|overdos\w*|\bod\b|heroin|pinpoint"),
+]
+INDICATION_QUESTION_PREFIX = "Which indication for "
+
+
+def indication_class(label: str) -> Optional[str]:
+    """The class an entry's indication label belongs to, or None."""
+    low = (label or "").lower()
+    for name, _word, label_re, _cue in INDICATION_CLASSES:
+        if re.search(label_re, low):
+            return name
+    return None
+
+
+def stated_indication_classes(text: str) -> set:
+    """The classes a question's own words state."""
+    low = (text or "").lower()
+    return {name for name, _w, _l, cue in INDICATION_CLASSES if re.search(cue, low)}
+
+
+def narrowed_to_stated_indication(query: str, doses: list) -> list:
+    """For each named drug whose offers span more than one class, keep the
+    offers in the classes the question states. A drug offered in one class, a
+    drug not named (a role filled by indication), and a question stating none
+    of the drug's classes are left as they are — the last is pre_gate's to ask."""
+    if not doses or drug_contracts is None:
+        return list(doses or [])
+    named = set(drug_contracts.resolve_drugs(query.lower()))
+    stated = stated_indication_classes(query)
+    out = []
+    for d in doses:
+        if d.drug in named:
+            classes = {indication_class(x.indication) for x in doses if x.drug == d.drug}
+            keep = classes & stated
+            if len(classes) > 1 and keep and indication_class(d.indication) not in keep:
+                continue
+        out.append(d)
+    return out
+
+
+def which_indication_question(history: str, ctx: PatientContext) -> Optional[str]:
+    """The question to ask when a named drug would be offered in more than one
+    class and the history states none of them; None otherwise."""
+    if drug_contracts is None:
+        return None
+    stated = stated_indication_classes(history)
+    offers = build_allowed_doses(history, ctx)
+    for drug in drug_contracts.resolve_drugs(history.lower()):
+        classes = {indication_class(d.indication) for d in offers if d.drug == drug}
+        if len(classes) > 1 and not classes & stated:
+            words = [w for name, w, _l, _c in INDICATION_CLASSES if name in classes]
+            return (f"{INDICATION_QUESTION_PREFIX}{drug} — "
+                    f"{', '.join(words[:-1])} or {words[-1]}?")
+    return None
 
 
 def _contract_source(name: str, entry: dict) -> str:
@@ -1730,8 +1847,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         # exception to either.
         if ctx.is_pediatric:
             return []
-        return _finish_doses(indication_matched(query, _without_contraindicated_sux(
-            query, _contract_dose_candidates(query, ctx))), ctx)
+        return _finish_doses(narrowed_to_stated_indication(query, indication_matched(
+            query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)))), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
@@ -1861,7 +1978,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
-    return _finish_doses(indication_matched(query, _without_contraindicated_sux(query, doses)), ctx)
+    return _finish_doses(narrowed_to_stated_indication(query, indication_matched(
+        query, _without_contraindicated_sux(query, doses))), ctx)
 
 
 CONFIRM_CONCENTRATION_LINE = "confirm concentration to compute volume"
@@ -7226,7 +7344,9 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2l: Standard pre-gate (weight/route) — after all deterministic cases
-        gate_action, gate_response = pre_gate(query, patient_ctx, prior_queries)
+        gate_action, gate_response = pre_gate(
+            query, patient_ctx, prior_queries,
+            last_response=((conversation_history or [{}])[-1] or {}).get("response") or "")
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
             # The "Vial math" chip lands on the which-vial question. Where the
