@@ -856,7 +856,7 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 **Built:**
 - **Indication classes** (`INDICATION_CLASSES`, `openai_client.py`): each signed label falls in one class (pain, RSI, sedation, agitation, seizure, TBI seizure prophylaxis, cardiac arrest, bradycardia, shock, anaphylaxis, haemorrhage, hypoglycaemia, poisoning, croup, bronchiolitis, neonatal resuscitation, TBI herniation, hyperkalaemia, opioid overdose). Each class has the words a question uses for it. A test fails if a signed label falls in no class, so a new signature can't be offered with no way to ask about it.
 - **The question** (`pre_gate`, after weight, route and vial): when the builder would offer a named drug in more than one class and the history states none of the drug's classes, it asks "Which indication for ketamine — pain, RSI, sedation (already intubated), agitation or seizure?". No dose is stated and the model is not called. It also runs on the reply to a "Which …" question, since "500" is not a dose request in its own words. A reply that names no class is asked again.
-- **The answer selects:** a named drug's offers are kept to the classes the question states ("pain" → the four pain entries). A drug offered in one class, and a drug not named (a role filled by indication), are unchanged. The RSI bundle is unchanged.
+- **The answer puts that indication's doses first; none is removed** (owner, #165 review, 2026-10-15: "do NOT narrow the dose sets ... the system asks for the indication, then surfaces the dose set for that indication — never silently removes clinically valid doses from the formulary"). For a named drug offered in more than one class, the stated class's entries go to the head of ALLOWED_DOSES ("pain" → the pain entries first, then the rest). Every other signed entry stays offered and checkable. The live failure was the model serving the first entry, which is now the stated indication's. A drug offered in one class, a drug not named, and the RSI bundle are unchanged. The first revision removed the other classes' entries; the owner ruled that out, and the three doses it removed are restored by test (epinephrine anaphylaxis and push dose for arrest, midazolam agitation for sedation, atropine bradycardia for organophosphate poisoning).
 - **Not asked:**
   - a class the drug is signed for is stated, even where its entry is not offered as a dose ("epinephrine infusion rate for refractory shock");
   - the drug is named only to rule it out ("norepinephrine not epinephrine");
@@ -864,22 +864,17 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
   - a stated route counts only the entries on that route ("epinephrine IM": anaphylaxis only);
   - "procedural sedation" is not the post-intubation sedation class.
 
-**Tests:** `server/tests/test_ask_which_indication.py`, committed failing first (11 failed, 6 passed). Then the replay's four cases, also committed failing first (4 failed). `test_a25_unit_mismatch.py`: the push-dose epinephrine unit lines move to a push-dose question, because an anaphylaxis question is now offered the anaphylaxis entry only. The push dose stated in an anaphylaxis answer still holds, as "not the signed dose" rather than "wrong unit". Suite: 2,762 passed; the 9 failures are the same 9 that fail on main with this runner (distill, a22 fallback, model_returned, full-answer logging).
+**Tests:** `server/tests/test_ask_which_indication.py`, committed failing first (11 failed, 6 passed). Then the replay's four cases, also committed failing first (4 failed). After the owner's review: "first, none removed" and the three restored doses, committed failing first (9 failed; with `test_a25_unit_mismatch.py` back to main's, 2 more). Suite: 2,765 passed; the 9 failures are the same 9 that fail on main with this runner (distill, a22 fallback, model_returned, full-answer logging).
 
-**Replay** (main `fcc9ce5` against this branch; `replay-out/` in the worktree):
+**Replay** (main `fcc9ce5` against this branch, after the owner's review; `replay-out/` in the worktree):
 - served answers (1,738), held answers (308) and gate (1,408) are byte-identical: those replays use the ALLOWED_DOSES recorded at the time.
-- **Live logs (2,771): 0 newly held, 0 newly released.** 34 rows differ, all held on both trees. 5 are real: their hold message lists fewer allowed values (the pain entries only), and one ketamine-drip-for-pain answer gains a second issue (160 mg, the RSI dose). The other 29 are the synthetic paediatric ketamine card: on both trees the replay reads its NASEMSO "max 25 mg initial / 100 mg cumulative" caution as a dose, and 25 mg no longer matches a cross-indication entry.
-- **Pipeline (806): 16 rows change, each read.**
-  - **11 newly asked:**
-    - "Need versed dose" ×3 and "versed dose IM" → agitation or sedation. There is no adult IM midazolam entry.
-    - "can I give midazolam to settle him for the move" ×2 → agitation or sedation.
-    - "epinephrine 1:1000 or 1:10000 for this, and what volume", "how much epi for THIS patient" and "how much epi for this little one" → cardiac arrest, bradycardia or anaphylaxis.
-    - "keppra loading dose" and "levetiracetam loading dose for him" → TBI seizure prophylaxis or seizure.
-  - **5 narrowed:**
-    - "epi dose for cardiac arrest" and "how much epi, sorry pi, for the arrest" lose anaphylaxis 0.3 mg and the 10 mcg push dose;
-    - "midazolam dose for sedation" and "midazolam infusion for a ventilated patient" lose the agitated-patient 5 mg;
-    - "organophosphate poisoning, atropine dose" loses the bradycardia 1 mg.
-  - The first replay also asked three that should not have been: refractory shock, "norepinephrine not epinephrine", and the keppra dilution question. Each became a failing test and is no longer asked.
+- **Live logs (2,771): 0 newly held, 0 newly released.** 4 rows differ, all real ketamine-for-pain answers held on both trees: the hold message lists the same allowed values with the pain entries first.
+- **Pipeline (806): 11 rows change, all newly asked, each read; no ALLOWED_DOSES set changes.**
+  - "Need versed dose" ×3 and "versed dose IM" → agitation or sedation. There is no adult IM midazolam entry.
+  - "can I give midazolam to settle him for the move" ×2 → agitation or sedation.
+  - "epinephrine 1:1000 or 1:10000 for this, and what volume", "how much epi for THIS patient" and "how much epi for this little one" → cardiac arrest, bradycardia or anaphylaxis.
+  - "keppra loading dose" and "levetiracetam loading dose for him" → TBI seizure prophylaxis or seizure.
+- The first replay also asked three that should not have been: refractory shock, "norepinephrine not epinephrine", and the keppra dilution question. Each became a failing test and is no longer asked. The first revision's 5 narrowed rows are identical to main now.
 
 ### D1: evaluation hygiene (one PR; done, #112)
 
