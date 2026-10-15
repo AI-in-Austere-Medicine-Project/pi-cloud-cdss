@@ -75,7 +75,7 @@ def test_a_held_answer_logs_the_hold_text_and_the_model_text(monkeypatch):
     monkeypatch.setattr(providers, "chat", lambda system, messages, **k: (
         '{"result":"SAFE","issues":[],"rationale":"stub"}'
         if "Clinical Safety Validator" in (system or "") else HELD_MODEL_TEXT))
-    q = "80kg male, femur fracture, what do I give for pain"
+    q = "80kg male, femur fracture, what do I give for severe pain"
     result = oc._query_with_rag_internal(q, _Retrieval(), conversation_history=[])
     assert result["response"].startswith("Clinical safety hold."), result["response"][:120]
     entry = _log(result, q)
