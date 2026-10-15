@@ -204,3 +204,19 @@ def test_mild_with_rr_8_shows_an_advisory_and_changes_nothing_else(seen):
     control = run(q.replace("RR 8", "RR 16"))
     assert oc.SEVERITY_ADVISORY_HEADING.strip() not in control["response"]
     assert r["validator_result"] == control["validator_result"], (r["validator_issues"], control["validator_issues"])
+
+
+# ── replay (2026-10-15): the question must say what will actually be offered ──
+
+def test_with_no_weight_the_question_says_which_drugs_need_one():
+    """"Need to know what pain med to give" (H-SESS-043, live) was told
+    "severe → ketamine, fentanyl, morphine dosing"; with no weight only the
+    fixed doses resolve, so the line must not promise a weight-based one."""
+    q = "Need to know what pain med to give"
+    _a, text = oc.pre_gate(q, _ctx(q))
+    severe = next(l for l in text.splitlines() if re.match(r"\W*severe\b", l, re.I))
+    offered = severe.split("→")[1].split("(")[0]
+    assert "ketamine" not in offered and "morphine" not in offered, severe
+    assert "need a weight" in severe and "ketamine" in severe, severe
+    got = {d.drug for d in oc.build_allowed_doses(q + ". Pain severity: severe", _ctx(q))}
+    assert got <= set(re.findall(r"[a-z]+", offered)), (got, severe)
