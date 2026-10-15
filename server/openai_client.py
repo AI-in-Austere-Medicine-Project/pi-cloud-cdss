@@ -1467,7 +1467,8 @@ def indication_matched(query: str, doses: list) -> list:
 # Live: "Need to give ketamine 89kg IV established", then "500", was offered
 # all 12 signed ketamine entries, and the model served post-intubation
 # sedation to a patient who was not intubated. A drug named with no indication
-# is now asked about, the way the vial is, and the answer selects the entries.
+# is now asked about, the way the vial is, and the answer puts that
+# indication's doses first; none is removed (owner, #165 review).
 #
 # Each class is (name, the word the question offers, what an entry's label
 # says, what a question says). The labels are read in order, so the specific
@@ -1533,24 +1534,28 @@ def stated_indication_classes(text: str) -> set:
     return {name for name, _w, _l, cue in INDICATION_CLASSES if re.search(cue, low)}
 
 
-def narrowed_to_stated_indication(query: str, doses: list) -> list:
-    """For each named drug whose offers span more than one class, keep the
-    offers in the classes the question states. A drug offered in one class, a
-    drug not named (a role filled by indication), and a question stating none
-    of the drug's classes are left as they are — the last is pre_gate's to ask."""
+def stated_indication_first(query: str, doses: list) -> list:
+    """For each named drug whose offers span more than one class, the offers in
+    the classes the question states go first; nothing is removed.
+
+    Owner, 2026-10-15 (#165 review): "do NOT narrow the dose sets ... never
+    silently removes clinically valid doses from the formulary." The question
+    is asked, and its answer surfaces that indication's doses at the head of
+    ALLOWED_DOSES; every other signed entry stays offered and checkable. The
+    live failure was the model serving the first entry, so first is where the
+    stated indication's dose goes."""
     if not doses or drug_contracts is None:
         return list(doses or [])
     named = set(drug_contracts.resolve_drugs(query.lower()))
     stated = stated_indication_classes(query)
-    out = []
-    for d in doses:
-        if d.drug in named:
-            classes = {indication_class(x.indication) for x in doses if x.drug == d.drug}
-            keep = classes & stated
-            if len(classes) > 1 and keep and indication_class(d.indication) not in keep:
-                continue
-        out.append(d)
-    return out
+
+    def first(d) -> bool:
+        if d.drug not in named:
+            return False
+        classes = {indication_class(x.indication) for x in doses if x.drug == d.drug}
+        return len(classes) > 1 and indication_class(d.indication) in stated
+
+    return [d for d in doses if first(d)] + [d for d in doses if not first(d)]
 
 
 def which_indication_question(history: str, ctx: PatientContext) -> Optional[str]:
@@ -1864,7 +1869,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         # exception to either.
         if ctx.is_pediatric:
             return []
-        return _finish_doses(narrowed_to_stated_indication(query, indication_matched(
+        return _finish_doses(stated_indication_first(query, indication_matched(
             query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)))), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
@@ -1995,7 +2000,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
-    return _finish_doses(narrowed_to_stated_indication(query, indication_matched(
+    return _finish_doses(stated_indication_first(query, indication_matched(
         query, _without_contraindicated_sux(query, doses))), ctx)
 
 
