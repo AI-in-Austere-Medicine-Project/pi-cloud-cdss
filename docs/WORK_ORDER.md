@@ -843,7 +843,19 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
   - A named drug is not asked.
   - **Soft advisory:** "mild" with RR ≤ 8 (adults; `ADULT_RESPIRATORY_DEPRESSION_RR = 8`) appends a SEVERITY ADVISORY to a served answer. The verdict and the doses are unchanged.
 - **Doctrine** recorded in docs/DESIGN_PRINCIPLES.md: "the system warns conservatively at physiological boundaries, defers to the clinician on judgment calls, and always shows its reasoning. Gates on physiology, advisories on judgment."
-- **Tests:** `server/tests/test_pain_severity.py`, committed failing first (14 failed, 6 controls passed).
+- **Tests:** `server/tests/test_pain_severity.py`, committed failing first (14 failed, 6 controls passed). The replay found the question promising per-kg doses with no weight ("severe → ketamine, fentanyl, morphine" for "Need to know what pain med to give"). That case was committed as a failing test, and each line now names only what the builder would offer and says which drugs need a weight.
+  - Three existing tests whose pain questions were undeclared now declare severity, because they test vitals and logging, not this question: `test_vitals.py` (6 queries) and `test_full_answer_logging.py` (1). The template test passes the new `{trigger}`.
+  - Suite: 2,782 passed. The failures are main's own, with this runner.
+- **Replay on the rulings** (main `fcc9ce5` against `6ea93b1`):
+  - Served (1,738), held (308) and gate (1,408): byte-identical.
+  - Live logs (2,771): **0 newly held.** The 1 release is the tib-fib row approved on 2026-10-14, and the 9 femur rows are held on both trees with the wording change. All 10 are identical to the pre-ruling head `5cadc74`.
+  - **Pipeline (806): 15 rows, all pain questions, 0 newly held.**
+    - **5 declare "severe"** (the femur question; "180 lb male with severe leg pain…" ×3): offered ketamine, fentanyl and morphine, and **no longer acetaminophen**.
+    - **10 are now asked the severity question:**
+      - "80kg male fx to tib fib, need pain meds IV is established" ×3. The approved release is still the log replay's reading of the stored answer, but live it now asks first.
+      - "…multiple arm fractures. He's insignificant pain…" ×3 (speech-to-text for "in significant").
+      - "Need to know what pain med to give" ×3: no weight, so "severe → fentanyl dosing (ketamine, morphine need a weight)".
+      - "femur fracture, screaming in pain, RR is 8…" ×2: "severe → no dose offered (fentanyl, morphine not offered: RR < 10) (ketamine needs a weight)".
 
 ### Signing batch 1, analgesia (owner, 2026-10-14; v1.1)
 
