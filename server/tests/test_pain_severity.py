@@ -220,3 +220,27 @@ def test_with_no_weight_the_question_says_which_drugs_need_one():
     assert re.search(r"needs? a weight", severe) and "ketamine" in severe, severe
     got = {d.drug for d in oc.build_allowed_doses(q + ". Pain severity: severe", _ctx(q))}
     assert got <= set(re.findall(r"[a-z]+", offered)), (got, severe)
+
+
+# ── owner, #164 rulings (2026-10-15): the criteria are routing ───────────────
+
+def test_the_criteria_state_no_drug_and_no_dose():
+    """Accepted as routing with no signed source, on the condition that a
+    description never states a drug or a dose (owner, 2026-10-15)."""
+    import drug_contracts
+    names = {n.lower() for n in drug_contracts.servable_entries()}
+    for d in (drug_contracts.DRUGS or {}).values():
+        names |= {a.lower() for a in d.get("aliases") or []}
+    for level, criteria in oc.PAIN_SEVERITIES:
+        text = criteria.lower()
+        assert not [n for n in names if re.search(rf"\b{re.escape(n)}\b", text)], (level, criteria)
+        assert not re.search(r"\d\s*(?:mg|mcg|g|ml|units?)\b|/kg", text), (level, criteria)
+
+
+def test_every_drug_the_question_names_is_signed_for_pain():
+    import drug_contracts
+    signed = {n for n, _e in drug_contracts.signed_entries_by_indication(("pain",))}
+    for q in (UNDECLARED, "Need to know what pain med to give"):
+        _a, text = oc.pre_gate(q, _ctx(q))
+        named = {w for w in re.findall(r"[a-z]+", text.lower()) if w in drug_contracts.servable_entries()}
+        assert named and named <= signed, (named, signed)
