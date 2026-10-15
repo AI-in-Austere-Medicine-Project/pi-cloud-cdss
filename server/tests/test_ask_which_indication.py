@@ -94,6 +94,9 @@ def test_the_question_does_not_name_a_dose(seen):
     assert "mg" not in r["response"].replace("500 mg", "")
 
 
+ALL_KETAMINE_CLASSES = {"pain", "RSI", "sedation", "agitation", "seizure"}
+
+
 @pytest.mark.parametrize("answer,kept", [
     ("pain", "pain"),
     ("for pain", "pain"),
@@ -101,13 +104,16 @@ def test_the_question_does_not_name_a_dose(seen):
     ("agitation", "agitation"),
     ("seizure", "seizure"),
 ])
-def test_the_answer_selects_the_entries_offered(seen, answer, kept):
+def test_the_answer_puts_that_indications_doses_first_and_removes_none(seen, answer, kept):
+    """Owner, 2026-10-15 (#165 review): ask, then surface the stated
+    indication's doses; never silently remove a valid dose."""
     history = HISTORY_AT_TURN_2 + [{"query": TURN_2, "response": "Which indication for ketamine — ...?"}]
     run(answer, history)
     assert seen["allowed"], f"premise: '{answer}' reaches the dose builder"
-    for drug, ind in seen["allowed"]:
-        if drug == "ketamine":
-            assert oc.indication_class(ind) == kept, (answer, ind)
+    ket = [oc.indication_class(ind) for drug, ind in seen["allowed"] if drug == "ketamine"]
+    n = ket.count(kept)
+    assert n and ket[:n] == [kept] * n, (answer, ket)
+    assert set(ket) == ALL_KETAMINE_CLASSES, (answer, ket)
 
 
 def test_an_answer_that_names_no_indication_is_asked_again(seen):
@@ -118,11 +124,29 @@ def test_an_answer_that_names_no_indication_is_asked_again(seen):
     assert seen["generator"] is None
 
 
-def test_the_post_intubation_dose_is_not_offered_for_pain():
+def test_for_pain_the_pain_dose_comes_before_the_post_intubation_dose():
     h = f"{TURN_1} {TURN_2} pain"
-    offered = {d.indication for d in oc.build_allowed_doses(h, _ctx(h)) if d.drug == "ketamine"}
-    assert offered, "premise: pain is offered"
-    assert not [i for i in offered if "intubation" in i or "sedation" in i], offered
+    offered = [d.indication for d in oc.build_allowed_doses(h, _ctx(h)) if d.drug == "ketamine"]
+    assert oc.indication_class(offered[0]) == "pain", offered
+    post = [i for i, x in enumerate(offered) if "post-intubation" in x]
+    assert post, "the post-intubation entry stays offered"
+    assert max(i for i, x in enumerate(offered) if oc.indication_class(x) == "pain") < post[0], offered
+
+
+@pytest.mark.parametrize("q,drug,kept", [
+    ("epi dose for cardiac arrest", "epinephrine",
+     {"anaphylaxis", "symptomatic bradycardia — push dose"}),
+    ("midazolam dose for sedation", "midazolam",
+     {"agitated or violent patient / behavioural emergency"}),
+    ("organophosphate poisoning, atropine dose", "atropine", {"symptomatic bradycardia"}),
+])
+def test_a_stated_indication_removes_no_dose(q, drug, kept):
+    """The three the first revision narrowed away, restored by the owner."""
+    ctx = _ctx(q)
+    if ctx.dosing_weight_kg is None and drug != "epinephrine":
+        ctx = oc.PatientContext(confirmed_weight_kg=70.0)
+    offered = {d.indication for d in oc.build_allowed_doses(q, ctx) if d.drug == drug}
+    assert kept <= offered, offered
 
 
 # ── where the question must not fire ─────────────────────────────────────────
