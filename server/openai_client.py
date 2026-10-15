@@ -1558,11 +1558,28 @@ def which_indication_question(history: str, ctx: PatientContext) -> Optional[str
     class and the history states none of them; None otherwise."""
     if drug_contracts is None:
         return None
+    low = history.lower()
+    # Not a dose request: "the concentration, not a dose".
+    if re.search(r"\bnot (?:a |the )?dose\b", low):
+        return None
     stated = stated_indication_classes(history)
     offers = build_allowed_doses(history, ctx)
-    for drug in drug_contracts.resolve_drugs(history.lower()):
-        classes = {indication_class(d.indication) for d in offers if d.drug == drug}
-        if len(classes) > 1 and not classes & stated:
+    signed = drug_contracts.servable_entries()
+    for drug in drug_contracts.resolve_drugs(low):
+        # "norepinephrine, not epinephrine" names the drug to rule it out.
+        if re.search(rf"\b(?:not|no)\s+{re.escape(drug)}\b", low):
+            continue
+        # A class the drug is signed for is stated, even where that entry is
+        # not offered as a dose ("epinephrine infusion rate for refractory
+        # shock"): the question is not unclear about the indication.
+        if stated & {indication_class(e["indication"]) for e in signed.get(drug, [])}:
+            continue
+        mine = [d for d in offers if d.drug == drug]
+        # A stated route counts only the entries on it, where there are any.
+        on_route = [d for d in mine if d.route == ctx.route_preference
+                    or (ctx.route_preference == "IV" and d.route == "IO")]
+        classes = {indication_class(d.indication) for d in (on_route or mine)}
+        if len(classes) > 1:
             words = [w for name, w, _l, _c in INDICATION_CLASSES if name in classes]
             return (f"{INDICATION_QUESTION_PREFIX}{drug} — "
                     f"{', '.join(words[:-1])} or {words[-1]}?")
