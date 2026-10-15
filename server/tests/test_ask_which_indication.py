@@ -159,3 +159,31 @@ def test_the_question_lists_only_classes_the_drug_is_signed_for():
     action, text = oc.pre_gate(q, _ctx(q), "")
     assert action == "ASK" and text.startswith("Which indication for midazolam"), text
     assert "pain" not in text and "RSI" not in text, text
+
+
+# ── Narrowed by the replay (2026-10-15): each of these was asked in the first run ──
+
+@pytest.mark.parametrize("q", [
+    # an indication the drug is signed for is stated, though only as an infusion
+    "epinephrine infusion rate for refractory shock",
+    # the turn names the drug to say it is NOT the one
+    "I said norepinephrine not epinephrine, what is the dose",
+    # not a dose request
+    "what is the standard dilution for a keppra bag, I just want the concentration not a dose",
+])
+def test_not_asked(q):
+    action, text = oc.pre_gate(q, _ctx(q), "")
+    assert not (text or "").startswith("Which indication"), (q, text)
+
+
+def test_a_stated_route_with_one_indication_on_it_is_not_asked():
+    q = "epinephrine IM dose and concentration"
+    action, text = oc.pre_gate(q, _ctx(q), "")
+    assert not (text or "").startswith("Which indication"), text
+
+
+def test_a_stated_route_with_several_indications_on_it_is_still_asked():
+    """The transcript: IV stated, and ketamine is signed IV for five classes."""
+    h = f"{TURN_1} {TURN_2}"
+    text = oc.which_indication_question(h, _ctx(h))
+    assert text and text.startswith("Which indication for ketamine"), text
