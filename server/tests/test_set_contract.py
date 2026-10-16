@@ -126,7 +126,7 @@ def test_a_signature_without_a_date_is_refused(sandbox, capsys):
 
 def test_a_sentinel_anywhere_is_refused(sandbox, capsys):
     args = Args(indication="prolonged sedation infusion",
-                population="adult|peds")
+                population="peds")
     assert sc.cmd_sign(args) == 1
     out = capsys.readouterr().out
     assert "REFUSED" in out and "sentinel" in out
@@ -332,7 +332,7 @@ def test_signing_twice_is_a_no_op(sandbox, capsys):
 def test_a_refused_signature_writes_nothing_at_all(sandbox):
     before = sandbox.read_text()
     sc.cmd_sign(Args(indication="prolonged sedation infusion",
-                     population="adult|peds"))
+                     population="peds"))
     assert sandbox.read_text() == before
     assert not sc.CHANGE_LOG.exists()
 

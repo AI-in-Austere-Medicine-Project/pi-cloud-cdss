@@ -37,14 +37,20 @@ ROC_REDOSE = "redose interval"
 KET_INFUSION = "prolonged sedation infusion"
 CEFAZ = "open fracture / wound prophylaxis"
 CEFTRI = "severe bacterial infection / sepsis"
+MIDAZ_PROC_SMOG = "procedural sedation — SMOG (pacing / cardioversion)"
+MIDAZ_VENT_FIXED = "sedation infusion for the ventilated patient — ICU order set (fixed rate)"
+KET_INFUSION_SMOG = "prolonged sedation infusion — SMOG (en route)"
 
 # (drug, indication, population, route): every entry this batch drafts.
 DRAFTS = [
     ("midazolam", MIDAZ_PROC, "adult", "IV"),
+    ("midazolam", MIDAZ_PROC_SMOG, "adult", "IV"),
     ("midazolam", MIDAZ_VENT, "adult", "IV"),
+    ("midazolam", MIDAZ_VENT_FIXED, "adult", "IV"),
     ("rocuronium", ROC_REDOSE, "adult", "IV"),
     ("rocuronium", ROC_REDOSE, "peds", "IV"),
     ("ketamine", KET_INFUSION, "adult", "IV"),
+    ("ketamine", KET_INFUSION_SMOG, "adult", "IV"),
     ("ketamine", KET_INFUSION, "peds", "IV"),
     ("cefazolin", CEFAZ, "adult", "IV"),
     ("cefazolin", CEFAZ, "peds", "IV"),
@@ -52,13 +58,22 @@ DRAFTS = [
     ("ceftriaxone", CEFTRI, "peds", "IV"),
 ]
 
-# Where the sources disagree: the conflict is written out, not settled.
+# Where the sources disagree on the dose: both sides are kept as entries, as in
+# batch 1, and the conflict is written out, not settled.
 CONFLICTS = {
     ("midazolam", MIDAZ_PROC, "adult", "IV"): "midazolam-procedural-sedation-adult",
+    ("midazolam", MIDAZ_PROC_SMOG, "adult", "IV"): "midazolam-procedural-sedation-adult",
     ("midazolam", MIDAZ_VENT, "adult", "IV"): "midazolam-ventilated-infusion-adult",
+    ("midazolam", MIDAZ_VENT_FIXED, "adult", "IV"): "midazolam-ventilated-infusion-adult",
     ("ketamine", KET_INFUSION, "adult", "IV"): "ketamine-sedation-infusion-rate",
-    ("cefazolin", CEFAZ, "adult", "IV"): "cefazolin-weight-band",
-    ("ceftriaxone", CEFTRI, "adult", "IV"): "ceftriaxone-sepsis-administration",
+    ("ketamine", KET_INFUSION_SMOG, "adult", "IV"): "ketamine-sedation-infusion-rate",
+}
+
+# Where the sources differ on something other than the dose: flagged, not a
+# conflict group (the dose they give is the same).
+DISAGREE = {
+    ("cefazolin", CEFAZ, "adult", "IV"): "WEIGHT_BAND_OPTION_IN_SOURCE",
+    ("ceftriaxone", CEFTRI, "adult", "IV"): "ADMINISTRATION_TIME_DIFFERS",
 }
 
 # No JTS/SMOG page states the dose: the entry stays marked incomplete.
@@ -70,6 +85,7 @@ INCOMPLETE = [
 # missing part is a NEEDS_MANUAL_ENTRY caution, so it cannot be signed as is.
 PARTLY_STATED = {
     ("midazolam", MIDAZ_VENT, "adult", "IV"): ("titration step", "mix"),
+    ("midazolam", MIDAZ_VENT_FIXED, "adult", "IV"): ("starting rate",),
     ("ketamine", KET_INFUSION, "peds", "IV"): ("starting rate", "mix"),
 }
 
@@ -157,6 +173,13 @@ def test_a_conflict_is_flagged_grouped_and_written_out(key):
     assert "SOURCE_CONFLICT" in e["flags"]
     assert e["conflict_group"] == CONFLICTS[key]
     assert "CONFLICT" in e["extraction_notes"]
+
+
+@pytest.mark.parametrize("key", list(DISAGREE), ids=_ids)
+def test_a_non_dose_disagreement_is_flagged_and_written_out(key):
+    e, _ = _entry(*key)
+    assert DISAGREE[key] in e["flags"] and "SOURCE_CONFLICT" not in e["flags"]
+    assert "owner question" in e["extraction_notes"]
 
 
 def test_the_ketamine_start_rate_is_the_highlighted_row_and_stays_visual():

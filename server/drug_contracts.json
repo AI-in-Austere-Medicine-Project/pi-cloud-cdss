@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "77 of 124 dose entries across 17 of 36 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "77 of 129 dose entries across 17 of 36 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -203,36 +203,316 @@
         },
         {
           "indication": "prolonged sedation infusion",
-          "population": "adult|peds",
+          "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.5,
+            "max": 2.0,
+            "units": "mg/kg/hr",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity to ketamine or any component of the formulation (SMOG CY24 p.127)",
+            "Conditions that cannot tolerate sustained increases in blood pressure: non-traumatic intracerebral hemorrhage, hypertension associated with acute coronary syndrome; NOT contraindicated in TBI (SMOG CY24 p.127)"
           ],
           "cautions": [
-            "Preceded by a 1 mg/kg IV/IO loading dose over 60 seconds.",
-            "JTS ID61 mix: 750 mg (1.5 vials of 500 mg/5 mL) in 250 mL normal saline = a 3 mg/mL solution.",
-            "JTS ID61 adjustment step: increase or decrease by 0.25 mg/kg/h (one table row).",
-            "JTS ID61 dose band spans 0.5 mg/kg/h (8 mcg/kg/min) upward through 1.25 mg/kg/h (21 mcg/kg/min) in the printed table."
+            {
+              "tier": "serve",
+              "text": "Give the 1 mg/kg IV/IO loading dose over 60 seconds first (JTS ID61 p.9)."
+            },
+            {
+              "tier": "serve",
+              "text": "Start at 1.5 mg/kg/h (25 mcg/kg/min): the row JTS ID61 Appendix B highlights (p.9). With a dial-flow adaptor and ID61's mix (750 mg in 250 mL normal saline, 3 mg/mL), that is the casualty’s weight in kg divided by 2, in mL/h. The highlight is visual only (NEEDS_VISUAL_CONFIRMATION)."
+            },
+            {
+              "tier": "serve",
+              "text": "Adjust by 0.25 mg/kg/h, one table row, at a time (JTS ID61 p.9; SMOG p.127)."
+            },
+            {
+              "tier": "serve",
+              "text": "A continuous drip may take an hour to take full effect or wear off; increase or decrease it gradually (JTS ID61 p.8)."
+            },
+            {
+              "tier": "serve",
+              "text": "Respiratory depression at higher doses (over 1 mg/kg), especially with fast IV/IO administration (JTS ID61 p.11)."
+            },
+            {
+              "tier": "serve",
+              "text": "Use with caution in cardiovascular disease; monitor cardiac function continuously (SMOG p.127)."
+            },
+            {
+              "tier": "serve",
+              "text": "The mL/h figures hold only for ID61's 3 mg/mL mix; SMOG's chart uses 1 mg/mL (SMOG p.128)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
             {
               "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables, p.9",
               "tier": 1,
               "source_class": "JTS",
-              "url": "https://jts.health.mil/assets/docs/cpgs/Analgesia_and_Sedation_Management_during_PFC_11_May_2017_ID61.pdf",
-              "retrieved_date": "2026-08-25"
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 9,
+              "pdf_page": 9,
+              "supports": "loading dose; mix 3 mg/mL; dial-flow start (weight / 2 mL/h); step 0.25 mg/kg/h",
+              "quote": "Sedation loading dose first (1mg/kg IV/IO over 60 seconds). MIX: 750mg (1.5 vials of 500mg/5mL) in 250mL of normal saline (3mg/mL solution). … initial drip rate in mL/h equals the casualty’s weight in kg divided by 2 (see mL/h table). … Drip adjustments: Increase or decrease drip by 0.25mg/kg/h (1 row)."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Ketamine Drip Dosing Tables — mL/h table, p.9",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 9,
+              "pdf_page": 9,
+              "supports": "start 1.5 mg/kg/h (the row is highlighted in the rendered page, not in the text); table band 0.5-2.0 mg/kg/h",
+              "quote": "starting dose highlighted … 0.5 8 7* 10 13 17 … 1.5 25 20 30 40 50 … 2.0 33 27 40 53 67"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix A, footnote 4, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 8,
+              "pdf_page": 8,
+              "supports": "caution: onset and offset take an hour",
+              "quote": "A continuous ketamine drip may take an hour to take full effect or wear off. Always start with a loading dose and augment with an effective dose of opioid and/or midazolam if additional sedation is needed. Increase or decrease drip gradually."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Ketamine (Ketalar), p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 11,
+              "pdf_page": 11,
+              "supports": "conflicting: 1 mg/kg/h non-intubated, 1-2 mg/kg/h intubated; respiratory caution",
+              "quote": "Nonintubated: 1mg/kg/h … Intubated 1–2mg/kg/h … Respiratory depression at higher doses (>1mg/kg), especially with fast administration IV/IO"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (ADULT column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "conflicting: 1-3 mg/kg/hr; step 0.25 mg/kg/hr",
+              "quote": "IV Continuous Infusion • 0.5-2mg/kg bolus then 1-3 mg/kg/hr. Titrate levels by 0.25mg/kg/hr."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine (Ketalar) infusion chart, p.128",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 128,
+              "pdf_page": 128,
+              "supports": "conflicting: mix 1 mg/mL",
+              "quote": "MIX 500 mg/500 mL CONCENTRATION 1 mg/mL"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — TBI Management and Basic Neurosurgery in the Deployed Environment, CPG ID30, 15 Sep 2023 — Sedation, p.24",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 24,
+              "pdf_page": 24,
+              "supports": "conflicting (Role 3 neuro-ICU): 20-100 mcg/kg/min",
+              "quote": "Ketamine infusion dosage ranges are from 20mcg/kg/min up to 100mcg/kg/min"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications / Precautions, p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "contraindications; cardiovascular caution",
+              "quote": "Hypersensitivity to ketamine or any component of the formulation … Conditions that cannot tolerate sustained increases in blood pressure (non-traumatic intracerebral hemorrhage, hypertension associated with acute coronary syndrome; NOT contraindicated in TBI) … Children <3 mo. age … Use with caution in patients with cardiovascular disease. Continuously monitor cardiac function"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "extraction_notes": "PARTIALLY EXTRACTED — the STARTING rate is not written in the text. JTS ID61's table marks it by HIGHLIGHTING a row ('starting dose highlighted'), which is a visual cue the text layer does not carry. The mix, the adjustment step and the dose band are recorded above because they are stated in prose. The start rate is left NEEDS_MANUAL_ENTRY rather than inferred from the table, and there is a second reason to look at the page: ID61's 'Better' rule (initial mL/h = weight in kg divided by 2) does not reconcile with the mL/h column for the rows this extraction could read, so read the page before filling it.",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Redrafted 2026-10-16 (signing batch 2); was adult|peds with no dose. JTS ID61 p.9: the start is marked by shading a row; rendered, the shaded row is 1.5 mg/kg/h (25 mcg/kg/min), shaded in all three tables. ID61's dial-flow rule (weight / 2 mL/h at 3 mg/mL) gives 3 x (W/2) / W = 1.5 mg/kg/h at every weight, and the printed 1.5 row reads 20/30/40/50 mL/h at 40/60/80/100 kg, so the rule and the highlight agree (the old note said they did not reconcile, and gave the band as 0.5-1.25; the table runs 0.5-2.0 mg/kg/h). The dose range drafted is the table's printed band; no source states a maximum. CONFLICT on the rate: ID61's own Appendix D (p.11) gives 1 mg/kg/h non-intubated and 1-2 mg/kg/h intubated; SMOG p.127 gives 1-3 mg/kg/hr; ID30 p.24 (Role 3 neuro-ICU) 20-100 mcg/kg/min. CONFLICT on the mix: ID61 3 mg/mL, SMOG 1 mg/mL. ID61's drip-count tables have several arithmetic errors (100 kg at 0.5 mg/kg/h printed 1/9, calculated about 1/14); only mg/kg/h is drafted. Split from adult|peds: SMOG's paediatric range tops out at 1 mg/kg/hr, below the adult start.",
           "flags": [
-            "NEEDS_VISUAL_CONFIRMATION"
+            "NEEDS_VISUAL_CONFIRMATION",
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-sedation-infusion-rate"
+        },
+        {
+          "indication": "prolonged sedation infusion — SMOG (en route)",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 3.0,
+            "units": "mg/kg/hr",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity to ketamine or any component of the formulation (SMOG CY24 p.127)",
+            "Conditions that cannot tolerate sustained increases in blood pressure: non-traumatic intracerebral hemorrhage, hypertension associated with acute coronary syndrome; NOT contraindicated in TBI (SMOG CY24 p.127)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Bolus 0.5-2 mg/kg, then the infusion; adjust by 0.25 mg/kg/hr to appropriate sedation (SMOG p.127)."
+            },
+            {
+              "tier": "serve",
+              "text": "SMOG's chart mixes 500 mg in 500 mL (1 mg/mL); its mL/h figures hold only for that mix (SMOG p.128)."
+            },
+            {
+              "tier": "serve",
+              "text": "Use with caution in cardiovascular disease; monitor cardiac function continuously (SMOG p.127)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (ADULT column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "dose 1-3 mg/kg/hr after a 0.5-2 mg/kg bolus; step 0.25 mg/kg/hr",
+              "quote": "IV Continuous Infusion • 0.5-2mg/kg bolus then 1-3 mg/kg/hr. Titrate levels by 0.25mg/kg/hr."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine (Ketalar) infusion chart, p.128",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 128,
+              "pdf_page": 128,
+              "supports": "mix 1 mg/mL",
+              "quote": "MIX 500 mg/500 mL CONCENTRATION 1 mg/mL"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications / Precautions, p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "contraindications; cardiovascular caution",
+              "quote": "Hypersensitivity to ketamine or any component of the formulation … Conditions that cannot tolerate sustained increases in blood pressure (non-traumatic intracerebral hemorrhage, hypertension associated with acute coronary syndrome; NOT contraindicated in TBI) … Children <3 mo. age … Use with caution in patients with cardiovascular disease. Continuously monitor cardiac function"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the sedation-infusion rate conflict. SMOG CY24 p.127 adult: 0.5-2 mg/kg bolus, then 1-3 mg/kg/hr, titrated by 0.25; its chart (p.128) mixes 1 mg/mL. CONFLICT with JTS ID61 Appendix B (start 1.5 mg/kg/h, table 0.5-2.0 mg/kg/h, 3 mg/mL). Also recorded, not drafted: ID61's own Appendix D (1 mg/kg/h non-intubated, 1-2 intubated) and ID30 p.24 (Role 3 neuro-ICU, 20-100 mcg/kg/min). SMOG's chart has three arithmetic errors and runs 15-60 mcg/kg/min against its own 17-50 header; only mg/kg/hr is drafted.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "ketamine-sedation-infusion-rate"
+        },
+        {
+          "indication": "prolonged sedation infusion",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 0.5,
+            "max": 1.0,
+            "units": "mg/kg/hr",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity to ketamine or any component of the formulation (SMOG CY24 p.127)",
+            "Age < 3 months (SMOG CY24 p.127)"
+          ],
+          "min_age_months": 3,
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "NEEDS_MANUAL_ENTRY: starting rate and mix. SMOG gives the paediatric range only; ID61's adult start (1.5 mg/kg/h) is above it."
+            },
+            {
+              "tier": "serve",
+              "text": "Adjust by 0.25 mg/kg/hr (SMOG p.127)."
+            },
+            {
+              "tier": "serve",
+              "text": "Always reference the Broselow tape (SMOG p.127)."
+            },
+            {
+              "tier": "serve",
+              "text": "SMOG's paediatric note: avoid sub-dissociative doses to prevent emergence phenomenon (SMOG p.127)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Dose and Administration (PEDIATRIC column), p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "range 0.5-1 mg/kg/hr; step 0.25 mg/kg/hr; emergence note",
+              "quote": "PEDIATRIC Always Reference BROSELOW Tape … IV Continuous Infusion: • 0.5-1 mg/kg/hr. Titrate levels by 0.25mg/kg/hr PRN to achieve appropriate sedation. … Avoid sub-dissociative doses to prevent emergence phenomenon."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Ketamine, Contraindications, p.127",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 127,
+              "pdf_page": 127,
+              "supports": "contraindications; age floor",
+              "quote": "Hypersensitivity to ketamine or any component of the formulation … Conditions that cannot tolerate sustained increases in blood pressure (non-traumatic intracerebral hemorrhage, hypertension associated with acute coronary syndrome; NOT contraindicated in TBI) … Children <3 mo. age"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2), split from the adult|peds entry. SMOG CY24 p.127 PEDIATRIC column is the only source with a paediatric infusion figure: 0.5-1 mg/kg/hr, titrated by 0.25. No source states a paediatric starting rate or mix (NEEDS_MANUAL_ENTRY caution); ID61's tables start at 40 kg and its highlighted start (1.5 mg/kg/h) is above SMOG's paediatric ceiling. The SMOG note 'Avoid sub-dissociative doses' sits in the same column; recorded verbatim. Age floor 3 months as on the signed paediatric ketamine entries.",
+          "flags": [
+            "STARTING_RATE_NOT_IN_SOURCE"
           ]
         },
         {
@@ -2442,23 +2722,292 @@
       "dose_entries": [
         {
           "indication": "redose interval",
-          "population": "adult|peds",
+          "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity (e.g., anaphylaxis) to rocuronium, other neuromuscular-blocking agents, or any component of the formulation (SMOG CY24 p.155)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Repeat every 30-45 minutes as needed (SMOG p.155)."
+            },
+            {
+              "tier": "serve",
+              "text": "SMOG prints a range of 0.6-1.2 mg/kg, and an infusion of 8-12 mcg/kg/min as the alternative (SMOG p.155)."
+            },
+            {
+              "tier": "serve",
+              "text": "SMOG labels this maintenance dose 'unlabeled and unreferenced' (SMOG p.155)."
+            },
+            {
+              "tier": "serve",
+              "text": "Provides no analgesia or sedation: give sedation and analgesia before paralysis and throughout maintenance (SMOG p.155; JTS ID92 p.6; ID91 p.37)."
+            },
+            {
+              "tier": "serve",
+              "text": "Neuromuscular blockade is recommended only for those trained and practiced in its use (JTS ID39 p.12)."
+            },
+            {
+              "tier": "serve",
+              "text": "Resistance may occur in burns over 30% of the body, for 5-70 days after injury (SMOG p.155)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Dose and Administration (ADULT column), p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "dose 1 mg/kg; every 30-45 minutes PRN; range; infusion",
+              "quote": "Maintenance dosing: (unlabeled and unreferenced dose) IV Push: • 1 mg/kg IV/IO q30-45min PRN or 8-12 mcg/kg/min IV/IO (Dosing ranges from 0.6-1.2 mg/kg)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Adverse Reactions / Precautions, p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "caution: no sedation or analgesia",
+              "quote": "Provides NO analgesia or sedation! … Must provide appropriate sedation and analgesia prior to paralytic use and throughout maintenance."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Contraindications, p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "contraindication",
+              "quote": "Hypersensitivity (e.g., anaphylaxis) to rocuronium, other neuromuscular-blocking agents, or any component of the formulation"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Adverse Reactions / Precautions, p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "caution: burn resistance",
+              "quote": "Resistance may occur in burn patients (>30% of body) for period of 5-70 days after injury"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Neuromuscular blockade, p.12",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 12,
+              "pdf_page": 12,
+              "supports": "caution: trained users only",
+              "quote": "Neuromuscular blockade (succinylcholine, rocuronium, vecuronium, etc.) is only recommended for use by those trained and practiced in its use."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Mechanical Ventilation Basics, CPG ID92, 09 Apr 2025 — WARNING, p.6",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Mechnical_Ventilation_Basics_09_Apr_2025_ID92.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 6,
+              "pdf_page": 6,
+              "supports": "caution: never paralyse without sedation",
+              "quote": "Never paralyze a patient who has not received sedation"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Special Considerations, Patient Monitoring During Sedation, p.37",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 37,
+              "pdf_page": 37,
+              "supports": "caution: never paralyse without sedation",
+              "quote": "Under no circumstances should paralytics be used without analgesia/sedation"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.3.0-draft",
-          "extraction_notes": "Still NEEDS_MANUAL_ENTRY. Neither JTS ID39 nor ID40 states a rocuronium redose interval; both give the intubating dose only. NASEMSO and WHO do not list rocuronium at all."
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The old note ('neither JTS ID39 nor ID40 states a redose interval') holds for every JTS document, the 2026 ID39 included, but SMOG CY24 p.155 prints a maintenance dose: adult 1 mg/kg IV/IO every 30-45 minutes PRN, or 8-12 mcg/kg/min, range 0.6-1.2 mg/kg. It is the only source, and SMOG itself labels it '(unlabeled and unreferenced dose)'. No JTS page gives a maintenance figure; the COVID-19 austere CPG's maintenance dosing is for vecuronium and is not carried across. Split from the adult|peds entry: the paediatric column differs (no infusion, no PRN). No maximum stated.",
+          "flags": [
+            "SINGLE_SOURCE_UNREFERENCED"
+          ]
+        },
+        {
+          "indication": "redose interval",
+          "population": "peds",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 1.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity (e.g., anaphylaxis) to rocuronium, other neuromuscular-blocking agents, or any component of the formulation (SMOG CY24 p.155)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Repeat every 30-45 minutes (SMOG p.155)."
+            },
+            {
+              "tier": "serve",
+              "text": "SMOG prints a range of 0.6-1.2 mg/kg and no paediatric infusion (SMOG p.155)."
+            },
+            {
+              "tier": "serve",
+              "text": "SMOG labels this maintenance dose 'unlabeled and unreferenced' (SMOG p.155)."
+            },
+            {
+              "tier": "serve",
+              "text": "Always reference the Broselow tape (SMOG p.155)."
+            },
+            {
+              "tier": "serve",
+              "text": "Provides no analgesia or sedation: give sedation and analgesia before paralysis and throughout maintenance (SMOG p.155; JTS ID92 p.6; ID91 p.37)."
+            },
+            {
+              "tier": "serve",
+              "text": "Neuromuscular blockade is recommended only for those trained and practiced in its use (JTS ID39 p.12)."
+            },
+            {
+              "tier": "serve",
+              "text": "Resistance may occur in burns over 30% of the body, for 5-70 days after injury (SMOG p.155)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Dose and Administration (PEDIATRIC column), p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "dose 1 mg/kg; every 30-45 minutes; range",
+              "quote": "Maintenance bolus dosing: (unlabeled and unreferenced dose) IV Push: • 1 mg/kg every 30-45 minutes (Dosing ranges from 0.6 - 1.2 mg/kg.)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Dose and Administration header, p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "caution: Broselow tape",
+              "quote": "PEDIATRIC Always Reference BROSELOW Tape"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Adverse Reactions / Precautions, p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "caution: no sedation or analgesia",
+              "quote": "Provides NO analgesia or sedation! … Must provide appropriate sedation and analgesia prior to paralytic use and throughout maintenance."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Contraindications, p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "contraindication",
+              "quote": "Hypersensitivity (e.g., anaphylaxis) to rocuronium, other neuromuscular-blocking agents, or any component of the formulation"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rocuronium, Adverse Reactions / Precautions, p.155",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 155,
+              "pdf_page": 155,
+              "supports": "caution: burn resistance",
+              "quote": "Resistance may occur in burn patients (>30% of body) for period of 5-70 days after injury"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Airway Management in Trauma, CPG ID39, 28 Jan 2026 — Neuromuscular blockade, p.12",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 12,
+              "pdf_page": 12,
+              "supports": "caution: trained users only",
+              "quote": "Neuromuscular blockade (succinylcholine, rocuronium, vecuronium, etc.) is only recommended for use by those trained and practiced in its use."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Mechanical Ventilation Basics, CPG ID92, 09 Apr 2025 — WARNING, p.6",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Mechnical_Ventilation_Basics_09_Apr_2025_ID92.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 6,
+              "pdf_page": 6,
+              "supports": "caution: never paralyse without sedation",
+              "quote": "Never paralyze a patient who has not received sedation"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Special Considerations, Patient Monitoring During Sedation, p.37",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 37,
+              "pdf_page": 37,
+              "supports": "caution: never paralyse without sedation",
+              "quote": "Under no circumstances should paralytics be used without analgesia/sedation"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2), split from the adult|peds entry. SMOG CY24 p.155 PEDIATRIC column: maintenance bolus 1 mg/kg every 30-45 minutes, range 0.6-1.2 mg/kg; no infusion and no PRN (the adult column's infusion is not carried across). SMOG labels it '(unlabeled and unreferenced dose)'. No JTS page gives a paediatric maintenance figure (ID39 2026 p.28 gives the intubating dose only). No maximum stated.",
+          "flags": [
+            "SINGLE_SOURCE_UNREFERENCED"
+          ]
         },
         {
           "indication": "RSI paralytic",
@@ -3418,47 +3967,206 @@
           "indication": "open fracture / wound prophylaxis",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": {
+            "value": 12.0,
+            "units": "g",
+            "rule": "maximum 12 g per day"
+          },
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity to cefazolin, other cephalosporin antibiotics, other beta-lactams, or any component of the formulation (SMOG CY24 p.103)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Every 6-8 hours (JTS ID24 p.11; SMOG p.64)."
+            },
+            {
+              "tier": "serve",
+              "text": "Duration: skin and soft tissue without open fracture, 24 hours; open fracture, exposed bone or open joint, 24 hours, then again with each subsequent I&D until soft tissue coverage (JTS ID24 p.11)."
+            },
+            {
+              "tier": "serve",
+              "text": "Give within 3 hours of injury (JTS ID24 p.9)."
+            },
+            {
+              "tier": "serve",
+              "text": "Some cross-reactions occur in penicillin allergy; use with caution (SMOG p.103)."
+            },
+            {
+              "tier": "serve",
+              "text": "ID24 and SMOG also allow dosing by body mass: 1 g under 80 kg, 2 g at 81-160 kg, 3 g over 160 kg (JTS ID24 p.12; SMOG p.103)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Infection Prevention in Combat-related Injuries, CPG ID24, 27 Jan 2021 — Appendix B, Table 1. Post-Injury Antimicrobial Agent Selection and Duration (Extremity Wounds), p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 11,
+              "pdf_page": 11,
+              "supports": "dose 2 g IV every 6-8 hours; duration (24 hours; open fracture: then with each I&D until soft tissue coverage)",
+              "quote": "Skin, soft tissue, no open fractures … Skin, soft tissue, with open fractures, exposed bone, or open joints … Cefazolin, 2 gm IV q6-8h†‡ … 24 hours initially and repeat with each subsequent I&D until soft tissue coverage."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Infection Prevention in Combat-related Injuries, CPG ID24, 27 Jan 2021 — Appendix B, Table 1, footnote †, p.12",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 12,
+              "pdf_page": 12,
+              "supports": "conflicting: weight bands (1 g under 80 kg; 2 g 81-160 kg; 3 g over 160 kg); 12 g daily",
+              "quote": "†Cefazolin may be dosed based on body mass: 1 gram if weight < 80 kg (176 lbs), 2 grams if weight 81-160 kg (177-352 lbs), 3 grams if weight > 160 kg (>352 lbs); doses up to 12 grams daily are supported by FDA-approved package insert."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Antibiotic Therapy Chart (Extremity Wounds), p.64",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 64,
+              "pdf_page": 64,
+              "supports": "corroborates: 2 g every 6-8 hours; durations",
+              "quote": "Cefazolin 2g q 6-8hrs 24 hours … Cefazolin 2g q 6-8hrs 24 hours, then with each subsequent I&D until soft tissue coverage"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Cefazolin, Dose and Administration (ADULT column), p.103",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 103,
+              "pdf_page": 103,
+              "supports": "conflicting: weight bands; 1-2 g every 6-8 hours; maximum 12 g/day",
+              "quote": "Routine dosing may be based on body mass: 1g if weight <80kg 2g if weight 81-160 kg (177-352 lbs), 3g if weight > 160 kg (>352 lbs) Max dose is 12g per day … 1-2g every 6-8hrs"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Infection Prevention in Combat-related Injuries, CPG ID24, 27 Jan 2021 — Appendix A, Table 1 — Role 1 and Role 2 without surgical support, p.9",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 9,
+              "pdf_page": 9,
+              "supports": "timing: within 3 hours of injury",
+              "quote": "Provide intravenous antimicrobials for open wounds (Appendix B) within 3 hours of injury."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Cefazolin, Contraindications, p.103",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 103,
+              "pdf_page": 103,
+              "supports": "contraindications; penicillin cross-reaction caution",
+              "quote": "Hypersensitivity to cefazolin, other cephalosporin antibiotics, other beta-lactams, or any component of the formulation … Some cross reactions occur in those with penicillin allergies. Use with caution."
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2); was NOT_IN_SOURCE from the NASEMSO search alone. JTS ID24 Appendix B Table 1 p.11 and the SMOG antibiotic chart p.64: cefazolin 2 g IV every 6-8 hours; 24 hours for skin and soft tissue, and for open fractures 24 hours then with each subsequent I&D until soft tissue coverage. Maximum 12 g/day (ID24 footnote †; SMOG p.103). WEIGHT BANDS (an option in the same CPG, not a conflict between sources; owner question): ID24 footnote † and SMOG p.103 allow weight bands (1 g under 80 kg, 2 g 81-160 kg, 3 g over 160 kg) against the tables' flat 2 g; the bands leave 80-81 kg undefined, and SMOG's adult column also says '1-2g every 6-8hrs'. The flat 2 g is drafted; the owner rules. Not drafted, for the owner to place: the other ID24 rows (penetrating brain, spine, chest, maxillofacial, abdominal with metronidazole), the single pre-surgical dose (ID24 p.9), and the ventriculostomy regimen (ID30 p.13). No timed intra-operative re-dose and no IM/IO dose is printed. ID91 Table 12 (p.38) ranks cefazolin 'Better' behind the TCCC agents (ertapenem, moxifloxacin) when TCCC supplies are limited; at a surgical role ID24 makes it the preferred agent.",
           "flags": [
-            "NOT_IN_SOURCE"
+            "WEIGHT_BAND_OPTION_IN_SOURCE"
           ]
         },
         {
           "indication": "open fracture / wound prophylaxis",
           "population": "peds",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 20.0,
+            "max": 30.0,
+            "units": "mg/kg",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity to cefazolin, other cephalosporin antibiotics, other beta-lactams, or any component of the formulation (SMOG CY24 p.103)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Every 6-8 hours (JTS ID24 p.12; SMOG p.103)."
+            },
+            {
+              "tier": "serve",
+              "text": "Maximum 100 mg/kg/day (JTS ID24 p.12; SMOG p.103)."
+            },
+            {
+              "tier": "serve",
+              "text": "Duration as for the adult indication (JTS ID24 Table 1, p.11)."
+            },
+            {
+              "tier": "serve",
+              "text": "Some cross-reactions occur in penicillin allergy; use with caution (SMOG p.103)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Infection Prevention in Combat-related Injuries, CPG ID24, 27 Jan 2021 — Appendix B, Table 1, footnote ‡ (Pediatric dosing), p.12",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 12,
+              "pdf_page": 12,
+              "supports": "dose 20-30 mg/kg IV every 6-8 hours; maximum 100 mg/kg/day",
+              "quote": "‡Pediatric dosing: cefazolin, 20-30 mg/kg IV q6-8h (maximum, 100 mg/kg/day)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Cefazolin, Dose and Administration (PEDIATRIC column), p.103",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 103,
+              "pdf_page": 103,
+              "supports": "corroborates: same dose and maximum",
+              "quote": "20-30 mg/kg IV q 6-8h (maximum, 100 mg/kg/day)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Cefazolin, Contraindications, p.103",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 103,
+              "pdf_page": 103,
+              "supports": "contraindications; penicillin cross-reaction caution",
+              "quote": "Hypersensitivity to cefazolin, other cephalosporin antibiotics, other beta-lactams, or any component of the formulation … Some cross reactions occur in those with penicillin allergies. Use with caution."
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
-          "flags": [
-            "NOT_IN_SOURCE"
-          ]
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). JTS ID24 Table 1 footnote ‡ and SMOG CY24 p.103 PEDIATRIC column agree: 20-30 mg/kg IV every 6-8 hours, maximum 100 mg/kg/day. The daily maximum is a serve caution: max_cumulative holds a mass, and a per-kg daily cap is not a unit the engine computes (owner question). No per-dose gram cap is printed, and none is derived from the mg/kg figure.",
+          "flags": []
         }
       ],
       "notes": "Part of the rank-7 'antibiotics' probe group (7 queries total, shared across cefazolin, ertapenem, moxifloxacin and ceftriaxone)."
@@ -3594,23 +4302,107 @@
           "indication": "severe bacterial infection / sepsis",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 2.0,
+            "max": 2.0,
+            "units": "g",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "History of anaphylaxis or allergy to cephalosporins (JTS ID24 p.11: use the non-cephalosporin regimen)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Every 24 hours (JTS ID91 p.40; ID83 p.8)."
+            },
+            {
+              "tier": "serve",
+              "text": "Give IV/IO over 10 minutes (ID83, Better) or over 30 minutes (ID83, Best); SMOG gives slow IV push or in 100 cc NS by gravity (SMOG p.38)."
+            },
+            {
+              "tier": "serve",
+              "text": "SMOG's sepsis protocol gives ceftriaxone for the immunocompetent patient (SMOG p.38)."
+            },
+            {
+              "tier": "serve",
+              "text": "No source states a duration for sepsis; PCC antibiotics are generally given daily for seven to 10 days (JTS ID91 p.38)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Sepsis Treatment, Table 14. Sepsis Treatments/Interventions, p.40",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 40,
+              "pdf_page": 40,
+              "supports": "dose 2 g IV/IO every 24 hours",
+              "quote": "ceftriaxone 2 grams IV/IO every 24 hrs"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Sepsis Management in Prolonged Field Care, CPG ID83, 28 Oct 2020 — Treatment, Antimicrobial Therapy, p.8",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 8,
+              "pdf_page": 8,
+              "supports": "corroborates 2 g IV/IO every 24 hours; conflicting administration time (10 vs 30 minutes)",
+              "quote": "ceftriaxone (Rocephin) 2 grams IV/IO given over 10 minutes q24hrs. … Ceftriaxone (Rocephin) 2 gm IV/IO q24 hrs given over 30 minutes"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Sepsis/Fever protocol, Treatment, p.38",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 38,
+              "pdf_page": 38,
+              "supports": "corroborates 2 g; conflicting administration (slow push or 100 cc NS); immunocompetent",
+              "quote": "Ceftriaxone 2 g slow IV push or in 100 cc NS flow to gravity (immunocompetent)"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Antibiotics, Sepsis, and Other Drugs - PCC, Background, p.38",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 38,
+              "pdf_page": 38,
+              "supports": "general PCC duration (not ceftriaxone-specific)",
+              "quote": "Antibiotics should be given daily for seven to 10 days, depending on the type of antibiotic given"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Infection Prevention in Combat-related Injuries, CPG ID24, 27 Jan 2021 — Appendix B, Table 1 (Central Nervous System Wounds), p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 11,
+              "pdf_page": 11,
+              "supports": "contraindication: cephalosporin allergy",
+              "quote": "For patients with a history of anaphylaxis or allergies to cephalosporins"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2); was NOT_IN_SOURCE from the NASEMSO search alone. JTS ID91 p.40, ID83 p.8 and SMOG p.38 agree on 2 g; ID91 and ID83 give every 24 hours, SMOG no interval. SOURCES DISAGREE on administration only (the dose agrees; owner question): ID83 gives 'over 10 minutes' (Better tier) and 'over 30 minutes' (Best tier) for the same dose; SMOG gives slow IV push or in 100 cc NS. No source states a duration or maximum for sepsis. LABEL: no source says 'severe bacterial infection'; they say sepsis (owner question: relabel). In ID91 and ID83 ceftriaxone alone is 'Better' and ceftriaxone plus vancomycin plus metronidazole is 'Best'; the vancomycin figure differs between them (ID91 1.5 mg/kg, ID83 15 mg/kg), a finding for the vancomycin entry, not this one. Not drafted, for the owner to place: penetrating TBI (ID63 p.8, p.20; ID24 p.11, 2 g every 24 hours, duration differs) and severe pneumonia co-infection (COVID-19 austere CPG p.17).",
           "flags": [
-            "NOT_IN_SOURCE"
+            "ADMINISTRATION_TIME_DIFFERS"
           ]
         },
         {
@@ -3621,19 +4413,56 @@
           "max_single": "NEEDS_MANUAL_ENTRY",
           "max_cumulative": "NEEDS_MANUAL_ENTRY",
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "History of anaphylaxis or allergy to cephalosporins (JTS ID24 p.11)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Neonates: do not give with IV calcium gluconate (risk of calcium-ceftriaxone precipitation) (SMOG p.102)."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Sepsis/Fever protocol, Treatment, p.38",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 38,
+              "pdf_page": 38,
+              "supports": "checked: an adult protocol, no paediatric dose",
+              "quote": "Ceftriaxone 2 g slow IV push or in 100 cc NS flow to gravity (immunocompetent)"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Infection Prevention in Combat-related Injuries, CPG ID24, 27 Jan 2021 — Appendix B, Table 1, footnote ‡ (Pediatric dosing), p.12",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 12,
+              "pdf_page": 12,
+              "supports": "checked: the only paediatric ceftriaxone dose is for CNS injury, not sepsis",
+              "quote": "ceftriaxone, 100 mg/kg/day IV divided q12-24h (dosing for CNS injury)"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Calcium Gluconate, Contraindications, p.102",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 102,
+              "pdf_page": 102,
+              "supports": "caution: neonatal calcium co-administration",
+              "quote": "Concomitant use of IV calcium gluconate and ceftriaxone in neonates (risk of precipitation of calcium- ceftriaxone)"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Searched all 407 pages of NASEMSO v3.0: this drug does not appear anywhere in the guideline. Any Tier 2 (WHO) form/strength already recorded on this entry is retained.",
+          "version": "0.4.0-draft",
+          "extraction_notes": "INCOMPLETE (signing batch 2, 2026-10-16): no JTS or SMOG page states a paediatric ceftriaxone dose for sepsis. SMOG's sepsis protocol (p.38) is adult and has no paediatric column; SMOG has no ceftriaxone monograph. The only paediatric figure in the corpus is ID24's CNS-injury dose (100 mg/kg/day divided q12-24h, no cap printed), which is not carried across to sepsis. NASEMSO has no ceftriaxone. The entry exists so the gap shows; it refuses even if signed.",
           "flags": [
-            "NOT_IN_SOURCE"
+            "DOSE_NOT_IN_SOURCE"
           ]
         }
       ],
@@ -3981,54 +4810,498 @@
           "indication": "procedural sedation",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 1.0,
+            "max": 4.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "Documented hypersensitivity",
-            "Severe respiratory depression",
-            "Sleep apnea"
+            "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines (SMOG CY24 p.140)",
+            "Acute narrow angle glaucoma (SMOG CY24 p.140)",
+            "Acute alcohol intoxication (SMOG CY24 p.140)",
+            "Respiratory insufficiency/depression, except during mechanical ventilation (SMOG CY24 p.140)",
+            "Shock (SMOG CY24 p.140: should not be used in shock)",
+            "Neurologic depression (head trauma), unless having an active seizure (SMOG CY24 p.140)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "An adjunct to a ketamine procedural-sedation bolus: start low, give more (JTS ID61 p.9)."
+            },
+            {
+              "tier": "serve",
+              "text": "If the procedure lasts longer than 10-15 minutes, repeat every 30-60 minutes (JTS ID61 p.9)."
+            },
+            {
+              "tier": "serve",
+              "text": "Have personnel and equipment for standard respiratory resuscitation ready (JTS ID61 p.12)."
+            },
+            {
+              "tier": "serve",
+              "text": "Respiratory depression, especially when given with any narcotic (JTS ID91 p.35)."
+            },
+            {
+              "tier": "serve",
+              "text": "No analgesic properties (SMOG p.140)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
           "sources": [
             {
-              "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (March 2022) — Appendix III. Medications, p.387 (NASEMSO states this appendix's class/contraindication content derives from medscape.com, accessed 2021-10-23)",
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix B: Procedural Sedation, p.9",
               "tier": 1,
-              "url": "https://nasemso.org/wp-content/uploads/National-Model-EMS-Clinical-Guidelines_2022.pdf",
-              "retrieved_date": "2026-08-24",
-              "source_class": "NASEMSO"
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 9,
+              "pdf_page": 9,
+              "supports": "dose 1-4 mg IV/IO as a ketamine adjunct; repeat every 30-60 minutes",
+              "quote": "Procedural Sedation … Step 2: Consider adding (start low, give more): … 1–4mg midazolam IV/IO … Step 3: May need to repeat doses as below if procedure lasts longer than 10–15 minutes. … Midazolam every 30–60 minutes"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Appendix D: Recommended Pain and Sedation Medication — Midazolam (Versed), p.12",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 12,
+              "pdf_page": 12,
+              "supports": "resuscitation caution",
+              "quote": "Personnel and equipment needed for standard respiratory resuscitation should be available during midazolam administration."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Dose and Administration (ADULT column), p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "conflicting: 2.5-5 mg every 15-30 minutes (pacing / cardioversion, anxiety, agitation)",
+              "quote": "Transcutaneous Pacing / Cardioversion, Anxiety, Agitation. IV • 2.5-5mg q 15-30 min PRN"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Bradycardia with Pulse, p.41",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 41,
+              "pdf_page": 41,
+              "supports": "conflicting: 2-5 mg for sedation before pacing",
+              "quote": "Consider sedation: Midazolam 2-5mg IV / IO"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Tachycardia w/ Pulse, p.46",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 46,
+              "pdf_page": 46,
+              "supports": "conflicting: 2-5 mg for sedation before cardioversion",
+              "quote": "Consider Sedation: Midazolam 2-5mg IV / IO"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Prolonged Casualty Care Guidelines, CPG ID91, 21 Dec 2021 — Table 10. PCC Role-based Guideline for Pain Management (Analgesia and Sedation), p.35",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 35,
+              "pdf_page": 35,
+              "supports": "conflicting: 0.5-1 mg IV for sedation and anxiolysis; respiratory caution",
+              "quote": "For sedation and anxiolysis; … will also cause anterograde … amnesia … 0.5-1mg IV (push slowly over … Respiratory depression ESPECIALLY … when used with any narcotic"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Contraindications, p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines … Acute narrow angle glaucoma, Acute Alcohol Intoxication … Respiratory Insufficiency/Depression (except during mechanical ventilation) … Should not be used in shock … Neurologic Depression (Head Trauma) (unless having active seizure)"
             }
           ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.2.0-draft",
-          "extraction_notes": "NASEMSO indexes midazolam for seizures, uncontrolled shivering in hypothermia, and agitated/violent patients — NOT for procedural sedation. No dose for this indication in either approved source.",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The dose is JTS ID61 p.9, the only page that labels a midazolam dose 'Procedural Sedation': 1-4 mg IV/IO, added to a ketamine bolus, repeated every 30-60 minutes for a long procedure. CONFLICT: SMOG CY24 p.140 gives 2.5-5 mg every 15-30 minutes under 'Transcutaneous Pacing / Cardioversion, Anxiety, Agitation'; SMOG p.41 and p.46 give 2-5 mg for sedation before pacing or cardioversion (SMOG disagrees with itself on the lower bound); JTS ID91 p.35 gives 0.5-1 mg IV for sedation and anxiolysis. NASEMSO gives no procedural-sedation dose (confirmed). No source states a maximum. ID61 p.12 also says 'IM: not recommended', so no IM entry is drafted.",
           "flags": [
-            "NO_DOSE_IN_SOURCE"
-          ]
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "midazolam-procedural-sedation-adult"
+        },
+        {
+          "indication": "procedural sedation — SMOG (pacing / cardioversion)",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 2.5,
+            "max": 5.0,
+            "units": "mg",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines (SMOG CY24 p.140)",
+            "Acute narrow angle glaucoma (SMOG CY24 p.140)",
+            "Acute alcohol intoxication (SMOG CY24 p.140)",
+            "Respiratory insufficiency/depression, except during mechanical ventilation (SMOG CY24 p.140)",
+            "Shock (SMOG CY24 p.140: should not be used in shock)",
+            "Neurologic depression (head trauma), unless having an active seizure (SMOG CY24 p.140)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Repeat every 15-30 minutes as needed (SMOG p.140)."
+            },
+            {
+              "tier": "serve",
+              "text": "Do not give without a stable IV line and BVM ready (SMOG p.140)."
+            },
+            {
+              "tier": "serve",
+              "text": "No analgesic properties (SMOG p.140)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Dose and Administration (ADULT column), p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "dose 2.5-5 mg every 15-30 minutes (pacing / cardioversion, anxiety, agitation)",
+              "quote": "Transcutaneous Pacing / Cardioversion, Anxiety, Agitation. IV • 2.5-5mg q 15-30 min PRN"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Bradycardia with Pulse, p.41",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 41,
+              "pdf_page": 41,
+              "supports": "corroborates in part: 2-5 mg before pacing (lower bound differs)",
+              "quote": "Consider sedation: Midazolam 2-5mg IV / IO"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Tachycardia w/ Pulse, p.46",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 46,
+              "pdf_page": 46,
+              "supports": "corroborates in part: 2-5 mg before cardioversion (lower bound differs)",
+              "quote": "Consider Sedation: Midazolam 2-5mg IV / IO"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Adverse Reactions / Precautions, p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "cautions",
+              "quote": "May Cause Respiratory depression: Do not give without stable IV line and BVM (airway control) ready … No Analgesic properties"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Contraindications, p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines … Acute narrow angle glaucoma, Acute Alcohol Intoxication … Respiratory Insufficiency/Depression (except during mechanical ventilation) … Should not be used in shock … Neurologic Depression (Head Trauma) (unless having active seizure)"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the adult procedural-sedation conflict, kept so neither is dropped silently. SMOG CY24 p.140: 2.5-5 mg IV every 15-30 minutes PRN, under 'Transcutaneous Pacing / Cardioversion, Anxiety, Agitation'; SMOG's own algorithm pages (p.41, p.46) print 2-5 mg. CONFLICT with JTS ID61 p.9 (1-4 mg IV/IO as a ketamine adjunct, every 30-60 minutes). The owner rules which serves.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "midazolam-procedural-sedation-adult"
         },
         {
           "indication": "sedation infusion for the ventilated patient",
           "population": "adult",
           "route": "IV",
-          "dose_range": "NEEDS_MANUAL_ENTRY",
-          "max_single": "NEEDS_MANUAL_ENTRY",
-          "max_cumulative": "NEEDS_MANUAL_ENTRY",
+          "dose_range": {
+            "min": 0.05,
+            "max": 0.1,
+            "units": "mg/kg/hr",
+            "per_kg": true
+          },
+          "max_single": null,
+          "max_cumulative": null,
           "contraindications": [
-            "NEEDS_MANUAL_ENTRY"
+            "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines (SMOG CY24 p.140)",
+            "Acute narrow angle glaucoma (SMOG CY24 p.140)",
+            "Acute alcohol intoxication (SMOG CY24 p.140)",
+            "Respiratory insufficiency/depression, except during mechanical ventilation (SMOG CY24 p.140)",
+            "Shock (SMOG CY24 p.140: should not be used in shock)",
+            "Neurologic depression (head trauma), unless having an active seizure (SMOG CY24 p.140)"
           ],
           "cautions": [
-            "NEEDS_MANUAL_ENTRY"
+            {
+              "tier": "serve",
+              "text": "Give a 0.05 mg/kg IV bolus first, then start the infusion (SMOG p.140; SMOG RSI maintenance p.12)."
+            },
+            {
+              "tier": "serve",
+              "text": "NEEDS_MANUAL_ENTRY: titration step and mix. No source states either; SMOG says only titrate, ID29 titrates to RASS -1 to 0."
+            },
+            {
+              "tier": "serve",
+              "text": "A continuous infusion often prolongs the effect (fat storage, active metabolites): use intermittent sedation whenever feasible (JTS ID29 p.11)."
+            },
+            {
+              "tier": "serve",
+              "text": "Avoid in renal or liver dysfunction (JTS ID29 p.25)."
+            },
+            {
+              "tier": "serve",
+              "text": "In prolonged field care, use a ketamine drip with midazolam pushes if needed; multiple drips are not recommended (JTS ID61 p.5)."
+            },
+            {
+              "tier": "serve",
+              "text": "No analgesic properties: intubated trauma patients need narcotic pain control (SMOG p.140)."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Dose and Administration (ADULT column), p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "dose: 0.05 mg/kg bolus, then 0.05-0.1 mg/kg/hr",
+              "quote": "Infusion sedation 0.05 mg/kg bolus IV, then titrate 0.05-0.1mg/kg/hr. IV gtt"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Rapid Sequence Intubation, Medications — Maintenance, p.12",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 12,
+              "pdf_page": 12,
+              "supports": "corroborates: same bolus and range",
+              "quote": "Midazolam 0.05 mg/kg IVP or 0.05 mg/kg bolus then 0.05-0.1mg/kg/hr."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Appendix H: Sedation Orders — Continuous Infusion, p.25",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 25,
+              "pdf_page": 25,
+              "supports": "conflicting: fixed 1-6 mg/hr; renal/liver caution; RASS target",
+              "quote": "midazolam (aka VERSED) IV infusion (avoid in renal/liver dysfunction) mg/hr (1-6 mg/hr), Intravenous, CONTINUOUS. … Titrate sedation to RASS score of -1 to 0"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Sedation Holiday & Intermittent Medication Dosing, p.11",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 11,
+              "pdf_page": 11,
+              "supports": "caution: prolonged effect; prefer intermittent",
+              "quote": "administration as a continuous infusion will often result in a prolonged duration of action and effect due to fat storage an accumulation of active metabolites. It is recommended that intermitted sedation be used whenever feasible."
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Burn Care, CPG ID12, 10 Jun 2025 — Appendix A: Physician's Order Set — Analgesia/Sedation/PRN Medications, p.24",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Burn_Care_CPG_10_June_2025_ID12.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 24,
+              "pdf_page": 24,
+              "supports": "conflicting: titrate up to 10 mg/hr",
+              "quote": "Versed gtt at _____ mg/hr, titrate up to 10 mg/hr"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Analgesia and Sedation Management during Prolonged Field Care, CPG ID61, 11 May 2017 — Medications, p.5",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 5,
+              "pdf_page": 5,
+              "supports": "caution: a ketamine drip in prolonged field care",
+              "quote": "If a continuous drip is selected, use only a ketamine drip in most situations, augmented by push doses of opioid and/or midazolam if needed."
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Adverse Reactions / Precautions, p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "caution: no analgesia",
+              "quote": "No Analgesic properties"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Contraindications, p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines … Acute narrow angle glaucoma, Acute Alcohol Intoxication … Respiratory Insufficiency/Depression (except during mechanical ventilation) … Should not be used in shock … Neurologic Depression (Head Trauma) (unless having active seizure)"
+            }
+          ],
           "signoff": false,
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.1.0-draft",
-          "extraction_notes": "Tier 1 (NASEMSO) returned HTTP 403 to every retrieval attempt at build time; Tier 2 (WHO EML) lists dosage forms and strengths but states no dose regimen for this indication. No value written — a dose is never guessed."
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The dose is SMOG CY24 p.140 (repeated on the RSI page, p.12): 0.05 mg/kg IV bolus, then 0.05-0.1 mg/kg/hr. CONFLICT on the form and the ceiling: JTS ID29 p.25 (ICU order set) gives a fixed 1-6 mg/hr, and the Burn Care order set (ID12 p.24) titrates up to 10 mg/hr; at 80 kg SMOG's range is 4-8 mg/hr. SMOG's weight-based figure is drafted because it is the only one stated as a dose rather than an order-set range; the owner rules. No source states a titration step or a mix (NEEDS_MANUAL_ENTRY caution). The Burn Care PDF (file ID12) prints 'ID:20' in its page header; the bank cites ID12, as for the fentanyl infusion.",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "midazolam-ventilated-infusion-adult"
+        },
+        {
+          "indication": "sedation infusion for the ventilated patient — ICU order set (fixed rate)",
+          "population": "adult",
+          "route": "IV",
+          "dose_range": {
+            "min": 1.0,
+            "max": 6.0,
+            "units": "mg/hr",
+            "per_kg": false
+          },
+          "max_single": null,
+          "max_cumulative": null,
+          "contraindications": [
+            "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines (SMOG CY24 p.140)",
+            "Acute narrow angle glaucoma (SMOG CY24 p.140)",
+            "Acute alcohol intoxication (SMOG CY24 p.140)",
+            "Respiratory insufficiency/depression, except during mechanical ventilation (SMOG CY24 p.140)",
+            "Shock (SMOG CY24 p.140: should not be used in shock)",
+            "Neurologic depression (head trauma), unless having an active seizure (SMOG CY24 p.140)"
+          ],
+          "cautions": [
+            {
+              "tier": "serve",
+              "text": "Titrate sedation to RASS -1 to 0 (JTS ID29 p.25)."
+            },
+            {
+              "tier": "serve",
+              "text": "Avoid in renal or liver dysfunction (JTS ID29 p.25)."
+            },
+            {
+              "tier": "serve",
+              "text": "Stop intermittent dosing once the infusion starts (JTS ID29 p.25)."
+            },
+            {
+              "tier": "serve",
+              "text": "The Burn Care order set titrates up to 10 mg/hr (JTS ID12 p.24)."
+            },
+            {
+              "tier": "serve",
+              "text": "NEEDS_MANUAL_ENTRY: starting rate. Both order sets leave it blank."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no maximum single dose for this drug and indication."
+            },
+            {
+              "tier": "detail",
+              "text": "The cited guideline states no cumulative maximum for this drug and indication."
+            }
+          ],
+          "sources": [
+            {
+              "citation": "JTS Clinical Practice Guideline — Pain, Anxiety and Delirium, CPG ID29, 26 Apr 2021 — Appendix H: Sedation Orders — Continuous Infusion, p.25",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 25,
+              "pdf_page": 25,
+              "supports": "dose 1-6 mg/hr; RASS target; renal/liver caution",
+              "quote": "midazolam (aka VERSED) IV infusion (avoid in renal/liver dysfunction) mg/hr (1-6 mg/hr), Intravenous, CONTINUOUS. Stop intermittent dosing if continuous infusion initiated and notify Pharmacy. Titrate sedation to RASS score of -1 to 0"
+            },
+            {
+              "citation": "JTS Clinical Practice Guideline — Burn Care, CPG ID12, 10 Jun 2025 — Appendix A: Physician's Order Set — Analgesia/Sedation/PRN Medications, p.24",
+              "tier": 1,
+              "source_class": "JTS",
+              "url": "local:server/data/jts_protocols/Burn_Care_CPG_10_June_2025_ID12.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 24,
+              "pdf_page": 24,
+              "supports": "ceiling 10 mg/hr; start rate blank",
+              "quote": "Versed gtt at _____ mg/hr, titrate up to 10 mg/hr"
+            },
+            {
+              "citation": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24 — Midazolam, Contraindications, p.140",
+              "tier": 1,
+              "source_class": "SMOG",
+              "url": "local:server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf",
+              "retrieved_date": "2026-10-16",
+              "page": 140,
+              "pdf_page": 140,
+              "supports": "contraindications",
+              "quote": "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines … Acute narrow angle glaucoma, Acute Alcohol Intoxication … Respiratory Insufficiency/Depression (except during mechanical ventilation) … Should not be used in shock … Neurologic Depression (Head Trauma) (unless having active seizure)"
+            }
+          ],
+          "signoff": false,
+          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
+          "review_date": "PENDING_CLINICAL_SIGNOFF",
+          "version": "0.4.0-draft",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the ventilated-infusion conflict. JTS ID29 p.25 (ICU sedation order set): 1-6 mg/hr, start blank; the Burn Care order set (ID12 p.24) titrates up to 10 mg/hr, start blank. CONFLICT with SMOG CY24 p.140 (0.05 mg/kg bolus, then 0.05-0.1 mg/kg/hr, weight-based). No source states a starting rate for this side (NEEDS_MANUAL_ENTRY caution).",
+          "flags": [
+            "SOURCE_CONFLICT"
+          ],
+          "conflict_group": "midazolam-ventilated-infusion-adult"
         },
         {
           "indication": "agitated or violent patient / behavioural emergency",
