@@ -64,8 +64,8 @@ def seen(monkeypatch):
     out = {"allowed": None, "generator": None, "validator": None}
     real = oc.build_allowed_doses
 
-    def build(history, ctx):
-        doses = real(history, ctx)
+    def build(history, ctx, **kw):
+        doses = real(history, ctx, **kw)
         out["allowed"] = [d.drug for d in doses]
         return doses
 

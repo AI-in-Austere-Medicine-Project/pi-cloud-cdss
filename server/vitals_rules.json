@@ -34,6 +34,18 @@
     "          the alternatives and preserves respiratory drive; flagging it would",
     "          push a medic away from the safer agent.",
     "",
+    "          {trigger} in a caution sentence is the rule's own threshold,",
+    "          written from `when` (\"RR < 10\"), so the sentence cannot drift",
+    "          from the number that arms it. The warning shows its reasoning",
+    "          (owner, #164 review, 2026-10-15).",
+    "",
+    "          respiratory_depressant_low_rr stays at RR < 10 for every age. The",
+    "          owner's ruling is that RR <= 8 is respiratory depression, inclusive;",
+    "          < 10 already arms at 8, and moving it to <= 8 would loosen it at 9",
+    "          (owner, 2026-10-15). Paediatric RR thresholds belong in an",
+    "          age-banded table, which does not exist yet; until it does,",
+    "          children keep this rule rather than lose it.",
+    "",
     "map       DERIVED, not captured: (SBP + 2*DBP)/3, rounded, recomputed",
     "          whenever either pressure moves and carrying the age of the older",
     "          of the two. The band below therefore only ever validates a MAP a",
@@ -238,7 +250,7 @@
         "diazepam",
         "propofol"
       ],
-      "caution": "{drug} is a respiratory depressant and the recorded RR is {rr}/min. Confirm airway and ventilation support before giving it."
+      "caution": "{drug} is a respiratory depressant and the recorded RR is {rr}/min (caution at {trigger}). Confirm airway and ventilation support before giving it."
     },
     {
       "id": "respiratory_depressant_low_spo2",

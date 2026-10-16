@@ -1216,11 +1216,12 @@ def has_pending_route_sensitive_request(prior_queries: str) -> bool:
 
 
 def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
-             last_response: str = "") -> tuple:
+             last_response: str = "", cue_query: Optional[str] = None) -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
+    `cue_query` is the turn indication cues are read from (severity_cue_query).
     """
     combined_ctx = (prior_queries + " " + query).lower()
     current_or_pending_med_request = (
@@ -1279,6 +1280,15 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
     replying_to_ask = (last_response or "").startswith("Which ")
     if current_or_pending_med_request or replying_to_ask:
         question = which_indication_question(combined_ctx, ctx)
+        if question:
+            return "ASK", question
+
+    # Pain severity (owner, #164 review): asked, never inferred. After weight
+    # and route, which gate the milligrams; outside the dose-request test,
+    # because "what can I give for the pain" is the question it exists for.
+    if _pain_severity_unanswered(f"{prior_queries} {query}".strip(),
+                                 cue_query if cue_query is not None else query):
+        question = pain_severity_question(ctx)
         if question:
             return "ASK", question
 
@@ -1777,37 +1787,293 @@ def _contract_dose_candidates(query: str, ctx: PatientContext) -> List[DoseCandi
     for name, entry in drug_contracts.signed_entries_for(
             query, route=None, is_pediatric=ctx.is_pediatric,
             age_years=ctx.age_years):
-        # Units are resolved by drug_contracts, which converts explicitly and
-        # FAILS CLOSED on anything it does not recognise. This loop used to do
-        # `base * w if per_kg else base` and call the answer milligrams
-        # whatever the entry said, so "25 g" became 25 mg and "10 mcg" became
-        # 10 mg. Nothing downstream could catch it: the volume audit checks a
-        # volume against the STATED milligrams, and a wrongly-parsed dose that
-        # is internally consistent passes.
-        resolved = drug_contracts.resolve_dose(entry, w)
-        if resolved["dose_mg"] is None:
-            # A rate, or a unit we refuse to guess at. Either way it is not a
-            # bolus and must not become a volume.
+        d = _contract_candidate(name, entry, w)
+        if d is not None:
+            out.append(d)
+    return out
+
+
+def _contract_candidate(name: str, entry: dict, w: Optional[float]) -> Optional[DoseCandidate]:
+    """One signed entry as a DoseCandidate, or None when it resolves to no bolus.
+
+    Shared by the drug-named lookup and the indication-only lookup, so a dose
+    is built the same way whichever question reached it.
+    """
+    # Units are resolved by drug_contracts, which converts explicitly and
+    # FAILS CLOSED on anything it does not recognise. This loop used to do
+    # `base * w if per_kg else base` and call the answer milligrams
+    # whatever the entry said, so "25 g" became 25 mg and "10 mcg" became
+    # 10 mg. Nothing downstream could catch it: the volume audit checks a
+    # volume against the STATED milligrams, and a wrongly-parsed dose that
+    # is internally consistent passes.
+    resolved = drug_contracts.resolve_dose(entry, w)
+    if resolved["dose_mg"] is None:
+        # A rate, or a unit we refuse to guess at. Either way it is not a
+        # bolus and must not become a volume.
+        return None
+
+    # A floored dose leads its own cautions. The entry's static cautions
+    # may also name the minimum, but they say it in the abstract; this one
+    # says it happened, to this patient, to the number on the screen.
+    cautions = list(drug_contracts.serve_cautions(entry))
+    if resolved.get("floor_applied"):
+        cautions.insert(0, resolved["floor_note"])
+
+    return DoseCandidate(
+        drug=name, indication=entry["indication"], route=entry["route"],
+        dose_mg=round(resolved["dose_mg"], 4),
+        display_value=resolved["display_value"],
+        display_units=resolved["display_units"],
+        source=_contract_source(name, entry),
+        cautions=cautions,
+        contraindications=list(drug_contracts.serve_contraindications(entry)),
+        dilution=drug_contracts.push_dilution(entry),
+        warning="; ".join(cautions) or None,
+    )
+
+
+# A question that names an injury or an indication but no drug (owner,
+# 2026-10-14; the v1.1 finding from #97). The builder looks doses up by drug
+# name, so "severe pain from a closed femur fracture, what can I give" got an
+# empty ALLOWED_DOSES, the generator wrote a ketamine dose of its own, and the
+# check held it although ketamine analgesia is signed. Each row maps what the
+# CURRENT turn says to the indication labels of signed entries; only signed
+# entries come back, and the check is unchanged.
+#
+# An offer is close to an instruction (the generator must copy a GIVE line
+# when ALLOWED_DOSES is present), so every row is narrow and each exclusion is
+# a case the replay showed:
+# - pain: "pain" or "analgesia", not "fracture" alone ("antibiotic dose for the
+#   open femur fracture", "how do I bind it"); not chest, abdominal or
+#   epigastric pain, which are presentations, not injuries; not when the turn
+#   asks for an antibiotic.
+# - arrest: asystole, cardiac arrest, PEA, VF; not post-arrest or ROSC (a
+#   patient with a pulse), and "pulseless" alone is not a cue (a limb).
+INDICATION_ONLY_LOOKUPS = (
+    (re.compile(r"\b(?:pain|painful|analgesi\w*)\b"),
+     re.compile(r"\b(?:chest|abdominal|abdomen|belly|stomach|epigastric)\s+pain\b|\bantibiotic"),
+     ("pain",)),
+    (re.compile(r"\b(?:asystol\w*|cardiac arrest|pea arrest|pulseless electrical activity"
+                r"|ventricular fibrillation|v-?fib)\b"),
+     re.compile(r"\bpost[- ]?(?:cardiac[- ])?arrest|\brosc\b|return of spontaneous|resuscitated"),
+     ("cardiac arrest",)),
+)
+
+
+def _names_a_proposed_alias(q: str) -> bool:
+    """A drug the bank only PROPOSES as an alias ("keta mean") was probably
+    named: it is not the indication-only case, so nothing is offered for it."""
+    for drug in (drug_contracts.DRUGS or {}).values():
+        for a in drug.get("proposed_aliases") or []:
+            if re.search(rf"\b{re.escape(a.lower())}\b", q):
+                return True
+    return False
+
+
+def indication_only_patterns(query: str, current_query: Optional[str] = None) -> list:
+    """The signed-indication patterns a drugless question selects, or [].
+
+    Read from the current turn: an earlier turn's "pain" is not this turn's
+    question ("he is bleeding out from a leg wound" after a pain question).
+    No drug may be named anywhere in the history, as for the drug lookup.
+    """
+    if drug_contracts is None or drug_contracts.resolve_drugs(query):
+        return []
+    q = (current_query if current_query is not None else query or "").lower()
+    if drug_contracts.resolve_drugs(q) or _names_a_proposed_alias(q):
+        return []
+    return [p for cue, unless, pats in INDICATION_ONLY_LOOKUPS
+            if cue.search(q) and not unless.search(q) for p in pats]
+
+
+# Pain severity is the clinician's to declare (owner, #164 review, 2026-10-15).
+# With #163 signed, acetaminophen ("mild to moderate pain") matched "severe
+# pain" too: the pain row read no severity. Severity is a judgment call, so it
+# is never inferred (not from vitals, not from "screaming"): a drugless pain
+# question that declares none is asked, with each choice's criteria on its
+# own line and what that choice selects. The choice selects the dose set.
+# Doctrine: docs/DESIGN_PRINCIPLES.md.
+PAIN_SEVERITY_QUESTION_PREFIX = "Pain severity?"
+PAIN_SEVERITIES = (
+    ("mild", "NRS 1–3: noticeable, does not limit movement or rest"),
+    ("moderate", "NRS 4–6: limits movement or rest, can still cooperate"),
+    ("severe", "NRS 7–10: cannot move the injured part, pain dominates"),
+)
+_SEVERITY_WORD = r"(mild|moderate|severe)"
+_SEVERITY_RANGE = rf"{_SEVERITY_WORD}(?:\s*(?:to|-|–|/|or)\s*{_SEVERITY_WORD})?"
+_DECLARED_SEVERITY_RES = (
+    re.compile(rf"\b{_SEVERITY_RANGE}\s+(?:\w+\s+){{0,2}}?pain\b"),        # "severe femur pain"
+    re.compile(rf"\bpain(?:\s+severity)?\s*(?:is\s+|:\s*|of\s+)?{_SEVERITY_RANGE}\b"),
+)
+_PAIN_SCORE_RES = (
+    re.compile(r"\bpain\b[^.,;]{0,15}?\b(10|[0-9])\s*/\s*10\b"),
+    re.compile(r"\b(10|[0-9])\s*/\s*10\s+(?:\w+\s+)?pain\b"),
+)
+SEVERITY_ANSWER_RE = re.compile(
+    r"^\W*(?:(?:it'?s|its|pain is|he'?s|she'?s|they'?re)\s+)?(mild|moderate|severe)(?:\s+pain)?\W*$")
+
+
+def _score_severity(score: int) -> Optional[str]:
+    if score <= 0:
+        return None
+    return "mild" if score <= 3 else "moderate" if score <= 6 else "severe"
+
+
+def declared_pain_severity(text: str) -> Optional[frozenset]:
+    """The severities the medic declared, latest declaration wins, or None.
+
+    A word ("severe pain", "pain is mild", "moderate to severe pain") or a
+    stated score ("pain 8/10", read by the same NRS bands the question shows).
+    A range declares both ends. Nothing else counts: no vital, no adjective.
+    """
+    t = (text or "").lower()
+    found = []
+    for rx in _DECLARED_SEVERITY_RES:
+        for m in rx.finditer(t):
+            found.append((m.start(), frozenset(g for g in m.groups() if g)))
+    for rx in _PAIN_SCORE_RES:
+        for m in rx.finditer(t):
+            level = _score_severity(int(m.group(1)))
+            if level:
+                found.append((m.start(), frozenset({level})))
+    return max(found, key=lambda f: f[0])[1] if found else None
+
+
+def entry_pain_severities(indication: str) -> frozenset:
+    """The severities a signed pain entry serves, read from its label.
+
+    "mild to moderate" and "moderate to severe" say so. A label that states
+    none ("acute pain", "breakthrough pain", "background pain") is served at
+    moderate and severe: an opioid or ketamine is not volunteered for pain
+    the medic called mild. Owner to confirm (#164 review).
+    """
+    label = (indication or "").lower()
+    if "mild to moderate" in label:
+        return frozenset({"mild", "moderate"})
+    return frozenset({"moderate", "severe"})
+
+
+def severity_cue_query(query: str, conversation_history: Optional[list]) -> str:
+    """The turn the indication cue is read from.
+
+    A bare answer to the severity question ("severe") carries no "pain"; it is
+    read with the question it answers, so the answer selects the set.
+    """
+    last = (conversation_history or [{}])[-1] or {}
+    if (SEVERITY_ANSWER_RE.match((query or "").lower().strip())
+            and (last.get("response") or "").startswith(PAIN_SEVERITY_QUESTION_PREFIX)):
+        level = SEVERITY_ANSWER_RE.match(query.lower().strip()).group(1)
+        return f"{last.get('query') or ''}. Pain severity: {level}"
+    return query
+
+
+def _pain_entries_by_severity(ctx: PatientContext) -> dict:
+    """{severity: ([drugs offered], {drug withheld: [triggers]}, [drugs that
+    need a weight])} for this patient: what the builder would really offer."""
+    flags = {"ams_stated": ctx.ams_stated}
+    out = {}
+    for level, _criteria in PAIN_SEVERITIES:
+        offered, withheld, unweighed = [], {}, []
+        for name, entry in drug_contracts.signed_entries_by_indication(
+                ("pain",), ctx.is_pediatric, ctx.age_years):
+            if level not in entry_pain_severities(entry["indication"]):
+                continue
+            why = vitals_mod.armed_triggers(name, ctx.vitals, flags)
+            if why:
+                withheld.setdefault(name, why)
+            elif _contract_candidate(name, entry, ctx.dosing_weight_kg) is None:
+                unweighed.append(name)      # a per-kg entry with no weight resolves to nothing
+            elif name not in offered:
+                offered.append(name)
+        out[level] = (offered, {n: w for n, w in withheld.items() if n not in offered},
+                      [n for n in dict.fromkeys(unweighed) if n not in offered and n not in withheld])
+    return out
+
+
+def pain_severity_question(ctx: PatientContext) -> Optional[str]:
+    """Mild / moderate / severe, one line each: the criteria, then what the
+    choice selects for this patient and, where the vitals keep a drug back,
+    the trigger that does. None when the choice would change nothing."""
+    if drug_contracts is None:
+        return None
+    sets = _pain_entries_by_severity(ctx)
+    if len({tuple(sorted(o + u)) for o, _w, u in sets.values()}) < 2:
+        return None
+    lines = [f"{PAIN_SEVERITY_QUESTION_PREFIX} Choose one; it selects the dose set:"]
+    for level, criteria in PAIN_SEVERITIES:
+        offered, withheld, unweighed = sets[level]
+        what = (", ".join(offered) + " dosing") if offered else "no dose offered"
+        line = f"- {level} ({criteria}) → {what}"
+        if withheld:
+            triggers = sorted({t for w in withheld.values() for t in w})
+            line += f" ({', '.join(withheld)} not offered: {'; '.join(triggers)})"
+        if unweighed:
+            line += f" ({', '.join(unweighed)} {'needs' if len(unweighed) == 1 else 'need'} a weight)"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _pain_severity_unanswered(history: str, current_query: Optional[str]) -> bool:
+    """A drugless pain question with no declared severity."""
+    cue = current_query if current_query is not None else history
+    return ("pain" in indication_only_patterns(history, cue)
+            and declared_pain_severity(f"{history} {cue}") is None)
+
+
+SEVERITY_ADVISORY_HEADING = "\n\nℹ️ **SEVERITY ADVISORY**\n"
+ADULT_RESPIRATORY_DEPRESSION_RR = 8      # inclusive; adults only (owner, #164 review)
+
+
+def severity_advisory(history: str, current_query: Optional[str],
+                      ctx: PatientContext) -> Optional[str]:
+    """A soft note when the vitals grossly contradict the declared severity.
+
+    Owner's case: "mild" with RR <= 8. It never blocks, never changes the
+    verdict and never changes the dose set: severity is the clinician's call.
+    Adults only. Paediatric RR thresholds must come from an age-banded table,
+    never this constant, and there is none yet, so a child gets no advisory.
+    """
+    if ctx.is_pediatric:
+        return None
+    cue = current_query if current_query is not None else history
+    if "pain" not in indication_only_patterns(history, cue):
+        return None
+    if declared_pain_severity(f"{history} {cue}") != frozenset({"mild"}):
+        return None
+    rr = (ctx.vitals or {}).get("rr")
+    if rr is None or rr.canonical > ADULT_RESPIRATORY_DEPRESSION_RR:
+        return None
+    return (f"- Severity is recorded as mild, but the recorded RR is {rr.value:g}/min "
+            f"(RR ≤ {ADULT_RESPIRATORY_DEPRESSION_RR}: respiratory depression). "
+            "Reassess; the mild selection stands and nothing is held.")
+
+
+def _indication_only_candidates(query: str, ctx: PatientContext,
+                                current_query: Optional[str] = None) -> List[DoseCandidate]:
+    """Signed entries for the indication a drugless question names.
+
+    A drug the recorded vitals raise a caution against (an opioid at RR 8) is
+    not offered: a medic who names it still gets it, with the caution, but the
+    system does not volunteer it.
+    """
+    patterns = indication_only_patterns(query, current_query)
+    if not patterns:
+        return []
+    flags = {"ams_stated": ctx.ams_stated}
+    cue = current_query if current_query is not None else query
+    severity = declared_pain_severity(f"{query} {cue}") if "pain" in patterns else None
+    out = []
+    for name, entry in drug_contracts.signed_entries_by_indication(
+            patterns, ctx.is_pediatric, ctx.age_years):
+        if vitals_mod.conflicts(f"give {name}", ctx.vitals, flags=flags):
             continue
-
-        # A floored dose leads its own cautions. The entry's static cautions
-        # may also name the minimum, but they say it in the abstract; this one
-        # says it happened, to this patient, to the number on the screen.
-        cautions = list(drug_contracts.serve_cautions(entry))
-        if resolved.get("floor_applied"):
-            cautions.insert(0, resolved["floor_note"])
-
-        out.append(DoseCandidate(
-            drug=name, indication=entry["indication"], route=entry["route"],
-            dose_mg=round(resolved["dose_mg"], 4),
-            display_value=resolved["display_value"],
-            display_units=resolved["display_units"],
-            source=_contract_source(name, entry),
-            cautions=cautions,
-            contraindications=list(drug_contracts.serve_contraindications(entry)),
-            dilution=drug_contracts.push_dilution(entry),
-            warning="; ".join(cautions) or None,
-        ))
+        # The declared severity selects the set; undeclared, the pre-gate asks.
+        if (severity is not None and "pain" in entry["indication"].lower()
+                and not severity & entry_pain_severities(entry["indication"])):
+            continue
+        d = _contract_candidate(name, entry, ctx.dosing_weight_kg)
+        if d is not None:
+            out.append(d)
     return out
 
 
@@ -1831,7 +2097,8 @@ def _finish_doses(doses: List[DoseCandidate],
     return [resolve_dose_volume(d, ctx) for d in unique]
 
 
-def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
+def build_allowed_doses(query: str, ctx: PatientContext,
+                        current_query: Optional[str] = None) -> List[DoseCandidate]:
     """Build route-specific deterministic dose candidates for the current query.
 
     Two paths, and the split is temporary by design:
@@ -1870,7 +2137,8 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
         if ctx.is_pediatric:
             return []
         return _finish_doses(stated_indication_first(query, indication_matched(
-            query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)))), ctx)
+            query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)
+                                                + _indication_only_candidates(query, ctx, current_query)))), ctx)
     w = ctx.dosing_weight_kg
     ped = ctx.is_pediatric
     q = query.lower()
@@ -2000,6 +2268,7 @@ def build_allowed_doses(query: str, ctx: PatientContext) -> List[DoseCandidate]:
             doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
+    doses.extend(_indication_only_candidates(query, ctx, current_query))
     return _finish_doses(stated_indication_first(query, indication_matched(
         query, _without_contraindicated_sux(query, doses))), ctx)
 
@@ -7366,9 +7635,11 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             }
 
         # Step 2l: Standard pre-gate (weight/route) — after all deterministic cases
+        cue_query = severity_cue_query(query, conversation_history)
         gate_action, gate_response = pre_gate(
             query, patient_ctx, prior_queries,
-            last_response=((conversation_history or [{}])[-1] or {}).get("response") or "")
+            last_response=((conversation_history or [{}])[-1] or {}).get("response") or "",
+            cue_query=cue_query)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
             # The "Vial math" chip lands on the which-vial question. Where the
@@ -7414,7 +7685,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
               f"cos {retrieval_cosine(assessment.top_score):.2f})")
 
         # Step 4: Build dose candidates from full history, not only current query.
-        allowed_doses = build_allowed_doses(full_query_history, patient_ctx)
+        allowed_doses = build_allowed_doses(full_query_history, patient_ctx, current_query=cue_query)
         allowed_dose_block = build_allowed_dose_block(allowed_doses)
         print(f"💊 {len(allowed_doses)} dose candidates built")
 
@@ -7566,6 +7837,12 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
                 final_response = with_contract_source_line(
                     final_response, cites, assessment.source_mode == "JTS_GROUNDED")
                 assessment.source_mode = "JTS_GROUNDED"
+        # Severity advisory (owner, #164 review): after the gate, served answers
+        # only, like every label above. Soft: the verdict and the doses stand.
+        advisory = (None if outcome.blocked
+                    else severity_advisory(full_query_history, cue_query, patient_ctx))
+        if advisory:
+            final_response += SEVERITY_ADVISORY_HEADING + advisory
         # The rejected-vital and boundary notices are applied by _finalise, which
         # sees every return path rather than only this one.
 
