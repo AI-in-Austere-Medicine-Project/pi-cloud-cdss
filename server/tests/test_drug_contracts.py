@@ -530,10 +530,15 @@ def test_the_succinylcholine_contraindications_are_filled_from_jts():
 
 def test_the_visual_only_infusion_rate_was_not_guessed():
     """JTS ID61 marks the starting drip rate by HIGHLIGHTING a table row. A
-    highlight is not in the text layer, so the rate is not in this file."""
+    highlight is not in the text layer. Signing batch 2 (2026-10-16) read the
+    rendered page: the shaded row is 1.5 mg/kg/h, which ID61's dial-flow rule
+    (weight / 2 mL/h at 3 mg/mL) also gives. The dose range is the table's
+    printed band; the start rate is a caution, and the flag stays until the
+    owner has looked at the page."""
     e = next(x for x in dc.DRUGS["ketamine"]["dose_entries"]
-             if x["indication"] == "prolonged sedation infusion")
-    assert e["dose_range"] == dc.NEEDS_MANUAL
+             if x["indication"] == "prolonged sedation infusion" and x["population"] == "adult")
+    assert e["dose_range"]["min"] == 0.5 and e["dose_range"]["max"] == 2.0
+    assert e["signoff"] is False
     assert "NEEDS_VISUAL_CONFIRMATION" in e["flags"]
     assert "highlight" in e["extraction_notes"].lower()
 
@@ -594,6 +599,18 @@ STILL_AWAITING_A_RULING = set()
 # ketorolac-im-analgesia-peds: NASEMSO 0.5 mg/kg against SMOG 1 mg/kg.
 # Ruled 2026-10-14 (owner): ketamine IM at 0.5-1.0 mg/kg (JTS/SMOG), NASEMSO
 # left unsigned; ketorolac excluded (SMOG p.129, battlefield trauma). Both closed.
+#
+# 2026-10-16, signing batch 2 (sedation, antibiotics): three new groups for the
+# owner to rule, both sides of each kept as unsigned drafts.
+# midazolam-procedural-sedation-adult: JTS ID61 1-4 mg against SMOG 2.5-5 mg.
+# midazolam-ventilated-infusion-adult: SMOG 0.05-0.1 mg/kg/hr against JTS ID29
+# 1-6 mg/hr. ketamine-sedation-infusion-rate: JTS ID61 0.5-2.0 mg/kg/h (start
+# 1.5) against SMOG 1-3 mg/kg/hr.
+STILL_AWAITING_A_RULING = {
+    "midazolam-procedural-sedation-adult",
+    "midazolam-ventilated-infusion-adult",
+    "ketamine-sedation-infusion-rate",
+}
 
 
 def test_no_source_conflict_is_still_open():
@@ -668,11 +685,11 @@ def test_ruling_3_adult_succinylcholine_is_id39_with_id40_recorded():
 
 
 def test_ruling_4_rocuronium_is_split_by_age():
-    roc = {e["population"]: e["dose_range"]["min"]
-           for e in dc.DRUGS["rocuronium"]["dose_entries"]
-           if isinstance(e["dose_range"], dict)}
+    rsi = [e for e in dc.DRUGS["rocuronium"]["dose_entries"]
+           if e["indication"] == "RSI paralytic"]
+    roc = {e["population"]: e["dose_range"]["min"] for e in rsi}
     assert roc == {"adult": 1.2, "peds": 1.0}, roc
-    for e in dc.DRUGS["rocuronium"]["dose_entries"]:
+    for e in rsi:
         if isinstance(e["dose_range"], dict):
             assert any("CORROBORATING" in c for c in dc.caution_texts(e))
 
