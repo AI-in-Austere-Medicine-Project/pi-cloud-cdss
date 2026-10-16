@@ -98,6 +98,7 @@ Owner asks outside the lettered items:
 | Unsigned contracts inventory (owner, 2026-10-08): the 40 unsigned drug-contract entries and P1, P2, with citations; none clean to sign (39 incomplete drafts; neonatal dextrose and P1, P2 uncertain) | **done**: #146, merged (the inventory); signing the drafts is v1.1 |
 | Contract batch 1, analgesia (owner, 2026-10-08): from the unsigned inventory, analgesia only. One entry is in the class: fentanyl, analgesia infusion, IV, adult (ketamine analgesia and morphine are already signed; ketamine's prolonged sedation infusion and naloxone IN are not analgesia). Drafted at 25-250 mcg/hr from JTS ID29 p.24, capped by ID12 p.24, every source with page and verbatim quote (checked against the PDFs). Starting rate: no source states one, left incomplete. The canine 2-10 mcg/kg/hour (SMOG p.57, MWD ID16) is excluded | **done**: #148, merged (the draft); the entry is unsigned, v1.1 |
 | Signing batch 1, analgesia (owner, 2026-10-14): ketamine (IV/IM/IN, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen, ketorolac, each with a verbatim quote, CPG ID and printed page; unquotable values incomplete; no signatures. Plus the live hold log for the last 7 days, to choose batch 2 | **in review**: ruled 2026-10-14; 8 signed (adult IM ketamine at 0.5–1.0 mg/kg after the owner's read), ketorolac excluded; ready to merge (see the section below) |
+| Which indication (owner, 2026-10-15): a drug named with no indication, where more than one signed indication applies, is asked "which indication?" (like the vial question) instead of being offered every entry; the answer selects the entries. Found live: "Need to give ketamine 89kg IV established", then "500", served post-intubation sedation (44.5 mg) to a patient who was not intubated, validator SAFE | **in review** (see the section below) |
 | D6 bench script uses A22's context (owner, 2026-10-08): bench_remote.sh's tok/s probe asked Ollama for no num_ctx (default 4096: a different setting from the arms, a reload, a silent cut); it now asks for CDSS_LOCAL_NUM_CTX (8192) with truncate false, exported once for every local client and recorded in meta.json. Checked live: 8192, 100% GPU; an oversized prompt is refused, not cut. `make probe` (`ollama run`, a one-line prompt) is unchanged: it cannot set num_ctx and its prompt is short | **done**: #147, merged |
 | 3% NaCl contract, signed at 7.5 g | **done**: #85, merged and deployed |
 | Multi-model benchmark run 3 | **done**: #87, merged and deployed |
@@ -845,6 +846,35 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 - The other two (10-08, gpt-4o-mini, NEEDS_HUMAN_REVIEW) are validator holds: ketamine "without confirmed weight", and crystalloid at BP 70/40.
 - **Since 07-18:** 383 real rows, 83 holds. "No signed dose" holds: ketamine 15, rocuronium 3, all from before the August signing, except the femur question.
 - **So the log can't rank batch 2:** no drug outside batch 1 held for want of a signature this week, and the service was in cloud mode with no keys from 10-12 to 10-14. From the bank and the traffic: (1) the indication-only builder gap (a code change, not signing), the only thing that held this week; (2) midazolam: procedural sedation and the ventilated sedation infusion, both blocked drafts, and "versed" is in real queries; (3) rocuronium redose interval (blocked draft; rocuronium is the second most-asked drug, 18 real queries); (4) ketamine prolonged sedation infusion (blocked draft; ketamine is the most-asked drug, 60 real queries); (5) cefazolin / ceftriaxone (run 3 and A21 found cefazolin doses). Owner to place.
+
+### Which indication (owner, 2026-10-15)
+
+**Owner, 2026-10-15:** "Finding from the live portal: 'Need to give ketamine 89kg IV established' served the post-intubation sedation entry (44.5 mg) to a non-intubated patient; validator SAFE. Dose correct, indication the model's choice. Fix: a drug named with no indication and more than one signed entry applies asks which indication (like the vial question) instead of offering all entries. Failing test from this transcript; replay with each newly held/asked row read."
+
+**The transcript** (session `s-mv9htyti-uw34wb80`, `qwen2.5:3b`): turn 1 asked the vial; turn 2, "500", reached the model with all 12 signed ketamine entries in ALLOWED_DOSES (pain ×4, RSI ×2, post-intubation and ongoing sedation, agitation ×2, refractory seizure ×2), and the model served the first.
+
+**Built:**
+- **Indication classes** (`INDICATION_CLASSES`, `openai_client.py`): each signed label falls in one class (pain, RSI, sedation, agitation, seizure, TBI seizure prophylaxis, cardiac arrest, bradycardia, shock, anaphylaxis, haemorrhage, hypoglycaemia, poisoning, croup, bronchiolitis, neonatal resuscitation, TBI herniation, hyperkalaemia, opioid overdose). Each class has the words a question uses for it. A test fails if a signed label falls in no class, so a new signature can't be offered with no way to ask about it.
+- **The question** (`pre_gate`, after weight, route and vial): when the builder would offer a named drug in more than one class and the history states none of the drug's classes, it asks "Which indication for ketamine — pain, RSI, sedation (already intubated), agitation or seizure?". No dose is stated and the model is not called. It also runs on the reply to a "Which …" question, since "500" is not a dose request in its own words. A reply that names no class is asked again.
+- **The answer puts that indication's doses first; none is removed** (owner, #165 review, 2026-10-15: "do NOT narrow the dose sets ... the system asks for the indication, then surfaces the dose set for that indication — never silently removes clinically valid doses from the formulary"). For a named drug offered in more than one class, the stated class's entries go to the head of ALLOWED_DOSES ("pain" → the pain entries first, then the rest). Every other signed entry stays offered and checkable. The live failure was the model serving the first entry, which is now the stated indication's. A drug offered in one class, a drug not named, and the RSI bundle are unchanged. The first revision removed the other classes' entries; the owner ruled that out, and the three doses it removed are restored by test (epinephrine anaphylaxis and push dose for arrest, midazolam agitation for sedation, atropine bradycardia for organophosphate poisoning).
+- **Not asked:**
+  - a class the drug is signed for is stated, even where its entry is not offered as a dose ("epinephrine infusion rate for refractory shock");
+  - the drug is named only to rule it out ("norepinephrine not epinephrine");
+  - the turn says it is not asking for a dose;
+  - a stated route counts only the entries on that route ("epinephrine IM": anaphylaxis only);
+  - "procedural sedation" is not the post-intubation sedation class.
+
+**Tests:** `server/tests/test_ask_which_indication.py`, committed failing first (11 failed, 6 passed). Then the replay's four cases, also committed failing first (4 failed). After the owner's review: "first, none removed" and the three restored doses, committed failing first (9 failed; with `test_a25_unit_mismatch.py` back to main's, 2 more). Suite: 2,765 passed; the 9 failures are the same 9 that fail on main with this runner (distill, a22 fallback, model_returned, full-answer logging).
+
+**Replay** (main `fcc9ce5` against this branch, after the owner's review; `replay-out/` in the worktree):
+- served answers (1,738), held answers (308) and gate (1,408) are byte-identical: those replays use the ALLOWED_DOSES recorded at the time.
+- **Live logs (2,771): 0 newly held, 0 newly released.** 4 rows differ, all real ketamine-for-pain answers held on both trees: the hold message lists the same allowed values with the pain entries first.
+- **Pipeline (806): 11 rows change, all newly asked, each read; no ALLOWED_DOSES set changes.**
+  - "Need versed dose" ×3 and "versed dose IM" → agitation or sedation. There is no adult IM midazolam entry.
+  - "can I give midazolam to settle him for the move" ×2 → agitation or sedation.
+  - "epinephrine 1:1000 or 1:10000 for this, and what volume", "how much epi for THIS patient" and "how much epi for this little one" → cardiac arrest, bradycardia or anaphylaxis.
+  - "keppra loading dose" and "levetiracetam loading dose for him" → TBI seizure prophylaxis or seizure.
+- The first replay also asked three that should not have been: refractory shock, "norepinephrine not epinephrine", and the keppra dilution question. Each became a failing test and is no longer asked. The first revision's 5 narrowed rows are identical to main now.
 
 ### D1: evaluation hygiene (one PR; done, #112)
 
