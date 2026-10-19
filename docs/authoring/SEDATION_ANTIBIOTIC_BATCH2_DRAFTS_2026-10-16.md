@@ -10,6 +10,32 @@ The owner asked for (2026-10-16): midazolam sedation, rocuronium redose, ketamin
 
 Other well-sourced indications the research found are listed under "Candidates, not drafted" for the owner to place.
 
+## Owner rulings, 2026-10-19
+
+Ruled by Andrew Azelton, signer. Signed by AI-AIM for him with `tools/set_contract.py`.
+
+| Entry | Ruling |
+|---|---|
+| 1. midazolam · procedural sedation · adult · IV, 1–4 mg (ID61 p.9) | **Signed** as the ketamine add-on dose; conflict group `midazolam-procedural-sedation-adult` closed |
+| 2. midazolam · procedural sedation — SMOG · adult · IV, 2.5–5 mg | **Unsigned**: a documented alternate |
+| 3–4. midazolam · ventilated infusion, both sides | **Unsigned; v1.1**: no source gives a start rate or titration. Group `midazolam-ventilated-infusion-adult` stays open |
+| 5–6. rocuronium · redose interval · adult and peds | **Unsigned**: the source calls the dose unreferenced. The hold stands |
+| 7. ketamine · prolonged sedation infusion · adult · IV | The owner confirmed the shaded row on ID61 p.9 is 1.5 mg/kg/h. **Signed**: start 1.5, range 0.5–2.0 mg/kg/h. NEEDS_VISUAL_CONFIRMATION cleared; group `ketamine-sedation-infusion-rate` closed |
+| 8. ketamine · prolonged sedation infusion — SMOG · adult · IV, 1–3 mg/kg/hr | **Unsigned**: a documented alternate |
+| 9. ketamine · prolonged sedation infusion · peds · IV | **Unsigned; v1.1** |
+| 10. cefazolin · open fracture / wound prophylaxis · adult · IV | **Signed**: flat 2 g every 6–8 h, maximum 12 g/day (ID24 p.11). Not the weight bands, which are kept as a detail-tier alternate, never served |
+| 11. cefazolin · open fracture / wound prophylaxis · peds · IV | **Signed**: 20–30 mg/kg every 6–8 h (ID24 p.12); maximum 100 mg/kg/day as a WATCH warning |
+| 12. ceftriaxone · sepsis · adult · IV | **Signed**: 2 g every 24 h, ID91 p.40 primary, ID83 p.8 noted; the infusion speed in WATCH only. **Relabelled "sepsis"** (was "severe bacterial infection / sepsis") |
+| 13. ceftriaxone · sepsis · peds · IV | **Cannot be signed; hold.** Relabelled "sepsis" with the adult entry |
+
+The 12 candidate indications and the midazolam-seizure and vancomycin discrepancies below are v1.1 items, listed in [`UNSIGNED_CONTRACTS_2026-10-08.md`](../UNSIGNED_CONTRACTS_2026-10-08.md).
+
+**Changed in signing.**
+- **Entry 7's serve tier** was 7 lines and 847 characters, over the 5-line, 500-character budget (`test_the_serve_tier_stays_within_budget`). It was tightened to 5 lines and 499 characters without dropping an instruction: the adjust and onset lines merged, the visual-only remark went with the flag, and SMOG's 1 mg/mL mix note moved to the entry's notes (the start line names ID61's 3 mg/mL mix). It was re-signed after the edit.
+- **Entry 10's weight bands** moved to the detail tier, as an alternate recorded and not served. That is a new detail family, added to `test_the_detail_tier_hides_only_these_families` on purpose.
+- **Which-indication classes (#165).** The TBI class read any label containing "prophylaxis", so cefazolin's wound entry would have been classed as TBI seizure prophylaxis, and "sepsis" had no class (`test_every_signed_indication_has_a_class`). Two classes were added ahead of the TBI one: wound infection prophylaxis and sepsis.
+- **Two tests used these drugs as examples of an unsigned dose:** cefazolin 2 g (now signed) and a ketamine drip at 1 mg/kg/hr (now inside the signed band). They now use ertapenem 1 g and ketamine 3 mg/kg/hr, which are still unsigned. The tables below show the drafts as first submitted; `drug_contracts.json` holds the current state.
+
 ## Summary
 
 | # | Drug · indication · population · route | Proposed dose | Max | Repeat | Lead source | Flag |

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.4.0",
   "generated": "2026-08-25",
-  "generated_note": "77 of 129 dose entries across 17 of 36 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
+  "generated_note": "82 of 129 dose entries across 19 of 36 drugs are signed and servable; 6 of those serve on an explicit owner declaration rather than a citation. Every other entry carries signoff:false or fails the fence, and is invisible to the serving path — an unsigned entry is not a weaker answer, it is not an answer. THIS LINE IS DERIVED FROM THE FILE'S OWN CONTENTS by drug_contracts.state_note(); do not hand-edit it.",
   "approved_sources": {
     "tier_1": {
       "citation": "NASEMSO National Model EMS Clinical Guidelines v3.0 (2022)",
@@ -220,31 +220,23 @@
           "cautions": [
             {
               "tier": "serve",
-              "text": "Give the 1 mg/kg IV/IO loading dose over 60 seconds first (JTS ID61 p.9)."
+              "text": "Load 1 mg/kg IV/IO over 60 seconds first (JTS ID61 p.9)."
             },
             {
               "tier": "serve",
-              "text": "Start at 1.5 mg/kg/h (25 mcg/kg/min): the row JTS ID61 Appendix B highlights (p.9). With a dial-flow adaptor and ID61's mix (750 mg in 250 mL normal saline, 3 mg/mL), that is the casualty’s weight in kg divided by 2, in mL/h. The highlight is visual only (NEEDS_VISUAL_CONFIRMATION)."
+              "text": "Start at 1.5 mg/kg/h. With ID61's 3 mg/mL mix (750 mg in 250 mL normal saline) on a dial-flow adaptor, that is the weight in kg divided by 2, in mL/h (JTS ID61 p.9)."
             },
             {
               "tier": "serve",
-              "text": "Adjust by 0.25 mg/kg/h, one table row, at a time (JTS ID61 p.9; SMOG p.127)."
+              "text": "Adjust by 0.25 mg/kg/h at a time, gradually: a drip can take an hour to take or lose effect (JTS ID61 p.8-9)."
             },
             {
               "tier": "serve",
-              "text": "A continuous drip may take an hour to take full effect or wear off; increase or decrease it gradually (JTS ID61 p.8)."
+              "text": "Respiratory depression over 1 mg/kg, especially with fast IV/IO pushes (JTS ID61 p.11)."
             },
             {
               "tier": "serve",
-              "text": "Respiratory depression at higher doses (over 1 mg/kg), especially with fast IV/IO administration (JTS ID61 p.11)."
-            },
-            {
-              "tier": "serve",
-              "text": "Use with caution in cardiovascular disease; monitor cardiac function continuously (SMOG p.127)."
-            },
-            {
-              "tier": "serve",
-              "text": "The mL/h figures hold only for ID61's 3 mg/mL mix; SMOG's chart uses 1 mg/mL (SMOG p.128)."
+              "text": "Use with caution in cardiovascular disease; monitor cardiac function (SMOG p.127)."
             },
             {
               "tier": "detail",
@@ -345,16 +337,14 @@
               "quote": "Hypersensitivity to ketamine or any component of the formulation … Conditions that cannot tolerate sustained increases in blood pressure (non-traumatic intracerebral hemorrhage, hypertension associated with acute coronary syndrome; NOT contraindicated in TBI) … Children <3 mo. age … Use with caution in patients with cardiovascular disease. Continuously monitor cardiac function"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.4.0-draft",
-          "extraction_notes": "Redrafted 2026-10-16 (signing batch 2); was adult|peds with no dose. JTS ID61 p.9: the start is marked by shading a row; rendered, the shaded row is 1.5 mg/kg/h (25 mcg/kg/min), shaded in all three tables. ID61's dial-flow rule (weight / 2 mL/h at 3 mg/mL) gives 3 x (W/2) / W = 1.5 mg/kg/h at every weight, and the printed 1.5 row reads 20/30/40/50 mL/h at 40/60/80/100 kg, so the rule and the highlight agree (the old note said they did not reconcile, and gave the band as 0.5-1.25; the table runs 0.5-2.0 mg/kg/h). The dose range drafted is the table's printed band; no source states a maximum. CONFLICT on the rate: ID61's own Appendix D (p.11) gives 1 mg/kg/h non-intubated and 1-2 mg/kg/h intubated; SMOG p.127 gives 1-3 mg/kg/hr; ID30 p.24 (Role 3 neuro-ICU) 20-100 mcg/kg/min. CONFLICT on the mix: ID61 3 mg/mL, SMOG 1 mg/mL. ID61's drip-count tables have several arithmetic errors (100 kg at 0.5 mg/kg/h printed 1/9, calculated about 1/14); only mg/kg/h is drafted. Split from adult|peds: SMOG's paediatric range tops out at 1 mg/kg/hr, below the adult start.",
-          "flags": [
-            "NEEDS_VISUAL_CONFIRMATION",
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-sedation-infusion-rate"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-10-19",
+          "version": "0.4.0",
+          "extraction_notes": "Redrafted 2026-10-16 (signing batch 2); was adult|peds with no dose. JTS ID61 p.9: the start is marked by shading a row; rendered, the shaded row is 1.5 mg/kg/h (25 mcg/kg/min), shaded in all three tables. ID61's dial-flow rule (weight / 2 mL/h at 3 mg/mL) gives 3 x (W/2) / W = 1.5 mg/kg/h at every weight, and the printed 1.5 row reads 20/30/40/50 mL/h at 40/60/80/100 kg, so the rule and the highlight agree (the old note said they did not reconcile, and gave the band as 0.5-1.25; the table runs 0.5-2.0 mg/kg/h). The dose range drafted is the table's printed band; no source states a maximum. CONFLICT on the rate: ID61's own Appendix D (p.11) gives 1 mg/kg/h non-intubated and 1-2 mg/kg/h intubated; SMOG p.127 gives 1-3 mg/kg/hr; ID30 p.24 (Role 3 neuro-ICU) 20-100 mcg/kg/min. CONFLICT on the mix: ID61 3 mg/mL, SMOG 1 mg/mL. ID61's drip-count tables have several arithmetic errors (100 kg at 0.5 mg/kg/h printed 1/9, calculated about 1/14); only mg/kg/h is drafted. Split from adult|peds: SMOG's paediatric range tops out at 1 mg/kg/hr, below the adult start. Ruled CONFLICT (group ketamine-sedation-infusion-rate, closed 2026-10-19): JTS ID61 p.9 (start 1.5 mg/kg/h, band 0.5-2.0) is signed; SMOG p.127's 1-3 mg/kg/hr is left unsigned. VISUAL CONFIRMED 2026-10-19: the owner confirmed the shaded row on ID61 p.9 is 1.5 mg/kg/h; NEEDS_VISUAL_CONFIRMATION cleared. Serve tier tightened to the 5-line, 500-character budget: the adjust and onset lines merged, and SMOG's 1 mg/mL mix note left to these notes (the start line names ID61's 3 mg/mL mix).",
+          "flags": [],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): sign. JTS ID61 p.9: start 1.5 mg/kg/h (the shaded row, confirmed by the owner on the page), range 0.5-2.0 mg/kg/h. SMOG p.127's 1-3 mg/kg/hr stays unsigned.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "prolonged sedation infusion — SMOG (en route)",
@@ -433,11 +423,10 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the sedation-infusion rate conflict. SMOG CY24 p.127 adult: 0.5-2 mg/kg bolus, then 1-3 mg/kg/hr, titrated by 0.25; its chart (p.128) mixes 1 mg/mL. CONFLICT with JTS ID61 Appendix B (start 1.5 mg/kg/h, table 0.5-2.0 mg/kg/h, 3 mg/mL). Also recorded, not drafted: ID61's own Appendix D (1 mg/kg/h non-intubated, 1-2 intubated) and ID30 p.24 (Role 3 neuro-ICU, 20-100 mcg/kg/min). SMOG's chart has three arithmetic errors and runs 15-60 mcg/kg/min against its own 17-50 header; only mg/kg/hr is drafted.",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "ketamine-sedation-infusion-rate"
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the sedation-infusion rate conflict. SMOG CY24 p.127 adult: 0.5-2 mg/kg bolus, then 1-3 mg/kg/hr, titrated by 0.25; its chart (p.128) mixes 1 mg/mL. CONFLICT with JTS ID61 Appendix B (start 1.5 mg/kg/h, table 0.5-2.0 mg/kg/h, 3 mg/mL). Also recorded, not drafted: ID61's own Appendix D (1 mg/kg/h non-intubated, 1-2 intubated) and ID30 p.24 (Role 3 neuro-ICU, 20-100 mcg/kg/min). SMOG's chart has three arithmetic errors and runs 15-60 mcg/kg/min against its own 17-50 header; only mg/kg/hr is drafted. Ruled CONFLICT (group ketamine-sedation-infusion-rate, closed 2026-10-19): JTS ID61 p.9 is signed; this SMOG side is left unsigned.",
+          "flags": [],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed. The adult sedation infusion is JTS ID61 p.9 (start 1.5, 0.5-2.0 mg/kg/h); SMOG p.127's 1-3 mg/kg/hr stays a documented alternate, not served.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "prolonged sedation infusion",
@@ -510,10 +499,12 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2), split from the adult|peds entry. SMOG CY24 p.127 PEDIATRIC column is the only source with a paediatric infusion figure: 0.5-1 mg/kg/hr, titrated by 0.25. No source states a paediatric starting rate or mix (NEEDS_MANUAL_ENTRY caution); ID61's tables start at 40 kg and its highlighted start (1.5 mg/kg/h) is above SMOG's paediatric ceiling. The SMOG note 'Avoid sub-dissociative doses' sits in the same column; recorded verbatim. Age floor 3 months as on the signed paediatric ketamine entries.",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2), split from the adult|peds entry. SMOG CY24 p.127 PEDIATRIC column is the only source with a paediatric infusion figure: 0.5-1 mg/kg/hr, titrated by 0.25. No source states a paediatric starting rate or mix (NEEDS_MANUAL_ENTRY caution); ID61's tables start at 40 kg and its highlighted start (1.5 mg/kg/h) is above SMOG's paediatric ceiling. The SMOG note 'Avoid sub-dissociative doses' sits in the same column; recorded verbatim. Age floor 3 months as on the signed paediatric ketamine entries. Owner, 2026-10-19: not signed; v1.1.",
           "flags": [
             "STARTING_RATE_NOT_IN_SOURCE"
-          ]
+          ],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed; v1.1. SMOG gives a range only; no source gives a paediatric start rate or mix.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "moderate to severe pain / analgesia",
@@ -2852,10 +2843,12 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The old note ('neither JTS ID39 nor ID40 states a redose interval') holds for every JTS document, the 2026 ID39 included, but SMOG CY24 p.155 prints a maintenance dose: adult 1 mg/kg IV/IO every 30-45 minutes PRN, or 8-12 mcg/kg/min, range 0.6-1.2 mg/kg. It is the only source, and SMOG itself labels it '(unlabeled and unreferenced dose)'. No JTS page gives a maintenance figure; the COVID-19 austere CPG's maintenance dosing is for vecuronium and is not carried across. Split from the adult|peds entry: the paediatric column differs (no infusion, no PRN). No maximum stated.",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The old note ('neither JTS ID39 nor ID40 states a redose interval') holds for every JTS document, the 2026 ID39 included, but SMOG CY24 p.155 prints a maintenance dose: adult 1 mg/kg IV/IO every 30-45 minutes PRN, or 8-12 mcg/kg/min, range 0.6-1.2 mg/kg. It is the only source, and SMOG itself labels it '(unlabeled and unreferenced dose)'. No JTS page gives a maintenance figure; the COVID-19 austere CPG's maintenance dosing is for vecuronium and is not carried across. Split from the adult|peds entry: the paediatric column differs (no infusion, no PRN). No maximum stated. Owner, 2026-10-19: not signed; the source calls it unreferenced, so the hold stands.",
           "flags": [
             "SINGLE_SOURCE_UNREFERENCED"
-          ]
+          ],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed. SMOG p.155, the only source, calls this dose \"unlabeled and unreferenced\". The hold stands.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "redose interval",
@@ -3004,10 +2997,12 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2), split from the adult|peds entry. SMOG CY24 p.155 PEDIATRIC column: maintenance bolus 1 mg/kg every 30-45 minutes, range 0.6-1.2 mg/kg; no infusion and no PRN (the adult column's infusion is not carried across). SMOG labels it '(unlabeled and unreferenced dose)'. No JTS page gives a paediatric maintenance figure (ID39 2026 p.28 gives the intubating dose only). No maximum stated.",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2), split from the adult|peds entry. SMOG CY24 p.155 PEDIATRIC column: maintenance bolus 1 mg/kg every 30-45 minutes, range 0.6-1.2 mg/kg; no infusion and no PRN (the adult column's infusion is not carried across). SMOG labels it '(unlabeled and unreferenced dose)'. No JTS page gives a paediatric maintenance figure (ID39 2026 p.28 gives the intubating dose only). No maximum stated. Owner, 2026-10-19: not signed; the source calls it unreferenced, so the hold stands.",
           "flags": [
             "SINGLE_SOURCE_UNREFERENCED"
-          ]
+          ],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed. SMOG p.155, the only source, calls this dose \"unlabeled and unreferenced\". The hold stands.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "RSI paralytic",
@@ -4000,8 +3995,8 @@
               "text": "Some cross-reactions occur in penicillin allergy; use with caution (SMOG p.103)."
             },
             {
-              "tier": "serve",
-              "text": "ID24 and SMOG also allow dosing by body mass: 1 g under 80 kg, 2 g at 81-160 kg, 3 g over 160 kg (JTS ID24 p.12; SMOG p.103)."
+              "tier": "detail",
+              "text": "ALTERNATE, recorded not served: JTS ID24 p.12 and SMOG p.103 also allow dosing by body mass (1 g under 80 kg, 2 g at 81-160 kg, 3 g over 160 kg). Owner, 2026-10-19: the flat 2 g serves, not the bands."
             },
             {
               "tier": "detail",
@@ -4076,14 +4071,14 @@
               "quote": "Hypersensitivity to cefazolin, other cephalosporin antibiotics, other beta-lactams, or any component of the formulation … Some cross reactions occur in those with penicillin allergies. Use with caution."
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2); was NOT_IN_SOURCE from the NASEMSO search alone. JTS ID24 Appendix B Table 1 p.11 and the SMOG antibiotic chart p.64: cefazolin 2 g IV every 6-8 hours; 24 hours for skin and soft tissue, and for open fractures 24 hours then with each subsequent I&D until soft tissue coverage. Maximum 12 g/day (ID24 footnote †; SMOG p.103). WEIGHT BANDS (an option in the same CPG, not a conflict between sources; owner question): ID24 footnote † and SMOG p.103 allow weight bands (1 g under 80 kg, 2 g 81-160 kg, 3 g over 160 kg) against the tables' flat 2 g; the bands leave 80-81 kg undefined, and SMOG's adult column also says '1-2g every 6-8hrs'. The flat 2 g is drafted; the owner rules. Not drafted, for the owner to place: the other ID24 rows (penetrating brain, spine, chest, maxillofacial, abdominal with metronidazole), the single pre-surgical dose (ID24 p.9), and the ventriculostomy regimen (ID30 p.13). No timed intra-operative re-dose and no IM/IO dose is printed. ID91 Table 12 (p.38) ranks cefazolin 'Better' behind the TCCC agents (ertapenem, moxifloxacin) when TCCC supplies are limited; at a surgical role ID24 makes it the preferred agent.",
-          "flags": [
-            "WEIGHT_BAND_OPTION_IN_SOURCE"
-          ]
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-10-19",
+          "version": "0.4.0",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2); was NOT_IN_SOURCE from the NASEMSO search alone. JTS ID24 Appendix B Table 1 p.11 and the SMOG antibiotic chart p.64: cefazolin 2 g IV every 6-8 hours; 24 hours for skin and soft tissue, and for open fractures 24 hours then with each subsequent I&D until soft tissue coverage. Maximum 12 g/day (ID24 footnote †; SMOG p.103). WEIGHT BANDS (an option in the same CPG, not a conflict between sources; owner question): ID24 footnote † and SMOG p.103 allow weight bands (1 g under 80 kg, 2 g 81-160 kg, 3 g over 160 kg) against the tables' flat 2 g; the bands leave 80-81 kg undefined, and SMOG's adult column also says '1-2g every 6-8hrs'. The flat 2 g is drafted; the owner rules. Not drafted, for the owner to place: the other ID24 rows (penetrating brain, spine, chest, maxillofacial, abdominal with metronidazole), the single pre-surgical dose (ID24 p.9), and the ventriculostomy regimen (ID30 p.13). No timed intra-operative re-dose and no IM/IO dose is printed. ID91 Table 12 (p.38) ranks cefazolin 'Better' behind the TCCC agents (ertapenem, moxifloxacin) when TCCC supplies are limited; at a surgical role ID24 makes it the preferred agent. Owner, 2026-10-19: the flat 2 g every 6-8 hours, maximum 12 g/day (ID24 p.11), is signed; not the weight bands, which are kept as a detail-tier alternate.",
+          "flags": [],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): sign. JTS ID24 p.11: flat 2 g IV every 6-8 hours, maximum 12 g/day. Not the weight bands.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "open fracture / wound prophylaxis",
@@ -4161,12 +4156,14 @@
               "quote": "Hypersensitivity to cefazolin, other cephalosporin antibiotics, other beta-lactams, or any component of the formulation … Some cross reactions occur in those with penicillin allergies. Use with caution."
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). JTS ID24 Table 1 footnote ‡ and SMOG CY24 p.103 PEDIATRIC column agree: 20-30 mg/kg IV every 6-8 hours, maximum 100 mg/kg/day. The daily maximum is a serve caution: max_cumulative holds a mass, and a per-kg daily cap is not a unit the engine computes (owner question). No per-dose gram cap is printed, and none is derived from the mg/kg figure.",
-          "flags": []
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-10-19",
+          "version": "0.4.0",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). JTS ID24 Table 1 footnote ‡ and SMOG CY24 p.103 PEDIATRIC column agree: 20-30 mg/kg IV every 6-8 hours, maximum 100 mg/kg/day. The daily maximum is a serve caution: max_cumulative holds a mass, and a per-kg daily cap is not a unit the engine computes (owner question). No per-dose gram cap is printed, and none is derived from the mg/kg figure. Owner, 2026-10-19: signed at 20-30 mg/kg every 6-8 hours (ID24 p.12); the 100 mg/kg/day maximum is a WATCH warning (serve caution), not a computed limit.",
+          "flags": [],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): sign. JTS ID24 p.12: 20-30 mg/kg IV every 6-8 hours; maximum 100 mg/kg/day as a WATCH warning.",
+          "adjudicated_on": "2026-10-19"
         }
       ],
       "notes": "Part of the rank-7 'antibiotics' probe group (7 queries total, shared across cefazolin, ertapenem, moxifloxacin and ceftriaxone)."
@@ -4299,7 +4296,7 @@
       "discovery_query_count": 7,
       "dose_entries": [
         {
-          "indication": "severe bacterial infection / sepsis",
+          "indication": "sepsis",
           "population": "adult",
           "route": "IV",
           "dose_range": {
@@ -4396,17 +4393,17 @@
               "quote": "For patients with a history of anaphylaxis or allergies to cephalosporins"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2); was NOT_IN_SOURCE from the NASEMSO search alone. JTS ID91 p.40, ID83 p.8 and SMOG p.38 agree on 2 g; ID91 and ID83 give every 24 hours, SMOG no interval. SOURCES DISAGREE on administration only (the dose agrees; owner question): ID83 gives 'over 10 minutes' (Better tier) and 'over 30 minutes' (Best tier) for the same dose; SMOG gives slow IV push or in 100 cc NS. No source states a duration or maximum for sepsis. LABEL: no source says 'severe bacterial infection'; they say sepsis (owner question: relabel). In ID91 and ID83 ceftriaxone alone is 'Better' and ceftriaxone plus vancomycin plus metronidazole is 'Best'; the vancomycin figure differs between them (ID91 1.5 mg/kg, ID83 15 mg/kg), a finding for the vancomycin entry, not this one. Not drafted, for the owner to place: penetrating TBI (ID63 p.8, p.20; ID24 p.11, 2 g every 24 hours, duration differs) and severe pneumonia co-infection (COVID-19 austere CPG p.17).",
-          "flags": [
-            "ADMINISTRATION_TIME_DIFFERS"
-          ]
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-10-19",
+          "version": "0.4.0",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2); was NOT_IN_SOURCE from the NASEMSO search alone. JTS ID91 p.40, ID83 p.8 and SMOG p.38 agree on 2 g; ID91 and ID83 give every 24 hours, SMOG no interval. SOURCES DISAGREE on administration only (the dose agrees; owner question): ID83 gives 'over 10 minutes' (Better tier) and 'over 30 minutes' (Best tier) for the same dose; SMOG gives slow IV push or in 100 cc NS. No source states a duration or maximum for sepsis. LABEL: no source says 'severe bacterial infection'; they say sepsis (owner question: relabel). In ID91 and ID83 ceftriaxone alone is 'Better' and ceftriaxone plus vancomycin plus metronidazole is 'Best'; the vancomycin figure differs between them (ID91 1.5 mg/kg, ID83 15 mg/kg), a finding for the vancomycin entry, not this one. Not drafted, for the owner to place: penetrating TBI (ID63 p.8, p.20; ID24 p.11, 2 g every 24 hours, duration differs) and severe pneumonia co-infection (COVID-19 austere CPG p.17). Owner, 2026-10-19: signed at 2 g every 24 hours, ID91 p.40 primary and ID83 p.8 noted; the infusion speed stays in WATCH only (serve caution), not in the dose. Relabelled from \"severe bacterial infection / sepsis\" to \"sepsis\", which is what every source says.",
+          "flags": [],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): sign. JTS ID91 p.40 (primary): 2 g IV/IO every 24 hours; ID83 p.8 noted. The infusion speed is a WATCH line only. Indication relabelled \"sepsis\".",
+          "adjudicated_on": "2026-10-19"
         },
         {
-          "indication": "severe bacterial infection / sepsis",
+          "indication": "sepsis",
           "population": "peds",
           "route": "IV",
           "dose_range": "NEEDS_MANUAL_ENTRY",
@@ -4460,10 +4457,12 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "INCOMPLETE (signing batch 2, 2026-10-16): no JTS or SMOG page states a paediatric ceftriaxone dose for sepsis. SMOG's sepsis protocol (p.38) is adult and has no paediatric column; SMOG has no ceftriaxone monograph. The only paediatric figure in the corpus is ID24's CNS-injury dose (100 mg/kg/day divided q12-24h, no cap printed), which is not carried across to sepsis. NASEMSO has no ceftriaxone. The entry exists so the gap shows; it refuses even if signed.",
+          "extraction_notes": "INCOMPLETE (signing batch 2, 2026-10-16): no JTS or SMOG page states a paediatric ceftriaxone dose for sepsis. SMOG's sepsis protocol (p.38) is adult and has no paediatric column; SMOG has no ceftriaxone monograph. The only paediatric figure in the corpus is ID24's CNS-injury dose (100 mg/kg/day divided q12-24h, no cap printed), which is not carried across to sepsis. NASEMSO has no ceftriaxone. The entry exists so the gap shows; it refuses even if signed. Owner, 2026-10-19: cannot be signed; hold. Relabelled \"sepsis\" with the adult entry.",
           "flags": [
             "DOSE_NOT_IN_SOURCE"
-          ]
+          ],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): cannot be signed; hold. No JTS or SMOG page states a paediatric sepsis dose.",
+          "adjudicated_on": "2026-10-19"
         }
       ],
       "notes": "Two hats: rank-7 antibiotic AND the WHO-listed agent for severe bacterial infection in the tropical/austere subset. Its alias 'rocephin' is the one the discovery run probed against 'roc' (A1-COL-009) — see the alias lint."
@@ -4935,15 +4934,14 @@
               "quote": "Hypersensitivity to midazolam or any component of the formulation or other benzodiazepines … Acute narrow angle glaucoma, Acute Alcohol Intoxication … Respiratory Insufficiency/Depression (except during mechanical ventilation) … Should not be used in shock … Neurologic Depression (Head Trauma) (unless having active seizure)"
             }
           ],
-          "signoff": false,
-          "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
-          "review_date": "PENDING_CLINICAL_SIGNOFF",
-          "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The dose is JTS ID61 p.9, the only page that labels a midazolam dose 'Procedural Sedation': 1-4 mg IV/IO, added to a ketamine bolus, repeated every 30-60 minutes for a long procedure. CONFLICT: SMOG CY24 p.140 gives 2.5-5 mg every 15-30 minutes under 'Transcutaneous Pacing / Cardioversion, Anxiety, Agitation'; SMOG p.41 and p.46 give 2-5 mg for sedation before pacing or cardioversion (SMOG disagrees with itself on the lower bound); JTS ID91 p.35 gives 0.5-1 mg IV for sedation and anxiolysis. NASEMSO gives no procedural-sedation dose (confirmed). No source states a maximum. ID61 p.12 also says 'IM: not recommended', so no IM entry is drafted.",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "midazolam-procedural-sedation-adult"
+          "signoff": true,
+          "reviewed_by": "AI-AIM",
+          "review_date": "2026-10-19",
+          "version": "0.4.0",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The dose is JTS ID61 p.9, the only page that labels a midazolam dose 'Procedural Sedation': 1-4 mg IV/IO, added to a ketamine bolus, repeated every 30-60 minutes for a long procedure. CONFLICT: SMOG CY24 p.140 gives 2.5-5 mg every 15-30 minutes under 'Transcutaneous Pacing / Cardioversion, Anxiety, Agitation'; SMOG p.41 and p.46 give 2-5 mg for sedation before pacing or cardioversion (SMOG disagrees with itself on the lower bound); JTS ID91 p.35 gives 0.5-1 mg IV for sedation and anxiolysis. NASEMSO gives no procedural-sedation dose (confirmed). No source states a maximum. ID61 p.12 also says 'IM: not recommended', so no IM entry is drafted. Ruled CONFLICT (group midazolam-procedural-sedation-adult, closed 2026-10-19): the JTS ID61 p.9 dose (1-4 mg as a ketamine add-on) is signed; SMOG p.140's 2.5-5 mg is left unsigned.",
+          "flags": [],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): sign. JTS ID61 p.9, 1-4 mg IV/IO as an add-on to a ketamine procedural-sedation bolus. SMOG p.140's 2.5-5 mg (pacing / cardioversion) stays unsigned.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "procedural sedation — SMOG (pacing / cardioversion)",
@@ -5048,11 +5046,10 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the adult procedural-sedation conflict, kept so neither is dropped silently. SMOG CY24 p.140: 2.5-5 mg IV every 15-30 minutes PRN, under 'Transcutaneous Pacing / Cardioversion, Anxiety, Agitation'; SMOG's own algorithm pages (p.41, p.46) print 2-5 mg. CONFLICT with JTS ID61 p.9 (1-4 mg IV/IO as a ketamine adjunct, every 30-60 minutes). The owner rules which serves.",
-          "flags": [
-            "SOURCE_CONFLICT"
-          ],
-          "conflict_group": "midazolam-procedural-sedation-adult"
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the adult procedural-sedation conflict, kept so neither is dropped silently. SMOG CY24 p.140: 2.5-5 mg IV every 15-30 minutes PRN, under 'Transcutaneous Pacing / Cardioversion, Anxiety, Agitation'; SMOG's own algorithm pages (p.41, p.46) print 2-5 mg. CONFLICT with JTS ID61 p.9 (1-4 mg IV/IO as a ketamine adjunct, every 30-60 minutes). The owner rules which serves. Ruled CONFLICT (group midazolam-procedural-sedation-adult, closed 2026-10-19): JTS ID61 p.9 (1-4 mg) is signed; this SMOG side is left unsigned.",
+          "flags": [],
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed. The adult procedural-sedation dose is JTS ID61 p.9's 1-4 mg; SMOG p.140's 2.5-5 mg stays a documented alternate, not served.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "sedation infusion for the ventilated patient",
@@ -5202,11 +5199,13 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The dose is SMOG CY24 p.140 (repeated on the RSI page, p.12): 0.05 mg/kg IV bolus, then 0.05-0.1 mg/kg/hr. CONFLICT on the form and the ceiling: JTS ID29 p.25 (ICU order set) gives a fixed 1-6 mg/hr, and the Burn Care order set (ID12 p.24) titrates up to 10 mg/hr; at 80 kg SMOG's range is 4-8 mg/hr. SMOG's weight-based figure is drafted because it is the only one stated as a dose rather than an order-set range; the owner rules. No source states a titration step or a mix (NEEDS_MANUAL_ENTRY caution). The Burn Care PDF (file ID12) prints 'ID:20' in its page header; the bank cites ID12, as for the fentanyl infusion.",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2). The dose is SMOG CY24 p.140 (repeated on the RSI page, p.12): 0.05 mg/kg IV bolus, then 0.05-0.1 mg/kg/hr. CONFLICT on the form and the ceiling: JTS ID29 p.25 (ICU order set) gives a fixed 1-6 mg/hr, and the Burn Care order set (ID12 p.24) titrates up to 10 mg/hr; at 80 kg SMOG's range is 4-8 mg/hr. SMOG's weight-based figure is drafted because it is the only one stated as a dose rather than an order-set range; the owner rules. No source states a titration step or a mix (NEEDS_MANUAL_ENTRY caution). The Burn Care PDF (file ID12) prints 'ID:20' in its page header; the bank cites ID12, as for the fentanyl infusion. Owner, 2026-10-19: neither side signed; v1.1 (no source gives a start rate or titration).",
           "flags": [
             "SOURCE_CONFLICT"
           ],
-          "conflict_group": "midazolam-ventilated-infusion-adult"
+          "conflict_group": "midazolam-ventilated-infusion-adult",
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed; v1.1. No source gives a start rate or a titration step. The conflict group stays open.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "sedation infusion for the ventilated patient — ICU order set (fixed rate)",
@@ -5297,11 +5296,13 @@
           "reviewed_by": "PENDING_CLINICAL_SIGNOFF",
           "review_date": "PENDING_CLINICAL_SIGNOFF",
           "version": "0.4.0-draft",
-          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the ventilated-infusion conflict. JTS ID29 p.25 (ICU sedation order set): 1-6 mg/hr, start blank; the Burn Care order set (ID12 p.24) titrates up to 10 mg/hr, start blank. CONFLICT with SMOG CY24 p.140 (0.05 mg/kg bolus, then 0.05-0.1 mg/kg/hr, weight-based). No source states a starting rate for this side (NEEDS_MANUAL_ENTRY caution).",
+          "extraction_notes": "Drafted 2026-10-16 (signing batch 2): the other side of the ventilated-infusion conflict. JTS ID29 p.25 (ICU sedation order set): 1-6 mg/hr, start blank; the Burn Care order set (ID12 p.24) titrates up to 10 mg/hr, start blank. CONFLICT with SMOG CY24 p.140 (0.05 mg/kg bolus, then 0.05-0.1 mg/kg/hr, weight-based). No source states a starting rate for this side (NEEDS_MANUAL_ENTRY caution). Owner, 2026-10-19: neither side signed; v1.1 (no source gives a start rate or titration).",
           "flags": [
             "SOURCE_CONFLICT"
           ],
-          "conflict_group": "midazolam-ventilated-infusion-adult"
+          "conflict_group": "midazolam-ventilated-infusion-adult",
+          "adjudication": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed; v1.1. No source gives a start rate or a titration step. The conflict group stays open.",
+          "adjudicated_on": "2026-10-19"
         },
         {
           "indication": "agitated or violent patient / behavioural emergency",

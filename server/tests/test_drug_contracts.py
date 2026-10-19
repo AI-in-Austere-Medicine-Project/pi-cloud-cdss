@@ -2065,6 +2065,9 @@ def test_the_detail_tier_hides_only_these_families():
         "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDI",
         "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gi",
         "ALTERNATE, recorded not served: JTS ID40 (05",
+        # Owner, 2026-10-19 (#170): cefazolin adult serves the flat 2 g, not
+        # ID24's weight bands; the bands are kept for the record.
+        "ALTERNATE, recorded not served: JTS ID24 p.1",
         "ALTERNATE SHAPE, AND THE ONLY ONE WITH A CIT",
         "Neither JTS CPG states a contraindication fo",
         "No approved source states a reduced PAEDIATR",
