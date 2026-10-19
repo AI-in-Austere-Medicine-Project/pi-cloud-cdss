@@ -71,6 +71,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A27 | The hypothermic-arrest card fires on "no pulse" / "pulseless" with hypothermia, not only "cardiac arrest" | **done**: #157, merged and deployed; G-TYP-07 movement approved (owner, 2026-10-11) |
 | A28 | The seizure trigger tolerates common misspellings (siezing, seizeing, siezure) | **done**: #158, merged and deployed; G-TYP-06 movement approved (owner, 2026-10-11) |
 | A29 | Needle-decompression procedure (verbatim ID74) signed by the owner, the tension card served from it; "pneumo" read as pneumothorax | **done**: #159, merged and deployed; procedure signed by Andrew Azelton, 2026-10-12; G-TYP-02 movement approved |
+| A30 | A rate entry outside bradycardia, cardiogenic and shock is matched only for its own stated indication | **in review**: this PR; found signing batch 2 (#170), finding 2 |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -664,6 +665,20 @@ Newly held, each read:
 **Signed:** the procedure, by Andrew Azelton (owner), 2026-10-12, as drafted (`signoff`, `reviewed_by`, `review_date` in the file). The test pins the signed text word for word; a changed line fails until re-signed.
 
 **Suite** (signed): 2,713 passed, 54 skipped, 3 xfailed. **Replay** (signed tree against main `ec8ad53`): served answers (1,738), gate (1,408), live session logs (2,450) and held answers (308) byte-identical; **0 newly held, 0 newly released.** The full pipeline (800 stored queries, model stubbed) moves one question, twice stored: **G-TYP-02, "susected tention pneumo, trachea deviated, what now", from the model path to the signed needle-decompression card**, for the owner's sign-off. No other row differs: the card is the card served before, word for word. Live harness: `run_tests.sh` 29/29 against a second uvicorn on :8012 (offline, no keys).
+
+### A30: a rate is for its indication, beyond the pressors (owner, 2026-10-19; found signing batch 2, #170)
+
+**Owner, 2026-10-19 (#170 review):** "Finding 2 loosens a gate: the rate check must be indication-specific like the dose check. Open a separate PR on main (not #170): failing test first — a ketamine infusion written for pain at 1.5 mg/kg/h holds, and the signed sedation infusion still serves." Then finding 1 (the wrong-population citation, its own PR), then finding 3 (offers not filtered by route). One bug per PR. #170 is rebased and replayed after this merges.
+
+**Why:** A11b reads the query's indication for bradycardia, cardiogenic and shock only. Every other signed rate entry matched by drug. #170 signs the first of them, the adult ketamine prolonged-sedation infusion (0.5-2.0 mg/kg/hr, JTS ID61 p.9); with it, "ketamine drip for pain" at 1.5 mg/kg/hr would pass on the sedation range.
+
+**What changed:** `_signed_rate_ranges` takes the classes the query states (`stated_indication_classes`, the #165 classes). A rate entry outside A11b's three categories is matched only when its own class (`indication_class`) is among them. With no class stated, matching by drug stands, as A11b. The pressor entries are unchanged: their categories still decide. The hold names the stated indication and no signed number ("not a signed ketamine infusion rate for pain in this patient").
+
+**Tests:** `server/tests/test_rate_indication.py`, committed failing first. The #170 ketamine entry is added by a fixture, so the test does not wait on that signature: pain at 1.5 holds, sedation at 1.5 passes, no indication passes by drug, an epinephrine drip for anaphylaxis is unchanged.
+
+**Suite:** 2,916 passed, 0 failed (6 skipped, 3 xfailed). **Replay** (this branch against main `65788f0`): served answers (1,738), held answers (308), gate (1,408), live session logs (2,899) and the full pipeline (809, model stubbed) byte-identical; **0 newly held, 0 newly released.** As expected: on main no signed rate entry is outside the three categories, so nothing can move until #170's ketamine infusion is signed; #170 is rebased and replayed after this merges. **Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29. "Ketamine drip for sedation" gets the drip card and "ketamine drip for pain" the RSI bundle (#86), both as before; the epinephrine shock and bradycardia drips state no rate.
+
+**Seen in the harness, not this item:** for "BP 70/40 after 2 L of fluid, still in shock, epinephrine infusion rate", JTS_GROUNDED served the 10 mcg push dose labelled "Indication: symptomatic bradycardia", SAFE. No rate is involved, so A30 does not touch it; recorded for the owner.
 
 ### B1: source-mode labelling
 
