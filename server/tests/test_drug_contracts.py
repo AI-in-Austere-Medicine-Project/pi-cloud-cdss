@@ -533,13 +533,13 @@ def test_the_visual_only_infusion_rate_was_not_guessed():
     highlight is not in the text layer. Signing batch 2 (2026-10-16) read the
     rendered page: the shaded row is 1.5 mg/kg/h, which ID61's dial-flow rule
     (weight / 2 mL/h at 3 mg/mL) also gives. The dose range is the table's
-    printed band; the start rate is a caution, and the flag stays until the
-    owner has looked at the page."""
+    printed band; the start rate is a caution. The owner looked at the page
+    (2026-10-19), confirmed the shaded row, and signed it; the flag is cleared."""
     e = next(x for x in dc.DRUGS["ketamine"]["dose_entries"]
              if x["indication"] == "prolonged sedation infusion" and x["population"] == "adult")
     assert e["dose_range"]["min"] == 0.5 and e["dose_range"]["max"] == 2.0
-    assert e["signoff"] is False
-    assert "NEEDS_VISUAL_CONFIRMATION" in e["flags"]
+    assert e["signoff"] is True
+    assert "NEEDS_VISUAL_CONFIRMATION" not in e["flags"]
     assert "highlight" in e["extraction_notes"].lower()
 
 
@@ -606,10 +606,12 @@ STILL_AWAITING_A_RULING = set()
 # midazolam-ventilated-infusion-adult: SMOG 0.05-0.1 mg/kg/hr against JTS ID29
 # 1-6 mg/hr. ketamine-sedation-infusion-rate: JTS ID61 0.5-2.0 mg/kg/h (start
 # 1.5) against SMOG 1-3 mg/kg/hr.
+# Ruled 2026-10-19 (owner): midazolam 1-4 mg (ID61) and the ID61 ketamine
+# infusion signed, the SMOG sides left unsigned; both closed. The ventilated
+# midazolam infusion is not signed on either side (v1.1: no source gives a
+# start rate or titration), so its group stays open.
 STILL_AWAITING_A_RULING = {
-    "midazolam-procedural-sedation-adult",
     "midazolam-ventilated-infusion-adult",
-    "ketamine-sedation-infusion-rate",
 }
 
 

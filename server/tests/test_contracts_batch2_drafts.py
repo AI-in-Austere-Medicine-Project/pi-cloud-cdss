@@ -14,6 +14,17 @@ differently: ketamine's sedation infusion (SMOG's paediatric range tops out at
 1 mg/kg/hr, below ID61's adult start) and rocuronium's redose (SMOG's
 paediatric column has no infusion and no PRN).
 
+Ruled 2026-10-19 (owner, Andrew Azelton, signer). Signed by AI-AIM for him:
+midazolam 1-4 mg as a ketamine add-on (ID61 p.9); ketamine sedation infusion,
+adult, start 1.5 mg/kg/h in 0.5-2.0 (ID61 p.9, the shaded row confirmed by the
+owner on the page); cefazolin adult flat 2 g, max 12 g/day (ID24 p.11), not the
+weight bands; cefazolin paediatric 20-30 mg/kg (ID24 p.12), 100 mg/kg/day as a
+WATCH warning; ceftriaxone adult 2 g q24h (ID91 p.40, ID83 p.8 noted), the
+infusion speed in WATCH only, relabelled "sepsis". Not signed: the SMOG sides of
+the two closed conflicts, the midazolam ventilated infusion (v1.1), the
+rocuronium redose (the source calls it unreferenced), the paediatric ketamine
+infusion (v1.1) and paediatric ceftriaxone (no dose in any source).
+
 The verbatim check reads the PDFs, which are not in the repository. Point
 JTS_PDF_DIR at the JTS/SMOG corpus; without it that test skips.
 """
@@ -36,7 +47,7 @@ MIDAZ_VENT = "sedation infusion for the ventilated patient"
 ROC_REDOSE = "redose interval"
 KET_INFUSION = "prolonged sedation infusion"
 CEFAZ = "open fracture / wound prophylaxis"
-CEFTRI = "severe bacterial infection / sepsis"
+CEFTRI = "sepsis"  # relabelled from "severe bacterial infection / sepsis" (owner, 2026-10-19)
 MIDAZ_PROC_SMOG = "procedural sedation — SMOG (pacing / cardioversion)"
 MIDAZ_VENT_FIXED = "sedation infusion for the ventilated patient — ICU order set (fixed rate)"
 KET_INFUSION_SMOG = "prolonged sedation infusion — SMOG (en route)"
@@ -58,22 +69,43 @@ DRAFTS = [
     ("ceftriaxone", CEFTRI, "peds", "IV"),
 ]
 
-# Where the sources disagree on the dose: both sides are kept as entries, as in
-# batch 1, and the conflict is written out, not settled.
-CONFLICTS = {
+RULING = "OWNER RULING 2026-10-19 (Andrew Azelton)"
+
+# Owner rulings, 2026-10-19: signed as ruled, by AI-AIM for Andrew Azelton.
+SIGNED = [
+    ("midazolam", MIDAZ_PROC, "adult", "IV"),
+    ("ketamine", KET_INFUSION, "adult", "IV"),
+    ("cefazolin", CEFAZ, "adult", "IV"),
+    ("cefazolin", CEFAZ, "peds", "IV"),
+    ("ceftriaxone", CEFTRI, "adult", "IV"),
+]
+
+# Where the sources disagreed on the dose: both sides were kept as entries, as
+# in batch 1. Two groups are ruled and closed: the flag and group are gone and
+# each side carries the owner's adjudication.
+CLOSED_CONFLICTS = {
     ("midazolam", MIDAZ_PROC, "adult", "IV"): "midazolam-procedural-sedation-adult",
     ("midazolam", MIDAZ_PROC_SMOG, "adult", "IV"): "midazolam-procedural-sedation-adult",
-    ("midazolam", MIDAZ_VENT, "adult", "IV"): "midazolam-ventilated-infusion-adult",
-    ("midazolam", MIDAZ_VENT_FIXED, "adult", "IV"): "midazolam-ventilated-infusion-adult",
     ("ketamine", KET_INFUSION, "adult", "IV"): "ketamine-sedation-infusion-rate",
     ("ketamine", KET_INFUSION_SMOG, "adult", "IV"): "ketamine-sedation-infusion-rate",
 }
+# Neither side signed (v1.1: no source gives a start rate or titration), so
+# the group stays open.
+OPEN_CONFLICTS = {
+    ("midazolam", MIDAZ_VENT, "adult", "IV"): "midazolam-ventilated-infusion-adult",
+    ("midazolam", MIDAZ_VENT_FIXED, "adult", "IV"): "midazolam-ventilated-infusion-adult",
+}
 
-# Where the sources differ on something other than the dose: flagged, not a
-# conflict group (the dose they give is the same).
-DISAGREE = {
-    ("cefazolin", CEFAZ, "adult", "IV"): "WEIGHT_BAND_OPTION_IN_SOURCE",
-    ("ceftriaxone", CEFTRI, "adult", "IV"): "ADMINISTRATION_TIME_DIFFERS",
+# Left unsigned by the ruling, and why. v1.1 entries say so.
+HELD = {
+    ("midazolam", MIDAZ_PROC_SMOG, "adult", "IV"): "not signed",
+    ("midazolam", MIDAZ_VENT, "adult", "IV"): "v1.1",
+    ("midazolam", MIDAZ_VENT_FIXED, "adult", "IV"): "v1.1",
+    ("rocuronium", ROC_REDOSE, "adult", "IV"): "unreferenced",
+    ("rocuronium", ROC_REDOSE, "peds", "IV"): "unreferenced",
+    ("ketamine", KET_INFUSION_SMOG, "adult", "IV"): "not signed",
+    ("ketamine", KET_INFUSION, "peds", "IV"): "v1.1",
+    ("ceftriaxone", CEFTRI, "peds", "IV"): "cannot be signed",
 }
 
 # No JTS/SMOG page states the dose: the entry stays marked incomplete.
@@ -109,12 +141,36 @@ def _entry(drug, indication, population, route):
 _ids = lambda k: "-".join(k[::2]) + "-" + k[1][:14]
 
 
+def _texts(e, tier=None):
+    out = []
+    for c in e["cautions"]:
+        t, ct = (c, "serve") if isinstance(c, str) else (c["text"], c.get("tier", "serve"))
+        if tier is None or ct == tier:
+            out.append(t)
+    return out
+
+
 @pytest.mark.parametrize("key", DRAFTS, ids=_ids)
-def test_nothing_in_this_batch_is_signed_or_servable(key):
+def test_only_the_ruled_entries_are_signed_and_servable(key):
     e, d = _entry(*key)
-    assert e["signoff"] is False
-    assert e["reviewed_by"] == "PENDING_CLINICAL_SIGNOFF"
-    assert not drug_contracts.entry_is_servable(e, d)[0]
+    ok, why = drug_contracts.entry_is_servable(e, d)
+    if key in SIGNED:
+        assert e["signoff"] is True and e["reviewed_by"] == "AI-AIM" and e["review_date"] == "2026-10-19"
+        assert not e["version"].endswith("-draft")
+        assert ok, why
+    else:
+        assert e["signoff"] is False
+        assert e["reviewed_by"] == "PENDING_CLINICAL_SIGNOFF"
+        assert not ok
+
+
+@pytest.mark.parametrize("key", DRAFTS, ids=_ids)
+def test_every_entry_carries_the_owners_ruling(key):
+    e, _ = _entry(*key)
+    assert e["adjudication"].startswith(RULING), e.get("adjudication")
+    assert e["adjudicated_on"] == "2026-10-19"
+    if key in HELD:
+        assert HELD[key] in e["adjudication"], (key, e["adjudication"])
 
 
 @pytest.mark.parametrize("drug,indication", [("ketamine", KET_INFUSION), ("rocuronium", ROC_REDOSE)])
@@ -167,30 +223,92 @@ def test_a_figure_no_source_states_is_a_needs_manual_entry_caution(key):
         assert any(drug_contracts.NEEDS_MANUAL in t and what in t for t in texts), (key, what)
 
 
-@pytest.mark.parametrize("key", list(CONFLICTS), ids=_ids)
-def test_a_conflict_is_flagged_grouped_and_written_out(key):
+@pytest.mark.parametrize("key", list(CLOSED_CONFLICTS), ids=_ids)
+def test_a_ruled_conflict_is_closed_with_the_owners_adjudication(key):
     e, _ = _entry(*key)
-    assert "SOURCE_CONFLICT" in e["flags"]
-    assert e["conflict_group"] == CONFLICTS[key]
+    assert "SOURCE_CONFLICT" not in e["flags"] and "conflict_group" not in e
+    assert CLOSED_CONFLICTS[key] in e["extraction_notes"] and "closed 2026-10-19" in e["extraction_notes"]
     assert "CONFLICT" in e["extraction_notes"]
 
 
-@pytest.mark.parametrize("key", list(DISAGREE), ids=_ids)
-def test_a_non_dose_disagreement_is_flagged_and_written_out(key):
+@pytest.mark.parametrize("key", list(OPEN_CONFLICTS), ids=_ids)
+def test_the_unsigned_conflict_stays_flagged_and_grouped(key):
     e, _ = _entry(*key)
-    assert DISAGREE[key] in e["flags"] and "SOURCE_CONFLICT" not in e["flags"]
-    assert "owner question" in e["extraction_notes"]
+    assert "SOURCE_CONFLICT" in e["flags"]
+    assert e["conflict_group"] == OPEN_CONFLICTS[key]
+    assert "CONFLICT" in e["extraction_notes"]
 
 
-def test_the_ketamine_start_rate_is_the_highlighted_row_and_stays_visual():
+def test_the_ketamine_start_rate_is_the_shaded_row_the_owner_confirmed():
     """ID61 Appendix B marks the start by shading a row. Rendered, the shaded
     row is 1.5 mg/kg/h, which is also what the dial-flow rule (weight / 2 mL/h
-    at 3 mg/mL) gives. The shading is not in the text layer, so the flag stays."""
+    at 3 mg/mL) gives. The owner looked at the page (2026-10-19): the flag is
+    cleared, and the start is served with the signed 0.5-2.0 band."""
     e, _ = _entry("ketamine", KET_INFUSION, "adult", "IV")
-    assert "NEEDS_VISUAL_CONFIRMATION" in e["flags"]
-    texts = " ".join(c if isinstance(c, str) else c["text"] for c in e["cautions"])
-    assert "1.5 mg/kg/h" in texts and "highlight" in texts
+    assert "NEEDS_VISUAL_CONFIRMATION" not in e["flags"]
+    assert e["dose_range"] == {"min": 0.5, "max": 2.0, "units": "mg/kg/hr", "per_kg": True}
+    assert any("1.5 mg/kg/h" in t for t in _texts(e, "serve"))
+    assert "owner confirmed the shaded row" in e["extraction_notes"]
     assert any("weight in kg divided by 2" in s["quote"] for s in e["sources"])
+
+
+def test_cefazolin_adult_is_the_flat_2_g_not_the_weight_bands():
+    e, _ = _entry("cefazolin", CEFAZ, "adult", "IV")
+    assert e["dose_range"] == {"min": 2.0, "max": 2.0, "units": "g", "per_kg": False}
+    assert e["max_cumulative"]["value"] == 12.0 and e["max_cumulative"]["units"] == "g"
+    assert e["sources"][0]["page"] == 11 and "CPG ID24" in e["sources"][0]["citation"]
+    assert "WEIGHT_BAND_OPTION_IN_SOURCE" not in e["flags"]
+    # The bands are kept for the record, never served: 1 g and 3 g would be
+    # cefazolin doses the medic is shown beside the signed one.
+    assert not any("160 kg" in t for t in _texts(e, "serve"))
+    assert any("160 kg" in t for t in _texts(e, "detail"))
+
+
+def test_cefazolin_peds_daily_maximum_is_a_watch_warning():
+    e, _ = _entry("cefazolin", CEFAZ, "peds", "IV")
+    assert e["dose_range"] == {"min": 20.0, "max": 30.0, "units": "mg/kg", "per_kg": True}
+    assert e["max_cumulative"] is None
+    assert any("100 mg/kg/day" in t for t in _texts(e, "serve"))
+    assert e["sources"][0]["page"] == 12 and "CPG ID24" in e["sources"][0]["citation"]
+
+
+def test_ceftriaxone_adult_is_sepsis_2_g_q24h_with_the_speed_in_watch_only():
+    e, _ = _entry("ceftriaxone", CEFTRI, "adult", "IV")
+    assert e["dose_range"] == {"min": 2.0, "max": 2.0, "units": "g", "per_kg": False}
+    assert "CPG ID91" in e["sources"][0]["citation"] and e["sources"][0]["page"] == 40
+    assert any("CPG ID83" in s["citation"] and s["page"] == 8 for s in e["sources"])
+    assert "ADMINISTRATION_TIME_DIFFERS" not in e["flags"]
+    serve = _texts(e, "serve")
+    assert any("24 hours" in t for t in serve)
+    assert any("10 minutes" in t and "30 minutes" in t for t in serve)
+    assert not any(e2["indication"] == "severe bacterial infection / sepsis"
+                   for e2 in _drug("ceftriaxone")["dose_entries"])
+
+
+V11_ITEMS = [
+    "cefazolin · penetrating brain injury",
+    "cefazolin · penetrating spinal cord injury",
+    "cefazolin · penetrating chest, maxillofacial",
+    "cefazolin · single pre-surgical dose",
+    "cefazolin · ventriculostomy",
+    "ceftriaxone · penetrating TBI · adult",
+    "ceftriaxone · penetrating TBI · peds",
+    "ceftriaxone · severe pneumonia",
+    "midazolam · procedural sedation · peds · IV",
+    "midazolam · procedural sedation · peds · IN",
+    "midazolam · post-intubation bolus",
+    "midazolam · sedation / anxiolysis · adult · IM",
+    "midazolam · active seizure",
+    "vancomycin",
+]
+
+
+def test_the_undrafted_indications_and_discrepancies_are_v1_1_items():
+    doc = (SERVER.parent / "docs/UNSIGNED_CONTRACTS_2026-10-08.md").read_text()
+    assert "## v1.1 items from signing batch 2" in doc
+    section = doc.split("## v1.1 items from signing batch 2", 1)[1]
+    for item in V11_ITEMS:
+        assert item in section, item
 
 
 def test_the_rocuronium_redose_says_smog_calls_it_unreferenced():
