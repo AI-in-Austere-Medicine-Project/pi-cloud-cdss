@@ -1487,6 +1487,11 @@ def indication_matched(query: str, doses: list) -> list:
 # in a class (test_every_signed_indication_has_a_class), so a new signature
 # cannot be offered with no way to ask about it.
 INDICATION_CLASSES = [
+    # Signing batch 2 (owner, 2026-10-19): ahead of the TBI class, whose label
+    # pattern reads any "prophylaxis" and took cefazolin's wound entry.
+    ("wound infection prophylaxis", "open fracture / wound infection prophylaxis",
+     r"wound prophylaxis|open fracture", r"antibiotic\w*|infect\w*|open fractur\w*"),
+    ("sepsis", "sepsis", r"\bsepsis\b", r"\bseps\w*|\bseptic\b"),
     ("TBI seizure prophylaxis", "TBI seizure prophylaxis", r"prophylaxis",
      r"\btbi\b|head injur\w*|brain injur\w*|prophyla\w*"),
     ("neonatal resuscitation", "neonatal resuscitation", r"neonatal",
