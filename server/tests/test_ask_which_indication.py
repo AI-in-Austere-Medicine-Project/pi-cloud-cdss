@@ -178,6 +178,17 @@ def test_every_signed_indication_has_a_class():
     assert not missing, missing
 
 
+def test_the_batch2_antibiotic_labels_land_in_their_own_classes():
+    """Signing batch 2 (2026-10-19) signed cefazolin for "open fracture / wound
+    prophylaxis" and ceftriaxone for "sepsis". The TBI class read any label with
+    "prophylaxis" in it, so the cefazolin wound entry would have been offered
+    as TBI seizure prophylaxis; "sepsis" had no class at all."""
+    assert oc.indication_class("open fracture / wound prophylaxis") == "wound infection prophylaxis"
+    assert oc.indication_class("sepsis") == "sepsis"
+    # The existing labels keep their classes.
+    assert oc.indication_class("severe TBI — seizure prophylaxis, loading dose") == "TBI seizure prophylaxis"
+
+
 def test_the_question_lists_only_classes_the_drug_is_signed_for():
     q = "70kg adult, midazolam IV dose"
     action, text = oc.pre_gate(q, _ctx(q), "")
