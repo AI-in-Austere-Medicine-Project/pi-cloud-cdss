@@ -198,6 +198,7 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 | A ketamine drip for pain gets the RSI bundle. Fixed by A31. | #86 |
 | A stated indication orders the offered doses but does not restrict the check: "ketamine for pain" passes the post-intubation sedation dose (A31 harness, qwen2.5:3b served it SAFE). Same mechanism as epinephrine in shock passing the bradycardia push dose. | A31 harness |
 | The infusion-rate check matches ketamine by drug, not indication: since the sedation infusion was signed (0.5–2.0 mg/kg/h, 2026-10-19), a ketamine drip for pain in that band passes it. The offered set is not filtered by route or the stated indication either: "versed dose IM" is offered the IV procedural bolus. Found in signing batch 2's replay; owner to place. | signing batch 2 |
+| The B1 SOURCE line can cite the paediatric entry on an adult dose: `jts_contract_citations` keys entries without population, and 14 signed adult/paediatric pairs share indication, route and version (live: adult cefazolin 2 g cited ID24 p.12's paediatric footnote). Citation only; its own PR. | signing batch 2 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
 | An eclamptic seizure is served lorazepam with no magnesium; the bank has no signed magnesium entry. SMOG p.37 puts magnesium first line in pregnancy. | #103 |
 | Uncited IV fluid rates are still served: a fluid isn't a drug the check recognises (run-3 finding 5). Closing it needs signed crystalloid entries: the owner's authoring job. | #108 |
