@@ -6218,7 +6218,12 @@ def should_use_rsi_pregate(text: str) -> bool:
     # A3, 2026-09-24: a completed airway never gets the induction-and-paralytic
     # bundle, whatever else the query says. The review's point was that the
     # vent-vocabulary chase is the wrong shape of fix; this is the right one.
-    return (is_rsi_or_post_intubation_context(text)
+    # Owner, 2026-10-20 (#170 review): "ketamine drip" alone is not an
+    # airway. It stays in the context list, which keeps the drip out of the
+    # analgesia card, but it does not call the induction-and-paralytic
+    # bundle: "ketamine drip 80 kg" is asked which indication (#165).
+    rsi_text = re.sub(r"ketamine drip", " ", (text or "").lower())
+    return (is_rsi_or_post_intubation_context(rsi_text)
             and not is_vent_settings_query(text)
             and not already_intubated(text))
 
