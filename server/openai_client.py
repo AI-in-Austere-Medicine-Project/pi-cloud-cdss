@@ -4521,10 +4521,13 @@ def _rate_indication_category(indication: str) -> Optional[str]:
 
 
 def _signed_rate_ranges(drug: str, patient_ctx: Optional["PatientContext"],
-                        indications: Optional[set] = None) -> list:
+                        indications: Optional[set] = None,
+                        stated: Optional[set] = None) -> list:
     """[(key, lo, hi)] for the drug's signed infusion-rate entries for this
     patient's population, normalised like _rate_key. With indications given
-    (A11b), only the entries for them."""
+    (A11b), only the entries for them. With classes stated (#170 finding 2),
+    an entry outside A11b's three categories only when its class is one of
+    them: a ketamine drip for pain is not the sedation infusion."""
     if drug_contracts is None:
         return []
     ped = bool(patient_ctx and patient_ctx.is_pediatric)
@@ -4533,7 +4536,11 @@ def _signed_rate_ranges(drug: str, patient_ctx: Optional["PatientContext"],
         pops = (e.get("population") or "").split("|")
         if ("peds" if ped else "adult") not in pops:
             continue
-        if indications and _rate_indication_category(e.get("indication")) not in indications:
+        category = _rate_indication_category(e.get("indication"))
+        if indications and category not in indications:
+            continue
+        if (stated and category is None
+                and indication_class(e.get("indication")) not in stated):
             continue
         r = e.get("dose_range") or {}
         units = str(r.get("units") or "")
@@ -4575,6 +4582,7 @@ def free_text_dose_issues(response_text: str,
     given, collects (drug, [mg, ...]) for each dose that matched a signed
     value (B1's label reads it); it never changes the issues."""
     indications = rate_indications(query) if query else set()
+    classes = stated_indication_classes(query) if query else set()
     allowed, signed_units = {}, {}
     for d in allowed_doses or []:
         allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
@@ -4666,8 +4674,8 @@ def free_text_dose_issues(response_text: str,
                 drug = attribute(rate)
                 key = _rate_key(rate.group(3), bool(rate.group(4)), rate.group(5))
                 any_signed = _signed_rate_ranges(drug, patient_ctx)
-                signed = (_signed_rate_ranges(drug, patient_ctx, indications)
-                          if indications else any_signed)
+                signed = (_signed_rate_ranges(drug, patient_ctx, indications, classes)
+                          if indications or classes else any_signed)
                 if key is not None:
                     kind, factor = key
                     stated = [float(v) * factor for v in rate.group(1, 2) if v]
@@ -4676,12 +4684,12 @@ def free_text_dose_issues(response_text: str,
                            for k, lo, hi in signed):
                         continue
                 wrong_indication = ""
-                if indications and key is not None and any(
+                if (indications or classes) and key is not None and any(
                         k == key[0] and all(lo * 0.95 - 1e-12 <= x <= hi * 1.05 + 1e-12
                                             for x in [float(v) * key[1]
                                                       for v in rate.group(1, 2) if v])
                         for k, lo, hi in any_signed):
-                    wrong_indication = " and ".join(sorted(indications))
+                    wrong_indication = " and ".join(sorted(indications or classes))
                 issues.append(_free_rate_hold_line(drug, rate.group(0).strip(),
                                                    bool(any_signed), patient_ctx,
                                                    wrong_indication))

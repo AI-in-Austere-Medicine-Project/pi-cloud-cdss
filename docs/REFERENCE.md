@@ -75,6 +75,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A27 | The hypothermic-arrest card fires on a patient's "no pulse" or "pulseless" with hypothermia wording (hypotherm-, snow, frozen, cold water, found cold), as well as on "cardiac arrest" with a cold word. Pulse ox, a limb's pulse and "no radial pulse" are not arrest. | Found in the D7 v3 re-bench (G-TYP-07); owner, 2026-10-11 | Done, #157. G-TYP-07 movement approved |
 | A28 | The active-seizure detector (card and dose builder) reads the common misspellings siezing, seizeing, siezure(s), seizeure(s). Negated, past, prophylactic and eclamptic seizures are still excluded. | Found in the D7 v3 re-bench (G-TYP-06); owner, 2026-10-11 | Done, #158. G-TYP-06 movement approved |
 | A29 | The tension-pneumothorax card is served from `needle_decompression_card.json`, a needle-decompression procedure with verbatim JTS CPG ID74 quotes (p.5, p.8) signed by the owner; unsigned, a tension presentation holds. "pneumo" counts as chest trauma for the tension detector. | Found in the D7 v3 re-bench (G-TYP-02); owner, 2026-10-11 | Done, #159. Procedure signed by Andrew Azelton, 2026-10-12; G-TYP-02 movement approved |
+| A30 | A rate entry outside bradycardia, cardiogenic and shock (the ketamine sedation infusion) is matched only when the query states its class; a ketamine drip for pain holds on the sedation rate. With no class stated, by drug, as A11b. | Signing batch 2 (#170), finding 2; owner, 2026-10-19 | In review |
 
 ## 4. D items: data and speed
 
