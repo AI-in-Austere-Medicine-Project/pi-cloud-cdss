@@ -978,6 +978,8 @@ Held: the SMOG sides of midazolam procedural sedation and the ketamine infusion 
 
 **Rebased onto A30 (main `49cd349`, 2026-10-20):** replay against `49cd349`: served (1,738) 5 changed, held (308) 45, gate (1,408) 0, live logs (2,957) 0, pipeline (809) 12; the same rows that moved before the rebase, **0 newly held, 0 newly released.** Suite: 3,001 passed, 0 failed (5 skipped, 4 xfailed). Owner, 2026-10-20 (ruling 1): "ketamine drip 80 kg" with no context must be asked which indication; it gets the RSI bundle ("ketamine drip" is an RSI word), a bug fixed in its own PR (A31) before this merges. This branch carries the owner's test as a strict xfail; it flips when rebased onto A31. "Intubated" with the drip is read as sedation and gets the drip card (accepted).
 
+**Rebased onto A31 (main `2aa932d`, 2026-10-20):** the xfail marker is off; the owner's test passes. Replay against `2aa932d`: served (1,738) 5 changed, held (308) 45, gate (1,408) 0, live logs (3,015) 0, pipeline (809) 12, the same rows as before, **0 newly held, 0 newly released.** Suite: 3,007 passed, 0 failed (5 skipped, 3 xfailed).
+
 **Live harness** (second uvicorn, :8012, local qwen2.5:3b, no keys): `run_tests.sh` 29/29. Targeted flows:
 - adult cefazolin: served 2 g IV q6–8h;
 - paediatric cefazolin (20 kg): offered 400 mg; qwen wrote 100 mg and was held;
