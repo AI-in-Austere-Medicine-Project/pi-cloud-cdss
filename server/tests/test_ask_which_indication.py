@@ -222,3 +222,21 @@ def test_a_stated_route_with_several_indications_on_it_is_still_asked():
     h = f"{TURN_1} {TURN_2}"
     text = oc.which_indication_question(h, _ctx(h))
     assert text and text.startswith("Which indication for ketamine"), text
+
+
+# ── A ketamine drip with no reason (owner, 2026-10-20, #170 review) ─────────
+# With the sedation infusion signed, "ketamine drip 80 kg" must be asked which
+# indication, not answered. On main it gets the RSI bundle ("ketamine drip" is
+# an RSI word); the fix is its own PR, which merges before this one. Strict:
+# when #170 is rebased onto that fix this XPASSes and the marker comes off.
+# "Intubated" with the drip is read as sedation; the owner accepted that.
+
+@pytest.mark.xfail(strict=True, reason="bare 'ketamine drip' takes the RSI bundle; "
+                                       "fixed in its own PR before #170 merges")
+def test_a_ketamine_drip_with_no_reason_is_asked_which_indication(seen):
+    q = "ketamine drip 80 kg"
+    r = run(q, [])
+    if r["response"] == VIAL_ASK:
+        r = run("500", [{"query": q, "response": r["response"]}])
+    assert r["response"].startswith("Which indication for ketamine"), r["response"]
+    assert seen["generator"] is None
