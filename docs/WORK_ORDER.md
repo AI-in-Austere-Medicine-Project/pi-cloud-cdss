@@ -71,7 +71,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A27 | The hypothermic-arrest card fires on "no pulse" / "pulseless" with hypothermia, not only "cardiac arrest" | **done**: #157, merged and deployed; G-TYP-07 movement approved (owner, 2026-10-11) |
 | A28 | The seizure trigger tolerates common misspellings (siezing, seizeing, siezure) | **done**: #158, merged and deployed; G-TYP-06 movement approved (owner, 2026-10-11) |
 | A29 | Needle-decompression procedure (verbatim ID74) signed by the owner, the tension card served from it; "pneumo" read as pneumothorax | **done**: #159, merged and deployed; procedure signed by Andrew Azelton, 2026-10-12; G-TYP-02 movement approved |
-| A30 | A rate entry outside bradycardia, cardiogenic and shock is matched only for its own stated indication | **in review**: this PR; found signing batch 2 (#170), finding 2 |
+| A30 | A rate entry outside bradycardia, cardiogenic and shock is matched only for its own stated indication | **done**: #171, merged; found signing batch 2 (#170), finding 2 |
+| A31 | A bare "ketamine drip" is not RSI: with no indication it is asked which indication | **in review**: this PR; owner ruling 1, #170 review (2026-10-20); merges before #170 |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -679,6 +680,20 @@ Newly held, each read:
 **Suite:** 2,916 passed, 0 failed (6 skipped, 3 xfailed). **Replay** (this branch against main `65788f0`): served answers (1,738), held answers (308), gate (1,408), live session logs (2,899) and the full pipeline (809, model stubbed) byte-identical; **0 newly held, 0 newly released.** As expected: on main no signed rate entry is outside the three categories, so nothing can move until #170's ketamine infusion is signed; #170 is rebased and replayed after this merges. **Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29. "Ketamine drip for sedation" gets the drip card and "ketamine drip for pain" the RSI bundle (#86), both as before; the epinephrine shock and bradycardia drips state no rate.
 
 **Seen in the harness, not this item:** for "BP 70/40 after 2 L of fluid, still in shock, epinephrine infusion rate", JTS_GROUNDED served the 10 mcg push dose labelled "Indication: symptomatic bradycardia", SAFE. No rate is involved, so A30 does not touch it; recorded for the owner.
+
+### A31: a bare "ketamine drip" is asked which indication, not given the RSI bundle (owner, 2026-10-20; #170 review)
+
+**Owner, 2026-10-20 (#170 review, ruling 1):** "add a test to #170 that 'ketamine drip, 80 kg, intubated' with no stated reason gets the which-indication question, not an answer. If it doesn't, that's a bug, not a gap: fix it in its own PR before #170 merges." Then: "if 'intubated' is read as sedation by the pre-gate, that's acceptable; then change the test query to 'ketamine drip 80 kg' with no context at all, and that one must get the which-indication question."
+
+**Why:** "intubated" is a sedation cue (#165), and with the drip it gets the ketamine drip card, which states no dose (accepted). "ketamine drip 80 kg" got the RSI bundle: `is_rsi_or_post_intubation_context` lists "ketamine drip", so `should_use_rsi_pregate` served induction ketamine 160 mg, rocuronium 96 mg and post-intubation sedation to a patient nobody said was being intubated. The #170 harness showed "ketamine drip for pain" taking the same bundle.
+
+**What changed:** `should_use_rsi_pregate` reads the query with "ketamine drip" taken out. The phrase stays in the context list, which keeps a drip out of the ketamine analgesia card. RSI words with a drip ("RSI ... then a ketamine drip post intubation") still take the bundle.
+
+**Tests:** `server/tests/test_ketamine_drip_not_rsi.py`, committed failing first (2 of 5 failed on main). #170 carries the owner's test as a strict xfail; it flips when #170 is rebased onto this.
+
+**Suite:** 2,921 passed, 0 failed (6 skipped, 3 xfailed). **Replay** (against main `49cd349`): served (1,738), held (308), gate (1,408) and live session logs (2,957) byte-identical; the full pipeline (809, model stubbed) moves **one row, a live question**: "Need help setting up a Ketamine drip for pain control … male 150 pounds … IV established", from the RSI bundle (induction ketamine, rocuronium, post-intubation sedation) to the vial question. **0 newly held, 0 newly released.** **Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29. "ketamine drip 80 kg" → the vial question → "Which indication for ketamine — agitation, RSI, sedation (already intubated), seizure or pain?" → "pain" → ketamine 20 mg IV, the signed analgesia dose. "ketamine drip, 80 kg, intubated" → the drip card. "RSI … then a ketamine drip post intubation" → the vial question, then the bundle, as on main.
+
+**Found in the harness, not this item (for the owner):** "80 kg adult, femur fracture, IV access, ketamine drip for pain, what rate", after the vial, was served by qwen2.5:3b as "ketamine IV (40 mg). Indication: post-intubation sedation — repeated bolus", SAFE. On main the same question got the RSI bundle. The check accepts any offered entry: a stated indication puts its doses first (#165) but does not restrict what passes, and on main "ketamine for pain" with no drip passes the post-intubation dose too (checked offline). It is the same mechanism as the epinephrine-in-shock item (a dose labelled for another indication passes).
 
 ### B1: source-mode labelling
 
@@ -1706,7 +1721,7 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **A correct signed dose is held when the question names the indication, not the drug** (found in #97). In asystole with nothing named, epinephrine 1 mg (the signed arrest dose) is held, because the builder builds by drug name. Fixing it would release holds, so it needs an owner ruling (owner, #97 review: not now). **Ruled 2026-10-14 (owner): fix it; in review (indication-only doses).** Seen live 2026-10-14: "80 kg adult, severe pain from a closed femur fracture, IV access, what can I give" held three times (signed ketamine IV analgesia not offered); the only real holds in that week's log.
 - **A named drug is offered its therapeutic dose in an overdose question** (found in signing batch 1, 2026-10-14; owner: indication matching, A1b family). "acetaminophen overdose, NAC dose" is offered acetaminophen 500 mg: a named drug gets every signed entry for it, whatever the question is about. The same holds for any signed drug named in an overdose question.
 - **Indication-only rules, one PR each, later** (owner, 2026-10-14, after the indication-only doses PR): anaphylaxis, hypoglycaemia, opioid overdose, bradycardia.
-- A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term).
+- A ketamine drip for pain gets the RSI bundle ("ketamine drip" is an RSI term). **Fixed by A31.**
 - A unitless weight ("he is 150") silently skips the RSI card.
 - **An eclamptic seizure is served lorazepam, with no magnesium** (found in #103). SMOG CY24 p.37: "In pregnant patients, Magnesium should be first line to abort non-epileptic seizures." "70kg, 34 weeks pregnant, eclamptic seizure, what do I give" goes to the model path (A9 keeps eclampsia off the seizure card), and the builder offers lorazepam 4 mg for active seizure. gpt-4o-mini served it. The bank has no signed magnesium entry. It's the same on main.
 - **Uncited IV fluid rates are still served** (run-3 finding 5, confirmed in #108). A fluid isn't a drug the check recognises, so "if IV, infuse 250–500 mL/hr" (H-IM-06) isn't read. A11 reads rates for recognised drugs only. Closing it needs signed crystalloid entries, which is the owner's authoring job (owner, #108 review).
