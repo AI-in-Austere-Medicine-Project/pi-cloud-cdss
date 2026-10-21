@@ -88,3 +88,19 @@ def test_the_builder_still_offers_every_entry():
     ctx = oc.rebuild_patient_context_from_history(FEMUR_PAIN)
     offered = {d.indication for d in oc.build_allowed_doses(FEMUR_PAIN, ctx)}
     assert any("post-intubation sedation" in i for i in offered), offered
+
+
+# ── RSI covers the sedation that follows the tube ───────────────────────────
+# Found in the A32 replay: 43 live-log rows of the deterministic RSI bundle
+# ("RSI an 80kg male trauma patient ketamine and rocuronium") held on the
+# bundle's own post-intubation sedation line, because an RSI question states
+# RSI and not sedation. The bundle serves that line by design (A3, #86).
+
+def test_the_rsi_bundles_post_intubation_sedation_line_passes():
+    history = "RSI an 80kg male trauma patient ketamine and rocuronium"
+    text = ("**GIVE**\n- ketamine IV: 160 mg. NO VOLUME — confirm concentration to compute volume. "
+            "Indication: RSI induction.\n"
+            "- Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg). Indication: RSI paralytic.\n"
+            "**POST-INTUBATION SEDATION**\n- ketamine IV: 40 mg. NO VOLUME — confirm concentration "
+            "to compute volume. Indication: post-intubation sedation — repeated bolus (no infusion pump).")
+    assert _issues(history, text) == []
