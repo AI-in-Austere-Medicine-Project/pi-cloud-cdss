@@ -91,3 +91,36 @@ def test_a_named_recipe_with_a_signed_rate_still_passes():
             "Start 0.1 mcg/kg/min, titrate to MAP 65.")
     q = "80 kg adult in septic shock, BP 72/40, norepinephrine infusion"
     assert _issues(q, text) == []
+
+
+# ── Found in the A33 replay: not a drug's rate ──────────────────────────────
+# 38 of the first pass's 44 newly held rows were these: H-IM-06 ("dehydrated
+# casualty after two days without water, how much crystalloid and how fast")
+# answered with crystalloid rates and urine-output targets in lines that name
+# no fluid, and A1-RX-008's clarifying question, which says "mix".
+CRYSTALLOID = "dehydrated casualty after two days without water, how much crystalloid and how fast"
+
+
+@pytest.mark.parametrize("text", [
+    "**GIVE**\n- Initial rate: 500 mL/h.",
+    "**DO THIS**\n2. Start at 500 mL/h",
+    "**WATCH**\n- Urine output goal: >30-50 mL/hour in adults, >0.5-1 mL/kg/hr in children.",
+    "**DO THIS**\n- **Urine Output:** Aim for at least 0.5 mL/kg/hr.",
+])
+def test_the_crystalloid_questions_rates_are_the_fluids(text):
+    assert _issues(CRYSTALLOID, text) == [], text
+
+
+def test_a_urine_output_target_is_not_an_infusion_even_with_a_drug_asked():
+    q = "80 kg adult, HR 38, symptomatic bradycardia, epinephrine infusion rate"
+    assert _issues(q, "**WATCH**\n- UOP: >0.5 mL/kg/hr") == []
+
+
+def test_a_question_back_that_says_mix_is_not_a_recipe():
+    text = "Which medication/mix are you asking about — and what concentration do you have available?"
+    assert _issues("how much of that mix do I push for him", text) == []
+
+
+def test_a_drug_amount_in_the_crystalloid_answer_still_holds():
+    issues = _issues(CRYSTALLOID, "**GIVE**\n- Mix 10 mg in 10 mL NS (10 mg/mL). Start 10 mL/hr.")
+    assert any("no drug named" in i for i in issues), issues
