@@ -4464,6 +4464,11 @@ _FREE_DOSE_RECIPE_RE = re.compile(
     re.IGNORECASE)
 
 
+# A33: a urine-output target is not an infusion ("UOP >0.5 mL/kg/hr").
+_URINE_OUTPUT_RE = re.compile(r"\burine\b|\bUOP\b|\bUO\b", re.IGNORECASE)
+_FLUID_QUESTION_RE = re.compile(
+    r"\b(?:crystalloids?|fluids?|saline|ringer'?s?|LR|NS|rehydrat\w*|dehydrat\w*|hydrat\w*|blood)\b",
+    re.IGNORECASE)
 # A33: what a line names when its rate is a fluid's, not a drug's.
 _FLUID_LINE_RE = re.compile(
     r"\b(?:lactated\s+ringer'?s?|ringer'?s?|LR|normal\s+saline|saline|NS|crystalloids?|fluids?"
@@ -4677,6 +4682,9 @@ def free_text_dose_issues(response_text: str,
     weight = patient_ctx.dosing_weight_kg if patient_ctx is not None else None
     query_drugs = {sp[2] for sp in _drug_spans(query)} if query else set()
     query_drug = next(iter(query_drugs)) if len(query_drugs) == 1 else None
+    # A33: a question about fluid that names no drug ("how much crystalloid
+    # and how fast"): its drugless volume rates are the fluid's.
+    fluid_question = bool(query) and not query_drugs and _FLUID_QUESTION_RE.search(query) is not None
     issues, section = [], ""
     for line in (response_text or "").splitlines():
         m = _FREE_DOSE_HEADING_RE.match(line)
@@ -4691,8 +4699,14 @@ def free_text_dose_issues(response_text: str,
         # question's drug (query_drug), or they hold; a line that names only a
         # fluid, with no drug amount, is a fluid rate and is left alone.
         line_drugless = not _drug_spans(line)
-        fluid_line = (line_drugless and _FLUID_LINE_RE.search(line) is not None
-                      and not _FREE_DOSE_AMOUNT_RE.search(line))
+        has_drug_amount = _FREE_DOSE_AMOUNT_RE.search(line) is not None
+        # A fluid's rate, not a drug's: the line names a fluid, or a urine
+        # output, or the question asks about fluid and names no drug; never
+        # with a drug amount in the line ("Mix 10 mg in 10 mL NS").
+        fluid_line = (line_drugless and not has_drug_amount
+                      and (_FLUID_LINE_RE.search(line) is not None
+                           or _URINE_OUTPUT_RE.search(line) is not None
+                           or fluid_question))
         for clause in _FREE_DOSE_CLAUSE_RE.split(line):
             if not clause.strip():
                 continue
@@ -4709,7 +4723,8 @@ def free_text_dose_issues(response_text: str,
                 # bag, not a dose; any rate in it is read below, and with no
                 # drug to attribute it to, the recipe holds.
                 recipe_only = True
-                if query_drug is None and not _FREE_DOSE_RATE_RE.search(clause):
+                if (query_drug is None and not _FREE_DOSE_RATE_RE.search(clause)
+                        and _FREE_DOSE_AMOUNT_RE.search(clause)):
                     issues.append(_free_dose_unattributed_line(clause.strip(" -*.")))
                     continue
             drugless = not drugs and inherited is None
@@ -4728,7 +4743,13 @@ def free_text_dose_issues(response_text: str,
                 if (_FREE_DOSE_THRESHOLD_RE.search(clause[:amt.start()])
                         or _is_negated_amount(amt.start(), clause)):
                     continue
-                if drugless and (_is_gauge(amt, line) or _FREE_DOSE_RECIPE_RE.search(clause)):
+                if drugless and _is_gauge(amt, line):
+                    continue
+                if drugless and _FREE_DOSE_RECIPE_RE.search(clause):
+                    # A33: a recipe amount is what goes in the bag; with no
+                    # drug in the question to attribute it to, it holds.
+                    if query_drug is None and line_drugless:
+                        issues.append(_free_dose_unattributed_line(clause.strip(" -*.")))
                     continue
                 if _is_history_amount(amt, clause, line):
                     continue
