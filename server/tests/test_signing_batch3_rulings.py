@@ -315,13 +315,21 @@ def test_the_split_and_relabelled_labels_are_gone():
         assert not hits, g
 
 
-def test_calcium_chloride_is_its_own_drug_and_not_the_bare_word_calcium():
-    """The gluconate record says the bare word 'calcium' must not reach
-    calcium chloride: the salts differ threefold. Chloride is named only by name."""
-    d = _drugs()["calcium chloride"]
-    assert "calcium" not in [a.lower() for a in d["aliases"]]
+def test_calcium_chloride_is_its_own_drug_and_the_bare_word_calcium_names_no_salt():
+    """The salts differ threefold and are now signed at different doses (1 g
+    chloride, 3 g gluconate, both for transfusion), so the bare word 'calcium'
+    no longer means calcium gluconate. The alias lint refuses it anyway: an
+    alias may not word-match inside another drug's name. Each salt is named
+    by name; a dose stated for bare 'calcium' is recognised and holds."""
+    for name in ("calcium chloride", "calcium gluconate"):
+        assert "calcium" not in [a.lower() for a in _drugs()[name]["aliases"]]
+    assert drug_contracts.ALIAS_COLLISIONS == []
     assert drug_contracts.resolve_drugs("calcium chloride 1 g after the first unit") == ["calcium chloride"]
-    assert drug_contracts.resolve_drugs("calcium after 4 units of blood") == ["calcium gluconate"]
+    assert drug_contracts.resolve_drugs("calcium gluconate after 4 units of blood") == ["calcium gluconate"]
+    assert drug_contracts.resolve_drugs("calcium after 4 units of blood") == []
+    q = "80 kg adult, hemorrhagic shock, 4 units of whole blood in, calcium dose"
+    issues = _issues(q, "**GIVE**\n- Calcium 1 g IV/IO slow push.")
+    assert any("calcium" in i.lower() for i in issues), issues
 
 
 def test_paediatric_ceftriaxone_is_capped_at_the_adult_dose():
