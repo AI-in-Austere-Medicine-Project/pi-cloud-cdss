@@ -2195,8 +2195,12 @@ def test_the_thin_contraindication_lint_makes_the_thinness_visible():
     # sodium chloride 3% (signed 2026-09-25): neither ID30 p.9 nor ID63 p.7
     # states a contraindication for the bolus, so none is recorded — thin by
     # the source, not by omission, and listed here so it stays visible.
+    # phytomenadione and artesunate (signed 2026-10-21, batch 3): neither the
+    # Stroke CPG p.12 nor ID83 p.8 states a contraindication, and SMOG has no
+    # monograph for either: thin by the source, listed here so it stays visible.
     assert {r[0] for r in live} == {"fentanyl", "ketamine", "naloxone",
-                                    "rocuronium", "sodium chloride 3%"}, \
+                                    "rocuronium", "sodium chloride 3%",
+                                    "phytomenadione", "artesunate"}, \
         f"the thin set moved: {sorted({r[0] for r in live})}"
     assert {r[4] for r in live} == {"no contraindications recorded",
                                     "only trivial: Hypersensitivity"}

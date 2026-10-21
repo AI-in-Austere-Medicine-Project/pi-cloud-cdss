@@ -36,14 +36,16 @@ def _doses(query, ctx):
 def test_the_signed_naloxone_doses_are_fixed():
     fixed = [e for e in dc.servable_entries()["naloxone"]
              if dc.resolve_dose(e, None)["dose_mg"] is not None]
-    assert {(e["route"], e["population"]) for e in fixed} == {("IV", "adult"), ("IM", "adult")}, \
+    # IN, adult: signed 2026-10-21 (batch 3, E20's adult half).
+    assert {(e["route"], e["population"]) for e in fixed} == {("IV", "adult"), ("IM", "adult"),
+                                                               ("IN", "adult")}, \
         "the naloxone contract changed; re-derive this regression"
 
 
 def test_an_adult_with_no_weight_gets_the_fixed_naloxone_dose():
     assert ADULT_NO_WEIGHT.dosing_weight_kg is None
     assert sorted(_doses("naloxone dose", ADULT_NO_WEIGHT)) == [
-        ("naloxone", "IM", 0.4, "mg"), ("naloxone", "IV", 0.4, "mg")]
+        ("naloxone", "IM", 0.4, "mg"), ("naloxone", "IN", 0.4, "mg"), ("naloxone", "IV", 0.4, "mg")]
     for d in oc.build_allowed_doses("naloxone dose", ADULT_NO_WEIGHT):
         assert "drug_contracts" in d.source or "contract" in d.source.lower(), d.source
 
@@ -63,7 +65,7 @@ def test_a_per_kg_dose_still_needs_a_weight():
 def test_with_a_weight_nothing_changes():
     ctx = oc.PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
     assert sorted(_doses("naloxone dose", ctx)) == [
-        ("naloxone", "IM", 0.4, "mg"), ("naloxone", "IV", 0.4, "mg")]
+        ("naloxone", "IM", 0.4, "mg"), ("naloxone", "IN", 0.4, "mg"), ("naloxone", "IV", 0.4, "mg")]
 
 
 def test_the_replayed_case_now_carries_the_contract_and_holds_the_wrong_number(monkeypatch):
@@ -103,9 +105,12 @@ def test_the_signed_dose_stated_in_free_text_is_not_held():
 def test_a_calcium_channel_blocker_is_not_calcium():
     assert dc.resolve_drugs("patient OD on calcium channel blockers") == []
     assert dc.resolve_drugs("calcium-channel-blocker toxicity") == []
-    # The drug itself still resolves, including beside the class phrase.
-    assert dc.resolve_drugs("give calcium for hyperkalaemia") == ["calcium gluconate"]
-    assert dc.resolve_drugs("calcium channel blocker OD, give calcium") == ["calcium gluconate"]
+    # The drug itself still resolves by name, including beside the class
+    # phrase. The bare word "calcium" names no salt since calcium chloride
+    # got its own contract (signing batch 3, 2026-10-21).
+    assert dc.resolve_drugs("give calcium gluconate for hyperkalaemia") == ["calcium gluconate"]
+    assert dc.resolve_drugs("calcium channel blocker OD, give calcium chloride") == ["calcium chloride"]
+    assert dc.resolve_drugs("give calcium for hyperkalaemia") == []
 
 
 def test_a_ccb_overdose_with_no_weight_builds_no_calcium_contract():

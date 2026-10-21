@@ -122,6 +122,22 @@ PARTLY_STATED = {
 }
 
 
+# Signing batch 3 (owner, 2026-10-21) moved five of these on. Retired: the
+# SMOG ketamine infusion (E01), the rocuronium redose in both populations (E07,
+# E08) and paediatric ceftriaxone (E12). Relabelled and signed: the SMOG
+# midazolam procedural sedation (E13), now "procedural sedation for pacing /
+# cardioversion", pinned in test_signing_batch3_rulings.py. The tests below
+# cover what batch 2 left in the bank.
+RETIRED_IN_BATCH_3 = [
+    ("ketamine", KET_INFUSION_SMOG, "adult", "IV"),
+    ("rocuronium", ROC_REDOSE, "adult", "IV"),
+    ("rocuronium", ROC_REDOSE, "peds", "IV"),
+    ("ceftriaxone", CEFTRI, "peds", "IV"),
+]
+MOVED_ON = RETIRED_IN_BATCH_3 + [("midazolam", MIDAZ_PROC_SMOG, "adult", "IV")]
+LIVE = [k for k in DRAFTS if k not in MOVED_ON]
+
+
 def _bank():
     return json.loads((SERVER / "drug_contracts.json").read_text())
 
@@ -150,7 +166,7 @@ def _texts(e, tier=None):
     return out
 
 
-@pytest.mark.parametrize("key", DRAFTS, ids=_ids)
+@pytest.mark.parametrize("key", LIVE, ids=_ids)
 def test_only_the_ruled_entries_are_signed_and_servable(key):
     e, d = _entry(*key)
     ok, why = drug_contracts.entry_is_servable(e, d)
@@ -164,7 +180,7 @@ def test_only_the_ruled_entries_are_signed_and_servable(key):
         assert not ok
 
 
-@pytest.mark.parametrize("key", DRAFTS, ids=_ids)
+@pytest.mark.parametrize("key", LIVE, ids=_ids)
 def test_every_entry_carries_the_owners_ruling(key):
     e, _ = _entry(*key)
     assert e["adjudication"].startswith(RULING), e.get("adjudication")
@@ -176,10 +192,13 @@ def test_every_entry_carries_the_owners_ruling(key):
 @pytest.mark.parametrize("drug,indication", [("ketamine", KET_INFUSION), ("rocuronium", ROC_REDOSE)])
 def test_the_split_entries_no_longer_serve_both_populations(drug, indication):
     pops = sorted(e["population"] for e in _drug(drug)["dose_entries"] if e["indication"] == indication)
-    assert pops == ["adult", "peds"], pops
+    retired = sorted(r["population"] for r in _bank()["retired_entries"]
+                     if (r["generic_name"], r["indication"]) == (drug, indication))
+    # The rocuronium redose was retired in both populations (batch 3).
+    assert sorted(pops + retired) == ["adult", "peds"], (pops, retired)
 
 
-@pytest.mark.parametrize("key", DRAFTS, ids=_ids)
+@pytest.mark.parametrize("key", LIVE, ids=_ids)
 def test_every_source_carries_a_guideline_a_printed_page_and_a_quote(key):
     e, _ = _entry(*key)
     assert e["sources"]
@@ -198,7 +217,7 @@ def _figures(x):
     return {float(v) for v in vals}
 
 
-@pytest.mark.parametrize("key", [k for k in DRAFTS if k not in INCOMPLETE], ids=_ids)
+@pytest.mark.parametrize("key", [k for k in LIVE if k not in INCOMPLETE], ids=_ids)
 def test_every_dose_figure_is_in_a_quote(key):
     e, _ = _entry(*key)
     quotes = " ".join(s["quote"] for s in e["sources"]).replace(",", "")
@@ -208,7 +227,7 @@ def test_every_dose_figure_is_in_a_quote(key):
             assert fig in numbers, (field, fig, key)
 
 
-@pytest.mark.parametrize("key", INCOMPLETE, ids=_ids)
+@pytest.mark.parametrize("key", [k for k in INCOMPLETE if k in LIVE], ids=_ids)
 def test_what_no_source_states_stays_marked_incomplete(key):
     e, _ = _entry(*key)
     assert e["dose_range"] == drug_contracts.NEEDS_MANUAL
@@ -223,7 +242,7 @@ def test_a_figure_no_source_states_is_a_needs_manual_entry_caution(key):
         assert any(drug_contracts.NEEDS_MANUAL in t and what in t for t in texts), (key, what)
 
 
-@pytest.mark.parametrize("key", list(CLOSED_CONFLICTS), ids=_ids)
+@pytest.mark.parametrize("key", [k for k in CLOSED_CONFLICTS if k in LIVE], ids=_ids)
 def test_a_ruled_conflict_is_closed_with_the_owners_adjudication(key):
     e, _ = _entry(*key)
     assert "SOURCE_CONFLICT" not in e["flags"] and "conflict_group" not in e
@@ -312,18 +331,18 @@ def test_the_undrafted_indications_and_discrepancies_are_v1_1_items():
 
 
 def test_the_rocuronium_redose_says_smog_calls_it_unreferenced():
+    """Retired in batch 3 (owner, 2026-10-21) for the reason batch 2 held it."""
     for pop in ("adult", "peds"):
-        e, _ = _entry("rocuronium", ROC_REDOSE, pop, "IV")
-        assert all(s["source_class"] == "SMOG" for s in e["sources"] if "Dose and Administration" in s["citation"])
-        assert any("unlabeled and unreferenced" in s["quote"] for s in e["sources"])
-        assert "SINGLE_SOURCE_UNREFERENCED" in e["flags"]
+        rec = [r for r in _bank()["retired_entries"]
+               if (r["generic_name"], r["indication"], r["population"]) == ("rocuronium", ROC_REDOSE, pop)]
+        assert len(rec) == 1 and "unreferenced" in rec[0]["retired_reason"], rec
 
 
 def test_no_caution_states_another_drugs_dose():
     """A caution is served text, and the gate reads served text: another drug's
     dose in it would be a dose with no signed entry behind it."""
     names = {d["generic_name"] for d in _bank()["drugs"]}
-    for key in DRAFTS:
+    for key in LIVE:
         e, _ = _entry(*key)
         for c in e["cautions"]:
             t = (c if isinstance(c, str) else c["text"]).lower()
@@ -357,7 +376,7 @@ def _page_texts(pdf, page):
 
 @pytest.mark.skipif(shutil.which("pdftotext") is None or not PDF_DIR.is_dir(),
                     reason="the source PDFs (JTS_PDF_DIR) or pdftotext are not available")
-@pytest.mark.parametrize("key", DRAFTS, ids=_ids)
+@pytest.mark.parametrize("key", LIVE, ids=_ids)
 def test_every_quote_is_verbatim_on_its_cited_page(key):
     e, _ = _entry(*key)
     for s in e["sources"]:

@@ -110,6 +110,10 @@
       "aliases": [],
       "jts_corpus_chunks": 3
     },
+    "calcium": {
+      "aliases": [],
+      "jts_corpus_chunks": 141
+    },
     "calcium chloride": {
       "aliases": [],
       "jts_corpus_chunks": 23

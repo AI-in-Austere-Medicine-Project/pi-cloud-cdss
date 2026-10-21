@@ -98,3 +98,50 @@ Owner, 2026-10-19: these go to v1.1. None is drafted as an entry. The figures co
 |---|---|---|---|---|
 | P1 | lumbar puncture | raised or suspected raised ICP | none | No corpus passage states the contraindication. The criterion is sourced (JTS TBI Management in PFC p.6, "Suspect high ICP in any head injury patient with GCS score <=8 …"). The only corpus mention of lumbar puncture is a myelography technique (Cervical Thoracolumbar Spine Injury p.24). Owner ruling (#98): unsigned draft, inert. |
 | P2 | an NG tube | a basilar skull fracture, or its signs | none | No corpus passage links an NG tube to a skull fracture (searched 2026-10-08). The signs are sourced (JTS Use of TBI WB Biomarkers p.6). Owner ruling (#98): unsigned draft, inert; the owner to look in NASEMSO or SMOG. |
+
+## Signing batch 3 rulings (2026-10-21)
+
+Owner's rulings (Andrew Azelton, signer, 2026-10-21) on the batch 3 review packet ([`authoring/SIGNING_BATCH3_PACKET_2026-10-21.pdf`](authoring/SIGNING_BATCH3_PACKET_2026-10-21.pdf), items in [`authoring/SIGNING_BATCH3_ITEMS_2026-10-21.json`](authoring/SIGNING_BATCH3_ITEMS_2026-10-21.json)). "Apply exactly; sign nothing not listed." The rows above are the state before these rulings.
+
+**Signed, 26 entries from 24 rulings** (by AI-AIM for the owner, `set_contract.py`; 2026-10-21):
+
+| Item | Entry | Dose | Sources |
+|---|---|---|---|
+| E05 | epinephrine · push-dose vasopressor for hypotension · adult · IV | 5–20 mcg every 2–5 min | JTS ID83 p.24; SMOG p.12 noted |
+| E06 | epinephrine · infusion for refractory shock · adult · IV | start 4 mcg/min; rate-check range 2–10 mcg/min | JTS ID83 p.24, ID91 p.40; SMOG p.114 |
+| E10 | ertapenem · penetrating abdominal injury · adult · IV | 1 g once | JTS ID24 p.11, p.12 |
+| E11 | moxifloxacin · combat wound prophylaxis (oral) · adult · PO | 400 mg once | JTS ID24 p.12, ID62 p.24; SMOG p.64 |
+| E13 | midazolam · procedural sedation for pacing / cardioversion (relabelled) · adult · IV | 2.5–5 mg every 15–30 min | SMOG p.140 |
+| E16 | dextrose · neonatal hypoglycaemia · peds · IV | 5 mL/kg D10 (0.5 g/kg), max 25 g | SMOG p.105 |
+| E17 | propofol · induction of anaesthesia, hypotensive trauma patient (reduced dose) (relabelled) · adult · IV | 0.5–1 mg/kg | JTS ID40 p.3 |
+| E18 | propofol · sedation infusion · adult · IV | 10–75 mcg/kg/min, max 100 | SMOG p.12, p.153; ID30 p.22 noted |
+| E19 | calcium chloride · hypocalcaemia after massive transfusion · adult · IV (new drug) | 1 g after the 1st unit, then every 4 | JTS ID18 p.9, ID73 p.8; SMOG p.16 |
+| E19 | calcium gluconate · hypocalcaemia after massive transfusion · adult · IV | 3 g, same timing | SMOG p.16, p.102 |
+| E20 | naloxone · opioid-induced respiratory depression · adult · IN (adult half) | 0.4–2 mg every 2–3 min, max 10 mg | JTS ID61 p.13 |
+| E21 | phytomenadione · warfarin reversal · adult · IV | 10 mg with 4-factor PCC | JTS Stroke CPG (03 Jul 2024) p.12 |
+| E23 | artesunate · severe malaria · adult · IV | 2.4 mg/kg at 0, 12, 24, 48 h | JTS ID83 p.8 |
+| U01 | cefazolin · penetrating brain injury · adult · IV | 2 g every 6–8 h | JTS ID24 p.11, ID30 p.7; SMOG p.64 |
+| U02 | cefazolin · penetrating spinal cord injury · adult · IV | 2 g every 6–8 h | JTS ID24 p.12; SMOG p.64 |
+| U03 | cefazolin · penetrating chest injury without esophageal disruption · adult · IV | 2 g every 6–8 h for 24 h | JTS ID24 p.11; SMOG p.64 |
+| U03 | cefazolin · open maxillofacial fracture · adult · IV | 2 g every 6–8 h for 24 h | JTS ID24 p.11; SMOG p.64 |
+| U04 | cefazolin · single pre-surgical dose for open wounds · adult · IV | 2 g once | JTS ID24 p.9 |
+| U05 | cefazolin · ventriculostomy in place · adult · IV | 1 g three times daily | JTS ID30 p.13, p.23 |
+| U06 | ceftriaxone · open or penetrating TBI · adult · IV | 2 g every 24 h | JTS ID63 p.8, p.20; ID24 p.11 noted |
+| U07 | ceftriaxone · penetrating TBI / CNS injury · peds · IV | 100 mg/kg/day, served once daily, capped at 2 g | JTS ID24 p.12; ID63 p.8 (ceiling) |
+| U08 | ceftriaxone · severe COVID-19 with bacterial pneumonia · adult · IV | 2 g every 24 h | JTS ID85 p.17 |
+| U09 | midazolam · procedural sedation · peds · IV | 0.05–0.1 mg/kg every 15–30 min | SMOG p.140, p.47, p.50 |
+| U10 | midazolam · procedural / conscious sedation · peds · IN | 0.2–0.5 mg/kg, max 10 mg (5 mg per nostril) | SMOG p.140 |
+| U11 | midazolam · post-intubation sedation bolus · adult · IV | 1–4 mg every 5 min | JTS ID61 p.12 |
+| U12 | midazolam · sedation / anxiolysis · adult · IM | 2–4 mg | JTS ID91 p.35 |
+
+**Ruled SIGN, not signed: E27** (artemether + lumefantrine · uncomplicated P. falciparum malaria · adult · PO; 4 tablets, 4 at 8 h, then 4 twice daily for 2 days). The bank has no tablet unit: `drug_contracts.classify_units` fails closed on any dose unit that is not a mass, and no source states the tablet strength. It stays unsigned with the ruling written on it, for the owner to rule how a tablet count is served (a tablet unit in the engine, its own PR; or the dose in mg of the WHO tablet, 20 mg + 120 mg).
+
+**Retired, 26** (out of the bank, into `retired_entries` with the reason): E01 (ketamine SMOG infusion), E03 (ketamine IM analgesia adult|peds: batch 1 signed adult 0.5–1.0 mg/kg and paediatric 0.5 mg/kg IM, checked first), E04, E07, E08 (rocuronium redose, unreferenced), E12, E22, E24, E25, E26, E28, E29, E30, E31 (antivenom), E32–E42, and the paediatric half of E20 (naloxone IN). A drug whose every entry is retired stays in the bank with no entries, so its name is still recognised and a dose stated for it holds.
+
+**Deferred, 4: stay unsigned, holding.** E02 (ketamine infusion, peds), E09 (fentanyl infusion), E14 and E15 (midazolam ventilated infusion, both sides).
+
+**P1, P2: stay unsigned hold rows**, not retired.
+
+**v1.1 items from batch 3:** antivenom product entries (E31: antivenom is dosed per product); E27's tablet unit.
+
+**The bare word "calcium"** was calcium gluconate's alias. With calcium chloride a drug of its own, the alias lint refuses it (it word-matches inside "calcium chloride"), and the two salts are signed at different doses. The bare word now names no salt: it is recognised (`drug_lexicon.json`), and a dose stated for it holds.

@@ -52,16 +52,6 @@ def _bank():
             for d in json.loads((SERVER / "drug_contracts.json").read_text())["drugs"]}
 
 
-def _unsigned_keys():
-    out = []
-    for name, d in _bank().items():
-        for e in d.get("dose_entries", []):
-            if e.get("signoff") is True or "OWNER_EXCLUDED" in (e.get("flags") or []):
-                continue
-            out.append((name, e["indication"], e["population"], e["route"]))
-    return out
-
-
 def _items():
     return json.loads(ITEMS.read_text())
 
@@ -71,27 +61,43 @@ def test_the_packet_files_exist():
         assert p.is_file(), p
 
 
-def test_one_page_for_every_unsigned_entry():
-    keys = _unsigned_keys()
-    assert len(keys) == 42, len(keys)
-    got = [(i["drug"], i["indication"], i["population"], i["route"])
-           for i in _items() if i["kind"] == "entry"]
-    assert sorted(got) == sorted(keys)
+# The owner's rulings on the packet (2026-10-21), by item. The bank no longer
+# holds the 42 unsigned entries the packet was built from: what was ruled is
+# pinned in test_signing_batch3_rulings.py; here, that every page got one.
+RULED = {
+    "SIGN": ["E05", "E06", "E10", "E11", "E13", "E16", "E17", "E18", "E19", "E20", "E21", "E23", "E27",
+             "U01", "U02", "U03", "U04", "U05", "U06", "U07", "U08", "U09", "U10", "U11", "U12"],
+    "RETIRE": ["E01", "E03", "E04", "E07", "E08", "E12", "E22", "E24", "E25", "E26", "E28", "E29", "E30",
+               "E31", "E32", "E33", "E34", "E35", "E36", "E37", "E38", "E39", "E40", "E41", "E42"],
+    "DEFER": ["E02", "E09", "E14", "E15"],
+    "HOLD": ["P1", "P2"],
+}
+
+
+def test_one_page_for_every_entry_that_was_unsigned_and_every_page_ruled():
+    """42 entry pages, as built (2026-10-21), and a ruling for every page. E20
+    is SIGN for its adult half and RETIRE for its paediatric half; it is listed
+    once, under SIGN."""
+    items = _items()
+    entries = [i["id"] for i in items if i["kind"] == "entry"]
+    assert len(entries) == 42 and len(set(entries)) == 42
+    ruled = [x for ids in RULED.values() for x in ids]
+    assert len(ruled) == len(set(ruled))
+    assert sorted(ruled) == sorted(i["id"] for i in items)
+
+
+def test_a_drug_named_on_a_page_is_still_in_the_bank():
+    """Retired entries leave the bank; their drugs do not."""
+    bank = _bank()
+    for i in _items():
+        if i["kind"] == "entry":
+            assert i["drug"] in bank, i["id"]
 
 
 def test_p1_p2_and_the_12_undrafted_indications_have_pages():
     items = _items()
     assert sorted(i["id"] for i in items if i["kind"] == "procedure") == ["P1", "P2"]
     assert len([i for i in items if i["kind"] == "undrafted"]) == 12
-
-
-def test_nothing_is_signed():
-    """The packet signs nothing: every entry it covers is still unsigned."""
-    for name, d in _bank().items():
-        for e in d.get("dose_entries", []):
-            key = (name, e["indication"], e["population"], e["route"])
-            if key in set(_unsigned_keys()):
-                assert e.get("signoff") is not True, key
 
 
 def test_jts_first_smog_second_nasemso_noted_only():
