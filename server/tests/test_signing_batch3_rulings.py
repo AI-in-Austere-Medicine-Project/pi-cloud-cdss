@@ -398,7 +398,7 @@ def test_p1_and_p2_stay_unsigned_holds(row_id):
     rows = json.loads((SERVER / "procedure_contracts.json").read_text())["rows"]
     row = next(r for r in rows if r["id"] == row_id)
     assert row["signoff"] is False
-    assert row_id in {r["id"] for r in procedure_contracts.inert_rows()}
+    assert row_id in procedure_contracts.inert_rows()
     assert f"{RULING}: hold" in row["extraction_notes"]
 
 
