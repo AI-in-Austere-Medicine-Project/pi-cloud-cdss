@@ -20,6 +20,9 @@ import openai_client as oc  # noqa: E402
 import providers  # noqa: E402
 
 QUERY = "80 kg adult, severe pain from a femur fracture, fentanyl IV"
+# The same question with no route: the IN entry is offered only then (the
+# route filter, owner 2026-10-21; "fentanyl IV" offers the IV entry alone).
+QUERY_ANY_ROUTE = "80 kg adult, severe pain from a femur fracture, fentanyl"
 GENERAL_SOURCE = "**SOURCE**: General Evidence-Based Medicine (outside retrieved JTS scope)"
 # The signed adult IV fixed dose (JTS PFC, CPG ID61): 50 mcg.
 ID61_GIVE = "**GIVE**\n- Draw 1 mL of 0.05mg/mL fentanyl IV (0.05mg). Indication: acute pain.\n"
@@ -65,13 +68,13 @@ class _Id61Chips:
                 "distances": [[0.804, 0.829, 0.843]]}
 
 
-def _run(monkeypatch, generator_text):
+def _run(monkeypatch, generator_text, query=QUERY):
     def fake_chat(system, messages, *, model, temperature=0.2, max_tokens=700):
         return SAFE if system == oc.VALIDATOR_PROMPT else generator_text
     monkeypatch.setattr(providers, "chat", fake_chat)
     for name in ("CDSS_LLM_PROVIDER", "CDSS_LLM_MODEL", "CDSS_LLM_BASE_URL"):
         monkeypatch.delenv(name, raising=False)
-    return oc._query_with_rag_internal(QUERY, _Id61Chips())
+    return oc._query_with_rag_internal(query, _Id61Chips())
 
 
 def _source_line(response):
@@ -126,8 +129,8 @@ def test_only_the_source_line_changes(monkeypatch):
     # The deployment declares no fentanyl concentration, so the volume audit
     # strips the volume either way; everything but the SOURCE line is the same
     # text the NASEMSO-only answer gets, line for line.
-    r = _run(monkeypatch, ID61_GIVE + "\n" + GENERAL_SOURCE)
-    n = _run(monkeypatch, NASEMSO_GIVE + "\n" + GENERAL_SOURCE)
+    r = _run(monkeypatch, ID61_GIVE + "\n" + GENERAL_SOURCE, QUERY_ANY_ROUTE)
+    n = _run(monkeypatch, NASEMSO_GIVE + "\n" + GENERAL_SOURCE, QUERY_ANY_ROUTE)
     body = [l for l in r["response"].splitlines() if not l.startswith("**SOURCE**")]
     other = [l for l in n["response"].splitlines() if not l.startswith("**SOURCE**")]
     assert len(body) == len(other) and "0.05" in "\n".join(body), r["response"]
@@ -137,7 +140,7 @@ def test_only_the_source_line_changes(monkeypatch):
 # ── guards: pass before and after ────────────────────────────────────────────
 
 def test_a_nasemso_only_dose_stays_general(monkeypatch):
-    r = _run(monkeypatch, NASEMSO_GIVE + "\n" + GENERAL_SOURCE)
+    r = _run(monkeypatch, NASEMSO_GIVE + "\n" + GENERAL_SOURCE, QUERY_ANY_ROUTE)
     assert r["source_mode"] == "GENERAL_MEDICAL"
     assert _source_line(r["response"]) == [GENERAL_SOURCE]
 

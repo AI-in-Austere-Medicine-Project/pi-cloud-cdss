@@ -2194,7 +2194,17 @@ def _finish_doses(doses: List[DoseCandidate],
     entry is looked up again by DRUG NAME whenever the medic names the drug, so
     "active seizure 60kg give lorazepam" listed the identical contract line
     twice. Two identical GIVE lines read as two doses.
+
+    A stated route keeps only the doses on it (owner, 2026-10-21, freeze plan
+    item 1): "versed dose IM" was offered every IV midazolam entry beside the
+    IM one, and a model that wrote the IV bolus passed the dose check. IV and
+    IO are one route for dosing. A drug with nothing signed on the stated
+    route is offered nothing, so a dose written for it holds.
     """
+    route = ctx.route_preference
+    if route != "UNKNOWN":
+        same = {"IV", "IO"} if route in ("IV", "IO") else {route}
+        doses = [d for d in doses if d.route in same]
     seen, unique = set(), []
     for d in doses:
         k = (d.drug, d.indication, d.route)

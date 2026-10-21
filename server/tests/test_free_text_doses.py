@@ -63,12 +63,13 @@ def recorded(monkeypatch):
 # ── the regression, end to end on the local path ─────────────────────────────
 
 def test_the_contract_is_what_the_regression_assumes():
-    # 1 mcg/kg IN at 80 kg (NASEMSO), and since 2026-09-24 the 50 mcg IV fixed
-    # dose (JTS PFC ID61). 1 mg is 12.5x the first and 20x the second.
+    # Since 2026-09-24 the 50 mcg IV fixed dose (JTS PFC ID61): 1 mg is 20x
+    # it. The 1 mcg/kg IN entry (NASEMSO) is not offered: the route is IV (the
+    # route filter, owner 2026-10-21).
     fentanyl = {(d.route, round(d.dose_mg, 6)) for d in _allowed() if d.drug == "fentanyl"}
-    assert fentanyl == {("IN", 0.08), ("IV", 0.05)}, \
-        f"the 80 kg fentanyl contract moved; re-derive the 12.5x case: {fentanyl}"
-    assert all(1.0 / mg >= 12.5 for _, mg in fentanyl)
+    assert fentanyl == {("IV", 0.05)}, \
+        f"the 80 kg fentanyl contract moved; re-derive the 20x case: {fentanyl}"
+    assert all(1.0 / mg >= 20 for _, mg in fentanyl)
 
 
 def test_local_1_mg_iv_fentanyl_is_blocked_even_when_the_validator_says_safe(
@@ -102,7 +103,7 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
     assert [c["model"] for c in cloud] == ["gpt-4o-mini", "gpt-4o-mini"]
     assert [c["model"] for c in local] == ["qwen2.5:3b", "qwen2.5:3b"]
     block = oc.build_allowed_dose_block(_allowed())
-    assert "fentanyl IN: 80 mcg" in block
+    assert "fentanyl IV: 50 mcg" in block
     for c, l in zip(cloud, local):
         # Everything but the model: system prompt (with ALLOWED_DOSES in it),
         # every message, temperature and max_tokens.
@@ -116,7 +117,7 @@ def test_the_contract_reaches_the_local_generator_exactly_as_it_reaches_the_clou
 # ── free_text_dose_issues on its own ─────────────────────────────────────────
 
 @pytest.mark.parametrize("text", [
-    "**GIVE**\n- Give fentanyl 80 mcg IN.",                     # the contract dose
+    "**GIVE**\n- Give fentanyl 50 mcg IV.",                     # the contract dose
     "**PREP**\n- Fentanyl 50 mcg/mL ampoule.",                   # a concentration
     "**TREAT**\n1. Never give fentanyl 300 mcg.",               # A21: a negated dose
     "**DON'T**\n- Fentanyl 1 mg IV.",                            # DON'T section
@@ -130,10 +131,10 @@ def test_what_is_not_a_freelanced_dose(text):
 
 def test_the_contract_dose_in_another_unit_is_held():
     """A25 (owner, 2026-10-10): this case was listed above as "same, in mg" and
-    passed. The signed IN dose is written in mcg; a dose in another unit holds,
+    passed. The signed IV dose is written in mcg; a dose in another unit holds,
     even when it converts equal."""
-    (issue,) = oc.free_text_dose_issues("**TREAT**\n1. Give fentanyl 0.08 mg.", _allowed())
-    assert issue.startswith("The answer stated fentanyl 0.08 mg") and "written in mcg" in issue
+    (issue,) = oc.free_text_dose_issues("**TREAT**\n1. Give fentanyl 0.05 mg.", _allowed())
+    assert issue.startswith("The answer stated fentanyl 0.05 mg") and "written in mcg" in issue
 
 
 @pytest.mark.parametrize("text, shown", [
@@ -149,11 +150,15 @@ def test_a_ceiling_is_checked_like_any_other_dose(text, shown):
 
 def test_a_per_kg_dose_is_checked_at_the_patients_weight():
     """1 mcg/kg is a per-kg DOSE, not a rate (G-MTN-03, benchmark run 2). At
-    80 kg it is 80 mcg, the signed IN dose, and passes; with no weight it cannot
+    50 kg it is 50 mcg, the signed IV dose, and passes; with no weight it cannot
     be matched to anything signed, and holds. A per-kg RATE is not a dose: A11
-    reads it as a rate, and with no signed fentanyl rate it holds as one."""
+    reads it as a rate, and with no signed fentanyl rate it holds as one.
+    (It was 80 kg against the IN entry; with the route filter an IV question
+    is offered the IV entry alone, a fixed 50 mcg.)"""
     text = "**TREAT**\n1. Fentanyl 1 mcg/kg IV."
-    assert oc.free_text_dose_issues(text, _allowed(), _ctx()) == []
+    at_50 = oc.PatientContext(confirmed_weight_kg=50.0, weight_source="stated",
+                              route_preference="IV")
+    assert oc.free_text_dose_issues(text, _allowed(), at_50) == []
     assert oc.free_text_dose_issues(text, _allowed(), NO_WEIGHT) != []
     rate = oc.free_text_dose_issues("**TREAT**\n1. Fentanyl infusion 1 mcg/kg/hr.",
                                     _allowed(), NO_WEIGHT)
@@ -173,7 +178,7 @@ def test_what_is(text, drug):
 
 
 def test_a_number_goes_with_the_nearest_drug_in_its_clause():
-    text = "**TREAT**\n1. Give fentanyl 80 mcg IN, then ketamine 20 mg IV."
+    text = "**TREAT**\n1. Give fentanyl 50 mcg IV, then ketamine 20 mg IV."
     issues = oc.free_text_dose_issues(text, _allowed(), _ctx())
     assert len(issues) == 1 and "stated ketamine 20 mg" in issues[0], issues
 
