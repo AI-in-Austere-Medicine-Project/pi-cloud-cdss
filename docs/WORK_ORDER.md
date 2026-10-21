@@ -73,7 +73,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A29 | Needle-decompression procedure (verbatim ID74) signed by the owner, the tension card served from it; "pneumo" read as pneumothorax | **done**: #159, merged and deployed; procedure signed by Andrew Azelton, 2026-10-12; G-TYP-02 movement approved |
 | A30 | A rate entry outside bradycardia, cardiogenic and shock is matched only for its own stated indication | **done**: #171, merged; found signing batch 2 (#170), finding 2 |
 | A31 | A bare "ketamine drip" is not RSI: with no indication it is asked which indication | **done**: #172, merged; owner ruling 1, #170 review (2026-10-20) |
-| A32 | A stated indication restricts what the dose check accepts; another indication's dose of the same drug holds, naming both | **in review**: this PR; owner, 2026-10-20 |
+| A32 | A stated indication restricts what the dose check accepts; another indication's dose of the same drug holds, naming both | **done**: #173, merged; owner, 2026-10-20 |
+| A33 | A recipe or rate that names no drug is the question's drug, or it holds | **in review**: this PR; owner, 2026-10-21 (A32 harness finding) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -726,6 +727,40 @@ Newly held, each read:
 - "BP 70/40 after 2 L of fluid, still in shock, epinephrine infusion rate": qwen served "Mix 10 mg in 10 mL NS (10 mg/mL). Start 10 mL/hr", naming no drug (vasopressin, from the BRIEF), SAFE.
 
 **Found in the harness, not this item (for the owner):** a recipe and rate that name no drug pass. The recipe is exempt ("in 10 mL"), and a mL/hr rate with no drug in its clause is not read (A11, so oral rehydration is not taken for a drug). The answer above told a medic to start an unnamed 10 mg/10 mL drip at 10 mL/hr for shock.
+
+### A33: a recipe or rate that names no drug (owner, 2026-10-21; found in the A32 harness)
+
+**Owner, 2026-10-21 (#173 review):** "A33 before the route filter: a mix/recipe or mL/hr line that names no drug is attributed to the drug the question asks about and checked as that drug's rate; if no drug can be attributed, the line holds. Failing test first: the shock-patient 'Mix 10 mg in 10 mL NS, start 10 mL/hr' case holds."
+
+**Why:** "80 kg adult, BP 70/40 after 2 L of fluid, still in shock, epinephrine infusion rate" was served "Mix 10 mg in 10 mL NS (10 mg/mL). Start 10 mL/hr", naming no drug (vasopressin, from the BRIEF), SAFE. A recipe clause is exempt as a preparation, and a rate in a clause with no drug was never read.
+
+**What changed** (`free_text_dose_issues`):
+- **A line that names no drug:**
+  - its rates (mL/hr, and mass rates such as "5 mcg/min", the same gap) are read as the one drug the question names, and checked as that drug's rate;
+  - with no drug to attribute, each rate holds as having no drug named, and so does a recipe with a drug amount ("Mix 10 mg in 10 mL NS");
+  - an attributed hold says which drug it was read as.
+- **Not a drug's rate, untouched:** these lines contain no drug amount and name only a fluid (LR, saline, ORS, blood), or a urine output, or answer a question about fluid that names no drug ("how much crystalloid and how fast").
+- **A line that names a drug:** checked as before.
+- **A18's drugless-recipe test case** ("500 mg in 1 L = 0.5 mg/mL — half the standard 1 mg/mL mix, so rate must double", for a tension pneumothorax) now holds, on the owner's rule. It moves to the A33 tests.
+
+**Tests:** `server/tests/test_a33_drugless_recipe_rate.py`, committed failing first (the four hold cases). The replay refinements were committed failing, then fixed: the crystalloid question's rates, urine-output targets, and a clarifying question that says "mix".
+
+**Suite:** 3,029 passed, 0 failed (5 skipped, 3 xfailed).
+
+**Replay** (against main `24652bb`, after #173):
+- **First pass: 44 newly held.** 38 were not drug rates: 36 H-IM-06 crystalloid answers (fluid rates and urine-output targets in lines naming no fluid), A1-RX-008's clarifying question ("Which medication/mix are you asking about"), and one preview cut off at "Mix 1". Refined (above).
+- **Final: 6 newly held, 0 newly released.**
+  - **H-S5 (2) and H-SESS-044 (1)**, "Need to make a Ketamine drip at 500 mg of Ketamine and a 1 L bag with a 60 drop set". gpt-4o-mini wrote "Mix 500 mg of ketamine in 1000 mL NS (0.5 mg/mL)", then on the next line "Start at 33 mL/hr", "83 mL/hr for 0.5 mg/kg/hr", "100 mL/hr". Read as ketamine, a mL/hr rate is not a signed rate.
+  - **G-MTN-05 (1)**, tension pneumothorax. qwen2.5:3b wrote "Mix 20 mg in 2 mL NS (10 mg/mL). Start 2 mL/hr", naming no drug; no drug to attribute.
+  - **G-DIC-04 (1)**, "give him tacky cardia meds, rate is 180 and he's clammy". qwen2.5:3b wrote "3. Consider 10 mL/hr", naming no drug; no drug to attribute.
+  - **Live log `cdss_session_2026-09-25.jsonl:34`**, "I want to give an epic drip for bradycardia secondary to beta blocker overdose … seven years old … 30 kg". The answer's line "Start infusion at 4 mcg/min" names no drug. The line before names epinephrine, but the question's "epic" names none, so the rate holds as having no drug named.
+- Served (1,738) 8 changed, held (308) 3, gate (1,408) 2, live logs (3,131) 2; pipeline (809) unchanged. The other changed rows were already held.
+
+**Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29.
+- Epinephrine in shock: qwen wrote "0.04 mg/min" naming no drug; held, read as epinephrine.
+- "what pressor and what rate", no drug named: qwen wrote norepinephrine 10 mcg; held, as on main.
+- The ketamine drip recipe: held on its drugless mL/hr and mg/h rates, read as ketamine.
+- The crystalloid question: served, SAFE. It includes the line "Draw 2 mL of 500mL/mL NS IV (200mL)": IV fluids are not checked (the open finding from #108), not this item.
 
 ### B1: source-mode labelling
 

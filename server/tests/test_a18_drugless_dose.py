@@ -114,7 +114,10 @@ def test_drugless_lines_that_state_no_dose_are_unchanged(answer):
     "1. Large-bore needle (14–16 G) into 2nd intercostal space, midclavicular line\n",
     "2. Insert 14g needle over rib into pleural space.\n",
     "- Needle: 14G, ≥3.25 inch, 5th intercostal space anterior axillary line.\n",
-    "- 500 mg in 1 L = 0.5 mg/mL — half the standard 1 mg/mL mix, so rate must double.\n",
+    # "- 500 mg in 1 L = 0.5 mg/mL — half the standard 1 mg/mL mix, so rate
+    # must double." was here until A33 (owner, 2026-10-21): a recipe that
+    # names no drug, with no drug in the question to attribute it to, holds.
+    # It is in test_a33_drugless_recipe_rate.py now.
 ])
 def test_a_gauge_or_a_recipe_is_not_a_drugless_dose(answer):
     issues = _issues(answer, "80kg male, tension pneumo on the left, what now")
