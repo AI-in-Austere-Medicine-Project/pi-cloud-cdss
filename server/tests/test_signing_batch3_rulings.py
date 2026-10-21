@@ -582,3 +582,12 @@ def test_every_quote_is_verbatim_on_its_cited_page(key):
         texts = _page_texts(PDF_DIR / s["url"].split("/")[-1], s["pdf_page"])
         for part in s["quote"].replace(" [sic]", "").split(" … "):
             assert any(_norm(part) in t for t in texts), (key, s["citation"], part)
+
+
+def test_a_cefazolin_question_for_the_wound_is_not_asked_which_indication():
+    """Found in the batch 3 replay (A1-WT-038, "cefazolin dose for the wound"):
+    served on main, asked which indication once cefazolin had three classes,
+    because "wound" was a pain cue and not a wound-class cue."""
+    q = "cefazolin dose for the wound"
+    ctx = oc.rebuild_patient_context_from_history(q)
+    assert oc.which_indication_question(q, ctx) is None
