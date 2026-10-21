@@ -56,6 +56,16 @@ def test_a_drugless_recipe_alone_holds_with_no_drug_to_attribute():
     assert any("no drug named" in i for i in issues), issues
 
 
+def test_the_a18_recipe_now_holds():
+    """Pinned as not a drugless dose by A18; under A33 a drugless recipe with
+    no drug in the question to attribute it to holds."""
+    ctx = oc.PatientContext(confirmed_weight_kg=80.0, weight_source="stated")
+    issues = oc.free_text_dose_issues(
+        "- 500 mg in 1 L = 0.5 mg/mL — half the standard 1 mg/mL mix, so rate must double.\n",
+        [], ctx, "80kg male, tension pneumo on the left, what now")
+    assert any("no drug named" in i for i in issues), issues
+
+
 def test_a_drugless_mass_rate_is_the_questions_drug():
     issues = _issues(SHOCK_EPI, "**GIVE**\n- Start the drip. Run it at 5 mcg/min.")
     assert any("epinephrine" in i and "5 mcg/min" in i for i in issues), issues

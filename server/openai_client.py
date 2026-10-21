@@ -4464,6 +4464,13 @@ _FREE_DOSE_RECIPE_RE = re.compile(
     re.IGNORECASE)
 
 
+# A33: what a line names when its rate is a fluid's, not a drug's.
+_FLUID_LINE_RE = re.compile(
+    r"\b(?:lactated\s+ringer'?s?|ringer'?s?|LR|normal\s+saline|saline|NS|crystalloids?|fluids?"
+    r"|blood|plasma|PRBCs?|LTOWB|albumin|hextend|ORS|oral\s+rehydration|D5W|D5|water)\b",
+    re.IGNORECASE)
+
+
 def _is_gauge(amt, line: str) -> bool:
     """'14G' in a line about a needle ("Needle: 14G, ≥3.25 inch"): a gauge, not grams."""
     return (amt.group(3).lower() == "g" and _FREE_DOSE_GAUGE_CONTEXT_RE.search(line) is not None
@@ -4680,6 +4687,12 @@ def free_text_dose_issues(response_text: str,
         if re.search(CANONICAL_GIVE_RE, line, re.IGNORECASE):
             continue
         last_drug = None  # the drug last named earlier in this line
+        # A33: a line that names no drug. Its recipe and its rates are the
+        # question's drug (query_drug), or they hold; a line that names only a
+        # fluid, with no drug amount, is a fluid rate and is left alone.
+        line_drugless = not _drug_spans(line)
+        fluid_line = (line_drugless and _FLUID_LINE_RE.search(line) is not None
+                      and not _FREE_DOSE_AMOUNT_RE.search(line))
         for clause in _FREE_DOSE_CLAUSE_RE.split(line):
             if not clause.strip():
                 continue
@@ -4687,9 +4700,18 @@ def free_text_dose_issues(response_text: str,
             inherited = last_drug
             if drugs:
                 last_drug = max(drugs, key=lambda sp: sp[1])[2]
+            recipe_only = False
             if (_FREE_DOSE_PREP_RE.search(clause)
                     or _FREE_DOSE_PER_VOLUME_RE.search(clause)):
-                continue
+                if not (line_drugless and not fluid_line):
+                    continue
+                # A33: a drugless recipe. Its amounts are what goes in the
+                # bag, not a dose; any rate in it is read below, and with no
+                # drug to attribute it to, the recipe holds.
+                recipe_only = True
+                if query_drug is None and not _FREE_DOSE_RATE_RE.search(clause):
+                    issues.append(_free_dose_unattributed_line(clause.strip(" -*.")))
+                    continue
             drugless = not drugs and inherited is None
             if drugless:
                 inherited = query_drug  # A18: None if the question names 0 or 2+ drugs
@@ -4700,8 +4722,8 @@ def free_text_dose_issues(response_text: str,
                 mid = (amt.start() + amt.end()) / 2
                 return min(drugs, key=lambda sp: min(abs(sp[0] - mid), abs(sp[1] - mid)))[2]
 
-            found = [(amt, 1.0) for amt in _FREE_DOSE_AMOUNT_RE.finditer(clause)]
-            found += [(amt, None) for amt in _FREE_DOSE_PER_KG_RE.finditer(clause)]
+            found = [] if recipe_only else [(amt, 1.0) for amt in _FREE_DOSE_AMOUNT_RE.finditer(clause)]
+            found += [] if recipe_only else [(amt, None) for amt in _FREE_DOSE_PER_KG_RE.finditer(clause)]
             for amt, per_kg_weight in found:
                 if (_FREE_DOSE_THRESHOLD_RE.search(clause[:amt.start()])
                         or _is_negated_amount(amt.start(), clause)):
@@ -4742,16 +4764,24 @@ def free_text_dose_issues(response_text: str,
                                                    bool(ok), patient_ctx))
 
             # A11: rates, against the drug's signed rate entries.
-            for rate in ([] if drugless else _FREE_DOSE_RATE_RE.finditer(clause)):
+            # A33: a clause with no drug is read when the whole line names
+            # none (attributed to the question's drug, or held); a fluid line
+            # is not. A drugless clause in a line that names a drug later is
+            # skipped as before.
+            skip_rates = drugless and (fluid_line or not line_drugless)
+            for rate in ([] if skip_rates else _FREE_DOSE_RATE_RE.finditer(clause)):
                 if (_FREE_DOSE_THRESHOLD_RE.search(clause[:rate.start()])
                         or _is_negated_amount(rate.start(), clause)):
                     continue
                 # A volume rate (mL/hr) belongs to a drug named in the same
                 # clause, never an inherited one: "use oral rehydration
                 # solution; if IV, infuse 250-500 mL/hr" is IV crystalloid.
-                if rate.group(3).lower() in ("ml", "cc") and not drugs:
+                if rate.group(3).lower() in ("ml", "cc") and not drugs and not line_drugless:
                     continue
                 drug = attribute(rate)
+                if drug is None:
+                    issues.append(_free_dose_unattributed_line(rate.group(0).strip()))
+                    continue
                 key = _rate_key(rate.group(3), bool(rate.group(4)), rate.group(5))
                 any_signed = _signed_rate_ranges(drug, patient_ctx)
                 signed = (_signed_rate_ranges(drug, patient_ctx, indications, classes)
@@ -4770,9 +4800,16 @@ def free_text_dose_issues(response_text: str,
                                                       for v in rate.group(1, 2) if v])
                         for k, lo, hi in any_signed):
                     wrong_indication = " and ".join(sorted(indications or classes))
-                issues.append(_free_rate_hold_line(drug, rate.group(0).strip(),
-                                                   bool(any_signed), patient_ctx,
-                                                   wrong_indication))
+                line_ = _free_rate_hold_line(drug, rate.group(0).strip(),
+                                             bool(any_signed), patient_ctx,
+                                             wrong_indication)
+                if line_drugless:
+                    # A33: no drug was named; say which one it was read as.
+                    said = f"The answer stated {drug} {rate.group(0).strip()} as an infusion rate"
+                    line_ = line_.replace(
+                        said, f"The answer stated {rate.group(0).strip()} as an infusion rate with "
+                              f"no drug named, read as {drug}, the drug the question asks about", 1)
+                issues.append(line_)
     return list(dict.fromkeys(issues))
 
 
