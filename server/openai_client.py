@@ -1503,7 +1503,7 @@ INDICATION_CLASSES = [
     # dose, all 2 g cefazolin or the TCCC agents.
     ("wound infection prophylaxis", "open fracture / wound infection prophylaxis",
      r"wound prophylaxis|open fracture|open wounds|penetrating (?:abdominal|chest)|maxillofacial",
-     r"antibiotic\w*|infect\w*|open fractur\w*|open wound\w*|penetrat\w* (?:abdom\w*|chest|torso|thora\w*)"
+     r"antibiotic\w*|infect\w*|open fractur\w*|\bwounds?\b|penetrat\w* (?:abdom\w*|chest|torso|thora\w*)"
      r"|maxillofacial|facial fractur\w*"),
     ("sepsis", "sepsis", r"\bsepsis\b", r"\bseps\w*|\bseptic\b"),
     ("TBI seizure prophylaxis", "TBI seizure prophylaxis", r"prophylaxis",
