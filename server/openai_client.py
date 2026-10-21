@@ -1573,6 +1573,15 @@ def stated_indication_first(query: str, doses: list) -> list:
     return [d for d in doses if first(d)] + [d for d in doses if not first(d)]
 
 
+def _check_classes(query: str) -> set:
+    """The classes a question states, as the dose check reads them: RSI
+    covers the sedation that follows the tube, which the RSI bundle serves by
+    design (A3, #86). Found in the A32 replay: 43 RSI bundles held on their
+    own post-intubation sedation line."""
+    stated = stated_indication_classes(query)
+    return stated | {"sedation"} if "RSI" in stated else stated
+
+
 def stated_indication_matched(query: str, doses: list) -> tuple:
     """(kept, other): the doses the check accepts for this question, and the
     doses of the same drugs that are signed for another indication.
@@ -1590,7 +1599,7 @@ def stated_indication_matched(query: str, doses: list) -> tuple:
     leaves a drug with no seizure entry. The builder is not changed: every
     entry is still offered (owner, #165 review); only the check narrows."""
     doses = list(doses or [])
-    stated = stated_indication_classes(query)
+    stated = _check_classes(query)
     if not stated or drug_contracts is None:
         return doses, []
     signed = drug_contracts.servable_entries()
