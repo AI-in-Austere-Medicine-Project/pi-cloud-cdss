@@ -178,6 +178,17 @@ def test_every_signed_indication_has_a_class():
     assert not missing, missing
 
 
+def test_the_batch2_antibiotic_labels_land_in_their_own_classes():
+    """Signing batch 2 (2026-10-19) signed cefazolin for "open fracture / wound
+    prophylaxis" and ceftriaxone for "sepsis". The TBI class read any label with
+    "prophylaxis" in it, so the cefazolin wound entry would have been offered
+    as TBI seizure prophylaxis; "sepsis" had no class at all."""
+    assert oc.indication_class("open fracture / wound prophylaxis") == "wound infection prophylaxis"
+    assert oc.indication_class("sepsis") == "sepsis"
+    # The existing labels keep their classes.
+    assert oc.indication_class("severe TBI — seizure prophylaxis, loading dose") == "TBI seizure prophylaxis"
+
+
 def test_the_question_lists_only_classes_the_drug_is_signed_for():
     q = "70kg adult, midazolam IV dose"
     action, text = oc.pre_gate(q, _ctx(q), "")
@@ -211,3 +222,18 @@ def test_a_stated_route_with_several_indications_on_it_is_still_asked():
     h = f"{TURN_1} {TURN_2}"
     text = oc.which_indication_question(h, _ctx(h))
     assert text and text.startswith("Which indication for ketamine"), text
+
+
+# ── A ketamine drip with no reason (owner, 2026-10-20, #170 review) ─────────
+# With the sedation infusion signed, "ketamine drip 80 kg" must be asked which
+# indication, not answered. It got the RSI bundle ("ketamine drip" was an RSI
+# word) until A31 (#172). "Intubated" with the drip is read as sedation; the
+# owner accepted that.
+
+def test_a_ketamine_drip_with_no_reason_is_asked_which_indication(seen):
+    q = "ketamine drip 80 kg"
+    r = run(q, [])
+    if r["response"] == VIAL_ASK:
+        r = run("500", [{"query": q, "response": r["response"]}])
+    assert r["response"].startswith("Which indication for ketamine"), r["response"]
+    assert seen["generator"] is None

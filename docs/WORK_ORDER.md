@@ -72,7 +72,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A28 | The seizure trigger tolerates common misspellings (siezing, seizeing, siezure) | **done**: #158, merged and deployed; G-TYP-06 movement approved (owner, 2026-10-11) |
 | A29 | Needle-decompression procedure (verbatim ID74) signed by the owner, the tension card served from it; "pneumo" read as pneumothorax | **done**: #159, merged and deployed; procedure signed by Andrew Azelton, 2026-10-12; G-TYP-02 movement approved |
 | A30 | A rate entry outside bradycardia, cardiogenic and shock is matched only for its own stated indication | **done**: #171, merged; found signing batch 2 (#170), finding 2 |
-| A31 | A bare "ketamine drip" is not RSI: with no indication it is asked which indication | **in review**: this PR; owner ruling 1, #170 review (2026-10-20); merges before #170 |
+| A31 | A bare "ketamine drip" is not RSI: with no indication it is asked which indication | **done**: #172, merged; owner ruling 1, #170 review (2026-10-20) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -100,6 +100,7 @@ Owner asks outside the lettered items:
 | Unsigned contracts inventory (owner, 2026-10-08): the 40 unsigned drug-contract entries and P1, P2, with citations; none clean to sign (39 incomplete drafts; neonatal dextrose and P1, P2 uncertain) | **done**: #146, merged (the inventory); signing the drafts is v1.1 |
 | Contract batch 1, analgesia (owner, 2026-10-08): from the unsigned inventory, analgesia only. One entry is in the class: fentanyl, analgesia infusion, IV, adult (ketamine analgesia and morphine are already signed; ketamine's prolonged sedation infusion and naloxone IN are not analgesia). Drafted at 25-250 mcg/hr from JTS ID29 p.24, capped by ID12 p.24, every source with page and verbatim quote (checked against the PDFs). Starting rate: no source states one, left incomplete. The canine 2-10 mcg/kg/hour (SMOG p.57, MWD ID16) is excluded | **done**: #148, merged (the draft); the entry is unsigned, v1.1 |
 | Signing batch 1, analgesia (owner, 2026-10-14): ketamine (IV/IM/IN, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen, ketorolac, each with a verbatim quote, CPG ID and printed page; unquotable values incomplete; no signatures. Plus the live hold log for the last 7 days, to choose batch 2 | **in review**: ruled 2026-10-14; 8 signed (adult IM ketamine at 0.5–1.0 mg/kg after the owner's read), ketorolac excluded; ready to merge (see the section below) |
+| Signing batch 2, sedation and antibiotics (owner, 2026-10-16): midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin, ceftriaxone; per entry the proposed dose, route, maximum and repeat, a verbatim quote and the printed page; flagged where the sources disagree or no JTS/SMOG page states a number; no signatures | **in review**: ruled 2026-10-19; 5 signed, 8 held (see the section below) |
 | Which indication (owner, 2026-10-15): a drug named with no indication, where more than one signed indication applies, is asked "which indication?" (like the vial question) instead of being offered every entry; the answer selects the entries. Found live: "Need to give ketamine 89kg IV established", then "500", served post-intubation sedation (44.5 mg) to a patient who was not intubated, validator SAFE | **done**: #165, merged (see the section below) |
 | Indication-only doses (owner, 2026-10-14; the v1.1 finding from #97): a question naming an injury or indication with no drug builds ALLOWED_DOSES from the signed entries for that indication, so the model is offered the dose instead of inventing one. Failing test from the femur-fracture question | **in review**: tib-fib release approved; rebased on #163; owner's #164 rulings applied and accepted (2026-10-15): pain severity clinician-declared, criteria as routing, opioids for moderate/severe only, RR < 10 for all ages (paediatric table v1.1, #168), doctrine recorded (docs/DESIGN_PRINCIPLES.md); to be rebased on #165
 | D6 bench script uses A22's context (owner, 2026-10-08): bench_remote.sh's tok/s probe asked Ollama for no num_ctx (default 4096: a different setting from the arms, a reload, a silent cut); it now asks for CDSS_LOCAL_NUM_CTX (8192) with truncate false, exported once for every local client and recorded in meta.json. Checked live: 8192, 100% GPU; an oversized prompt is refused, not cut. `make probe` (`ollama run`, a one-line prompt) is unchanged: it cannot set num_ctx and its prompt is short | **done**: #147, merged |
@@ -937,6 +938,60 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 - **Since 07-18:** 383 real rows, 83 holds. "No signed dose" holds: ketamine 15, rocuronium 3, all from before the August signing, except the femur question.
 - **So the log can't rank batch 2:** no drug outside batch 1 held for want of a signature this week, and the service was in cloud mode with no keys from 10-12 to 10-14. From the bank and the traffic: (1) the indication-only builder gap (a code change, not signing), the only thing that held this week; (2) midazolam: procedural sedation and the ventilated sedation infusion, both blocked drafts, and "versed" is in real queries; (3) rocuronium redose interval (blocked draft; rocuronium is the second most-asked drug, 18 real queries); (4) ketamine prolonged sedation infusion (blocked draft; ketamine is the most-asked drug, 60 real queries); (5) cefazolin / ceftriaxone (run 3 and A21 found cefazolin doses). Owner to place.
 
+### Signing batch 2, sedation and antibiotics (owner, 2026-10-16; v1.1)
+
+**Owner, 2026-10-16:** "Next item: analgesia/sedation signing batch 2. Draft the authoring doc the same way as batch 1 (docs/authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md): one entry per drug with proposed dose, route, max, repeat, verbatim source quote and printed page number for midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin and ceftriaxone. Do not sign anything. Flag any entry where the sources disagree or no JTS/SMOG page states a number."
+
+**What changed:** the eight entries the bank held open for these drugs, filled in and still unsigned (`signoff: false`, `PENDING_CLINICAL_SIGNOFF`; none servable). Ketamine's sedation infusion and rocuronium's redose are split adult/peds, because the sources dose children differently. Three dose conflicts are kept two-sided, as in batch 1. That makes 13 entries; the bank now has 77 of 129 signed, unchanged. The review packet, with every quote and the owner questions, is [`docs/authoring/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md`](authoring/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md).
+- **Midazolam (4):**
+  - procedural sedation, adult IV: 1–4 mg (JTS ID61 p.9), against SMOG's 2.5–5 mg (p.140);
+  - ventilated infusion, adult IV: 0.05–0.1 mg/kg/hr (SMOG p.140), against JTS ID29's fixed 1–6 mg/hr (p.25). No titration step or mix in any source.
+- **Rocuronium (2):** redose 1 mg/kg every 30–45 min, adult and paediatric. SMOG p.155 is the only source and calls the dose "unlabeled and unreferenced"; no JTS page gives one. The old note was right about JTS and wrong about SMOG.
+- **Ketamine (3):**
+  - sedation infusion, adult IV: start 1.5 mg/kg/h, the row ID61 p.9 highlights (read from the rendered page; ID61's weight/2 mL/h rule gives the same rate), band 0.5–2.0 mg/kg/h. It conflicts with SMOG's 1–3 mg/kg/hr (p.127).
+  - paediatric: 0.5–1 mg/kg/hr (SMOG only), with no start rate.
+  - The old note's "does not reconcile" and "0.5–1.25" were both wrong.
+- **Cefazolin (2):** adult 2 g every 6–8 h, maximum 12 g/day (JTS ID24 p.11, SMOG p.64), with ID24's optional weight bands flagged. Paediatric 20–30 mg/kg every 6–8 h, maximum 100 mg/kg/day (ID24 p.12, SMOG p.103).
+- **Ceftriaxone (2):** adult sepsis 2 g every 24 h (JTS ID91 p.40, ID83 p.8, SMOG p.38); the administration time differs. Paediatric sepsis is incomplete: no JTS/SMOG page states a dose.
+
+**Conflicts, both sides kept, awaiting a ruling** (`STILL_AWAITING_A_RULING`): `midazolam-procedural-sedation-adult`, `midazolam-ventilated-infusion-adult`, `ketamine-sedation-infusion-rate`.
+
+**Tests:** `server/tests/test_contracts_batch2_drafts.py`, committed failing first. It checks that nothing is signed, every figure is in a quote, and every quote is verbatim on its cited page (PDFs via `JTS_PDF_DIR`), and that conflicts are grouped and gaps marked. Four existing tests that pinned the old empty entries were updated: the visual-only ketamine rate, the `adult|peds` sentinel example in `test_set_contract.py`, the RSI rocuronium split (now filtered to RSI), and the open-conflict set.
+
+**Replay** (main `65788f0` against `6b3222b`): served (1,738), held (308), gate (1,408), live session logs (2,899) and the full pipeline (809) all byte-identical. **0 newly held, 0 newly released.** Nothing is signed, so nothing served changes.
+
+**Owner rulings, 2026-10-19 (Andrew Azelton, signer).** Signed by AI-AIM for him (`set_contract.py`):
+- midazolam, procedural sedation, adult IV: 1–4 mg as a ketamine add-on (ID61 p.9);
+- ketamine, prolonged sedation infusion, adult IV: start 1.5 mg/kg/h, range 0.5–2.0 mg/kg/h (ID61 p.9). The owner confirmed the shaded row on the page; NEEDS_VISUAL_CONFIRMATION cleared;
+- cefazolin, open fracture / wound prophylaxis, adult IV: flat 2 g every 6–8 h, maximum 12 g/day (ID24 p.11), not the weight bands;
+- cefazolin, same, paediatric IV: 20–30 mg/kg every 6–8 h (ID24 p.12), 100 mg/kg/day as a WATCH warning;
+- ceftriaxone, adult IV: 2 g every 24 h (ID91 p.40 primary, ID83 p.8 noted), infusion speed in WATCH only; indication relabelled "sepsis" (the paediatric entry with it).
+
+Held: the SMOG sides of midazolam procedural sedation and the ketamine infusion (both groups closed); the midazolam ventilated infusion, both sides (v1.1; its group stays open); the rocuronium redose, adult and paediatric (the source calls it unreferenced); the paediatric ketamine infusion (v1.1); paediatric ceftriaxone (no source dose). The 12 undrafted indications and the midazolam-seizure and vancomycin discrepancies are v1.1 items in [`UNSIGNED_CONTRACTS_2026-10-08.md`](UNSIGNED_CONTRACTS_2026-10-08.md). The bank is now 82 of 129 signed, 19 of 36 drugs. Ketamine's serve tier was tightened to the 5-line, 500-character budget; cefazolin's weight bands are a detail-tier alternate (a new detail family, added to the registry test on purpose).
+
+**Replay of the signatures** (main `65788f0` against this branch):
+- gate (1,408) and live session logs (2,899): byte-identical.
+- served (1,738; 5 changed) and held (308; 45 changed): every changed row is a stored cefazolin answer. Each is still held on the same doses, and only the hold wording changed, from "no signed cefazolin dose" to "no signed cefazolin dose was offered for this question".
+- full pipeline (809; 12 changed): no verdict or source mode changed. The offered set gained the new signed entries: midazolam procedural 1 mg on 8 midazolam questions, cefazolin 2 g on 3 and ceftriaxone 2 g on 1.
+
+**0 newly held, 0 newly released.** Found, not fixed (for the owner): the offered set is not filtered by route or by the stated indication. "versed dose IM" and "midazolam infusion for a ventilated patient" are now offered the IV procedural bolus, and "rocephin dose for this infection" is offered the sepsis dose. The infusion-rate check matched ketamine by drug, not by indication, so a ketamine drip for pain at 0.5–2.0 mg/kg/h passed it: fixed by A30 (#171, merged 2026-10-20); this branch was rebased onto it and replayed (below).
+
+**Rebased onto A30 (main `49cd349`, 2026-10-20):** replay against `49cd349`: served (1,738) 5 changed, held (308) 45, gate (1,408) 0, live logs (2,957) 0, pipeline (809) 12; the same rows that moved before the rebase, **0 newly held, 0 newly released.** Suite: 3,001 passed, 0 failed (5 skipped, 4 xfailed). Owner, 2026-10-20 (ruling 1): "ketamine drip 80 kg" with no context must be asked which indication; it gets the RSI bundle ("ketamine drip" is an RSI word), a bug fixed in its own PR (A31) before this merges. This branch carries the owner's test as a strict xfail; it flips when rebased onto A31. "Intubated" with the drip is read as sedation and gets the drip card (accepted).
+
+**Rebased onto A31 (main `2aa932d`, 2026-10-20):** the xfail marker is off; the owner's test passes. Replay against `2aa932d`: served (1,738) 5 changed, held (308) 45, gate (1,408) 0, live logs (3,015) 0, pipeline (809) 12, the same rows as before, **0 newly held, 0 newly released.** Suite: 3,007 passed, 0 failed (5 skipped, 3 xfailed).
+
+**Live harness** (second uvicorn, :8012, local qwen2.5:3b, no keys): `run_tests.sh` 29/29. Targeted flows:
+- adult cefazolin: served 2 g IV q6–8h;
+- paediatric cefazolin (20 kg): offered 400 mg; qwen wrote 100 mg and was held;
+- paediatric ceftriaxone: held;
+- rocuronium redose: held;
+- adult ceftriaxone in septic shock: the deterministic sepsis card fires first and states no antibiotic dose;
+- ketamine sedation drip: the deterministic drip card shows no signed rate;
+- ketamine drip for pain: gets the RSI bundle (#86);
+- midazolam add-on: asked which ketamine vial.
+
+**Found, not fixed (its own PR):** the B1 citation lookup (`jts_contract_citations`) keys entries by drug, indication, route and version, not population. Where an adult and a paediatric entry share all four, the paediatric entry's citation prints on the adult dose. The live adult cefazolin answer cited ID24 p.12's paediatric footnote and SMOG's PEDIATRIC column. This predates batch 2: 13 other signed pairs collide (among them epinephrine arrest and anaphylaxis, atropine, morphine IV, dextrose, naloxone and acetaminophen). It affects the citation only; the dose is matched from the allowed set.
+
 ### Which indication (owner, 2026-10-15)
 
 **Owner, 2026-10-15:** "Finding from the live portal: 'Need to give ketamine 89kg IV established' served the post-intubation sedation entry (44.5 mg) to a non-intubated patient; validator SAFE. Dose correct, indication the model's choice. Fix: a drug named with no indication and more than one signed entry applies asks which indication (like the vial question) instead of offering all entries. Failing test from this transcript; replay with each newly held/asked row read."
@@ -1713,7 +1768,9 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 
 - **`qwen2.5:3b` as the offline validator does not catch procedural errors** (D7 v3 re-bench finding, owner to place). It called a low-and-loose tourniquet, "reapply" a tourniquet on loss of pulse and "do not re-warm" a hypothermic arrest SAFE. D7 made the comparison measurable; it did not make the offline validator adequate.
 - **`qwen2.5:3b` ignores the offered ketamine doses after "severe"** (found in the #164 live harness, 2026-10-16; owner: v1.1). On a second server in local mode, a femur-fracture pain question (80 kg, IV) was asked the severity; after the answer "severe", ALLOWED_DOSES offered ketamine 20 mg and 8 mg IV, and qwen2.5:3b wrote 100 mg, then 200 mg on the RR 8 case. The gate held both times ("does not match any ALLOWED_DOSES value"), so nothing wrong was served; but on device a severe-pain question often ends in a hold rather than the signed dose.
-- **Open contract drafts:** the 39 incomplete drafts and P1, P2 (unsigned inventory, #146); the fentanyl analgesia infusion entry (#148); signing batch 1, analgesia (2026-10-14): 8 signed; NASEMSO IM ketamine, paediatric IN ketamine (incomplete) and ketorolac (excluded) unsigned. Signing is the owner's act.
+- **B1 citation picks the wrong population** (found in signing batch 2's live harness, 2026-10-19): `jts_contract_citations` keys entries without population, so a paediatric entry's citation prints on the adult dose where the two share indication, route and version (14 signed pairs). Citation only. Owner, 2026-10-20: its own PR, after the epinephrine-in-shock item.
+- **The offered set is not filtered by route or stated indication** (found in signing batch 2's replay, 2026-10-19): "versed dose IM" is offered the IV procedural bolus. Owner, 2026-10-20: its own PR, after the wrong-population citation. The indication-blind ketamine rate check found with it is A30 (done, #171).
+- **Open contract drafts:** the 39 incomplete drafts and P1, P2 (unsigned inventory, #146); the fentanyl analgesia infusion entry (#148); signing batch 1, analgesia (2026-10-14): 8 signed; NASEMSO IM ketamine, paediatric IN ketamine (incomplete) and ketorolac (excluded) unsigned; signing batch 2, sedation and antibiotics (ruled 2026-10-19): 5 signed; 8 held (SMOG midazolam procedural and ketamine infusion alternates; midazolam ventilated infusion, v1.1, its conflict open; rocuronium redose; paediatric ketamine infusion, v1.1; paediatric ceftriaxone sepsis, incomplete); 12 undrafted indications and 2 discrepancies listed as v1.1 items in the unsigned inventory. Signing is the owner's act.
 
 **The found list:**
 

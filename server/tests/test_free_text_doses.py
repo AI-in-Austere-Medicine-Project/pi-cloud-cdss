@@ -191,8 +191,9 @@ NO_WEIGHT = oc.PatientContext()
 
 @pytest.mark.parametrize("text,allowed,ctx,expected", [
     # A drug with no signed contract at all: not answerable here yet.
-    ("**TREAT**\n- 2g cefazolin IV for the open fracture.", [], _ctx(),
-     "The answer stated cefazolin 2g, but EdgeCDSS has no signed cefazolin "
+    # (cefazolin was the example until it was signed, 2026-10-19)
+    ("**TREAT**\n- 1g ertapenem IV for the abdominal wound.", [], _ctx(),
+     "The answer stated ertapenem 1g, but EdgeCDSS has no signed ertapenem "
      "dose. It cannot be answered here until one is signed: use local "
      "protocol or medical control."),
     # A signed contract exists, and every adult naloxone dose is fixed: a

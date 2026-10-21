@@ -40,8 +40,9 @@ HOLD = [
     # the #97 case: a flat rate, no signed flat rate exists
     "**GIVE**\n- Start epinephrine 5 mcg/min IV.",
     "**GIVE**\n- Epinephrine infusion at 2 micrograms per minute.",
-    # a ketamine drip: no signed ketamine rate
-    "**GIVE**\n- Ketamine infusion at 1 mg/kg/hr.",
+    # a ketamine drip outside the signed sedation band (0.5-2.0 mg/kg/h, ID61;
+    # signed 2026-10-19): SMOG's 3 mg/kg/hr is not signed
+    "**GIVE**\n- Ketamine infusion at 3 mg/kg/hr.",
     "**GIVE**\n- Run the ketamine drip at 10 mL/hr.",
     # a signed drug, a per-kg rate outside every signed range
     "**GIVE**\n- Epinephrine infusion 1 mcg/kg/min.",
