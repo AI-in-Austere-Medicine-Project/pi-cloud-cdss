@@ -39,12 +39,14 @@ NO_NUMBER = ("no number", "condition only")
 
 
 def _bank():
-    return json.loads((SERVER / "drug_contracts.json").read_text())
+    """{generic_name: drug} from the bank file."""
+    return {d["generic_name"]: d
+            for d in json.loads((SERVER / "drug_contracts.json").read_text())["drugs"]}
 
 
 def _unsigned_keys():
     out = []
-    for name, d in _bank()["drugs"].items():
+    for name, d in _bank().items():
         for e in d.get("dose_entries", []):
             if e.get("signoff") is True or "OWNER_EXCLUDED" in (e.get("flags") or []):
                 continue
@@ -77,7 +79,7 @@ def test_p1_p2_and_the_12_undrafted_indications_have_pages():
 
 def test_nothing_is_signed():
     """The packet signs nothing: every entry it covers is still unsigned."""
-    for name, d in _bank()["drugs"].items():
+    for name, d in _bank().items():
         for e in d.get("dose_entries", []):
             key = (name, e["indication"], e["population"], e["route"])
             if key in set(_unsigned_keys()):
