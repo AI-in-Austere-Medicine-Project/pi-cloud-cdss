@@ -1573,6 +1573,72 @@ def stated_indication_first(query: str, doses: list) -> list:
     return [d for d in doses if first(d)] + [d for d in doses if not first(d)]
 
 
+def stated_indication_matched(query: str, doses: list) -> tuple:
+    """(kept, other): the doses the check accepts for this question, and the
+    doses of the same drugs that are signed for another indication.
+
+    A32 (owner, 2026-10-20): "when the question states an indication, the dose
+    check accepts only signed entries for that indication; a dose from another
+    indication of the same drug holds, with the hold naming both indications.
+    No stated indication keeps today's behaviour." Live: femur-fracture pain
+    was served ketamine 40 mg for post-intubation sedation, and a patient in
+    shock the epinephrine bradycardia push dose, both SAFE.
+
+    A drug is narrowed only when it has a signed entry in a stated class (a
+    rate entry counts: epinephrine's shock entry is an infusion), so a drug
+    with nothing signed for what the question says is left alone, as A1b
+    leaves a drug with no seizure entry. The builder is not changed: every
+    entry is still offered (owner, #165 review); only the check narrows."""
+    doses = list(doses or [])
+    stated = stated_indication_classes(query)
+    if not stated or drug_contracts is None:
+        return doses, []
+    signed = drug_contracts.servable_entries()
+    kept, other = [], []
+    for d in doses:
+        classes = {indication_class(e.get("indication")) for e in signed.get(d.drug, [])}
+        if classes & stated and indication_class(d.indication) not in stated:
+            other.append(d)
+        else:
+            kept.append(d)
+    return kept, other
+
+
+def other_indication_issues(response_text: str, other: list, query: str,
+                            patient_ctx: Optional["PatientContext"],
+                            kept: Optional[list] = None) -> list:
+    """A hold line for each dose the answer states that matches only a dose
+    signed for another indication (A32): a value also signed for the stated
+    one is not judged here (its label is, by indication_label_issues). It
+    names both indications and no signed number."""
+    if not other:
+        return []
+
+    def signed_for_stated(drug, x):
+        return any(k.drug.lower() == drug.lower() and abs(x - k.dose_mg) <= k.dose_mg * 0.05 + 1e-9
+                   for k in kept or [])
+    stated = ", ".join(sorted(stated_indication_classes(query)))
+    matched = []
+    free_text_dose_issues(response_text, other, patient_ctx, query, accepted=matched)
+    for vol_s, conc_s, drug_s, mg_s in re.findall(CANONICAL_GIVE_RE, response_text.lower()):
+        for d in other:
+            if d.drug.lower() in drug_s and abs(float(mg_s) - d.dose_mg) <= d.dose_mg * 0.05 + 1e-9:
+                matched.append((d.drug, [float(mg_s)]))
+    issues = []
+    for drug, values in matched:
+        for x in values:
+            if signed_for_stated(drug, x):
+                continue
+            fors = sorted({d.indication for d in other if d.drug.lower() == drug.lower()
+                           and abs(x - d.dose_mg) <= d.dose_mg * 0.05 + 1e-9})
+            if fors:
+                issues.append(f"The answer gave {drug} at the signed dose for "
+                              f"{'; '.join(fors)}, but this question is about {stated}: "
+                              f"a dose for another indication is not this patient's. "
+                              f"Ask for {drug} for {stated} by name to get what is signed for it.")
+    return list(dict.fromkeys(issues))
+
+
 def which_indication_question(history: str, ctx: PatientContext) -> Optional[str]:
     """The question to ask when a named drug would be offered in more than one
     class and the history states none of them; None otherwise."""
@@ -4913,6 +4979,8 @@ def run_deterministic_checks(query: str, response_text: str,
     # every entry the list happens to carry — the same filter the builder
     # applies, so a list built elsewhere cannot widen what passes.
     allowed_doses = indication_matched(query, allowed_doses or [])
+    # A32: and, where the question states an indication, only that one's.
+    allowed_doses, other_doses = stated_indication_matched(query, allowed_doses)
 
     # ── ALLOWED_DOSES contract enforcement (implemented 2026-07-18) ───────
     # Parse canonical GIVE lines ("Draw X mL of Ymg/mL drug ... (Zmg)") and
@@ -4966,6 +5034,10 @@ def run_deterministic_checks(query: str, response_text: str,
 
     # ── A dose labelled for an indication it was not built for (A1b) ──────
     issues.extend(indication_label_issues(response_text, allowed_doses))
+
+    # ── A dose signed for another indication than the one stated (A32) ────
+    issues.extend(other_indication_issues(response_text, other_doses, query, patient_ctx,
+                                           allowed_doses))
 
     # ── Pediatric: no dose without confirmed weight ───────────────────────
     if patient_ctx.is_pediatric and not patient_ctx.has_confirmed_weight:
