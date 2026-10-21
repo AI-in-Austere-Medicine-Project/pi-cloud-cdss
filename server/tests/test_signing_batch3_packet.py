@@ -38,6 +38,14 @@ CLASS_ORDER = {"JTS": 0, "SMOG": 1, "NASEMSO": 2}
 NO_NUMBER = ("no number", "condition only")
 
 
+def _no_number(s):
+    """A source listed for context: what it states begins "no number" (with
+    the reason), or "no contraindication" for a procedure row, or is
+    "condition only"."""
+    return (s["states"].startswith(("no number", "no contraindication"))
+            or s["states"] == "condition only")
+
+
 def _bank():
     """{generic_name: drug} from the bank file."""
     return {d["generic_name"]: d
@@ -90,7 +98,7 @@ def test_jts_first_smog_second_nasemso_noted_only():
     for i in _items():
         order = [CLASS_ORDER[s["class"]] for s in i["sources"]]
         assert order == sorted(order), i["id"]
-        numbered = [s for s in i["sources"] if s["states"] not in NO_NUMBER]
+        numbered = [s for s in i["sources"] if not _no_number(s)]
         if numbered and not i["premark"]:
             assert numbered[0]["class"] in ("JTS", "SMOG"), i["id"]
 
@@ -98,7 +106,7 @@ def test_jts_first_smog_second_nasemso_noted_only():
 def test_retire_is_premarked_exactly_where_no_jts_or_smog_page_states_a_number():
     for i in _items():
         stated = [s for s in i["sources"]
-                  if s["class"] in ("JTS", "SMOG") and s["states"] not in NO_NUMBER]
+                  if s["class"] in ("JTS", "SMOG") and not _no_number(s)]
         assert (i["premark"] == "RETIRE") == (not stated), i["id"]
 
 
