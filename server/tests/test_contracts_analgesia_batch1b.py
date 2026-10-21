@@ -75,6 +75,17 @@ INCOMPLETE = [
 ]
 
 
+# Signing batch 3 (owner, 2026-10-21) retired two of these: the NASEMSO
+# adult|peds IM side (E03; batch 1's signed adult and paediatric IM entries
+# cover it) and paediatric IN (E04; no JTS or SMOG number). The tests below
+# cover what batch 1 left in the bank.
+RETIRED_IN_BATCH_3 = [
+    ("ketamine", KETAMINE_PAIN, "adult|peds", "IM"),
+    ("ketamine", KETAMINE_PAIN, "peds", "IN"),
+]
+LIVE = [k for k in DRAFTS if k not in RETIRED_IN_BATCH_3]
+
+
 def _bank():
     return json.loads((SERVER / "drug_contracts.json").read_text())
 
@@ -104,7 +115,7 @@ SIGNED = [
 ]
 
 
-@pytest.mark.parametrize("key", DRAFTS, ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
+@pytest.mark.parametrize("key", LIVE, ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
 def test_only_the_ruled_entries_are_signed_and_servable(key):
     e, d = _entry(*key)
     ok, why = drug_contracts.entry_is_servable(e, d)
@@ -130,8 +141,14 @@ def test_the_im_ketamine_entry_is_the_ruled_range_with_the_tccc_maximum_checked(
 
 
 def test_nasemso_im_stays_unsigned_as_a_documented_alternate():
-    e, _ = _entry("ketamine", KETAMINE_PAIN, "adult|peds", "IM")
-    assert e["signoff"] is False and "left unsigned" in e["adjudication"]
+    """Left unsigned 2026-10-14; retired 2026-10-21 (batch 3, E03), once the
+    owner confirmed batch 1's signed IM entries cover adults and children."""
+    assert not [e for e in _drug("ketamine")["dose_entries"]
+                if (e["indication"], e["population"], e["route"]) == (KETAMINE_PAIN, "adult|peds", "IM")]
+    rec = [r for r in _bank()["retired_entries"]
+           if (r["generic_name"], r["indication"], r["population"], r["route"])
+           == ("ketamine", KETAMINE_PAIN, "adult|peds", "IM")]
+    assert len(rec) == 1 and "batch 1" in rec[0]["retired_reason"], rec
 
 
 def test_ketorolac_is_excluded_with_the_smog_quote():
@@ -141,7 +158,7 @@ def test_ketorolac_is_excluded_with_the_smog_quote():
         assert "Not for use as pain management for battlefield trauma patient!" in e["adjudication"]
 
 
-@pytest.mark.parametrize("key", DRAFTS, ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
+@pytest.mark.parametrize("key", LIVE, ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
 def test_every_source_carries_a_guideline_a_printed_page_and_a_quote(key):
     e, _ = _entry(*key)
     assert e["sources"]
@@ -160,7 +177,7 @@ def _figures(x):
            ({f"{x['value']:g}"} if isinstance(x, dict) and "value" in x else set())
 
 
-@pytest.mark.parametrize("key", [k for k in DRAFTS if k not in INCOMPLETE],
+@pytest.mark.parametrize("key", [k for k in LIVE if k not in INCOMPLETE],
                          ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
 def test_every_dose_figure_is_in_a_quote(key):
     e, _ = _entry(*key)
@@ -171,14 +188,14 @@ def test_every_dose_figure_is_in_a_quote(key):
             assert fig in numbers, (field, fig, key)
 
 
-@pytest.mark.parametrize("key", INCOMPLETE, ids=lambda k: "-".join(k[::2]))
+@pytest.mark.parametrize("key", [k for k in INCOMPLETE if k in LIVE], ids=lambda k: "-".join(k[::2]))
 def test_what_no_source_states_stays_marked_incomplete(key):
     e, _ = _entry(*key)
     assert e["dose_range"] == "NEEDS_MANUAL_ENTRY"
     assert "DOSE_NOT_IN_SOURCE" in e["flags"]
 
 
-@pytest.mark.parametrize("key", list(CONFLICTS), ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
+@pytest.mark.parametrize("key", [k for k in CONFLICTS if k in LIVE], ids=lambda k: "-".join(k[::2]) + "-" + k[1][:12])
 def test_a_ruled_conflict_carries_the_owners_adjudication(key):
     e, _ = _entry(*key)
     assert "SOURCE_CONFLICT" not in e["flags"] and "conflict_group" not in e
@@ -240,7 +257,7 @@ def _pdf_for(source):
 @pytest.mark.skipif(shutil.which("pdftotext") is None or not PDF_DIR.is_dir() or not NASEMSO_PDF.is_file(),
                     reason="the source PDFs (JTS_PDF_DIR, NASEMSO_PDF) or pdftotext are not available")
 def test_every_quote_is_verbatim_on_its_cited_page():
-    for key in DRAFTS:
+    for key in LIVE:
         e, _ = _entry(*key)
         for s in e["sources"]:
             texts = _page_texts(_pdf_for(s), s["pdf_page"])

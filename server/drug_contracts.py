@@ -1418,12 +1418,13 @@ def range_text(entry: dict) -> Optional[str]:
 
 # The unit-error signature is a factor of exactly 1000 — g read as mg, mcg read
 # as mg. Measured against the real file, the widest LEGITIMATE spread between
-# two doses of one drug is epinephrine's 500x: 10 mcg push against 5 mg
-# nebulised. So 1000x separates the error class from real clinical variation,
-# with a margin of two. That margin is thin, and it is thin because
-# epinephrine genuinely spans that much — if a drug is ever added with a wider
-# honest spread, this threshold has to be revisited rather than the entry
-# silenced.
+# two doses of one drug was epinephrine's 500x: 10 mcg push against 5 mg
+# nebulised. Signing batch 3 (2026-10-21) signed a 5 mcg push dose, and the
+# spread is now exactly 1000x. The lint still separates the two, because an
+# entry is flagged only when it is 1000x from EVERY other dose of its drug and
+# epinephrine's doses fill the range between; but the margin is gone. If a
+# drug is ever added with a wider honest spread, this threshold has to be
+# revisited rather than the entry silenced.
 DOSE_MAGNITUDE_FACTOR = 1000.0
 _LINT_WEIGHT_KG = 70.0
 

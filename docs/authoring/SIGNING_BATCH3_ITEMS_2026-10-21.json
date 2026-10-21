@@ -1,0 +1,2468 @@
+[
+ {
+  "id": "E01",
+  "kind": "entry",
+  "drug": "ketamine",
+  "indication": "prolonged sedation infusion — SMOG (en route)",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "0.5–2 mg/kg IV bolus, then 1–3 mg/kg/hr (SMOG p.127, as the bank entry carries it)",
+   "max": "",
+   "repeat": "titrate by 0.25 mg/kg/hr"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "Ketamine drip (for sedation): Sedation loading dose first (1mg/kg IV/IO over 60 seconds). MIX: 750mg (1.5 vials of 500mg/5mL) in 250mL of normal saline (3mg/mL solution). Initial drip dose: • Best: Using an IV pump, set to μg/kg/min dose desired. Increase or decrease dose by 5–10μg/kg/min increments. • Better: Using a dial flow adaptor, initial drip rate in mL/h equals the casualty’s weight in kg divided by 2 (see mL/h table).",
+    "box": "• Better: Using a dial flow adaptor, initial drip rate in mL/h equals the casualty’s weight in kg divided by 2 (see mL/h table).",
+    "states": "load 1 mg/kg IV/IO; mix 3 mg/mL; initial rate weight÷2 mL/h (= 1.5 mg/kg/h at 3 mg/mL)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "Drip adjustments: Increase or decrease drip by 0.25mg/kg/h (1 row). Ketamine Drip Dosing Tables Ketamine drip rate for dial flow or IV pump (starting dose highlighted) Patient’s Weight, kg Dose 40 60 80 100 mg/kg/h μg/kg/min Infusion Rate, mL/h 0.5 8 7* 10 13 17 0.75 13 10 15 20 25 1.0 17 13 20 27 33 1.25 21 17 25 34 42 1.5 25 20 30 40 50 1.75 29 24 35 47 59 2.0 33 27 40 53 67",
+    "box": "1.5 25 20 30 40 50",
+    "states": "table 0.5–2.0 mg/kg/h in 0.25 mg/kg/h rows; the 1.5 mg/kg/h row (80 kg = 40 mL/h) equals the weight÷2 start"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 11,
+    "printed_page": "11",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "Then IV/IO drip for ongoing sedation (load above dose, then drip): • Nonintubated: 1mg/kg/h • Intubated 1–2mg/kg/h",
+    "box": "• Intubated 1–2mg/kg/h",
+    "states": "Appendix D: drip 1 mg/kg/h non-intubated, 1–2 mg/kg/h intubated"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 127,
+    "printed_page": "127",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "IV Continuous Infusion • 0.5-2mg/kg bolus then 1-3 mg/kg/hr. Titrate",
+    "box": "• 0.5-2mg/kg bolus then 1-3 mg/kg/hr. Titrate",
+    "states": "adult: 0.5-2 mg/kg bolus, then 1-3 mg/kg/hr, titrate by 0.25 mg/kg/hr"
+   }
+  ],
+  "conflict": "JTS ID61 p.9 (Appendix B): 3 mg/mL mix, start 1.5 mg/kg/h, table 0.5–2.0 mg/kg/h, steps of 0.25 mg/kg/h. JTS ID61 p.11 (Appendix D of the same CPG): 1 mg/kg/h non-intubated, 1–2 mg/kg/h intubated. SMOG CY24 p.127 (adult column, repeated on the RSI page p.12 and the chart p.128): 0.5–2 mg/kg bolus, then 1–3 mg/kg/hr, steps of 0.25, 1 mg/mL mix (500 mg/500 mL), chart header 17–50 mcg/kg/min. SMOG's ceiling (3 mg/kg/hr) is above every JTS ceiling (2.0 mg/kg/h). Its lower bound (1) is above the bottom of the JTS table (0.5). Its bolus (up to 2 mg/kg) is above the JTS 1 mg/kg load, and its mix (1 mg/mL) differs from the JTS 3 mg/mL. Also on a JTS page: ID30 p.24 (Role 3 neuro-ICU) gives a ketamine infusion of 20–100 mcg/kg/min (about 1.2–6 mg/kg/h). That is a different setting, but it is a third JTS figure.",
+  "premark": "",
+  "note": "This entry is the SMOG side of the dose, so its proposed dose is the SMOG figure the entry carries. The JTS figure is shown first on this page as the other side. The JTS ID61 adult infusion (load 1 mg/kg; start 1.5, range 0.5–2.0 mg/kg/h) was signed in batch 2 (2026-10-19). The 1.5 mg/kg/h start is the shaded row of the ID61 p.9 table, which the owner confirmed on 2026-10-19; the shading is not in the page text. OWNER RULING 2026-10-19 (Andrew Azelton): not signed. The adult sedation infusion is JTS ID61 p.9 (start 1.5, 0.5–2.0 mg/kg/h); SMOG p.127's 1–3 mg/kg/hr stays a documented alternate, not served. This item is the SMOG en-route entry. Under 'JTS first' the proposed dose is the JTS ID61 p.9 figure, and the SMOG figure is shown as the other side. The 1.5 mg/kg/h start is derived: the table says 'starting dose highlighted', but the highlighting is not in the page text. 'Weight ÷ 2 mL/h' at 3 mg/mL works out to 1.5 mg/kg/h, and this matches the 1.5 row. No maximum is stated; the JTS table simply stops at 2.0 mg/kg/h. SMOG p.128 chart: 'Dosing Range: 1-3mg/kg/hr (17-50mcg/kg/min)', 'MIX 500 mg/500 mL', 'CONCENTRATION 1 mg/mL'. The chart rows run from 15 to 60 mcg/kg/min, outside its own header, and some rows have arithmetic errors (e.g. 60 kg at 40 mcg/kg/min is printed as 140 mL/hr, but 144 is correct; 95 kg at 15 is printed as 90, but about 86 is correct). The ketamine infusions in ID29 p.8/p.24 (10 mg/h; 100 mcg/kg/h; 10–40 mg/h) are for analgesia, not sedation, and are not used here. COVID-19 CPG (ID85) p.18 refers to ID61 for the drip. ID61's tables start at 40 kg."
+ },
+ {
+  "id": "E02",
+  "kind": "entry",
+  "drug": "ketamine",
+  "indication": "prolonged sedation infusion",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "0.5-1 mg/kg/hr IV continuous infusion (SMOG paediatric column; no JTS paediatric figure)",
+   "max": "",
+   "repeat": "titrate by 0.25 mg/kg/hr PRN to appropriate sedation"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "Patient’s Weight, kg Dose 40 60 80 100",
+    "box": "40 60 80 100",
+    "states": "no number for children: the adult PFC drip tables start at 40 kg; no paediatric rate"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 127,
+    "printed_page": "127",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "• 0.5-1 mg/kg/hr. Titrate levels by 0.25mg/kg/hr",
+    "box": "• 0.5-1 mg/kg/hr. Titrate levels by 0.25mg/kg/hr",
+    "states": "paediatric IV continuous infusion 0.5-1 mg/kg/hr, titrate by 0.25 mg/kg/hr"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 127,
+    "printed_page": "127",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Dose and Administration: ADULT PEDIATRIC Always Reference BROSELOW Tape",
+    "box": "Dose and Administration: ADULT PEDIATRIC Always Reference BROSELOW Tape",
+    "states": "column header: the 0.5-1 mg/kg/hr line is in the PEDIATRIC (right) column, under 'IV Continuous Infusion:'"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 127,
+    "printed_page": "127",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "• Children <3 mo. age",
+    "box": "• Children <3 mo. age",
+    "states": "no number: contraindicated under 3 months of age"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed; v1.1. SMOG gives a range only; no source gives a paediatric start rate or mix. Re-checked: no JTS page gives a paediatric ketamine infusion. ID61's tables start at 40 kg, and its 1.5 mg/kg/h start is above SMOG's paediatric ceiling of 1 mg/kg/hr. Burn Care ID12 p.19 says only 'Ketamine is a useful procedural adjunct' for children, with no number. SMOG states no paediatric bolus, starting rate, mix or maximum, so 'max' is blank. SMOG's paediatric line is quoted alone because in the layout text the column heading 'IV Continuous Infusion:' shares its line with the adult column. The same column carries '**NOTE** Avoid sub-dissociative doses to prevent emergence phenomenon.' NASEMSO gives no ketamine infusion. Age floor is 3 months (SMOG contraindication)."
+ },
+ {
+  "id": "E03",
+  "kind": "entry",
+  "drug": "ketamine",
+  "indication": "moderate to severe pain / analgesia",
+  "population": "adult|peds",
+  "route": "IM",
+  "proposed": {
+   "dose": "Adult: 50-100 mg (or 0.5-1 mg/kg) IM (JTS ID91 PCC table). Paediatric: 0.5 mg/kg IM (SMOG p.127; no JTS paediatric IM dose)",
+   "max": "",
+   "repeat": "adult every 20-30 min (ID91); paediatric q 10-30 min prn (SMOG)"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 33,
+    "printed_page": "33",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021)",
+    "quote": "Ketamine 50-100 mg (or 0.5-1  Increased blood pressure and mg/kg) IM or IN every 20-30 heart rate. min",
+    "box": "Ketamine 50-100 mg (or 0.5-1",
+    "states": "adult moderate-severe pain: 50-100 mg (or 0.5-1 mg/kg) IM or IN every 20-30 min (table columns interleave in the layout text)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+    "pdf_page": 7,
+    "printed_page": "7",
+    "cpg": "JTS CPG ID29, Pain, Anxiety and Delirium (26 Apr 2021, v1.2)",
+    "quote": "Option 3, for moderate to severe pain when the casualty is in hemorrhagic shock or respiratory distress or the casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine 20 mg slow IV or IO. Ketamine doses can be repeated every 30 minutes for IM or IN and every 20 minutes for IV or IO administration.",
+    "box": "casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine",
+    "states": "TCCC (adult casualty): 50 mg IM or IN, repeat every 30 minutes"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 127,
+    "printed_page": "127",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "IM: • 0.5 mg/kg, repeat q 10-30 prn",
+    "box": "• 0.5 mg/kg, repeat q 10-30 prn",
+    "states": "paediatric column analgesia IM 0.5 mg/kg, repeat q 10-30 prn"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 94,
+    "printed_page": "94",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0 (Rev. March 2022)",
+    "quote": "d. Ketamine: i. 0.25 mg/kg IM, IV or IO (maximum initial dose 25 mg; maximum cumulative dose 100 mg)",
+    "box": "i. 0.25 mg/kg IM, IV or IO (maximum initial dose 25 mg; maximum cumulative dose 100",
+    "states": "0.25 mg/kg IM/IV/IO, max initial 25 mg, max cumulative 100 mg (noted only)"
+   }
+  ],
+  "conflict": "Adult IM analgesia: different numbers on several JTS pages. ID91 p.33/34 (PCC 2021): 50-100 mg (0.5-1 mg/kg) IM or IN every 20-30 min. ID29 p.7 (TCCC): 50 mg IM or IN, every 30 min. ID61 p.11 (PFC 2017, Appendix D): 40–60 mg (0.5–0.75 mg/kg) IM/IN every 15 min until goal or nystagmus. ID61 p.8 (same CPG): if no IV/IO, 'quadruple the ketamine dose to give 80mg IM (range, 0.4–0.8mg/kg IM)'. SMOG p.127 adult: 0.5-1.0 mg/kg IM/IN, repeat q 10-30 prn. At 80 kg the JTS sources span 40–100 mg. NASEMSO p.94 (noted only) gives 0.25 mg/kg (20 mg at 80 kg, capped at 25 mg). Paediatric IM: SMOG 0.5 mg/kg is the only figure; no JTS page states a paediatric IM dose.",
+  "premark": "",
+  "note": "OWNER RULING 2026-10-14 (Andrew Azelton): left unsigned. The IM analgesia dose is the JTS/SMOG one (0.5–1.0 mg/kg adult, ID61/SMOG/TCCC; 0.5 mg/kg paediatric, SMOG); NASEMSO's 0.25 mg/kg IM stays a documented alternate, not served. The bank entry's drafted dose is NASEMSO's 0.25 mg/kg; under the owner's rules NASEMSO cannot be the proposal. The proposal uses ID91, the most recent JTS page with an IM range, and it matches the owner's 0.5–1.0 mg/kg adult ruling. The population is 'adult|peds', but the adult and paediatric figures come from different sources, so the owner may want to split the entry. No JTS or SMOG page states a maximum for IM analgesia, so 'max' is blank; NASEMSO's 25/100 mg caps are not used. Age floor is 3 months (SMOG contraindication). The ID91 quote keeps the interleaved side-effects column text exactly as it appears in the layout."
+ },
+ {
+  "id": "E04",
+  "kind": "entry",
+  "drug": "ketamine",
+  "indication": "moderate to severe pain / analgesia",
+  "population": "peds",
+  "route": "IN",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 33,
+    "printed_page": "33",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021)",
+    "quote": "Ketamine 50-100 mg (or 0.5-1  Increased blood pressure and mg/kg) IM or IN every 20-30 heart rate. min",
+    "box": "Ketamine 50-100 mg (or 0.5-1",
+    "states": "no number for children: IM/IN 50-100 mg (0.5-1 mg/kg) is an adult casualty dose"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+    "pdf_page": 7,
+    "printed_page": "7",
+    "cpg": "JTS CPG ID29, Pain, Anxiety and Delirium (26 Apr 2021, v1.2)",
+    "quote": "Option 3, for moderate to severe pain when the casualty is in hemorrhagic shock or respiratory distress or the casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine 20 mg slow IV or IO. Ketamine doses can be repeated every 30 minutes for IM or IN and every 20 minutes for IV or IO administration.",
+    "box": "casualty is at significant risk of developing either condition, should include ketamine 50 mg IM or IN or ketamine",
+    "states": "no number for children: TCCC 50 mg IN is an adult casualty fixed dose"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 127,
+    "printed_page": "127",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "IM: • 0.5 mg/kg, repeat q 10-30 prn IV/IO Push (over 1 min) IV: • 0.1-0.3 mg/kg, repeat q 10-30 prn • 0.1 – 0.2 mg/kg, repeat q 10-30 prn",
+    "box": "• 0.5 mg/kg, repeat q 10-30 prn",
+    "states": "no number: the paediatric column gives analgesia IM and IV only, no IN"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 94,
+    "printed_page": "94",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0 (Rev. March 2022)",
+    "quote": "d. Ketamine: i. 0.25 mg/kg IM, IV or IO (maximum initial dose 25 mg; maximum cumulative dose 100 mg)",
+    "box": "i. 0.25 mg/kg IM, IV or IO (maximum initial dose 25 mg; maximum cumulative dose 100",
+    "states": "no number: IM, IV or IO only, no IN (noted only)"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "No owner ruling on file (bank adjudication null). The bank entry already flags it DOSE_NOT_IN_SOURCE and refuses even if signed. Re-checked the whole corpus: no JTS, SMOG or NASEMSO page states a paediatric intranasal ketamine analgesia dose. ID61 p.11's IM/IN 40–60 mg (0.5–0.75 mg/kg) is in an adult PFC CPG. SMOG p.32 (Altered Mental Status) gives 'Ketamine 4-5mg/kg IM/IN' for the combative patient, which is a sedation dose, not analgesia, and is not split by age. NASEMSO p.61 gives paediatric ketamine IV/IM for agitation only. The SMOG quote spans the paediatric column analgesia lines (IM, then IV); the adult column's 'IV/IO Push (over 1 min)' and '• 0.1-0.3 mg/kg' lines sit between them in the layout text."
+ },
+ {
+  "id": "E05",
+  "kind": "entry",
+  "drug": "epinephrine",
+  "indication": "push-dose vasopressor for hypotension",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "5–20 mcg (0.5–2 mL of 10 mcg/mL: 1 mL of 100 mcg/mL in 9 mL NS) very slow IV/IO push",
+   "max": "",
+   "repeat": "every 2–5 minutes"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID83, Sepsis Management in PFC (28 Oct 2020)",
+    "quote": "Epinephrine, as an IV or IO push-dose: A 10mL syringe consisting of 9mL of Normal Saline (0.9% NaCl) with 1mL of cardiac epinephrine (1:10,000 or 100mcg/mL). Administer to acutely correct a blood pressure indicative of shock (systolic <90). Administer a lower-end dose (0.5 – 1mL) while preparing a longer-term IVF drip (below).  Concentration: 10mcg epinephrine/mL  Onset: 1 minute  Duration: 5 – 10 minutes  Dose: 0.5 – 2mL every 2 – 5 minutes (5 – 20mcg)",
+    "box": "Dose: 0.5 – 2mL every 2 – 5 minutes (5 – 20mcg)",
+    "states": "10 mcg/mL; 0.5–2 mL (5–20 mcg) every 2–5 min, for SBP <90; start low-end 0.5–1 mL"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Push Dose Epi: o Epinephrine 5-20mcg IV q2-5min",
+    "box": "o Epinephrine 5-20mcg IV q2-5min",
+    "states": "RSI page: push-dose epinephrine 5-20 mcg IV q2-5min"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 114,
+    "printed_page": "114",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Push-Dose: Refractory Anaphylaxis: IV/IO: Utilize the 0.1 mg/mL solution further diluted in 10mL of NS. • 0.05-0.1 mg, administered over 1-10 minutes, may repeat once after 3 minutes if patient",
+    "box": "• 0.05-0.1 mg, administered over 1-10 minutes,",
+    "states": "different indication (refractory anaphylaxis): 0.05-0.1 mg push, may repeat once after 3 min"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 36,
+    "printed_page": "36",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0 (Rev. March 2022)",
+    "quote": "2. Epinephrine by push dose (dilute boluses): for example, prepare 10 mcg/mL by adding 1 mL of 0.1 mg/mL epinephrine to 9 mL of normal saline, then administer 10–20 mcg boluses (1–2 mL) q 2 minutes titrated MAP greater than 65 mmHg",
+    "box": "10–20 mcg boluses (1–2 mL) q 2 minutes titrated MAP greater than 65 mmHg",
+    "states": "adult bradycardia: 10-20 mcg boluses q 2 min (noted only)"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "No owner ruling on file (bank adjudication null). The old bank note ('NASEMSO 403; WHO no regimen') is superseded: JTS ID83 p.24 states the dose. For hypotension, JTS ID83 and SMOG p.12 agree on 5–20 mcg every 2–5 min, so there is no conflict. SMOG p.114's push dose (0.05–0.1 mg = 50–100 mcg) is for refractory anaphylaxis, a different indication; it is shown so it is not confused with this one. ID83 also says 'Administer a lower-end dose (0.5 – 1mL) while preparing a longer-term IVF drip', and 'Administration: very slow IV push. 1 cc/min for 10 minutes' (sic). No JTS or SMOG page states a maximum single or cumulative dose, so 'max' is blank. ID83 is the Sepsis PFC CPG (shock with SBP <90); SMOG p.12 is the RSI guideline. ID85 (COVID-19) p.22 says to have push-dose vasopressor available, with no number. NASEMSO p.109 (shock) gives a paediatric-style 0.01 mg/kg push, max 10 mcg, q 3–5 min. ID83's bullets are private-use glyphs in the text layer and are kept verbatim."
+ },
+ {
+  "id": "E06",
+  "kind": "entry",
+  "drug": "epinephrine",
+  "indication": "infusion for refractory shock",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "Start 4 mcg/min IV/IO (JTS ID83 / ID91 drip table, after 30 mL/kg IVF); adjust up, down or stop per perfusion and vitals",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID83, Sepsis Management in PFC (28 Oct 2020)",
+    "quote": "Epinephrine as a vasopressor drip: Epinephrine; 4mcg/min bag reference chart. This dose is a starting/maintenance point in the application of an epinephrine (vasopressor) IV drip bag – Epinephrine Challenge.",
+    "box": "Epinephrine as a vasopressor drip: Epinephrine; 4mcg/min bag reference chart. This dose is a",
+    "states": "starting/maintenance point 4 mcg/min; table: every bag mix runs at 4 mcg/min"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 114,
+    "printed_page": "114",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "• Hypotension/Shock: 2-10 mcg/min titrated to",
+    "box": "• Hypotension/Shock: 2-10 mcg/min titrated to",
+    "states": "adult drug card: hypotension/shock 2-10 mcg/min titrated to clinical end point"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 38,
+    "printed_page": "38",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "o Administer Norepinephrine 2-12mcg/min IV. o Add Vasopressin 0.03 units/min SBP < 90 or MAP < 65. o Add Epinephrine 2-20 mcg/min SBP < 90 or MAP < 65.",
+    "box": "o Add Epinephrine 2-20 mcg/min SBP < 90 or MAP < 65.",
+    "states": "sepsis, refractory hypotension: add epinephrine 2-20 mcg/min (after norepinephrine and vasopressin)"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 109,
+    "printed_page": "109",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0 (Rev. March 2022)",
+    "quote": "ii. Epinephrine, 0.05–0.3 mcg/kg/minute",
+    "box": "ii. Epinephrine, 0.05–0.3 mcg/kg/minute",
+    "states": "0.05–0.3 mcg/kg/min (noted only)"
+   }
+  ],
+  "conflict": "JTS (ID83 p.24; ID91 p.40, Table 15) states only a 4 mcg/min starting/maintenance rate, with no range or ceiling. SMOG gives ranges that disagree with each other: the drug card p.114 says 2-10 mcg/min for hypotension/shock, while the chart p.115 ('Dosing Range: 2-20mcg/min', 2 mcg/mL mix) and the sepsis guideline p.38 say 2-20 mcg/min. JTS's 4 mcg/min lies inside both SMOG ranges. The disagreement is in the ceiling: SMOG says 10 on one page and 20 on others, and JTS states none.",
+  "premark": "",
+  "note": "No owner ruling on file (bank adjudication null). The old bank note ('NASEMSO 403; WHO no regimen') is superseded. JTS ID83 (Sepsis PFC) says to start low-dose vasopressor after 30 mL/kg IVF with no change in MAP, urine output or mentation. ID91 p.40 lists epinephrine as the second-line infusion after norepinephrine and prints the same 4 mcg/min table. Neither JTS page states a titration step or a maximum, so 'max' and 'repeat' are blank. Both JTS pages call for telemedicine guidance. Other numbers seen, not for this indication: SMOG p.31 anaphylaxis 5-15 mcg/min (chart p.113); SMOG p.41 bradycardia 2-10 mcg/min; SMOG p.29 paediatric 1 mcg/kg/min. ID12 p.33 'Refractory shock: consider epinephrine or phenylephrine infusion' gives no number. ID85 (COVID-19) Appendix D ('IV Medication Drips, courtesy SMOG CY20') is an image with no text layer. NASEMSO p.36 gives 0.02–0.2 mcg/kg/min for bradycardia."
+ },
+ {
+  "id": "E07",
+  "kind": "entry",
+  "drug": "rocuronium",
+  "indication": "redose interval",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "1 mg/kg IV/IO (range 0.6-1.2 mg/kg), or 8-12 mcg/kg/min IV/IO infusion (SMOG; 'unlabeled and unreferenced dose')",
+   "max": "",
+   "repeat": "every 30-45 minutes PRN"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID39, Airway Management in Trauma (28 Jan 2026)",
+    "quote": "Neuromuscular Blockade Suction, oxygen source, self-inﬂating bag and  Rocuronium: 1.2 mg/kg IV/IO or",
+    "box": "Rocuronium: 1.2 mg/kg IV/IO or",
+    "states": "no number for redose: RSI intubating dose only (rocuronium 1.2 mg/kg)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+    "pdf_page": 3,
+    "printed_page": "3",
+    "cpg": "JTS CPG ID40, Anesthesia for Trauma Patients (05 Apr 2021)",
+    "quote": "Rocuronium is a non- depolarizing neuromuscular relaxant useful in cases where succinylcholine may be contraindicated (e.g., burns, spinal cord injury, hyperkalemia). An increased dose of Rocuronium (1-1.2 mg/kg) can produce intubating conditions similar to succinylcholine in approximately 60 seconds.",
+    "box": "(e.g., burns, spinal cord injury, hyperkalemia). An increased dose of Rocuronium (1-1.2 mg/kg) can produce",
+    "states": "no number for redose: intubating dose 1-1.2 mg/kg only"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 155,
+    "printed_page": "155",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Maintenance dosing: (unlabeled and • 1 mg/kg every 30-45 minutes unreferenced dose) (Dosing ranges from 0.6 - 1.2 mg/kg.) IV Push: • 1 mg/kg IV/IO q30-45min PRN or 8-12 mcg/kg/min IV/IO (Dosing ranges from 0.6-1.2 mg/kg)",
+    "box": "• 1 mg/kg IV/IO q30-45min PRN or 8-12",
+    "states": "adult maintenance 1 mg/kg IV/IO q30-45 min PRN or 8-12 mcg/kg/min; range 0.6-1.2 mg/kg; labelled 'unlabeled and unreferenced dose'"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed. SMOG p.155, the only source, calls this dose \"unlabeled and unreferenced\". The hold stands. Re-checked: no JTS page (ID39 2026 and 2017, ID40, ID92, ID91, COVID ID85, CCATT) gives a rocuronium maintenance or redose figure. COVID ID85 p.21 gives vecuronium maintenance, a different drug. SMOG is therefore the only number, and it is proposed under 'JTS first, SMOG second'; it is not RETIRE, because SMOG states a number. The SMOG quote interleaves the paediatric column ('• 1 mg/kg every 30-45 minutes', '(Dosing ranges from 0.6 - 1.2 mg/kg.)') exactly as in the layout text; the boxed line is the adult one. No maximum is stated. Cautions on the same page: no analgesia or sedation, so sedate before paralysing and throughout maintenance; resistance in burns >30% TBSA for 5-70 days. ID39 p.28's quote is the RSI box heading, with the interleaved equipment column. NASEMSO has no rocuronium dose."
+ },
+ {
+  "id": "E08",
+  "kind": "entry",
+  "drug": "rocuronium",
+  "indication": "redose interval",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "1 mg/kg IV push (range 0.6-1.2 mg/kg) (SMOG paediatric column; 'unlabeled and unreferenced dose')",
+   "max": "",
+   "repeat": "every 30-45 minutes"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID39, Airway Management in Trauma (28 Jan 2026)",
+    "quote": "4. Neuromuscular blockade - Unstable patients require reduced dosage of  Succinylcholine 1.5mg/kg IV/IO (2mg/kg <5 years old) or induction agent.  Rocuronium 1mg/kg IV/IO",
+    "box": "Rocuronium 1mg/kg IV/IO",
+    "states": "no number for redose: paediatric RSI intubating dose 1 mg/kg only"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 155,
+    "printed_page": "155",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Maintenance bolus dosing: (unlabeled and body weight (IBW) unreferenced dose) IV Push: Maintenance dosing: (unlabeled and • 1 mg/kg every 30-45 minutes unreferenced dose) (Dosing ranges from 0.6 - 1.2 mg/kg.)",
+    "box": "• 1 mg/kg every 30-45 minutes",
+    "states": "paediatric maintenance bolus 1 mg/kg every 30-45 min; range 0.6-1.2 mg/kg; labelled 'unlabeled and unreferenced dose'"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 155,
+    "printed_page": "155",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Dose and Administration: ADULT PEDIATRIC Always Reference BROSELOW Tape",
+    "box": "Dose and Administration: ADULT PEDIATRIC Always Reference BROSELOW Tape",
+    "states": "column header: the maintenance bolus line is in the PEDIATRIC (right) column"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed. SMOG p.155, the only source, calls this dose \"unlabeled and unreferenced\". The hold stands. Re-checked: no JTS page gives a paediatric rocuronium maintenance figure; ID39 2026 p.28 gives only the paediatric intubating dose (1 mg/kg). The SMOG paediatric column has no infusion and no PRN, unlike the adult column. Its quote interleaves adult-column text ('body weight (IBW)', 'Maintenance dosing: (unlabeled and') exactly as in the layout text; the boxed line is the paediatric one. No maximum is stated. NASEMSO has no rocuronium dose."
+ },
+ {
+  "id": "E09",
+  "kind": "entry",
+  "drug": "fentanyl",
+  "indication": "analgesia infusion",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "25-250 mcg/hr IV continuous infusion (ICU order set; starting rate left blank in the source)",
+   "max": "250 mcg/hr",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID29, Pain, Anxiety and Delirium (26 Apr 2021, v1.2)",
+    "quote": "fentanyl IV mcg (25-250 mcg/hr), Intravenous, CONTINUOUS Titrate pain medication to achieve a level 3 or (pain scale 0-10). Stop intermittent dosing if continuous infusion initiated and notify Pharmacy Services. **High-Risk Medication**",
+    "box": "fentanyl IV mcg (25-250 mcg/hr), Intravenous, CONTINUOUS Titrate pain medication to achieve a",
+    "states": "continuous 25-250 mcg/hr, titrated to pain score; start after intermittent dosing needed more than Q 2 hours"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Burn_Care_CPG_10_June_2025_ID12.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID12, Burn Care (10 Jun 2025) (page header prints 'ID:20')",
+    "quote": "15.3. _____Fentanyl gtt at _____mcg/hr titrate up to 250 mcg/hr; for analgesia may give 25-100 mcg IVP Q 15 minutes for acute pain or burn wound care.",
+    "box": "15.3. _____Fentanyl gtt at _____mcg/hr titrate up to 250 mcg/hr; for analgesia may give 25-100 mcg IVP Q 15 minutes",
+    "states": "burn ICU order set: start blank, titrate up to 250 mcg/hr"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 118,
+    "printed_page": "118",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Sedation during mechanical ventilation: IV: to stress. • Initial Bolus: 1-2mcg/kg Continued Sedation: • 0.5-1mcg/kg/hr. infusion (See Infusion chart next page) (Combine with Midazolam for best effect)",
+    "box": "• 0.5-1mcg/kg/hr. infusion (See Infusion chart",
+    "states": "sedation during mechanical ventilation: bolus 1-2 mcg/kg, then 0.5-1 mcg/kg/hr infusion"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 119,
+    "printed_page": "119",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "FENTANYL (SUBLIMASE) Dosing Range: 0.5‐1 mcg/kg/hr MIX 1 mg/100 mL CONCENTRATION 10 mcg/mL",
+    "box": "Dosing Range: 0.5‐1 mcg/kg/hr",
+    "states": "chart: 0.5-1 mcg/kg/hr; mix 1 mg/100 mL (10 mcg/mL)"
+   }
+  ],
+  "conflict": "JTS gives a flat rate: ID29 p.24 25-250 mcg/hr, and ID12 p.24 titrate up to 250 mcg/hr. SMOG gives a weight-based rate: p.118/119, 1-2 mcg/kg bolus, then 0.5-1 mcg/kg/hr, for sedation during mechanical ventilation. At 80 kg SMOG is 40-80 mcg/hr, so its ceiling is about a third of the JTS 250 mcg/hr. JTS's lower bound of 25 mcg/hr matches SMOG at 50 kg.",
+  "premark": "",
+  "note": "No owner ruling on file (bank adjudication null; drafted 2026-10-08, not signed). Starting rate: no JTS page states one (both order sets leave it blank). SMOG's 1-2 mcg/kg bolus is the only initial figure. Population: neither JTS order set says 'adult', but the flat mcg/hr rate reads as adult. Setting: ID29 p.16 makes 'fentanyl drip or equivalent' Option 1 for background pain in the intubated, haemodynamically stable patient; it is not a point-of-injury dose. ID29 p.24 also gives a breakthrough bolus of 25-100 mcg IV every 10 minutes as needed, and ID12 gives 25-100 mcg IVP Q 15 minutes. ID12 marks fentanyl a high-risk medication, and ID29 p.7 says naloxone should be available. The Burn Care PDF (file ID12) prints 'ID:20' in its header. Excluded: SMOG p.57 'Fentanyl 2-10 mcg/kg/hour' and the MWD CPG figures are military working dog doses. NASEMSO gives intermittent fentanyl only, with no infusion. The SMOG p.118 quote interleaves the paediatric column ('to stress.') exactly as in the layout text."
+ },
+ {
+  "id": "E10",
+  "kind": "entry",
+  "drug": "ertapenem",
+  "indication": "penetrating abdominal injury",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "1 g IV x 1 dose",
+   "max": "",
+   "repeat": "single dose (ID24 p.12: \"Single dose therapy\"); ID24 p.11 duration column: stop 24 hours after control of contamination"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 11,
+    "printed_page": "11",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021), Appendix B Table 1, Abdominal Wounds",
+    "quote": "Penetrating abdominal Cefazolin, 2 gm IV q6-8h†‡ PLUS metronidazole Ertapenem 1 gm IV x 1 dose, OR Moxifloxacin 400 mg Stop 24 hours after control of",
+    "box": "Penetrating abdominal Cefazolin, 2 gm IV q6-8h†‡ PLUS metronidazole Ertapenem 1 gm IV x 1 dose, OR Moxifloxacin 400 mg Stop 24 hours after control of",
+    "states": "1 gm IV x 1 dose (alternate agent; preferred is cefazolin + metronidazole), hollow viscus injury/soilage"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021), Appendix B Table 1, Point of Injury/Delayed Evacuation",
+    "quote": "Expected delay to reach Moxifloxacin 400 mg PO x 1 dose. Ertapenem 1 g Levofloxacin 500 mg PO x 1 dose. Cefotetan 2 g IV or Single dose therapy surgical care IV or IM if penetrating abdominal injury, shock, or IM q12h if penetrating abdominal injury, shock, or",
+    "box": "Expected delay to reach Moxifloxacin 400 mg PO x 1 dose. Ertapenem 1 g Levofloxacin 500 mg PO x 1 dose. Cefotetan 2 g IV or Single dose therapy",
+    "states": "1 g IV or IM, single dose, if penetrating abdominal injury (delayed evacuation)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 38,
+    "printed_page": "38",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021), Table 11 TCCC Antibiotics",
+    "quote": "Ertapenem (Invanz®) Administer 1g daily IV/IO/IM for 10 days",
+    "box": "Ertapenem (Invanz®) Administer 1g daily IV/IO/IM for 10 days",
+    "states": "1 g daily IV/IO/IM for 10 days (prolonged casualty care, any penetrating trauma)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 64,
+    "printed_page": "64",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Antibiotic Therapy Chart, Delayed Evacuation to Surgical Care",
+    "quote": "Not PO tolerable X 1 dose Ertapenem 1 g IV/ IM",
+    "box": "Ertapenem 1 g IV/ IM",
+    "states": "1 g IV/IM x 1 dose when PO not tolerated (delayed evacuation)"
+   }
+  ],
+  "conflict": "Dose agrees across sources (1 g). Course differs: ID24 p.11-12 and SMOG p.64 give a single dose (ID24 p.11 stop 24 h after control of contamination), whereas ID91 (PCC) p.38 gives 1 g daily for 10 days. SMOG p.64's Abdominal Wounds row lists only cefazolin + metronidazole; ertapenem appears there only under Delayed Evacuation.",
+  "premark": "",
+  "note": "In ID24 p.11 ertapenem is the ALTERNATE agent for penetrating abdominal injury with hollow viscus injury/soilage; cefazolin + metronidazole is preferred. No max per dose or per day is printed for adults (the 1 gm/day maximum on ID24 p.12 is in the paediatric footnote). Also 1 g in ID62 p.10/24, ID83 p.8 and ID58 p.6/11 (other indications). NASEMSO has no ertapenem."
+ },
+ {
+  "id": "E11",
+  "kind": "entry",
+  "drug": "moxifloxacin",
+  "indication": "combat wound prophylaxis (oral)",
+  "population": "adult",
+  "route": "PO",
+  "proposed": {
+   "dose": "400 mg PO x 1 dose",
+   "max": "",
+   "repeat": "single dose (ID24 p.12: \"Single dose therapy\")"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021), Appendix B Table 1, Point of Injury/Delayed Evacuation",
+    "quote": "Expected delay to reach Moxifloxacin 400 mg PO x 1 dose. Ertapenem 1 g Levofloxacin 500 mg PO x 1 dose. Cefotetan 2 g IV or Single dose therapy",
+    "box": "Expected delay to reach Moxifloxacin 400 mg PO x 1 dose. Ertapenem 1 g Levofloxacin 500 mg PO x 1 dose. Cefotetan 2 g IV or Single dose therapy",
+    "states": "400 mg PO x 1 dose, single-dose therapy (expected delay to surgical care)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Wound_Management_PFC_24_Jul_2017_ID62.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID62, Acute Traumatic Wound Management in PFC (24 Jul 2017), Infection prevention",
+    "quote": "Moxifloxacin 400mg PO × 1 dose or levofloxacin 750mg PO × 1 dose",
+    "box": "Moxifloxacin 400mg PO × 1 dose or levofloxacin 750mg PO × 1 dose",
+    "states": "400 mg PO x 1 dose for open wounds"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 38,
+    "printed_page": "38",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021), Table 11 TCCC Antibiotics",
+    "quote": "Moxifloxacin (Avelox®) Administer 400mg PO daily for 10 days",
+    "box": "Moxifloxacin (Avelox®) Administer 400mg PO daily for 10 days",
+    "states": "400 mg PO daily for 10 days (prolonged casualty care)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 64,
+    "printed_page": "64",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Antibiotic Therapy Chart, Delayed Evacuation to Surgical Care",
+    "quote": "Moxifloxacin 400 mg PO x 1 PO tolerable X 1 dose",
+    "box": "Moxifloxacin 400 mg PO x 1",
+    "states": "400 mg PO x 1 dose when PO tolerated"
+   }
+  ],
+  "conflict": "Dose agrees (400 mg). Course differs: ID24 p.12, ID62 p.24 and SMOG p.64 give a single dose; ID91 (PCC) p.38 gives 400 mg daily for 10 days. ID62 p.24 also says to continue antibiotics for 24 hours after injury (5 days if following the ICRC method).",
+  "premark": "",
+  "note": "No max is printed. Other JTS pages give 400 mg PO daily for other indications (eye injury ID24 p.12, ID03, ID66; TBI ID63 p.8 for 5 days; sepsis minimum ID83 p.8). NASEMSO has no moxifloxacin."
+ },
+ {
+  "id": "E12",
+  "kind": "entry",
+  "drug": "ceftriaxone",
+  "indication": "sepsis",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021), Table 1 footnote ‡ (Pediatric dosing)",
+    "quote": "mg/kg IV or IM q12 (children up to 12 years) or 20 mg/kg IV or IM once daily (children over 12 years; maximum, 1 gm/day); ceftriaxone, 100 mg/kg/day IV divided q12-24h (dosing for CNS injury); levofloxacin, 8 mg/kg IV or PO q12h",
+    "box": "mg/kg IV or IM q12 (children up to 12 years) or 20 mg/kg IV or IM once daily (children over 12 years; maximum, 1 gm/day); ceftriaxone, 100 mg/kg/day IV divided q12-24h",
+    "states": "no number (for sepsis); the paediatric ceftriaxone figure on this page, 100 mg/kg/day IV divided q12-24h, is labelled dosing for CNS injury"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in PFC (28 Oct 2020), Antibiotic regimens",
+    "quote": "Best: Ceftriaxone (Rocephin) 2 gm IV/IO q24 hrs given over 30 minutes, PLUS vancomycin",
+    "box": "Best: Ceftriaxone (Rocephin) 2 gm IV/IO q24 hrs given over 30 minutes, PLUS vancomycin",
+    "states": "no number (paediatric); adult 2 g IV/IO q24h only"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 38,
+    "printed_page": "38",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Sepsis/Fever, Treatment",
+    "quote": "Consider Antibiotic Therapy Ceftriaxone 2 g slow IV push or in 100 cc NS flow to gravity (immunocompetent) or Cefepime 2 g IV in 100 cc NS flow to gravity (immunocompromised)",
+    "box": "Consider Antibiotic Therapy Ceftriaxone 2 g slow IV push or in 100 cc NS flow to gravity",
+    "states": "no number (paediatric); adult protocol, 2 g IV"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 102,
+    "printed_page": "102",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Calcium Gluconate, Contraindications",
+    "quote": "Concomitant use of IV calcium gluconate and ceftriaxone in neonates (risk of precipitation of calcium- ceftriaxone)",
+    "box": "Concomitant use of IV calcium gluconate and ceftriaxone in neonates (risk of precipitation of calcium-",
+    "states": "no number; neonatal calcium-ceftriaxone precipitation caution"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "OWNER RULING 2026-10-19 (Andrew Azelton): cannot be signed; hold. No JTS or SMOG page states a paediatric ceftriaxone dose for sepsis. ID24 p.12 footnote ‡ gives \"ceftriaxone, 100 mg/kg/day IV divided q12-24h\", labelled on the next line \"(dosing for CNS injury)\"; it is not carried across to sepsis. ID83 p.8 and ID91 p.40 (2 g IV/IO q24h) and SMOG p.38 (2 g) are adult. SMOG has no ceftriaxone monograph. NASEMSO has no ceftriaxone. The MWD CPG (ID16 p.47/81, 25 mg/kg) is for dogs and not usable."
+ },
+ {
+  "id": "E13",
+  "kind": "entry",
+  "drug": "midazolam",
+  "indication": "procedural sedation — SMOG (pacing / cardioversion)",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "2.5–5 mg IV (SMOG p.140, as the bank entry carries it)",
+   "max": "",
+   "repeat": "every 15–30 min PRN"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "Step 2: Consider adding (start low, give more): • 25–100μg fentanyl IV/IO • 1–4mg midazolam IV/IO Step 3: May need to repeat doses as below if procedure lasts longer than 10–15 minutes. • Ketamine every 10–15 minutes • Fentanyl every 15–30 minutes • Midazolam every 30–60 minutes",
+    "box": "• 1–4mg midazolam IV/IO",
+    "states": "procedural sedation adjunct 1–4 mg IV/IO; repeat every 30–60 min"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "Sedation (includes anxiety or agitation): • Respiratory/cardiac/mental status depression • Onset: 1–5 minutes IV/IO: dose every 5 minutes until goal achieved or RR < • Amnestic • Duration of effect: 1–4 hours Midazolam 10/min. • Nausea/vomiting • Hepatic metabolism (active metabolites) (Versed) • Nonintubated: 0.5–2mg • Hypotension • Renal excretion • Intubated: 1–4mg",
+    "box": "• Intubated: 1–4mg",
+    "states": "Appendix D sedation: dose every 5 min to goal; non-intubated 0.5–2 mg, intubated 1–4 mg (table columns interleave)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 140,
+    "printed_page": "140",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Transcutaneous Pacing / IV: Cardioversion, Anxiety, Agitation. • 0.1-0.3 mg/kg IV • 2.5-5mg q 15-30 min PRN",
+    "box": "• 2.5-5mg q 15-30 min PRN",
+    "states": "adult: pacing/cardioversion, anxiety, agitation 2.5-5 mg IV q 15-30 min PRN"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 41,
+    "printed_page": "41",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "Midazolam 2-5mg IV / IO) Repeat q 3-5 minutes",
+    "box": "Midazolam 2-5mg IV / IO) Repeat q 3-5 minutes",
+    "states": "bradycardia algorithm: sedation for pacing, midazolam 2-5 mg IV/IO (the 'Repeat q 3-5 minutes' belongs to the atropine column)"
+   }
+  ],
+  "conflict": "JTS ID61 p.9 (procedural sedation): 1–4 mg IV/IO, every 30–60 min. ID61 p.12 (same CPG): non-intubated 0.5–2 mg, intubated 1–4 mg, every 5 min to goal. ID61 p.8/p.10: 1 mg (0.5–2 mg) every 1–6 hours. ID91 p.35 (PCC): 0.5–1 mg IV. SMOG p.140: 2.5-5 mg IV q 15-30 min PRN for pacing/cardioversion. SMOG's algorithm pages p.41 (pacing) and p.46 (cardioversion) say 2-5 mg. SMOG's single dose (2.5–5 mg) starts above the JTS non-intubated range and reaches above the JTS 4 mg top. SMOG's interval (15–30 min) is shorter than ID61 p.9's 30–60 min.",
+  "premark": "",
+  "note": "This entry is the SMOG side of the dose, so its proposed dose is the SMOG figure the entry carries. The JTS figure is shown first on this page as the other side. The JTS ID61 1–4 mg ketamine add-on was signed in batch 2 (2026-10-19). OWNER RULING 2026-10-19 (Andrew Azelton): not signed. The adult procedural-sedation dose is JTS ID61 p.9's 1-4 mg; SMOG p.140's 2.5-5 mg stays a documented alternate, not served. This item is the SMOG pacing/cardioversion entry. Under 'JTS first' the proposed dose is the JTS ID61 p.9 figure, and SMOG is shown as the other side. JTS ID61's setting is ketamine-based procedural sedation, not pacing or cardioversion; no JTS page gives a midazolam dose specifically for pacing or cardioversion. No maximum is stated. The SMOG p.140 and p.41 quotes interleave neighbouring column text exactly as in the layout text; on p.41 'Repeat q 3-5 minutes' is atropine's. SMOG p.46 (tachycardia, cardioversion) prints 'Midazolam 2-5mg IV / IO' and is not listed (4-source limit). SMOG p.140 cautions: no analgesic properties; give only with a stable IV and BVM ready; should not be used in shock. NASEMSO's bradycardia guideline says 'consider sedation' with no number."
+ },
+ {
+  "id": "E14",
+  "kind": "entry",
+  "drug": "midazolam",
+  "indication": "sedation infusion for the ventilated patient",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "0.05 mg/kg IV bolus, then 0.05–0.1 mg/kg/hr (SMOG p.140, p.12, as the bank entry carries it)",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+    "pdf_page": 25,
+    "printed_page": "25",
+    "cpg": "JTS CPG ID29, Pain, Anxiety and Delirium (26 Apr 2021, v1.2)",
+    "quote": "midazolam (aka VERSED) IV infusion (avoid in renal/liver dysfunction) mg/hr (1-6 mg/hr), Intravenous, CONTINUOUS. Stop intermittent dosing if continuous infusion initiated and notify Pharmacy. Titrate sedation to RASS score of -1 to 0",
+    "box": "midazolam (aka VERSED) IV infusion (avoid in renal/liver dysfunction) mg/hr (1-6 mg/hr),",
+    "states": "ICU sedation order set: 1-6 mg/hr continuous, start blank; RASS -1 to 0; avoid in renal/liver dysfunction"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Burn_Care_CPG_10_June_2025_ID12.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID12, Burn Care (10 Jun 2025) (page header prints 'ID:20')",
+    "quote": "15.5. _____Versed gtt at _____ mg/hr, titrate up to 10 mg/hr ; may give 2-5 mg IVP Q 15 minutes for acute agitation or burn wound care.",
+    "box": "15.5. _____Versed gtt at _____ mg/hr, titrate up to 10 mg/hr ; may give 2-5 mg IVP Q 15 minutes for acute agitation or",
+    "states": "burn ICU order set: start blank, titrate up to 10 mg/hr"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 140,
+    "printed_page": "140",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "• Infusion sedation 0.05 mg/kg bolus nare IV, then titrate 0.05-0.1mg/kg/hr. IV gtt",
+    "box": "IV, then titrate 0.05-0.1mg/kg/hr. IV",
+    "states": "adult: 0.05 mg/kg IV bolus, then 0.05-0.1 mg/kg/hr (paediatric intranasal text interleaves)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "o Midazolam 0.05 mg/kg IVP or 0.05 mg/kg bolus then 0.05-0.1mg/kg/hr.",
+    "box": "o Midazolam 0.05 mg/kg IVP or 0.05 mg/kg",
+    "states": "RSI post-intubation maintenance: 0.05 mg/kg bolus then 0.05-0.1 mg/kg/hr"
+   }
+  ],
+  "conflict": "Two JTS pages disagree on the ceiling: ID29 p.25 (ICU sedation order set) gives 1-6 mg/hr, and ID12 p.24 (burn ICU order set) titrates up to 10 mg/hr. SMOG (p.140, repeated on the RSI page p.12) gives a weight-based 0.05 mg/kg bolus, then 0.05-0.1 mg/kg/hr. At 80 kg that is 4-8 mg/hr, so SMOG's ceiling sits between the two JTS ceilings, and SMOG adds a bolus that neither JTS order set gives. No source states a starting rate (both JTS order sets leave it blank) or a titration step.",
+  "premark": "",
+  "note": "This entry is the SMOG side of the dose, so its proposed dose is the SMOG figure the entry carries. The JTS figure is shown first on this page as the other side. E15 is the JTS side of the same open conflict (1–6 mg/hr, ID29). OWNER RULING 2026-10-19 (Andrew Azelton): not signed; v1.1. No source gives a start rate or a titration step. The conflict group stays open. The bank entry's drafted dose is SMOG's 0.05 mg/kg bolus, then 0.05-0.1 mg/kg/hr. Under 'JTS first' the proposal becomes JTS ID29's 1-6 mg/hr, which makes E14 and E15 propose the same figure. The SMOG side is shown in sources and conflict; the owner may want to merge E14 into E15 or keep E14 as the SMOG alternate. 'max' is blank because the two JTS pages disagree (6 vs 10 mg/hr). Cautions: ID29 p.11 says a continuous infusion 'will often result in a prolonged duration of action' and recommends intermittent sedation whenever feasible. ID61 p.5 says that in PFC only a ketamine drip should be used in most situations, with midazolam pushes. SMOG p.140 says midazolam has no analgesic properties and should not be used in shock. The Burn Care PDF (file ID12) prints 'ID:20' in its header. NASEMSO has no midazolam infusion."
+ },
+ {
+  "id": "E15",
+  "kind": "entry",
+  "drug": "midazolam",
+  "indication": "sedation infusion for the ventilated patient — ICU order set (fixed rate)",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "1-6 mg/hr IV continuous infusion (JTS ID29 ICU order set; starting rate left blank in the source)",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Pain_Anxiety_Delirium_26_Apr_2021_ID29_v1.2.pdf",
+    "pdf_page": 25,
+    "printed_page": "25",
+    "cpg": "JTS CPG ID29, Pain, Anxiety and Delirium (26 Apr 2021, v1.2)",
+    "quote": "midazolam (aka VERSED) IV infusion (avoid in renal/liver dysfunction) mg/hr (1-6 mg/hr), Intravenous, CONTINUOUS. Stop intermittent dosing if continuous infusion initiated and notify Pharmacy. Titrate sedation to RASS score of -1 to 0",
+    "box": "midazolam (aka VERSED) IV infusion (avoid in renal/liver dysfunction) mg/hr (1-6 mg/hr),",
+    "states": "ICU sedation order set: 1-6 mg/hr continuous, start blank; RASS -1 to 0; avoid in renal/liver dysfunction"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Burn_Care_CPG_10_June_2025_ID12.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID12, Burn Care (10 Jun 2025) (page header prints 'ID:20')",
+    "quote": "15.5. _____Versed gtt at _____ mg/hr, titrate up to 10 mg/hr ; may give 2-5 mg IVP Q 15 minutes for acute agitation or burn wound care.",
+    "box": "15.5. _____Versed gtt at _____ mg/hr, titrate up to 10 mg/hr ; may give 2-5 mg IVP Q 15 minutes for acute agitation or",
+    "states": "burn ICU order set: start blank, titrate up to 10 mg/hr"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 140,
+    "printed_page": "140",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "• Infusion sedation 0.05 mg/kg bolus nare IV, then titrate 0.05-0.1mg/kg/hr. IV gtt",
+    "box": "IV, then titrate 0.05-0.1mg/kg/hr. IV",
+    "states": "adult: 0.05 mg/kg IV bolus, then 0.05-0.1 mg/kg/hr (paediatric intranasal text interleaves)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG) CY24",
+    "quote": "o Midazolam 0.05 mg/kg IVP or 0.05 mg/kg bolus then 0.05-0.1mg/kg/hr.",
+    "box": "o Midazolam 0.05 mg/kg IVP or 0.05 mg/kg",
+    "states": "RSI post-intubation maintenance: 0.05 mg/kg bolus then 0.05-0.1 mg/kg/hr"
+   }
+  ],
+  "conflict": "Two JTS pages disagree on the ceiling: ID29 p.25 (ICU sedation order set) gives 1-6 mg/hr, and ID12 p.24 (burn ICU order set) titrates up to 10 mg/hr. SMOG (p.140, repeated on the RSI page p.12) gives a weight-based 0.05 mg/kg bolus, then 0.05-0.1 mg/kg/hr. At 80 kg that is 4-8 mg/hr, so SMOG's ceiling sits between the two JTS ceilings, and SMOG adds a bolus that neither JTS order set gives. No source states a starting rate (both JTS order sets leave it blank) or a titration step.",
+  "premark": "",
+  "note": "OWNER RULING 2026-10-19 (Andrew Azelton): not signed; v1.1. No source gives a start rate or a titration step. The conflict group stays open. This is the JTS fixed-rate side of the conflict group midazolam-ventilated-infusion-adult. Its proposal matches E14's under 'JTS first'. 'max' is blank because ID29 (6 mg/hr) and ID12 (10 mg/hr) disagree. ID29's order set targets RASS -1 to 0 on p.25, while its nursing orders on p.24 say RASS -2 to -1; ID12 targets RASS 0 to -3. ID29 p.11 recommends intermittent sedation whenever feasible, because infusions accumulate. Neither order set states 'adult', but the flat mg/hr rate reads as adult. The Burn Care PDF (file ID12) prints 'ID:20' in its header. NASEMSO has no midazolam infusion."
+ },
+ {
+  "id": "E16",
+  "kind": "entry",
+  "drug": "dextrose",
+  "indication": "neonatal hypoglycaemia",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "5 mL/kg D10 IV (0.5 g/kg)",
+   "max": "25 g per dose",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 105,
+    "printed_page": "105",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Dextrose 50% monograph, Dose and Administration, Pediatric, Hypoglycemia, IV",
+    "quote": "10-25 g (40-100 mL of 25% solution or 20-50 • Newborns: 5ml/kg D10 (Max 25 G/dose)",
+    "box": "10-25 g (40-100 mL of 25% solution or 20-50 • Newborns: 5ml/kg D10 (Max 25 G/dose)",
+    "states": "5 mL/kg D10 (0.5 g/kg), max 25 g/dose, newborns"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 53,
+    "printed_page": "53",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Newborn Care and Distress, Treatment",
+    "quote": "o Consider hypoglycemia (D12.5 1/0ml/kg IV; dilute D50 to ¼ strength or 1ml D50 in 3ml NS).",
+    "box": "o Consider hypoglycemia (D12.5 1/0ml/kg IV; dilute D50 to ¼ strength or 1ml D50 in 3ml NS).",
+    "states": "D12.5 \"1/0ml/kg\" IV (misprinted: 1 mL/kg = 0.125 g/kg or 10 mL/kg = 1.25 g/kg)"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 85,
+    "printed_page": "85",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0 (Mar 2022), Hypoglycemia",
+    "quote": "2. Maximum field pediatric dosing: 0.5–1 g/kg of 10–25% dextrose IV a. 2–4 mL/kg of 25% dextrose for those greater than 8 years old b. 5–10 mL/kg of 10% dextrose (newborns 2 mL/kg)",
+    "box": "b. 5–10 mL/kg of 10% dextrose (newborns 2 mL/kg)",
+    "states": "newborns 2 mL/kg of 10% (0.2 g/kg)"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 86,
+    "printed_page": "86",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0 (Mar 2022), Hypoglycemia, Notes",
+    "quote": "4. For neonates and infants less than 1 month of age, dextrose concentration of no more than 10– 12.5% should be used",
+    "box": "4. For neonates and infants less than 1 month of age, dextrose concentration of no more than 10–",
+    "states": "no number (dose); neonates: concentration no more than 10-12.5%"
+   }
+  ],
+  "conflict": "Three newborn figures disagree. SMOG p.105: 5 mL/kg D10 = 0.5 g/kg (max 25 g/dose). SMOG p.53: D12.5 \"1/0ml/kg\" IV, misprinted (1 mL/kg = 0.125 g/kg; 10 mL/kg = 1.25 g/kg). NASEMSO p.85: 2 mL/kg of 10% = 0.2 g/kg (noted only, not usable as a proposal). SMOG p.105 is 2.5 times NASEMSO.",
+  "premark": "",
+  "note": "OWNER RULING 2026-09-24 (Andrew Azelton): DEFERRED; not signed. No JTS CPG states a newborn dextrose dose (searched all JTS pages), so the proposal rests on SMOG p.105 alone. Repeat: SMOG p.105 Indications says \"Hypoglycemia: Doses may be repeated in severe cases\" with no interval; repeat left blank. On SMOG p.105 the quoted line runs into the adult column on its left (\"10-25 g (40-100 mL of 25% solution or 20-50\"), which is adult text; only \"Newborns: 5ml/kg D10 (Max 25 G/dose)\" is the newborn dose. The g/kg conversions are mine (D10 = 0.1 g/mL; D12.5 = 0.125 g/mL)."
+ },
+ {
+  "id": "E17",
+  "kind": "entry",
+  "drug": "propofol",
+  "indication": "induction of anaesthesia",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "0.5-1 mg/kg IV (reduced dose, hypotensive patients)",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Anesthesia_for_Trauma_Patients_05_Apr_2021_ID40.pdf",
+    "pdf_page": 3,
+    "printed_page": "3",
+    "cpg": "JTS CPG ID40, Anesthesia for Trauma Patients (05 Apr 2021), Induction of Anesthesia, item 4",
+    "quote": "significantly. It is prudent to use reduced doses of Propofol (0.5-1 mg/kg) in hypotensive patients. Ongoing",
+    "box": "significantly. It is prudent to use reduced doses of Propofol (0.5-1 mg/kg) in hypotensive patients. Ongoing",
+    "states": "0.5-1 mg/kg, reduced dose in hypotensive patients"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Rapid Sequence Intubation, Medications, Induction Agents",
+    "quote": "with AMS, etc. o Propofol 1-2.5 mg/kg IV",
+    "box": "with AMS, etc. o Propofol 1-2.5 mg/kg IV",
+    "states": "1-2.5 mg/kg IV induction (RSI)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 153,
+    "printed_page": "153",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Propofol monograph, Dose and Administration, Adult, Sedation/RSI, IV Push",
+    "quote": "• 1-2.5 mg/kg every 5-10min PRN. Maintenance of general anesthesia,",
+    "box": "• 1-2.5 mg/kg every 5-10min PRN. Maintenance of general anesthesia,",
+    "states": "1-2.5 mg/kg IV push every 5-10 min PRN (sedation/RSI)"
+   }
+  ],
+  "conflict": "JTS ID40 p.3 gives 0.5-1 mg/kg (reduced dose for hypotensive patients). SMOG p.12 and p.153 give 1-2.5 mg/kg, with no hypotension qualifier; SMOG p.153 adds \"every 5-10min PRN\". JTS states no standard (normotensive) induction dose, so 1-2.5 mg/kg rests on SMOG only.",
+  "premark": "",
+  "note": "Scope: the JTS figure is the reduced dose for the hypotensive trauma patient; ID40 p.2 calls propofol a standard induction agent but prints no standard dose. Owner to decide whether the entry is the hypotensive-trauma dose (JTS) or a general induction dose (SMOG only). No max is printed; repeat is only in SMOG (q5-10 min PRN). SMOG p.153 says not to use propofol in the pre-hospital trauma environment or in burn transfer patients unless directed, and that it is not preferred in burns in the first 48-72 h; ID12 p.19 says avoid propofol during burn shock; ID86 p.19 cautions on hypotension at induction. SMOG p.153 quoted line is from the adult column (the paediatric column repeats the same line). NASEMSO has no propofol."
+ },
+ {
+  "id": "E18",
+  "kind": "entry",
+  "drug": "propofol",
+  "indication": "sedation infusion",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "20-75 mcg/kg/min IV infusion",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+    "pdf_page": 22,
+    "printed_page": "22",
+    "cpg": "JTS CPG ID30, TBI Management and Basic Neurosurgery in the Deployed Environment (15 Sep 2023), ICU management, Sedation",
+    "quote": "SEDATION Propofol 1st choice up to 72 hours. Other short-acting agents (Fentanyl, Versed) upon discretion of SICU or neurosurgical staff. Typical ICU Propofol sedation dose range: 20-75 mcg/kg/min.",
+    "box": "SICU or neurosurgical staff. Typical ICU Propofol sedation dose range: 20-75 mcg/kg/min.",
+    "states": "20-75 mcg/kg/min, typical ICU sedation range (TBI patients), up to 72 hours"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Burn_Care_CPG_10_June_2025_ID12.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID12, Burn Care (10 Jun 2025), Burn ICU admission order set, 15. Analgesia/Sedation",
+    "quote": "15.2. _____Propofol gtt at _____ mcg/kg/min, titrate up to 50 mcg/kg/min.",
+    "box": "15.2. _____Propofol gtt at _____ mcg/kg/min, titrate up to 50 mcg/kg/min.",
+    "states": "titrate up to 50 mcg/kg/min (burn ICU orders)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Rapid Sequence Intubation, Medications, Maintenance",
+    "quote": "o Propofol 10-75 mcg/kg/min",
+    "box": "o Propofol 10-75 mcg/kg/min",
+    "states": "10-75 mcg/kg/min post-intubation maintenance"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 153,
+    "printed_page": "153",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Propofol monograph, Adult, Maintenance of general anesthesia, IV Infusion",
+    "quote": "• 10-75 mcg/kg/min via infusion pump or Dial-a- mg/kg/hour) Drip. Titrate to minimum effective dose. (See infusion chart next page) o MAX DOSE: 100 mcg/kg/min.",
+    "box": "o MAX DOSE: 100 mcg/kg/min.",
+    "states": "10-75 mcg/kg/min, max 100 mcg/kg/min"
+   }
+  ],
+  "conflict": "Lower bound: JTS ID30 20 vs SMOG 10 mcg/kg/min. Upper limit: ID30 range tops at 75; JTS ID12 (burns) titrates up to 50; SMOG p.153 gives MAX DOSE 100 mcg/kg/min. The two JTS pages differ from each other (75 vs 50), and both are specific to a population (TBI ICU; burn ICU).",
+  "premark": "",
+  "note": "No JTS page states a general adult sedation-infusion dose or maximum; ID30 is a TBI ICU table and ID12 a burn order set. Max left blank: JTS gives no general ceiling (ID12 50 is burn-specific; SMOG 100 is SMOG only). ID29 p.10/16 (Pain, Anxiety, Delirium) lists propofol drip as a sedation option with no dose, and ID29 p.10 says propofol only with a definitive airway. ID61 has no propofol. SMOG p.154 is a 10-75 mcg/kg/min drip chart (10 mg/mL). The SMOG p.153 box quote is printed in the adult column; the \"mg/kg/hour)\" in the quote is from the paediatric column of the same layout lines."
+ },
+ {
+  "id": "E19",
+  "kind": "entry",
+  "drug": "calcium gluconate",
+  "indication": "hypocalcaemia after massive transfusion",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "1 g calcium IV/IO (salt not named by JTS) during or immediately after the first unit of blood product",
+   "max": "",
+   "repeat": "after every 4 units of blood product; ideally guided by ionized calcium (give for iCa < 1.2 mmol/L)"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Damage_Control_Resuscitation_12_Jul_2019_ID18.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID18, Damage Control Resuscitation (12 Jul 2019), Hypocalcemia",
+    "quote": "values (<0.9mmol/l). One gram of calcium IV/IO should be given to patients in hemorrhagic shock during or immediately after transfusion of the first unit of blood product and with ongoing resuscitation after every 4",
+    "box": "values (<0.9mmol/l). One gram of calcium IV/IO should be given to patients in hemorrhagic shock during or",
+    "states": "1 g calcium IV/IO after 1st unit, then after every 4 units; give for iCa < 1.2 mmol/L"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Damage_Control_Resuscitation_PFC_01_Oct_2018_ID73.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID73, Damage Control Resuscitation in PFC (01 Oct 2018), Calcium",
+    "quote": "Better: With ongoing resuscitation, give additional 1g of calcium after every four units of blood product.",
+    "box": "Better: With ongoing resuscitation, give additional 1g of calcium after every four units of blood product.",
+    "states": "1 g calcium IV/IO after 1st unit (Minimum), additional 1 g after every 4 units (Better)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 16,
+    "printed_page": "16",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Blood and Component Use, Treatment",
+    "quote": "30mL of 10% Calcium Gluconate or 10mL of 10% Calcium Chloride IV/IO should be given to patients in hemorrhagic shock during or immediately after transfusion of the first unit of blood product and with",
+    "box": "30mL of 10% Calcium Gluconate or 10mL of 10% Calcium Chloride IV/IO should be given to patients in",
+    "states": "30 mL 10% calcium gluconate (3 g) or 10 mL 10% calcium chloride (1 g), after 1st unit and every 4 units; give for iCa < 1 mmol/L"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 102,
+    "printed_page": "102",
+    "cpg": "SMOG CY24 (U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines), Calcium Gluconate monograph, Adult, Hypocalcemia prophylaxis from massive transfusion",
+    "quote": "Hypocalcemia prophylaxis from massive transfusion Hypocalcemia prophylaxis from massive transfusion 30mL of 10% solution over 5 minutes",
+    "box": "30mL of 10% solution over 5 minutes",
+    "states": "30 mL of 10% calcium gluconate (3 g) over 5 minutes"
+   }
+  ],
+  "conflict": "JTS (ID18 p.9, ID73 p.8; also ID40 p.4, ID82 p.12) says 1 g of calcium without naming the salt. SMOG p.16 and p.102 give calcium gluconate as 30 mL of 10% (3 g), or calcium chloride 10 mL of 10% (1 g; SMOG p.101). If the JTS 1 g is read as calcium gluconate, it is one third of the SMOG gluconate dose; read as chloride, it matches SMOG. Ionized-calcium trigger also differs: JTS < 1.2 mmol/L (ID18 p.9, ID73 p.9) vs SMOG < 1 mmol/L (p.16).",
+  "premark": "",
+  "note": "The bank entry is calcium gluconate, but no JTS page gives a calcium-gluconate dose for transfusion: JTS writes \"1 g calcium\" (ID18 Jun 2023 rapid update: \"Calcium administration changed to 1 gram calcium\"). ID18 p.9 and ID73 p.9 add that calcium gluconate is safer for peripheral use. Owner must decide the salt before this can be signed. Max: none printed for adults (SMOG p.102 paediatric max 30 mL is paediatric). ID58 p.5/10/11 and SMOG p.23 (crush syndrome) give 10 mL of 10% calcium gluconate or chloride, but for hyperkalaemia, not transfusion; not used. NASEMSO gives no dose for this indication."
+ },
+ {
+  "id": "E20",
+  "kind": "entry",
+  "drug": "naloxone",
+  "indication": "opioid-induced respiratory depression",
+  "population": "adult|peds",
+  "route": "IN",
+  "proposed": {
+   "dose": "0.4-2 mg IN (adult)",
+   "max": "not to exceed 10 mg",
+   "repeat": "every 2-3 minutes PRN"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 13,
+    "printed_page": "13",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during PFC (11 May 2017), Recommended Pain and Sedation Medication, Naloxone",
+    "quote": "• 0.4–2mg IV/IM/SC/IN; repeat every 2–3 minutes PRN;",
+    "box": "• 0.4–2mg IV/IM/SC/IN; repeat every 2–3 minutes PRN;",
+    "states": "0.4-2 mg IV/IM/SC/IN, repeat q2-3 min PRN, not to exceed 10 mg (0.01 mg/kg)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Chemical_Biological,_Radiological_Nuclear_Injury_Part1_Initial_Response_01_May_2018_ID69_v1.1.pdf",
+    "pdf_page": 13,
+    "printed_page": "13",
+    "cpg": "JTS CPG ID69, CBRN Injury Part 1: Initial Response (01 May 2018), Hot zone care",
+    "quote": "ongoing threat in the hot zone location. Naloxone 2 mg intramuscular or intranasal for opioid incapacitating agents may also be considered for life-threatening respiratory depression.",
+    "box": "ongoing threat in the hot zone location. Naloxone 2 mg intramuscular or intranasal for opioid incapacitating",
+    "states": "2 mg IM or IN (opioid incapacitating agents, CBRN hot zone)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Chemical_Biological_Radiological_Nuclear_Injury_Response_Part_2_Medical_Management_25_Mar_2022_ID69.pdf",
+    "pdf_page": 21,
+    "printed_page": "21",
+    "cpg": "JTS CPG ID69, CBRN Part 2: Medical Management of Chemical Agent Exposure (25 Mar 2022), Sedating Agents",
+    "quote": "suppression. Nasal naloxone can be rapidly administered without IV access. Naloxone should be titrated to effect. A starting dose of 2-4 mg is appropriate but much higher doses may be required to reverse the",
+    "box": "to effect. A starting dose of 2-4 mg is appropriate but much higher doses may be required to reverse the",
+    "states": "2-4 mg starting dose (synthetic opioid agents); route of the starting dose not stated"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 304,
+    "printed_page": "304",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0 (Mar 2022), Opioid Poisoning/Overdose",
+    "quote": "a. Adults: The typical initial adult dose ranges between 0.4–2 mg IV, IM, up to a dose of 4 mg IN or 5 mg ETT b. Pediatrics: The pediatric dose of naloxone is 0.1 mg/kg IV, IM, IN, or ETT i. Maximum dose of 2 mg IV, IM, or ETT ii. Maximum dose of 4 mg IN",
+    "box": "a. Adults: The typical initial adult dose ranges between 0.4–2 mg IV, IM, up to a dose of 4 mg IN or 5 mg ETT",
+    "states": "adult up to 4 mg IN; paediatric 0.1 mg/kg IN, max 4 mg IN"
+   }
+  ],
+  "conflict": "ID61 p.13 gives 0.4-2 mg for all routes including IN. ID69 Part 1 p.13 gives 2 mg IM or IN, and ID69 Part 2 p.21 a 2-4 mg starting dose with escalation (4, 8, 16 mg on p.22), both for opioid incapacitating/synthetic agents in CBRN. NASEMSO (noted only) allows up to 4 mg IN in adults. ID61's \"not to exceed 10mg (0.01mg/kg)\" is internally inconsistent: 0.01 mg/kg is not 10 mg for any adult weight.",
+  "premark": "",
+  "note": "Population is adult|peds, but no JTS or SMOG page states a paediatric IN naloxone dose: the paediatric half has no number (SMOG p.39, p.47, p.49, p.143 give 0.1 mg/kg IV/IM/SubQ only; NASEMSO p.304 gives 0.1 mg/kg IN, max 4 mg, noted only). Consider splitting the entry, or retiring the paediatric part. SMOG never lists IN (p.143: IV, IM, SubQ 0.4-2 mg q2-3 min; p.39: 0.4-2 mg IV/IO). ID91 p.34 gives 0.4-2 mg IV/IM/IO (no IN). The ID61 max line, on the line after the box, reads \"not to exceed 10mg (0.01mg/kg)\". ID61 is a 2017 PFC guideline. Behavioral Health CPG p.88 lists naloxone nasal spray 4 mg as a formulary item only (no dose instruction)."
+ },
+ {
+  "id": "E21",
+  "kind": "entry",
+  "drug": "phytomenadione",
+  "indication": "warfarin reversal",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "10 mg IV, given with 4-factor PCC",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Stroke_Cerebrovascular_Emergencies_Deployed_Setting_03_July_2024.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG, Management of Stroke and Cerebrovascular Emergencies in the Deployed Setting (03 Jul 2024), Appendix C: Recommended Agents for Reversal of Coagulopathy",
+    "quote": "Warfarin with elevated INR: 4 factor Prothrombin Complex Concentrate (PCC) (Kcentra®) + IV vitamin K • INR 2-4: 25 units/kg IV + 10 mg of Vitamin K IV",
+    "box": "• INR 2-4: 25 units/kg IV + 10 mg of Vitamin K IV",
+    "states": "10 mg vitamin K IV with 4F-PCC, at every INR band (2-4, 4-6, >6)"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "Single JTS source. The Stroke CPG has no CPG ID number on the page (header reads \"03 July 2024\"). Context is reversal of warfarin with elevated INR in stroke/intracranial haemorrhage; the same 10 mg appears for INR 4-6 and INR >6 lines, and with FFP if PCC unavailable (no dose stated there). No max or repeat is printed. ID18 p.7 mentions warfarin reversal with PCC but no vitamin K dose. ID33 (Nutrition) p.17 \"Phytonadione 10mg every Monday\" is a TPN additive, not reversal. SMOG has no vitamin K. NASEMSO has no vitamin K."
+ },
+ {
+  "id": "E22",
+  "kind": "entry",
+  "drug": "phytomenadione",
+  "indication": "haemorrhagic disease of the newborn — prophylaxis",
+  "population": "peds",
+  "route": "IM",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Stroke_Cerebrovascular_Emergencies_Deployed_Setting_03_July_2024.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG, Management of Stroke and Cerebrovascular Emergencies in the Deployed Setting (03 Jul 2024), Appendix C: Recommended Agents for Reversal of Coagulopathy",
+    "quote": "Warfarin with elevated INR: 4 factor Prothrombin Complex Concentrate (PCC) (Kcentra®) + IV vitamin K",
+    "box": "Warfarin with elevated INR: 4 factor Prothrombin Complex Concentrate (PCC) (Kcentra®) + IV vitamin K",
+    "states": "no number (newborn); the only vitamin K dose in JTS is 10 mg IV for adult warfarin reversal"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "No JTS CPG, SMOG page or NASEMSO page mentions newborn vitamin K prophylaxis. SMOG p.53 (Newborn Care and Distress) has no vitamin K. The only phytonadione/vitamin K numbers in the corpus are the adult warfarin reversal (Stroke CPG p.12) and a TPN additive (ID33 p.17-18). Any newborn IM dose would come from WHO or another source, which cannot be used for a proposal."
+ },
+ {
+  "id": "E23",
+  "kind": "entry",
+  "drug": "artesunate",
+  "indication": "severe malaria",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "artesunate 2.4 mg/kg IV/IO",
+   "max": "",
+   "repeat": "at 0, 12, 24 and 48 hours (4 doses), then 3 days of oral Malarone or Coartem"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "Severe Malaria: The optimal treatment for severe malaria (defined as malaria with associated findings such as altered mental status, acidosis with lactate >5 mmol/L, prostration, hypoglycemia, parasitemia >10%, hemoglobin <7 g/dL, creatinine >3 mg/dL, pulmonary edema, shock, or pathologic bleeding), the drug of choice is IV artesunate 2.4 mg/kg IV/IO at 0, 12, 24, and 48 hours (4 doses), followed by 3 days of either Malarone (4 tablets PO, for 3 days) or",
+    "box": "shock, or pathologic bleeding), the drug of choice is IV artesunate 2.4 mg/kg IV/IO at 0, 12, 24,",
+    "states": "artesunate 2.4 mg/kg IV/IO at 0, 12, 24 and 48 h (4 doses); no population stated"
+   },
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 26,
+    "printed_page": "26",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Severe Malaria: Artesunate IV",
+    "box": "Severe Malaria: Artesunate IV",
+    "states": "no number (names IV artesunate for severe malaria only)"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. ID83 p.8 gives IV artesunate 2.4 mg/kg IV/IO at 0, 12, 24, 48 h for severe malaria (defined on the page). The page and the whole ID83 CPG state no population (the CPG never mentions adults or children); it is a PFC CPG for military casualties, so it is taken as adult. No max single dose stated. Page NOTE 1: artesunate bought in tropical countries may not meet FDA standards; telemedicine and medevac should be started for severe malaria. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E24",
+  "kind": "entry",
+  "drug": "artesunate",
+  "indication": "severe malaria",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "2.4 mg/kg IV/IO at 0, 12, 24 and 48 h (JTS ID83 p.8)",
+   "max": "",
+   "repeat": "0, 12, 24, 48 h"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "Severe Malaria: The optimal treatment for severe malaria (defined as malaria with associated findings such as altered mental status, acidosis with lactate >5 mmol/L, prostration, hypoglycemia, parasitemia >10%, hemoglobin <7 g/dL, creatinine >3 mg/dL, pulmonary edema, shock, or pathologic bleeding), the drug of choice is IV artesunate 2.4 mg/kg IV/IO at 0, 12, 24, and 48 hours (4 doses), followed by 3 days of either Malarone (4 tablets PO, for 3 days) or",
+    "box": "shock, or pathologic bleeding), the drug of choice is IV artesunate 2.4 mg/kg IV/IO at 0, 12, 24,",
+    "states": "2.4 mg/kg IV/IO at 0, 12, 24, 48 h; no population stated on the page or in the CPG"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "Not pre-marked RETIRE: ID83 p.8 states a weight-based number. It names no population, and the CPG is written for military casualties, so whether it covers children is the owner's call. Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. ID83 p.8 gives a weight-based dose (2.4 mg/kg) but does not state that it applies to children; the ID83 CPG never mentions children or paediatric patients. Under the population rule this gives no paediatric number. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E25",
+  "kind": "entry",
+  "drug": "artesunate",
+  "indication": "severe malaria — pre-referral only",
+  "population": "adult|peds",
+  "route": "PR",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "Severe Malaria: The optimal treatment for severe malaria (defined as malaria with associated findings such as altered mental status, acidosis with lactate >5 mmol/L, prostration, hypoglycemia, parasitemia >10%, hemoglobin <7 g/dL, creatinine >3 mg/dL, pulmonary edema, shock, or pathologic bleeding), the drug of choice is IV artesunate 2.4 mg/kg IV/IO at 0, 12, 24, and 48 hours (4 doses), followed by 3 days of either Malarone (4 tablets PO, for 3 days) or",
+    "box": "shock, or pathologic bleeding), the drug of choice is IV artesunate 2.4 mg/kg IV/IO at 0, 12, 24,",
+    "states": "no number for PR: the only artesunate dose is IV/IO"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. No JTS or SMOG page mentions rectal artesunate or pre-referral treatment. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E26",
+  "kind": "entry",
+  "drug": "artemether",
+  "indication": "severe malaria",
+  "population": "adult|peds",
+  "route": "IM",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "Best: Artemether/lumafantrine (Coartem) 4 tablets PO initially, then 4 tablets after 8 hours, then 4 tablets PO twice daily for 2 more days (24 tablets total).",
+    "box": "Best: Artemether/lumafantrine (Coartem) 4 tablets PO initially, then 4 tablets after 8 hours,",
+    "states": "no number for IM artemether: artemether appears only in oral artemether/lumefantrine (Coartem)"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. No JTS or SMOG page mentions IM artemether. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E27",
+  "kind": "entry",
+  "drug": "artemether + lumefantrine",
+  "indication": "uncomplicated P. falciparum malaria",
+  "population": "adult",
+  "route": "PO",
+  "proposed": {
+   "dose": "artemether/lumefantrine (Coartem) 4 tablets PO, then 4 tablets after 8 hours, then 4 tablets PO twice daily for 2 more days",
+   "max": "24 tablets total",
+   "repeat": "8 h after first dose, then twice daily for 2 more days"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "Best: Artemether/lumafantrine (Coartem) 4 tablets PO initially, then 4 tablets after 8 hours, then 4 tablets PO twice daily for 2 more days (24 tablets total).",
+    "box": "Best: Artemether/lumafantrine (Coartem) 4 tablets PO initially, then 4 tablets after 8 hours,",
+    "states": "4 tablets PO, then 4 tablets at 8 h, then 4 tablets BID for 2 more days (24 tablets total); tablet strength and population not stated"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 40,
+    "printed_page": "40",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021)",
+    "quote": "Better/Best - Artemether/lumefantrine (Coartem) 4 tablets PO initially, then 4 tablets",
+    "box": "Better/Best - Artemether/lumefantrine (Coartem) 4 tablets PO initially, then 4 tablets",
+    "states": "4 tablets PO initially, then 4 tablets (continuation on next layout line: after 8 hours, then 4 tablets PO twice daily for 2 more days, 24 total)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "Coartem (4 tablets initial dose, followed by 4 tablets given 8 hours later, followed by 4 tablets twice daily for the next 2 days; 24 total tablets).",
+    "box": "Coartem (4 tablets initial dose, followed by 4 tablets given 8 hours later, followed by 4 tablets",
+    "states": "same 24-tablet course as step-down after IV artesunate"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. ID83 p.8 and ID91 p.40 give the same 24-tablet Coartem course (ID83 spells it 'lumafantrine'). Neither states the tablet strength (mg artemether/lumefantrine per tablet) or a population; the CPGs are for military casualties, so taken as adult. Context: antiparasitic regimen for sepsis in a malaria-endemic area (positive test or empiric), and as the oral step-down after IV artesunate; the pages do not say 'uncomplicated P. falciparum'. The ID91 quote is the first layout line only; the course continues on the next line ('after 8 hours, then 4 tablets PO twice daily for 2 more days (24 tablets total)'). The same pages give atovaquone/proguanil (Malarone) 4 tablets PO daily for 3 days as the 'Minimum' option. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E28",
+  "kind": "entry",
+  "drug": "artemether + lumefantrine",
+  "indication": "uncomplicated P. falciparum malaria",
+  "population": "peds",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "Best: Artemether/lumafantrine (Coartem) 4 tablets PO initially, then 4 tablets after 8 hours, then 4 tablets PO twice daily for 2 more days (24 tablets total).",
+    "box": "Best: Artemether/lumafantrine (Coartem) 4 tablets PO initially, then 4 tablets after 8 hours,",
+    "states": "no number for children: adult fixed 4-tablet course; no paediatric weight band stated"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 40,
+    "printed_page": "40",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021)",
+    "quote": "Better/Best - Artemether/lumefantrine (Coartem) 4 tablets PO initially, then 4 tablets",
+    "box": "Better/Best - Artemether/lumefantrine (Coartem) 4 tablets PO initially, then 4 tablets",
+    "states": "no number for children: fixed 4-tablet course; no paediatric weight band stated"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. The JTS course is a fixed 4-tablet adult regimen with no weight bands and no mention of children. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E29",
+  "kind": "entry",
+  "drug": "quinine",
+  "indication": "severe malaria",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. No JTS or SMOG page mentions quinine for malaria; the only related term is quinidine, as a drug that potentiates neuromuscular blockade (SMOG pp.155, 160), which is not relevant. Sources list left empty because no page mentions the drug for this indication. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E30",
+  "kind": "entry",
+  "drug": "quinine",
+  "indication": "severe malaria",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched all JTS CPGs and SMOG for artesunate, artemether, lumefantrine/lumafantrine, Coartem, Malarone, atovaquone, quinine, quinidine, chloroquine, primaquine, malaria. JTS hits: ID83 Sepsis PFC p.8 (antiparasitic regimens), ID91 PCC p.40 (Table 14), ID101 CBRN Part 4 p.26 (MCMs for malaria, no doses). SMOG mentions only cerebral malaria as a steroid contraindication (p.104) and quinidine as a neuromuscular-blocker interaction (pp.155, 160). NASEMSO: no antimalarial dose. No JTS or SMOG page mentions quinine for malaria; the only related term is quinidine, as a drug that potentiates neuromuscular blockade (SMOG pp.155, 160), which is not relevant. Sources list left empty because no page mentions the drug for this indication. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E31",
+  "kind": "entry",
+  "drug": "antivenom immunoglobulin",
+  "indication": "envenoming",
+  "population": "adult|peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Global_Spider_and_Scorpion_Envenomation_Management_09_Feb_2021_ID84.pdf",
+    "pdf_page": 4,
+    "printed_page": "4",
+    "cpg": "JTS CPG ID84, Global Spider and Scorpion Envenomation Management (09 Feb 2021)",
+    "quote": "The dose consists of one 2.5 milliliter vial of antivenom dissolved in one 2.5 milliliter vial of sterile water (provided in the antivenom kit) administered intravenously.",
+    "box": "The dose consists of one 2.5 milliliter vial of antivenom dissolved in one 2.5 milliliter vial of sterile water",
+    "states": "no number for a generic antivenom entry: product-specific: Latrodectus (widow spider) antivenom 1 vial IV, may repeat once at 15-30 min; not a generic antivenom dose"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Global_Spider_and_Scorpion_Envenomation_Management_09_Feb_2021_ID84.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID84, Global Spider and Scorpion Envenomation Management (09 Feb 2021)",
+    "quote": "efficacy of intravenous compared to intramuscular antivenom administration.33 Antivenom dosing does not depend on patient weight or size and is the same for adult and pediatric patients.34",
+    "box": "depend on patient weight or size and is the same for adult and pediatric patients.34",
+    "states": "no number; scorpion antivenom dose is the same for adults and children, product doses in Appendix C"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Global_Spider_and_Scorpion_Envenomation_Management_09_Feb_2021_ID84.pdf",
+    "pdf_page": 15,
+    "printed_page": "15",
+    "cpg": "JTS CPG ID84, Global Spider and Scorpion Envenomation Management (09 Feb 2021)",
+    "quote": "Mexico, Centruroides limpidus, C. noxius, Polyvalent scorpion 3 vials, each reconstituted in 5 mL of",
+    "box": "Mexico, Centruroides limpidus, C. noxius, Polyvalent scorpion 3 vials, each reconstituted in 5 mL of",
+    "states": "no number for a generic antivenom entry: product- and country-specific scorpion antivenom regimens (e.g. Mexico/US polyvalent 3 vials IV; others 2-20 mL IV)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 88,
+    "printed_page": "88",
+    "cpg": "SMOG CY24 Revision",
+    "quote": "Spider, Scorpion, and Snakebites o Confirm receiving facility has adequate supply of the appropriate regionally specific antivenoms.",
+    "box": "o Confirm receiving facility has adequate supply of the appropriate regionally specific antivenoms.",
+    "states": "no number"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "RETIRE is pre-marked for the generic entry. ID84 does state product-specific numbers (widow spider antivenom 1 vial IV, p.4; scorpion antivenoms by country, p.15; the same dose for adults and children, p.9); the owner may prefer product entries drafted from ID84 instead. Searched JTS and SMOG for antivenom, antivenin, CroFab, Anavip, Anascorp, envenom, snake, crotalid, pit viper, vial. No human JTS snake CPG is in the library (ID101 p.17 cites a 'JTS Global Snake Envenomation Management, 30 Jun 2020' CPG, which is not in jts_protocols). Arachnid_Snake_Envenomation_MWD is a military working dog CPG and is not used for human doses. JTS ID84 states only product- and species-specific doses: Latrodectus antivenom 1 vial IV (p.4), Australian funnel-web antivenom 2 vials, 4 vials for pulmonary oedema or reduced consciousness, repeated every 15 min (p.6), and a country-by-country scorpion antivenom table (p.15, from 2-10 mL IV to 2-8 vials). Premarked RETIRE because there is no number for a generic 'antivenom immunoglobulin'; the owner may instead choose to split this into product-specific entries sourced from ID84. ID84 p.9 states antivenom dosing is the same for adults and children. SMOG p.88 says only to confirm the receiving facility has regionally specific antivenom. NASEMSO p.292 names antivenom without a dose. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E32",
+  "kind": "entry",
+  "drug": "oral rehydration salts",
+  "indication": "cholera / acute watery diarrhoea — rehydration",
+  "population": "adult|peds",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Sepsis_Management_PFC_28_Oct_2020_ID83.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)",
+    "quote": "patients who cannot consume food but can drink water (use either proprietary mixtures or fabricated – 6 teaspoons of granulated sugar with ½ teaspoon of table salt in 1 liter of water.",
+    "box": "fabricated – 6 teaspoons of granulated sugar with ½ teaspoon of table salt in 1 liter of water.",
+    "states": "no number for cholera/diarrhoea: ORS recipe only, in sepsis fluid resuscitation"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Burn_Care_CPG_10_June_2025_ID12.pdf",
+    "pdf_page": 41,
+    "printed_page": "41",
+    "cpg": "JTS CPG ID12, Burn Care (10 Jun 2025)",
+    "quote": "4. Give at least 100 mL/hr of enteral resuscitation for the ﬁrst 48 hours.",
+    "box": "4. Give at least 100 mL/hr of enteral resuscitation for the ﬁrst 48 hours.",
+    "states": "no number for cholera/diarrhoea: adult burn enteral resuscitation rate only"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 41,
+    "printed_page": "41",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021)",
+    "quote": "Hydration (PO) Water Water + salt + sugar Water + Gatorade (or other",
+    "box": "Hydration (PO) Water Water + salt + sugar Water + Gatorade (or other",
+    "states": "no number"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 40,
+    "printed_page": "40",
+    "cpg": "SMOG CY24 Revision",
+    "quote": "Fluid of choice for vomiting is NS. Fluid of choice for diarrhea is LR",
+    "box": "Fluid of choice for vomiting is NS. Fluid of choice for diarrhea is LR",
+    "states": "no number; no ORS (IV fluid choice only)"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for oral rehydration, ORS, rehydration solution, Pedialyte, electrolyte solution, cholera, diarrhoea/diarrhea. No JTS or SMOG page gives an ORS volume or rate for cholera or acute watery diarrhoea. JTS gives ORS recipes and rates for other indications: sepsis (ID83 p.9, recipe and rectal 100-500 mL/h), burns (ID12 p.41, at least 100 mL/hr enteral resuscitation for adults; ID57 p.7), crush syndrome (ID58 p.3). ID101 lists cholera only in differential tables. SMOG p.40 (Vomiting and Diarrhea) gives IV fluid choice only. ID91 p.41 (Table 16) lists oral rehydration salt as a hydration option without a number. ID12 p.41 text uses the 'fi' ligature character in 'first', copied verbatim. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E33",
+  "kind": "entry",
+  "drug": "zinc sulfate",
+  "indication": "acute diarrhoea — adjunct to ORS",
+  "population": "peds",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Nutrition_Using_Enteral_and_Parenteral_Methods_04_Aug_2016_ID33.pdf",
+    "pdf_page": 6,
+    "printed_page": "6",
+    "cpg": "JTS CPG ID33, Nutritional Support Using Enteral and Parenteral Methods (04 Aug 2016)",
+    "quote": "Zinc Sulfate 220 mg tab by mouth once a day for no more than two weeks",
+    "box": "Zinc Sulfate 220 mg tab by mouth once a day for no more than two weeks",
+    "states": "no number for this indication: 220 mg PO daily is trace-mineral supplementation in nutrition support of injured (adult) patients, not paediatric diarrhoea"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for zinc. The only dose is zinc sulfate 220 mg PO once daily for up to two weeks as trace-mineral supplementation in nutrition support (ID33 p.6), a different indication and an adult injured population. Nothing for paediatric diarrhoea. NASEMSO: no mention. The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E34",
+  "kind": "entry",
+  "drug": "isoniazid",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "adult",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E35",
+  "kind": "entry",
+  "drug": "isoniazid",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "peds",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E36",
+  "kind": "entry",
+  "drug": "rifampicin",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "adult",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E37",
+  "kind": "entry",
+  "drug": "rifampicin",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "peds",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E38",
+  "kind": "entry",
+  "drug": "pyrazinamide",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "adult",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E39",
+  "kind": "entry",
+  "drug": "pyrazinamide",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "peds",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E40",
+  "kind": "entry",
+  "drug": "ethambutol",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "adult",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E41",
+  "kind": "entry",
+  "drug": "ethambutol",
+  "indication": "drug-susceptible tuberculosis — first-line",
+  "population": "peds",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "E42",
+  "kind": "entry",
+  "drug": "ethambutol + isoniazid + pyrazinamide + rifampicin",
+  "indication": "drug-susceptible tuberculosis — intensive phase",
+  "population": "adult",
+  "route": "PO",
+  "proposed": {
+   "dose": "none: no JTS or SMOG page states a number",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "CBRN_Part_4_General_Approach_to_Biological_Casualties_27_Feb_2025_ID101.pdf",
+    "pdf_page": 28,
+    "printed_page": "28",
+    "cpg": "JTS CPG ID101, CBRN Injury Response Part 4: General Approach to Biological Casualties (27 Feb 2025)",
+    "quote": "Tuberculosis",
+    "box": "Tuberculosis",
+    "states": "no number; listed as a disease in a differential table only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "Searched JTS and SMOG for isoniazid, INH, rifampicin, rifampin, rifabutin, pyrazinamide, ethambutol, Rifater, Rifamate, RIPE, TB, tuberculosis. No JTS or SMOG page gives a TB treatment regimen. ID101 lists tuberculosis only as a disease in differential tables (pp.28-31) and mentions drug-resistant TB (p.4) and BCG vaccine (p.37); rifampin appears only for brucellosis/anthrax regimens (ID101 pp.22-23) and rifampin-soaked grafts (ID46). NASEMSO mentions rifampin only as a CYP3A4 inducer (p.388). The bank's only source is the WHO Model List of Essential Medicines (2025); per the owner's rules WHO is not used for a proposal."
+ },
+ {
+  "id": "U01",
+  "kind": "undrafted",
+  "drug": "cefazolin",
+  "indication": "penetrating brain injury (post-injury antimicrobial prophylaxis)",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "2 g IV every 6-8 h; duration 5 days or until CSF leak is closed, whichever is longer",
+   "max": "",
+   "repeat": "every 6-8 h"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 11,
+    "printed_page": "11",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021)",
+    "quote": "Penetrating brain injury Cefazolin 2 gm IV q6-8h. †‡Consider adding Ceftriaxone 2 gm IV. q24h. Consider adding 5 days or until CSF leak is metronidazole 500 mg IV q8-12h if gross metronidazole 500 mg IV q8-12h if gross closed, whichever is longer",
+    "box": "Penetrating brain injury Cefazolin 2 gm IV q6-8h. †‡Consider adding Ceftriaxone 2 gm IV. q24h. Consider adding 5 days or until CSF leak is",
+    "states": "2 gm IV q6-8h; 5 days or until CSF leak is closed, whichever is longer (preferred agent)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID63, Traumatic Brain Injury Management in Prolonged Field Care (06 Dec 2017)",
+    "quote": " Best: Administer CNS-penetrating antibiotics for open or penetrating TBI.  Ceftriaxone 2 gm IV/IO every 24 hours or cefazolin 2g IV/IO every 8 hours for 5 days. .",
+    "box": " Ceftriaxone 2 gm IV/IO every 24 hours or cefazolin 2g IV/IO every 8 hours for 5 days. .",
+    "states": "2 g IV/IO every 8 h for 5 days (Best)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+    "pdf_page": 7,
+    "printed_page": "7",
+    "cpg": "JTS CPG ID30, TBI Management and Basic Neurosurgery in the Deployed Environment (15 Sep 2023)",
+    "quote": " For penetrating brain injuries and open skull fractures, routine prophylactic antibiotics are indicated.26 Antibiotic recommendations for the first level of surgical care include either cefazolin 2gm IV every 6-8 hours or clindamycin 600mg IV every 8 hours. If a penetrating head injury appears grossly",
+    "box": "IV every 6-8 hours or clindamycin 600mg IV every 8 hours. If a penetrating head injury appears grossly",
+    "states": "2 g IV every 6-8 h; no duration printed"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 64,
+    "printed_page": "64",
+    "cpg": "SMOG CY24 revision",
+    "quote": "CENTRAL NERVOUS SYSTEM WOUNDS Cefazolin, 2g IV q 6-8hrs 5 days or until CSF leak is Penetrating brain injury PLUS (consider) closed, whichever is longer",
+    "box": "Cefazolin, 2g IV q 6-8hrs",
+    "states": "2 g IV q 6-8 h; 5 days or until CSF leak is closed, whichever is longer"
+   }
+  ],
+  "conflict": "Interval and duration differ between JTS pages: ID24 p.11 (and SMOG p.64, ID30 p.7) give every 6-8 h for 5 days or until the CSF leak is closed, whichever is longer; ID63 p.8 gives every 8 h for 5 days with no CSF-leak clause.",
+  "premark": "",
+  "note": "Proposal follows ID24 (the infection-prevention CPG); owner to choose against ID63. ID24 p.12 footnote (dagger) says cefazolin may be dosed by body mass: 1 g if weight < 80 kg, 2 g if 81-160 kg, 3 g if > 160 kg. ID63 p.20 summary table repeats the ID63 p.8 regimen. ID24 and SMOG add metronidazole 500 mg IV q8-12h if grossly contaminated. No max stated for this indication (ID24 p.12 footnote: doses up to 12 g daily supported by package insert)."
+ },
+ {
+  "id": "U02",
+  "kind": "undrafted",
+  "drug": "cefazolin",
+  "indication": "penetrating spinal cord injury (post-injury antimicrobial prophylaxis)",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "2 g IV every 6-8 h",
+   "max": "",
+   "repeat": "every 6-8 h"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021)",
+    "quote": "Penetrating spinal cord Cefazolin, 2 gm IV q6-8h.†‡ ADD metronidazole As above. ADD metronidazole 500 mg IV q8-12h if injury 500 mg IV q8-12h if abdominal cavity is involved abdominal cavity is involved",
+    "box": "Penetrating spinal cord Cefazolin, 2 gm IV q6-8h.†‡ ADD metronidazole As above. ADD metronidazole 500 mg IV q8-12h if",
+    "states": "2 gm IV q6-8h; duration column blank"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Cervical_Thoracolumbar_Spine_Injury_19_Jun_2020_ID15.pdf",
+    "pdf_page": 14,
+    "printed_page": "14",
+    "cpg": "JTS CPG ID15, Cervical and Thoracolumbar Spine Injury Surgical Management and Transport (19 Jun 2020)",
+    "quote": "associated with combat-related injuries.55 This combined statement recommended Cefazolin 2 gm IV q8hrs for 24-72hrs for penetrating spine injuries without evidence of contamination. Fragments passing",
+    "box": "q8hrs for 24-72hrs for penetrating spine injuries without evidence of contamination. Fragments passing",
+    "states": "2 g IV q8h for 24-72 h (citing the 2011 IDSA/SIS statement), uncontaminated"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Cervical_Thoracolumbar_Spine_Injury_19_Jun_2020_ID15.pdf",
+    "pdf_page": 14,
+    "printed_page": "14",
+    "cpg": "JTS CPG ID15, Cervical and Thoracolumbar Spine Injury Surgical Management and Transport (19 Jun 2020)",
+    "quote": "treated with Vancomycin 1g IV q12hrs + Ciprofloxacin 400 mg IV q8-12hrs. This working group recommended a minimum antibiotic duration of 5 days or until any CSF leak is closed. Steroids should",
+    "box": "recommended a minimum antibiotic duration of 5 days or until any CSF leak is closed. Steroids should",
+    "states": "minimum 5 days or until any CSF leak is closed (working group)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 64,
+    "printed_page": "64",
+    "cpg": "SMOG CY24 revision",
+    "quote": "Cefazolin, 2g IV q 6-8hrs Penetrating spinal cord PLUS (consider) injury metronidazole 500 mg q 8-12 hrs",
+    "box": "Cefazolin, 2g IV q 6-8hrs",
+    "states": "2 g IV q 6-8 h; no duration printed for this row"
+   }
+  ],
+  "conflict": "Duration conflict inside ID15 p.14: the IDSA/SIS statement it cites gives cefazolin 2 g IV q8h for 24-72 h for uncontaminated penetrating spine injury, while the working group recommends a minimum of 5 days or until any CSF leak is closed. Interval also differs: ID24/SMOG q6-8h vs ID15 q8h. ID24 and SMOG print no duration.",
+  "premark": "",
+  "note": "No duration proposed: ID24 p.12 and SMOG p.64 leave the duration blank for this row. ID15's 5-day minimum follows a sentence on contaminated (viscus-traversing) fragments; whether it applies to uncontaminated injuries is unclear on the page. ID24/SMOG add metronidazole 500 mg IV q8-12h if the abdominal cavity is involved. ID24 p.12 weight-based cefazolin footnote applies (1 g < 80 kg, 2 g 81-160 kg, 3 g > 160 kg)."
+ },
+ {
+  "id": "U03",
+  "kind": "undrafted",
+  "drug": "cefazolin",
+  "indication": "penetrating chest injury (without esophageal disruption) and open maxillofacial fractures (post-injury prophylaxis)",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "2 g IV every 6-8 h for 24 hours",
+   "max": "",
+   "repeat": "every 6-8 h"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 11,
+    "printed_page": "11",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021)",
+    "quote": "Penetrating chest injury Cefazolin, 2 gm IV q6-8h†‡ Clindamycin (450 mg PO TID or 900 mg IV q8h) 1 day without esophageal disruption",
+    "box": "Penetrating chest injury Cefazolin, 2 gm IV q6-8h†‡ Clindamycin (450 mg PO TID or 900 mg IV q8h) 1 day",
+    "states": "chest without esophageal disruption: 2 gm IV q6-8h, 1 day"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 11,
+    "printed_page": "11",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021)",
+    "quote": "Open maxillofacial fractures, Cefazolin, 2 gm IV q6-8h†‡ Clindamycin 900 mg IV q8h 24 hours or maxillofacial fractures with foreign body or fixation device",
+    "box": "Open maxillofacial fractures, Cefazolin, 2 gm IV q6-8h†‡ Clindamycin 900 mg IV q8h 24 hours",
+    "states": "maxillofacial: 2 gm IV q6-8h, 24 hours"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 64,
+    "printed_page": "64",
+    "cpg": "SMOG CY24 revision",
+    "quote": "THORACIC WOUNDS Penetrating chest injury Cefazolin 2g q 6-8hrs 24 hours",
+    "box": "Penetrating chest injury Cefazolin 2g q 6-8hrs 24 hours",
+    "states": "chest: 2 g q 6-8 h, 24 hours"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 103,
+    "printed_page": "103",
+    "cpg": "SMOG CY24 revision",
+    "quote": "War wounds (dirty wounds), 2g in 250 mL NS IV over 5 min every 8 hours for 24 hours is adequate for most dirty wounds of the head and neck, torso, and extremities.",
+    "box": "over 5 min every 8 hours for 24 hours is adequate",
+    "states": "2 g IV every 8 h for 24 h for most dirty wounds of head and neck, torso, extremities"
+   }
+  ],
+  "conflict": "Minor: ID24 p.11 and SMOG p.64 give every 6-8 h; SMOG p.103 cefazolin monograph gives every 8 h for 24 h for dirty war wounds of the head and neck, torso and extremities. All agree on 2 g and 24 h.",
+  "premark": "",
+  "note": "SMOG p.64 maxillofacial row also reads 'Cefazolin 2g g q 6-8hrs 24 hours' (typo 'g g' in source). Chest injury WITH esophageal disruption is a different row (add metronidazole; stop 24 h after definitive closure) and is not covered here. ID24 p.12 weight-based footnote applies. The two indications may need splitting into two entries when drafted."
+ },
+ {
+  "id": "U04",
+  "kind": "undrafted",
+  "drug": "cefazolin",
+  "indication": "single pre-surgical dose for open wounds, Role 1 and Role 2 without surgical support",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "2 g IV x 1 dose",
+   "max": "",
+   "repeat": "single dose"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021)",
+    "quote": "Debridement • Irrigate minor wounds to remove gross contamination with normal saline, sterile, or potable water without and irrigation additives. • Debridement and irrigation of large wounds should be done at a surgical facility (Role 2b or 3). • Do not attempt to remove retained deep soft tissue fragments meeting criteria listed above. • Provide cefazolin 2 gm IV x 1 dose.",
+    "box": "• Provide cefazolin 2 gm IV x 1 dose.",
+    "states": "2 gm IV x 1 dose"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "Single source. The line sits in the 'Debridement and irrigation' cell of the Role 1 / Role 2 without surgical support row of ID24 Appendix A Table 1, so the quote spans that cell. The same table's Role 1 row and Appendix B (p.12) give oral moxifloxacin 400 mg x1 / ertapenem 1 g as the point-of-injury option when evacuation is delayed; that is a different indication. No SMOG or NASEMSO line found for this indication."
+ },
+ {
+  "id": "U05",
+  "kind": "undrafted",
+  "drug": "cefazolin",
+  "indication": "ventriculostomy in place (prophylaxis; Role 3 neurosurgical)",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "1 g IV TID while ventriculostomy is in place (neurosurgeon's discretion); not required if an antibiotic-impregnated ventriculostomy is used",
+   "max": "",
+   "repeat": "three times daily (TID)"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+    "pdf_page": 13,
+    "printed_page": "13",
+    "cpg": "JTS CPG ID30, TBI Management and Basic Neurosurgery in the Deployed Environment (15 Sep 2023)",
+    "quote": "If using antibiotic impregnated ventriculostomy, then no IV prophylactic antibiotics required. Otherwise, Ancef 1gm IV TID may be prescribed while ventriculostomy is in place (neurosurgeon’s discretion).",
+    "box": "Ancef 1gm IV TID may be prescribed while ventriculostomy is in place (neurosurgeon’s discretion).",
+    "states": "Ancef (cefazolin) 1 g IV TID"
+   },
+   {
+    "class": "JTS",
+    "pdf": "TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+    "pdf_page": 23,
+    "printed_page": "23",
+    "cpg": "JTS CPG ID30, TBI Management and Basic Neurosurgery in the Deployed Environment (15 Sep 2023)",
+    "quote": "If using antibiotic impregnated ventriculostomy, then no IV prophylactic antibiotics required. ANTIBIOTICS Otherwise, Ancef 1 gm IV TID while ventriculostomy is in place (neurosurgeons’ discretion). For all",
+    "box": "ANTIBIOTICS Otherwise, Ancef 1 gm IV TID while ventriculostomy is in place (neurosurgeons’ discretion). For all",
+    "states": "Ancef (cefazolin) 1 g IV TID"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "Both ID30 pages agree. Drug is named by trade name Ancef. Role 3 neurosurgical indication; duration is 'while ventriculostomy is in place'. No SMOG or NASEMSO line."
+ },
+ {
+  "id": "U06",
+  "kind": "undrafted",
+  "drug": "ceftriaxone",
+  "indication": "open or penetrating TBI (CNS-penetrating antimicrobial prophylaxis)",
+  "population": "adult",
+  "route": "IV/IO",
+  "proposed": {
+   "dose": "2 g IV/IO every 24 hours for 5 days",
+   "max": "",
+   "repeat": "every 24 h"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID63, Traumatic Brain Injury Management in Prolonged Field Care (06 Dec 2017)",
+    "quote": " Best: Administer CNS-penetrating antibiotics for open or penetrating TBI.  Ceftriaxone 2 gm IV/IO every 24 hours or cefazolin 2g IV/IO every 8 hours for 5 days. .",
+    "box": " Ceftriaxone 2 gm IV/IO every 24 hours or cefazolin 2g IV/IO every 8 hours for 5 days. .",
+    "states": "2 g IV/IO every 24 h (Best); '5 days' printed at end of sentence"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+    "pdf_page": 20,
+    "printed_page": "20",
+    "cpg": "JTS CPG ID63, Traumatic Brain Injury Management in Prolonged Field Care (06 Dec 2017)",
+    "quote": "Dress all wounds and Dress all wounds to prevent further Ertapenem 1g IV/IO every 24 Use an antibiotic with strong CNS administer antibiotic introduction of infection. Optimize wound hours and moxifloxacin 400mg PO penetration. prophylaxis for penetrating care and patient hygiene to extent possible. every 24 hours for 5 days.  Ceftriaxone 2 gm IV/IO every 24 hours or brain injuries and open cefazolin 2g IV/IO every 8 hours for 5",
+    "box": "prophylaxis for penetrating care and patient hygiene to extent possible. every 24 hours for 5 days.  Ceftriaxone 2 gm IV/IO every 24 hours or",
+    "states": "2 g IV/IO every 24 h (BEST column)"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 11,
+    "printed_page": "11",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021)",
+    "quote": "Penetrating brain injury Cefazolin 2 gm IV q6-8h. †‡Consider adding Ceftriaxone 2 gm IV. q24h. Consider adding 5 days or until CSF leak is metronidazole 500 mg IV q8-12h if gross metronidazole 500 mg IV q8-12h if gross closed, whichever is longer",
+    "box": "Penetrating brain injury Cefazolin 2 gm IV q6-8h. †‡Consider adding Ceftriaxone 2 gm IV. q24h. Consider adding 5 days or until CSF leak is",
+    "states": "alternate agent: 2 gm IV q24h; 5 days or until CSF leak is closed, whichever is longer"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 38,
+    "printed_page": "38",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021)",
+    "quote": "Penetrating Head Injury Ceftriaxone IV/IO + Ertapenem IV/IO or Metronidazole IV/IO Moxifloxacin PO",
+    "box": "Penetrating Head Injury Ceftriaxone IV/IO + Ertapenem IV/IO or",
+    "states": "no number: ceftriaxone IV/IO + metronidazole named (Better column) without dose"
+   }
+  ],
+  "conflict": "Duration differs: ID63 p.8 and p.20 say 5 days (the 'for 5 days' sits after the cefazolin clause, so it may apply to both or to cefazolin only); ID24 p.11 says 5 days or until the CSF leak is closed, whichever is longer. Status differs: ID63 lists ceftriaxone as 'Best'; ID24 lists it as the alternate agent (cefazolin preferred). Route: ID63 IV/IO; ID24 IV only.",
+  "premark": "",
+  "note": "Proposal follows ID63 (the only page stating IV/IO). Owner to choose duration. Add metronidazole 500 mg IV/IO every 8 h if grossly contaminated (ID63). ID15 p.14 gives ceftriaxone 2 g IV q24h + metronidazole for contaminated penetrating spine injury (different indication). No SMOG line for ceftriaxone in TBI (SMOG p.64 lists cefazolin only). Max not stated."
+ },
+ {
+  "id": "U07",
+  "kind": "undrafted",
+  "drug": "ceftriaxone",
+  "indication": "penetrating TBI / CNS injury (post-injury prophylaxis)",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "100 mg/kg/day IV divided every 12-24 h",
+   "max": "",
+   "repeat": "divided every 12-24 h"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Infection_Prevention_in_Combat-related_Injuries_27_Jan_2021_ID24.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID24, Infection Prevention in Combat-related Injuries (27 Jan 2021)",
+    "quote": "‡Pediatric dosing: cefazolin, 20-30 mg/kg IV q6-8h (maximum, 100 mg/kg/day); metronidazole, 7.5 mg/kg IV q6h; clindamycin 25-40mg/kg/day IV divided q6- 8h; ertapenem, 15 mg/kg IV or IM q12 (children up to 12 years) or 20 mg/kg IV or IM once daily (children over 12 years; maximum, 1 gm/day); ceftriaxone, 100 mg/kg/day IV divided q12-24h (dosing for CNS injury); levofloxacin, 8 mg/kg IV or PO q12h (levofloxacin is only FDA-approved in children for prophylaxis of inhalational anthrax in children > 6 months of age,",
+    "box": "mg/kg IV or IM q12 (children up to 12 years) or 20 mg/kg IV or IM once daily (children over 12 years; maximum, 1 gm/day); ceftriaxone, 100 mg/kg/day IV divided q12-24h",
+    "states": "100 mg/kg/day IV divided q12-24h (dosing for CNS injury)"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "Single source: ID24 p.12 pediatric-dosing footnote (double dagger) to Appendix B table. No maximum or cap printed for ceftriaxone (the '1 gm/day' maximum on the same line belongs to ertapenem). Duration follows the table row (5 days or until CSF leak is closed, whichever is longer) but the footnote itself states no duration. No SMOG pediatric ceftriaxone dose found."
+ },
+ {
+  "id": "U08",
+  "kind": "undrafted",
+  "drug": "ceftriaxone",
+  "indication": "severe COVID-19 with possible bacterial pneumonia co-infection",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "2 g IV every 24 h",
+   "max": "",
+   "repeat": "every 24 h"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Management_of_COVID-19_in_Austere_Operational_Environments.pdf",
+    "pdf_page": 17,
+    "printed_page": "17",
+    "cpg": "JTS CPG ID85, Management of COVID-19 in Austere Operational Environments v3.0 (23 Apr 2021)",
+    "quote": "3) For patients with severe symptoms, recommend adding ceftriaxone (IV 2gm q24h is the best option) or ampicillin-sulbactam (3gm IV q6hr is a good alternative) or ertapenem (1g IV or IM q24h if it is the only available option).",
+    "box": "3) For patients with severe symptoms, recommend adding ceftriaxone (IV 2gm q24h is the best option)",
+    "states": "IV 2 g q24h (best option), added to azithromycin/doxycycline"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "COVID-19 austere CPG (ID85 per its page header) counts as JTS. Narrow indication: severe symptoms with possible bacterial pneumonia co-infection; ceftriaxone is 'added' to the azithromycin/doxycycline regimen. Duration not stated on the page. SMOG p.38 gives ceftriaxone 2 g slow IV push for sepsis (different indication)."
+ },
+ {
+  "id": "U09",
+  "kind": "undrafted",
+  "drug": "midazolam",
+  "indication": "procedural sedation (incl. cardioversion, transcutaneous pacing)",
+  "population": "peds",
+  "route": "IV",
+  "proposed": {
+   "dose": "0.05-0.1 mg/kg IV every 15-30 min PRN",
+   "max": "",
+   "repeat": "every 15-30 min PRN"
+  },
+  "sources": [
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 140,
+    "printed_page": "140",
+    "cpg": "SMOG CY24 revision",
+    "quote": "Induction for RSI; Continued sedation; Procedural sedation; Transcutaneous Pacing; Hyperthermia: Cardioversion: IV: IV: • Induction 0.1mg/kg IV/IO 0.05-0.1mg/kg q 15-30 min PRN",
+    "box": "• Induction 0.1mg/kg IV/IO 0.05-0.1mg/kg q 15-30 min PRN",
+    "states": "pediatric procedural sedation IV 0.05-0.1 mg/kg q 15-30 min PRN"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 47,
+    "printed_page": "47",
+    "cpg": "SMOG CY24 revision",
+    "quote": "• Tension Pneumothorax (Max single dose 1mg) (Consider sedation: “OVERDOSE (Mothers Milk)”: Midazolam 0.05-0.1mg/kg IV / IO)",
+    "box": "“OVERDOSE (Mothers Milk)”: Midazolam 0.05-0.1mg/kg IV / IO)",
+    "states": "pediatric bradycardia: consider sedation 0.05-0.1 mg/kg IV/IO"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 50,
+    "printed_page": "50",
+    "cpg": "SMOG CY24 revision",
+    "quote": "• Heart Rate?: (Sedation w/o delay to Cardioversion: o Infants: >220/min (typically) Midazolam 0.05-0.1mg/kg IV / IO)",
+    "box": "o Infants: >220/min (typically) Midazolam 0.05-0.1mg/kg IV / IO)",
+    "states": "pediatric tachycardia: sedation before cardioversion 0.05-0.1 mg/kg IV/IO"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "SMOG only; no JTS page states a pediatric midazolam dose (JTS pediatric pages searched). The three SMOG pages agree on 0.05-0.1 mg/kg. p.47 and p.50 add IO and are cardioversion/pacing contexts. On p.140 the box line also carries the adult 'Induction 0.1mg/kg IV/IO' text from the left column. Max not stated. NASEMSO gives pediatric midazolam for agitation (0.1 mg/kg IV, max single dose 4 mg) and seizures, not procedural sedation, so it is not listed."
+ },
+ {
+  "id": "U10",
+  "kind": "undrafted",
+  "drug": "midazolam",
+  "indication": "procedural / conscious sedation",
+  "population": "peds",
+  "route": "IN",
+  "proposed": {
+   "dose": "0.2-0.5 mg/kg IN",
+   "max": "maximum total dose 10 mg, or 5 mg per nare",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 140,
+    "printed_page": "140",
+    "cpg": "SMOG CY24 revision",
+    "quote": "• Continued Sedation .05-.1 mg/kg Intranasal (unlabeled route): IV/IO 0.2-0.5 mg/kg (maximum total dose: 10 mg or 5 mg per • Infusion sedation 0.05 mg/kg bolus nare",
+    "box": "0.2-0.5 mg/kg (maximum total dose: 10 mg or 5 mg per",
+    "states": "0.2-0.5 mg/kg IN; max total 10 mg or 5 mg per nare"
+   }
+  ],
+  "conflict": "",
+  "premark": "",
+  "note": "SMOG only; SMOG labels the intranasal route 'unlabeled' (p.140 Indications: 'conscious sedation (intranasal)' is listed under Unlabeled). The word 'nare' wraps to a later line, and left-column adult text is interleaved in the layout, so the quote carries it. Repeat interval not stated. No JTS page states a pediatric IN midazolam dose. NASEMSO gives 0.2 mg/kg IN (max 10 mg) for pediatric agitation, a different indication."
+ },
+ {
+  "id": "U11",
+  "kind": "undrafted",
+  "drug": "midazolam",
+  "indication": "post-intubation sedation bolus",
+  "population": "adult",
+  "route": "IV",
+  "proposed": {
+   "dose": "1-4 mg IV/IO (intubated), dose every 5 minutes until goal achieved",
+   "max": "",
+   "repeat": "every 5 min until goal achieved"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "Sedation (includes anxiety or agitation): • Respiratory/cardiac/mental status depression • Onset: 1–5 minutes IV/IO: dose every 5 minutes until goal achieved or RR < • Amnestic • Duration of effect: 1–4 hours Midazolam 10/min. • Nausea/vomiting • Hepatic metabolism (active metabolites) (Versed) • Nonintubated: 0.5–2mg • Hypotension • Renal excretion • Intubated: 1–4mg • Constipation",
+    "box": "• Intubated: 1–4mg • Constipation",
+    "states": "intubated: 1-4 mg IV/IO every 5 min until goal"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Burn_Care_CPG_10_June_2025_ID12.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS Burn Care CPG (10 Jun 2025; filename ID12, page header reads 'ID:20')",
+    "quote": "15.5. _____Versed gtt at _____ mg/hr, titrate up to 10 mg/hr ; may give 2-5 mg IVP Q 15 minutes for acute agitation or burn wound care.",
+    "box": "15.5. _____Versed gtt at _____ mg/hr, titrate up to 10 mg/hr ; may give 2-5 mg IVP Q 15 minutes for acute agitation or",
+    "states": "2-5 mg IVP every 15 min for acute agitation or burn wound care (ICU order set, infusion titrate up to 10 mg/hr)"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "SMOG CY24 revision",
+    "quote": "Conduct seven “P” pneumonic (7Ps): o Midazolam 0.05 mg/kg IVP or 0.05 mg/kg bolus then 0.05-0.1mg/kg/hr.",
+    "box": "Conduct seven “P” pneumonic (7Ps): o Midazolam 0.05 mg/kg IVP or 0.05 mg/kg",
+    "states": "RSI maintenance: 0.05 mg/kg IVP, or 0.05 mg/kg bolus then 0.05-0.1 mg/kg/hr"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 140,
+    "printed_page": "140",
+    "cpg": "SMOG CY24 revision",
+    "quote": "• Continued Sedation .05-.1 mg/kg Intranasal (unlabeled route): IV/IO 0.2-0.5 mg/kg (maximum total dose: 10 mg or 5 mg per • Infusion sedation 0.05 mg/kg bolus",
+    "box": "• Continued Sedation .05-.1 mg/kg Intranasal (unlabeled route):",
+    "states": "adult continued sedation 0.05-0.1 mg/kg IV/IO; infusion 0.05 mg/kg bolus"
+   }
+  ],
+  "conflict": "Three different bolus doses: JTS ID61 p.12 1-4 mg IV/IO (intubated) every 5 min until goal; JTS Burn Care p.24 2-5 mg IVP every 15 min (burn ICU order set, for acute agitation or wound care); SMOG p.12 0.05 mg/kg IVP (or 0.05 mg/kg bolus then 0.05-0.1 mg/kg/hr), SMOG p.140 0.05-0.1 mg/kg IV/IO continued sedation. Fixed-mg vs weight-based, and the repeat interval differs (5 vs 15 min).",
+  "premark": "",
+  "note": "Proposal follows ID61, the only JTS page that labels the dose for intubated patients; the ID61 repeat clause reads 'dose every 5 minutes until goal achieved or RR < 10/min' (the RR clause is meaningless once ventilated). Burn Care p.24 is a burn ICU order set (header reads 'ID:20' although the filename says ID12). Max not stated in ID61. The SMOG p.140 quote includes interleaved right-column pediatric text from the layout."
+ },
+ {
+  "id": "U12",
+  "kind": "undrafted",
+  "drug": "midazolam",
+  "indication": "sedation / anxiolysis",
+  "population": "adult",
+  "route": "IM",
+  "proposed": {
+   "dose": "2-4 mg IM",
+   "max": "",
+   "repeat": ""
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Prolonged_Casualty_Care_Guidelines_21_Dec_2021_ID91.pdf",
+    "pdf_page": 35,
+    "printed_page": "35",
+    "cpg": "JTS CPG ID91, Prolonged Casualty Care Guidelines (21 Dec 2021)",
+    "quote": "Midazolam (Versed) 15-20 mins 1-6 hrs  Drowsiness when given when  Respiratory depression ESPECIALLY  For sedation and anxiolysis; IM, 2 mins given IM, will also cause anterograde when given 15 min-6 when used with any narcotic amnesia IV hrs  Nausea/vomiting  2-4 mg IM (HIGH variabilit  0.5-1mg IV (push slowly over y)",
+    "box": " 2-4 mg IM (HIGH",
+    "states": "2-4 mg IM for sedation and anxiolysis"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Analgesia_and_Sedation_Management_during_Prolonged_Field_Care_11_May_2017_ID61.pdf",
+    "pdf_page": 12,
+    "printed_page": "12",
+    "cpg": "JTS CPG ID61, Analgesia and Sedation Management during Prolonged Field Care (11 May 2017)",
+    "quote": "• Intubated: 1–4mg • Constipation • Personnel and equipment needed for standard respiratory resuscitation IM: not recommended should be available during midazolam administration.",
+    "box": "IM: not recommended should be available during midazolam administration.",
+    "states": "IM: not recommended"
+   },
+   {
+    "class": "SMOG",
+    "pdf": "SMOG_CY24_REVISION_FINAL.pdf",
+    "pdf_page": 32,
+    "printed_page": "32",
+    "cpg": "SMOG CY24 revision",
+    "quote": "o Lorazepam 2-4mg IV/IM (can use alone). o Midazolam 2.5-5mg IV/IM q15-30 min prn (larger patients may need 10mg if using IM route).",
+    "box": "o Midazolam 2.5-5mg IV/IM q15-30 min prn (larger patients may need 10mg if using IM route).",
+    "states": "combative/AMS: 2.5-5 mg IV/IM q15-30 min prn (larger patients may need 10 mg IM)"
+   }
+  ],
+  "conflict": "JTS ID91 p.35 gives 2-4 mg IM for sedation and anxiolysis; JTS ID61 p.12 says midazolam 'IM: not recommended'. SMOG p.32 (altered mental status / combative patient) gives 2.5-5 mg IV/IM q15-30 min prn, larger patients may need 10 mg IM.",
+  "premark": "",
+  "note": "Proposal follows ID91 (newer, and the only JTS page stating an IM number); ID61 contradicts it on route. ID91 notes onset 15-20 min IM and 'HIGH variability' in IM duration. ID91 states no repeat interval or max. SMOG p.32 indication is calming a combative patient, not general anxiolysis."
+ },
+ {
+  "id": "P1",
+  "kind": "procedure",
+  "drug": "",
+  "indication": "lumbar puncture: contraindicated with raised or suspected raised ICP",
+  "population": "adult|peds",
+  "route": "",
+  "proposed": {
+   "dose": "Hold advice, as it would be served: The answer advised a lumbar puncture, but raised or suspected raised ICP is recorded. A lumbar puncture is a recognised contraindication here. Use local protocol and medical control.",
+   "max": "n/a",
+   "repeat": "n/a"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+    "pdf_page": 6,
+    "printed_page": "6",
+    "cpg": "JTS CPG ID63, Traumatic Brain Injury Management in Prolonged Field Care (06 Dec 2017)",
+    "quote": "Goal: Suspect high ICP in any head injury patient with GCS score ≤8 OR declining findings on neurologic examination (unless explained by sedation, hypotension, hypoxia, hypercarbia, high fever). Minimize factors that",
+    "box": "Goal: Suspect high ICP in any head injury patient with GCS score ≤8 OR declining findings on neurologic",
+    "states": "condition only"
+   },
+   {
+    "class": "JTS",
+    "pdf": "TBI_Neurosurgery_Deployed Environment_15_Sep_2023_ID30_v1.1.pdf",
+    "pdf_page": 9,
+    "printed_page": "9",
+    "cpg": "JTS CPG ID30, TBI Management and Basic Neurosurgery in the Deployed Environment (15 Sep 2023)",
+    "quote": "Intracranial hypertension should be suspected based on certain clinical criteria if no CT scan or intracranial monitor is available. These criteria include:  GCS Motor Score < 4  Pupillary asymmetry  Interval development of pupillary asymmetry > 2mm  Abnormal pupil reactivity  Decrease of motor score by > 1  New motor deficit  Hypertension with Bradycardia",
+    "box": "Intracranial hypertension should be suspected based on certain clinical criteria if no CT scan or intracranial",
+    "states": "condition only"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Cervical_Thoracolumbar_Spine_Injury_19_Jun_2020_ID15.pdf",
+    "pdf_page": 24,
+    "printed_page": "24",
+    "cpg": "JTS CPG ID15, Cervical and Thoracolumbar Spine Injury Surgical Management and Transport (19 Jun 2020)",
+    "quote": "For total columnar myelography, instill 6-12.5 mL of Omnipaque 240, or 6-10 mL of Omnipaque 300, via standard lumbar puncture over 1-2 minutes. To allow time for complete opacification of the",
+    "box": "standard lumbar puncture over 1-2 minutes. To allow time for complete opacification of the",
+    "states": "no contraindication: lumbar puncture mentioned only as myelography technique"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "No JTS, SMOG or NASEMSO page states that lumbar puncture is contraindicated with raised or suspected raised ICP. Searched all three for 'lumbar puncture', 'LP', 'spinal tap' and 'lumbar': the only clinical mention is the CT-myelography technique in ID15 p.24; other 'LP' hits are author names/credentials. The condition (suspected high ICP) is sourced in ID63 p.6 and ID30 p.9. SMOG p.26 (Head Injury/TBI) treats 'Evidence of Elevated ICP' but says nothing on LP. Advice as it would be served (procedure_contracts.json hold_text): 'The answer advised a lumbar puncture, but raised or suspected raised ICP is recorded. A lumbar puncture is a recognised contraindication here. Use local protocol and medical control.'"
+ },
+ {
+  "id": "P2",
+  "kind": "procedure",
+  "drug": "",
+  "indication": "NG tube: contraindicated with a basilar skull fracture or its signs",
+  "population": "adult|peds",
+  "route": "",
+  "proposed": {
+   "dose": "Hold advice, as it would be served: The answer advised an NG tube, but a basilar skull fracture, or its signs, is recorded. A nasal tube is a recognised contraindication here. Use local protocol and medical control.",
+   "max": "n/a",
+   "repeat": "n/a"
+  },
+  "sources": [
+   {
+    "class": "JTS",
+    "pdf": "Use_of_TBI_WB_Biomarkers_after_Potentially_Concussive_Event_14_Apr_2025_ID90.pdf",
+    "pdf_page": 6,
+    "printed_page": "6",
+    "cpg": "JTS CPG ID90, Use of TBI WB Biomarkers after Potentially Concussive Event (14 Apr 2025)",
+    "quote": "In addition, casualties with evidence suspicious for a penetrating brain injury, depressed skull fracture, or signs of a basilar skull fracture (e.g., raccoon eyes, Battle’s sign, otorrhea) should be referred urgently for CT scan.",
+    "box": "In addition, casualties with evidence suspicious for a penetrating brain injury, depressed skull fracture, or signs of a basilar",
+    "states": "condition only"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf",
+    "pdf_page": 8,
+    "printed_page": "8",
+    "cpg": "JTS CPG ID39, Airway Management in Trauma (28 Jan 2026)",
+    "quote": "Nasopharyngeal Easy Risk of nose bleeds with placement and 0 airway (NPA) sizing challenges. Should not be used if suspect basilar skull fracture.",
+    "box": "suspect basilar skull fracture.",
+    "states": "no contraindication for NG tube: basilar skull fracture contraindicates an NPA, not an NG tube"
+   },
+   {
+    "class": "JTS",
+    "pdf": "Traumatic_Brain_Injury_PFC_06_Dec_2017_ID63.pdf",
+    "pdf_page": 6,
+    "printed_page": "6",
+    "cpg": "JTS CPG ID63, Traumatic Brain Injury Management in Prolonged Field Care (06 Dec 2017)",
+    "quote": " Gastric decompression with a nasogastric tube (NGT) or oral gastric tube (OGT) will decrease the risk of aspiration in unconscious patients. If patients required bag-masking, they may have a distended stomach, which, in some patients, contributes to bradycardia. NGT and OGT cannot be placed with a supraglottic airway.",
+    "box": "stomach, which, in some patients, contributes to bradycardia. NGT and OGT cannot be placed with a",
+    "states": "no contraindication for this condition: NGT/OGT limited only by a supraglottic airway"
+   },
+   {
+    "class": "NASEMSO",
+    "pdf": "National_Model_EMS_Clinical_Guidelines_Version_3.pdf",
+    "pdf_page": 234,
+    "printed_page": "234",
+    "cpg": "NASEMSO National Model EMS Clinical Guidelines v3.0",
+    "quote": "b. If patient unable to maintain airway, consider oral airway (nasal airway should not be used with significant facial injury or possible basilar skull fracture)",
+    "box": "with significant facial injury or possible basilar skull fracture)",
+    "states": "no contraindication for NG tube: nasal airway only"
+   }
+  ],
+  "conflict": "",
+  "premark": "RETIRE",
+  "note": "No JTS, SMOG or NASEMSO page links an NG tube to a basilar skull fracture. Searched all three for 'nasogastric', 'naso-gastric', 'NG tube', 'NGT', 'OG tube', 'orogastric', 'gastric tube', 'basilar', 'basal skull', 'skull base', 'cribriform', 'raccoon', 'Battle'. Basilar skull fracture appears as a contraindication only for a nasopharyngeal airway (JTS ID39 2026 p.3 and p.8; NASEMSO p.234), which is the signed P3/NPA ground, not an NG tube. SMOG p.73 says an OG/NG tube is inserted 'unless contraindicated' without naming any contraindication. JTS Mechanical Ventilation CCATT (10 Mar 2025) p.6 prefers large-bore oro-gastric over naso-gastric tubes 'to reduce the risk of sinusitis' (not a skull-fracture reason). The signs are sourced in ID90 p.6. Advice as it would be served (procedure_contracts.json hold_text): 'The answer advised an NG tube, but a basilar skull fracture, or its signs, is recorded. A nasal tube is a recognised contraindication here. Use local protocol and medical control.'"
+ }
+]

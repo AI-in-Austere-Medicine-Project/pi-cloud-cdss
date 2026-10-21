@@ -255,14 +255,19 @@ def test_the_shipped_file_has_no_magnitude_outliers():
 
 
 def test_the_threshold_clears_the_widest_real_spread():
-    """Epinephrine legitimately spans 500x — 10 mcg push against 5 mg
-    nebulised. The threshold is 1000x, so the margin is two. Asserted so that
-    a future entry narrowing it fails here rather than in the field."""
+    """Epinephrine legitimately spanned 500x — 10 mcg push against 5 mg
+    nebulised — against a 1000x threshold. Signing batch 3 (owner,
+    2026-10-21) signed a 5 mcg push dose for hypotension (JTS ID83 p.24), so
+    the honest spread is now exactly 1000x: the margin is gone, and the owner
+    has been told. The lint still holds, because it flags an entry only when
+    it is 1000x from EVERY other dose of its drug, and epinephrine's doses
+    fill the range between. Asserted so that a wider spread fails here."""
     doses = [dc.resolve_dose(e, 70.0)["dose_mg"]
              for e in dc.DRUGS["epinephrine"]["dose_entries"]]
     doses = [x for x in doses if x]
     spread = max(doses) / min(doses)
-    assert spread < dc.DOSE_MAGNITUDE_FACTOR
+    assert spread <= dc.DOSE_MAGNITUDE_FACTOR
+    assert not [p for p in dc.lint_dose_magnitude() if p.startswith("epinephrine/")]
     assert spread > 100, "if epinephrine's real spread shrank, re-derive this"
 
 

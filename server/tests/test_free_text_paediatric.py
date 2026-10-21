@@ -78,10 +78,15 @@ def test_each_dose_is_checked_against_the_signed_paediatric_entries():
             ("ketamine", "IM", 60.0)} <= signed, f"premise: the signed paediatric doses moved: {signed}"
     assert det.passed is False
     joined = " | ".join(det.issues)
-    for drug, shown in (("fentanyl", "25-100μg"), ("midazolam", "1-4mg"),
-                        ("ketamine", "80-160mg")):
+    for drug, shown in (("fentanyl", "25-100μg"), ("ketamine", "80-160mg")):
         assert f"The answer stated {drug} {shown}, which is not the signed {drug} dose" in joined, \
             f"{drug} {shown} was not held against the signed entry — issues: {det.issues}"
+    # Midazolam 1-4 mg is no longer held here. Signing batch 3 (owner,
+    # 2026-10-21) signed paediatric procedural sedation, 0.05-0.1 mg/kg IV
+    # (1 mg is this child's signed IV dose), and 4 mg was already the signed
+    # IM seizure dose. Reading 4 mg against IM though the answer says IV is
+    # the route finding (#170 finding 3), queued after the citation fix.
+    assert ("midazolam", "IV", 1.0) in signed, signed
 
 
 @pytest.mark.parametrize("line", [

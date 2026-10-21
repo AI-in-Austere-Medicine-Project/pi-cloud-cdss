@@ -1487,14 +1487,30 @@ def indication_matched(query: str, doses: list) -> list:
 # in a class (test_every_signed_indication_has_a_class), so a new signature
 # cannot be offered with no way to ask about it.
 INDICATION_CLASSES = [
+    # Signing batch 3 (owner, 2026-10-21): the CNS antibiotic entries and the
+    # ventriculostomy dose, ahead of the TBI class, whose label pattern reads
+    # any "prophylaxis". Their own classes, not the wound class: cefazolin's
+    # 1 g for a ventriculostomy is not an open fracture's dose.
+    ("penetrating CNS injury", "penetrating brain or spinal injury (antibiotic prophylaxis)",
+     r"penetrating (?:brain|spinal|tbi)|open or penetrating tbi",
+     r"penetrat\w* (?:brain|head|skull|spin\w*|tbi|cns)|open (?:skull|head)\w*|csf leak"
+     r"|\btbi\b|head injur\w*|brain injur\w*|skull fractur\w*|spinal cord injur\w*"),
+    ("ventriculostomy", "ventriculostomy in place", r"ventriculostomy",
+     r"ventriculostom\w*|\bevd\b|external ventricular drain"),
     # Signing batch 2 (owner, 2026-10-19): ahead of the TBI class, whose label
-    # pattern reads any "prophylaxis" and took cefazolin's wound entry.
+    # pattern reads any "prophylaxis" and took cefazolin's wound entry. Batch 3
+    # adds the other non-CNS wounds: abdomen, chest, face, the one pre-surgical
+    # dose, all 2 g cefazolin or the TCCC agents.
     ("wound infection prophylaxis", "open fracture / wound infection prophylaxis",
-     r"wound prophylaxis|open fracture", r"antibiotic\w*|infect\w*|open fractur\w*"),
+     r"wound prophylaxis|open fracture|open wounds|penetrating (?:abdominal|chest)|maxillofacial",
+     r"antibiotic\w*|infect\w*|open fractur\w*|\bwounds?\b|penetrat\w* (?:abdom\w*|chest|torso|thora\w*)"
+     r"|maxillofacial|facial fractur\w*"),
     ("sepsis", "sepsis", r"\bsepsis\b", r"\bseps\w*|\bseptic\b"),
     ("TBI seizure prophylaxis", "TBI seizure prophylaxis", r"prophylaxis",
      r"\btbi\b|head injur\w*|brain injur\w*|prophyla\w*"),
-    ("neonatal resuscitation", "neonatal resuscitation", r"neonatal",
+    # The label is "neonatal resusc", not "neonatal": dextrose's neonatal
+    # hypoglycaemia (batch 3) is hypoglycaemia.
+    ("neonatal resuscitation", "neonatal resuscitation", r"neonatal resusc",
      r"neonat\w*|newborn"),
     ("agitation", "agitation", r"agitat|violent|behaviou?r",
      r"agitat\w*|violent|combative|aggressi\w*|excited delirium|behaviou?r\w*|psychos\w*"
@@ -1512,7 +1528,10 @@ INDICATION_CLASSES = [
      r"arrest|asystol\w*|\bpea\b|v-?fib|pulseless|\bcpr\b|no pulse"),
     ("bradycardia", "bradycardia", r"bradycardia",
      r"brady\w*|heart block|slow (?:heart|pulse)"),
-    ("shock", "shock", r"shock",
+    # "hypotens" for epinephrine's push dose for hypotension (batch 3). After
+    # RSI, so propofol's reduced induction dose for the hypotensive patient
+    # stays RSI.
+    ("shock", "shock", r"shock|hypotens",
      r"shock|hypotens\w*|pressor\w*|\bsbp\b|\bmap\b|blood pressure|\bbp\b"),
     ("croup", "croup", r"croup", r"croup|stridor|barking"),
     ("bronchiolitis", "bronchiolitis", r"bronchiolitis", r"bronchiolit\w*|wheez\w*|\brsv\b"),
@@ -1530,6 +1549,14 @@ INDICATION_CLASSES = [
      r"hyperkal\w*|potassium|\bk\+|peaked t|crush\w*"),
     ("opioid overdose", "opioid overdose", r"opioid",
      r"opioid\w*|opiate\w*|overdos\w*|\bod\b|heroin|pinpoint"),
+    # Signing batch 3 (owner, 2026-10-21).
+    ("hypocalcaemia", "hypocalcaemia after massive transfusion", r"hypocalc",
+     r"hypocalc\w*|transfus\w*|units? of (?:whole )?blood|blood products?|\bprbcs?\b"
+     r"|ioni[sz]ed calcium|\bica\b"),
+    ("anticoagulant reversal", "warfarin / anticoagulant reversal", r"warfarin|anticoagula",
+     r"warfarin|coumadin|anticoagula\w*|\binr\b"),
+    ("malaria", "malaria", r"malaria", r"malaria\w*|plasmodium|falciparum|vivax"),
+    ("pneumonia", "pneumonia", r"pneumonia", r"pneumon\w*|covid\w*|sars-?cov\w*"),
 ]
 INDICATION_QUESTION_PREFIX = "Which indication for "
 

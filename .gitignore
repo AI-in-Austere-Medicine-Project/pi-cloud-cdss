@@ -54,6 +54,8 @@ manuals/
 # Local working files (review docs, drafts, old versions)
 EdgeCDSS_openai_*
 *.docx
+# Signing batch 3's review packet is the owner's Word copy (2026-10-21).
+!docs/authoring/SIGNING_BATCH3_PACKET_*.docx
 # NOT `tests/`. That rule was here until 2026-08-26 and it matched ANY
 # directory of that name at any depth — so the day anyone moved the suite into
 # server/tests/, the entire offline regression suite would have become

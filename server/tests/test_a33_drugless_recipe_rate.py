@@ -67,8 +67,11 @@ def test_the_a18_recipe_now_holds():
 
 
 def test_a_drugless_mass_rate_is_the_questions_drug():
-    issues = _issues(SHOCK_EPI, "**GIVE**\n- Start the drip. Run it at 5 mcg/min.")
-    assert any("epinephrine" in i and "5 mcg/min" in i for i in issues), issues
+    """Batch 3 signed the adult shock rate (E06, 2-10 mcg/min), so the example
+    is a rate outside it: the line names no drug, is checked as epinephrine's,
+    and holds."""
+    issues = _issues(SHOCK_EPI, "**GIVE**\n- Start the drip. Run it at 20 mcg/min.")
+    assert any("epinephrine" in i and "20 mcg/min" in i for i in issues), issues
 
 
 # ── Untouched ───────────────────────────────────────────────────────────────

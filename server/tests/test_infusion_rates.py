@@ -37,9 +37,11 @@ def _rate_issues(text, ctx=ADULT):
 # ── Holds ───────────────────────────────────────────────────────────────────
 
 HOLD = [
-    # the #97 case: a flat rate, no signed flat rate exists
-    "**GIVE**\n- Start epinephrine 5 mcg/min IV.",
-    "**GIVE**\n- Epinephrine infusion at 2 micrograms per minute.",
+    # the #97 case was 5 mcg/min when no flat rate was signed. Batch 3 (owner,
+    # 2026-10-21) signed 2-10 mcg/min for an adult in refractory shock, so a
+    # flat rate now holds above that range (and for a child: test below)
+    "**GIVE**\n- Start epinephrine 15 mcg/min IV.",
+    "**GIVE**\n- Epinephrine infusion at 20 micrograms per minute.",
     # a ketamine drip outside the signed sedation band (0.5-2.0 mg/kg/h, ID61;
     # signed 2026-10-19): SMOG's 3 mg/kg/hr is not signed
     "**GIVE**\n- Ketamine infusion at 3 mg/kg/hr.",
@@ -58,8 +60,8 @@ def test_an_unsigned_rate_holds(text):
 
 
 def test_the_hold_names_the_drug_and_rate_and_no_signed_number():
-    issue = _rate_issues("**GIVE**\n- Start epinephrine 5 mcg/min IV.")[0]
-    assert "epinephrine" in issue and "5 mcg/min" in issue, issue
+    issue = _rate_issues("**GIVE**\n- Start epinephrine 15 mcg/min IV.")[0]
+    assert "epinephrine" in issue and "15 mcg/min" in issue, issue
     assert "infusion rate" in issue, issue
     for signed in ("0.02", "0.05", "0.2", "0.3"):
         assert signed not in issue, issue
@@ -72,7 +74,14 @@ PASS = [
     ("**GIVE**\n- Epinephrine infusion at 0.1 mcg/kg/min.", ADULT),
     ("**GIVE**\n- Norepinephrine 0.1 mcg/kg/min IV.", ADULT),
     ("**GIVE**\n- Norepinephrine 0.1 mcg/kg/min IV.", CHILD),
+    # batch 3 (owner, 2026-10-21): epinephrine 2-10 mcg/min, adult refractory shock
+    ("**GIVE**\n- Start epinephrine 4 mcg/min IV.", ADULT),
 ]
+
+
+def test_the_flat_epinephrine_rate_is_signed_for_adults_only():
+    """The #97 case, for a child: the flat 2-10 mcg/min is an adult entry."""
+    assert _rate_issues("**GIVE**\n- Start epinephrine 5 mcg/min IV.", CHILD)
 
 
 @pytest.mark.parametrize("text,ctx", PASS)
@@ -110,4 +119,4 @@ def test_a_volume_rate_is_not_inherited_from_an_earlier_drug():
 
 
 def test_a_mass_rate_still_inherits_its_drug():
-    assert _rate_issues("**GIVE**\n- Epinephrine drip. Start at 5 mcg/min.")
+    assert _rate_issues("**GIVE**\n- Epinephrine drip. Start at 15 mcg/min.")
