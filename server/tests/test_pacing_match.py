@@ -87,3 +87,32 @@ def test_a_drug_with_no_pacing_entry_keeps_its_sedation_reading():
 def test_a_pacemaker_is_not_pacing():
     stated = oc.stated_indication_classes("patient with a pacemaker, chest pain")
     assert oc.indication_class(E13) not in stated
+
+
+# ── "cardioversion" is not RSI ───────────────────────────────────────────────
+# Found writing this item: "rsi" was matched as a substring, and
+# "cardioversion" contains it ("conve-RSI-on"). "80 kg adult, IV access,
+# midazolam for cardioversion" was served the RSI bundle (ketamine 160 mg,
+# rocuronium 96 mg) by the RSI pre-gate, and the builder offered it.
+
+@pytest.mark.parametrize("q", ["80 kg adult, IV access, midazolam for cardioversion",
+                               "80 kg adult, synchronized cardioversion, sedation"])
+def test_cardioversion_is_not_rsi(q):
+    assert not oc.is_rsi_or_post_intubation_context(q)
+    _ctx, doses = _offers(q)
+    assert not any(oc._rsi_role(d.indication) for d in doses), \
+        [(d.drug, d.indication) for d in doses]
+
+
+def test_the_pipeline_does_not_serve_the_rsi_bundle_for_cardioversion():
+    class _R:
+        def query(self, *a, **k):
+            return {"documents": [["t"]], "metadatas": [[{"source": "JTS", "page": 1}]],
+                    "distances": [[0.2]]}
+    r = oc._query_with_rag_internal("80 kg adult, IV access, midazolam for cardioversion", _R())
+    assert "RSI induction" not in r["response"] and "rocuronium" not in r["response"], r["response"]
+
+
+@pytest.mark.parametrize("q", ["80 kg adult, RSI now", "rsi 80kg", "80 kg, RSI, ketamine"])
+def test_rsi_still_reads_as_rsi(q):
+    assert oc.is_rsi_or_post_intubation_context(q)
