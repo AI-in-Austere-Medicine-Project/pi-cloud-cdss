@@ -79,7 +79,8 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A31 | "ketamine drip" alone does not call the RSI bundle; "ketamine drip 80 kg" is asked which indication. "Intubated" with the drip still gets the drip card. | Owner ruling 1, #170 review (2026-10-20) | Done, #172 |
 | A32 | When the question states an indication, a drug signed for it is checked against that indication's entries only; another indication's dose holds, naming both. RSI covers post-intubation sedation. No stated indication: as before. The builder still offers every entry. | Owner, 2026-10-20 (A30/A31 harness findings) | Done, #173 |
 | A33 | A line that names no drug: its rate (and a recipe with a drug amount) is read as the question's one named drug and checked as that drug's rate; with none, it holds. A fluid's rate, a urine-output target and a fluid question's volume rate are left alone. | Owner, 2026-10-21 (A32 harness) | Done, #175 |
-| A34 | The offered doses are the stated route's only (IV and IO one route; IV access reads as IV, no access as IM); a drug with nothing on the route is offered nothing. "versed dose IM" is offered IM midazolam alone. | Signing batch 2, finding 3; owner, 2026-10-21 (freeze plan item 1) | In review |
+| A34 | The offered doses are the stated route's only (IV and IO one route; IV access reads as IV, no access as IM); a drug with nothing on the route is offered nothing. "versed dose IM" is offered IM midazolam alone. | Signing batch 2, finding 3; owner, 2026-10-21 (freeze plan item 1) | Done, #176 |
+| A35 | Ketamine for pain IM serves the signed adult IM entry (breakthrough pain, 0.5 mg/kg, max 100 mg) or holds. Every drug number a deterministic card emits has a signed entry behind it, or holds: the legacy calculators, the prep card's own recipes and the printed overdose ceilings are gone. The list: docs/authoring/A35_CARD_NUMBERS_2026-10-22.md. | Owner, 2026-10-22 (A34 harness; sweep) | In review |
 
 ## 4. D items: data and speed
 
@@ -207,7 +208,10 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 | An eclamptic seizure is served lorazepam with no magnesium; the bank has no signed magnesium entry. SMOG p.37 puts magnesium first line in pregnancy. | #103 |
 | Signed in batch 3, not reached on the main path (nothing wrong served): the push-dose prep card refuses E05 (narrows by "shock" in the label); the haemorrhagic-shock pre-gate gives TXA only to a calcium question; rate entries (E06, E18) are not offered to the generator. | Signing batch 3 live harness |
 | "versed dose IM" is answered, not asked which indication, now that adult IM midazolam has one signed class (U12): batch 3's one newly released replay row. Owner to rule. Since A34 it is offered the IM entry only. | Signing batch 3 replay |
-| "ketamine for pain IM" gets the legacy calculator's 2 mg/kg (160 mg at 80 kg): the analgesia pre-gate looks up "moderate to severe pain", and the adult IM pain entry is "breakthrough pain — IM/IN" (0.5 mg/kg). Same on main; owner to place. | A34 live harness |
+| "ketamine for pain IM" gets the legacy calculator's 2 mg/kg (160 mg at 80 kg). Fixed by A35. | A34 live harness |
+| The overdose ceiling (ketamine 2 mg/kg) holds signed doses (IM agitation 4 mg/kg, refractory seizure 3–4 mg/kg). Matching it to the signed maximum releases those requests: owner to rule. | A35 sweep |
+| A seizing patient with no IV access gets no benzodiazepine dose: lorazepam (IV) is chosen, then dropped by the route filter; the signed paediatric IM midazolam seizure entry is never chosen. Holds; nothing wrong served. | A35 sweep |
+| Non-drug numbers with no signed entry (TBI targets, q5min, IBW constants, NRS bands, vitals thresholds, syringe limits) are listed in A35, not changed; the signed tension card's "TXA within 3 hours" is not in its cited quote; the vent cards are signed by a role ("clinician"). Owner to rule. | A35 sweep |
 | Uncited IV fluid rates are still served: a fluid isn't a drug the check recognises (run-3 finding 5). Closing it needs signed crystalloid entries: the owner's authoring job. | #108 |
 | The epinephrine card triggers only on "epi drip"; "epinephrine infusion rate" goes to the model and is held (mcg/min). | #110 |
 | A drug-choice question ("norepinephrine vs epinephrine drip") gets one drug's card. | #110 |

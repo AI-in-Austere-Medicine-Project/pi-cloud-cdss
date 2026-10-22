@@ -3691,11 +3691,10 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
         ), []
     if _prep_term_present(q, ["epi drip", "epinephrine drip"]):
         served, note = _epi_entries(EPI_INFUSION_INDICATIONS, q, ctx)
-        # The flat 2-10 mcg/min the card used to print is not in the bank in
-        # any form. Where a signed rate applies it is served in the guideline's
-        # own mcg/kg/min, and the mL/hr is NOT computed from the bag above:
-        # that would be a volume derived from a concentration nobody signed,
-        # which is the rule resolve_dose_volume exists to hold.
+        # Where a signed rate applies it is served as the guideline wrote it
+        # (since batch 3 that includes ID83's 2-10 mcg/min, E06), and no mL/hr
+        # is computed: no bag is signed, and a volume from a concentration
+        # nobody signed is the rule resolve_dose_volume exists to hold.
         if not served and not note:
             issue = _prep_hold_issue("epinephrine infusion")
             return build_safety_hold([issue], ""), [issue]

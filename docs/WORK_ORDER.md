@@ -75,7 +75,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A31 | A bare "ketamine drip" is not RSI: with no indication it is asked which indication | **done**: #172, merged; owner ruling 1, #170 review (2026-10-20) |
 | A32 | A stated indication restricts what the dose check accepts; another indication's dose of the same drug holds, naming both | **done**: #173, merged; owner, 2026-10-20 |
 | A33 | A recipe or rate that names no drug is the question's drug, or it holds | **done**: #175, merged; owner, 2026-10-21 (A32 harness finding) |
-| A34 | The offered doses are the stated route's only (IV and IO one route); "versed IM" is never offered the IV entry | **in review**: this PR; owner, 2026-10-21 (freeze plan to v5.1.0, item 1; signing batch 2 finding 3) |
+| A34 | The offered doses are the stated route's only (IV and IO one route); "versed IM" is never offered the IV entry | **done**: #176, merged; owner, 2026-10-21 (freeze plan to v5.1.0, item 1; signing batch 2 finding 3) |
+| A35 | "Ketamine for pain IM" serves the signed adult IM entry or holds; every drug number a deterministic card emits has a signed entry behind it, or holds | **in review**: this PR; owner, 2026-10-22 (A34 harness finding; sweep) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -820,6 +821,55 @@ Eight existing tests pinned IN fentanyl as offered to an IV question. They are u
 **For the owner:** IV access with no route word counts as a stated IV route, as the context has read it since A15. So a patient with IV access is not offered IN fentanyl or IM/IN ketamine.
 
 **Seen in the harness, not this item:** "ketamine for pain IM" gets the legacy calculator's 2 mg/kg (160 mg at 80 kg), not the signed adult IM breakthrough-pain entry (0.5 mg/kg). It is the same on main; see the found list.
+
+### A35: a deterministic card's drug numbers are signed, or hold (owner, 2026-10-22; found in the A34 harness)
+
+**Owner, 2026-10-22 (#176 review):** "A35, failing test first. 'Ketamine for pain IM, 80 kg' serves the signed adult IM entry (40–80 mg, cap 100) or holds; the legacy 2 mg/kg calculator is removed. Then sweep every deterministic card: list every number a card can emit and the signed entry it comes from. Any number with no signed entry behind it is replaced by a hold, with the list in the PR for me to read."
+
+**Ruled the same day (scope):**
+- Drug numbers only: doses, rates, volumes, concentrations and recipes. Non-drug numbers are listed, not changed.
+- The overdose ceilings keep their check and drop their number.
+
+**The list:** [`docs/authoring/A35_CARD_NUMBERS_2026-10-22.md`](authoring/A35_CARD_NUMBERS_2026-10-22.md). It covers every number by card, its signed entry or source, and what changed.
+
+**What changed:**
+- **Ketamine analgesia card:**
+  - For IM, after "moderate to severe pain" (the paediatric IM entry), it takes the adult "breakthrough pain — IM/IN" entry (JTS ID91 p.33, 0.5–1.0 mg/kg, max single 100 mg): 40 mg at 80 kg.
+  - With no signed entry on the route, it holds.
+  - The analgesia calculators (0.3 mg/kg IV, 2 mg/kg IM) are removed.
+- **Push-dose prep card:** it prints no recipe of its own. Each signed push-dose entry states the recipe in its cautions; with no entry served, there is no recipe.
+- **Epinephrine drip card:** it states no bag (1 mg in 250 mL = 4 mcg/mL is in no entry): concentration per local protocol, and no mL/hr. `PREP_RECIPE_NUMBERS` is empty.
+- **Requested-overdose hold:** the check is unchanged. It no longer prints the unsigned ceiling (ketamine 2, rocuronium 1.2, succinylcholine 2 mg/kg).
+- **The legacy calculators are removed**, with their backfill paths in the builder and the RSI card: ketamine induction and post-intubation, rocuronium, succinylcholine, lorazepam. They were unreachable while their drugs were signed, and came back if a drug lost its last entry or the bank failed to import. Now a role with no signed entry holds.
+
+**Tests**, each committed failing first:
+- `server/tests/test_a35_ketamine_im_analgesia.py`: 8 of 9 failed on main.
+- `server/tests/test_a35_card_numbers.py`: 15 of 16 failed on main. Its replay follow-up (the no-entry TLDR and the hold's grammar) failed 4 before its fix.
+
+The existing tests that pinned a calculator or the card's recipe were updated:
+- `test_drug_contracts` declares no backfill, and the IM analgesia case expects the signed entry.
+- `test_drug_concentrations`: the calculators are absent; the recipe is the entry's caution.
+- `test_general_reference` and `test_norepinephrine_drip_card`: updated to match.
+
+**Suite:** 3,317 passed, 0 failed (6 skipped, 3 xfailed).
+
+**Replay** (against main `67cd451`): served (1,738), held (308), gate (1,408) and live logs (3,373) unchanged. Pipeline (812): 10 rows changed, **0 newly held, 0 newly released.**
+- Eight push-dose prep cards (A1-WT-025, A1-NOWT-015, A1-RX-001, A1-RX-002, A1-RX-006, and three live) lose the card's own recipe lines. Each points to the signed entry's caution, which carries the same recipe.
+- "push dose epi, BP 70/40 shocky" (live) has no signed entry, so it now says "No signed push-dose preparation".
+- Two live overdose holds (ketamine 300 mg and rocuronium 60 mg for a 20 kg child; ketamine 500 mg at 80 kg) still hold, without the ceiling number.
+
+**Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29.
+
+| Question | Result |
+|---|---|
+| "ketamine for pain IM", 80 kg | 40 mg IM, breakthrough pain, "each dose no more than 100 mg" |
+| ketamine for pain IV, 80 kg | 20 mg |
+| ketamine for pain IM, 20 kg child | 10 mg |
+| push dose epi, bradycardia | 10–20 mcg, with the NASEMSO recipe in CAUTIONS |
+| epi drip, shock | 2–10 mcg/min and 0.05–0.3 mcg/kg/min, no bag |
+| RSI, 80 kg | 160 mg / 96 mg / 40 mg |
+| seizing, 60 kg | lorazepam 4 mg |
+| ketamine 500 mg, 80 kg | held, no ceiling number |
 
 ### B1: source-mode labelling
 
@@ -1937,6 +1987,18 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 
 Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest trigger (A27), seizure misspellings (A28), the needle-decompression procedure and "pneumo" (A29). Everything else on the found list, and the open items below, are v1.1. Each is placed by the owner before work starts.
 
+**From the A35 sweep (2026-10-22; owner to place):**
+
+- **The overdose ceiling holds signed doses.** Ketamine's 2 mg/kg ceiling is below the signed IM entries: agitation 4 mg/kg, refractory seizure 3–4 mg/kg, paediatric IM 3 mg/kg. "ketamine 320 mg IM" for an agitated 80 kg patient holds as an overdose. Matching the ceiling to the signed maximum would release those requests.
+- **A seizing patient with no IV access gets no benzodiazepine dose.** Lorazepam (IV only) is chosen first and the route filter drops it, so the card holds. The signed paediatric IM midazolam seizure entry is never chosen.
+- **The signed tension card's "TXA within 3 hours" is not in the quote it cites** (ID74 p.5). The DCR card's TLDR says the same, and its SOURCE omits ID18 p.9 (the signed TXA caution cites it).
+- **The vent cards are signed by "clinician"**, a role, not a name (2026-08-22).
+- **Unsigned or uncited, not drug numbers:**
+  - vitals_rules.json carries no signoff;
+  - the Devine IBW constants and the ketamine card's "reassess q5min" have no citation.
+- **Why-this-dose lists every signed entry of the drug**, unfiltered by route or indication.
+- **"d50 amp" and "dextrose prep" are prep terms with no card.**
+
 **From the D6 and D7 benches:**
 
 - **`qwen2.5:3b` as the offline validator does not catch procedural errors** (D7 v3 re-bench finding, owner to place). It called a low-and-loose tourniquet, "reapply" a tourniquet on loss of pulse and "do not re-warm" a hypothermic arrest SAFE. D7 made the comparison measurable; it did not make the offline validator adequate.
@@ -1946,7 +2008,7 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **Open contract drafts:** the 39 incomplete drafts and P1, P2 (unsigned inventory, #146); the fentanyl analgesia infusion entry (#148); signing batch 1, analgesia (2026-10-14): 8 signed; NASEMSO IM ketamine, paediatric IN ketamine (incomplete) and ketorolac (excluded) unsigned; signing batch 2, sedation and antibiotics (ruled 2026-10-19): 5 signed; 8 held (SMOG midazolam procedural and ketamine infusion alternates; midazolam ventilated infusion, v1.1, its conflict open; rocuronium redose; paediatric ketamine infusion, v1.1; paediatric ceftriaxone sepsis, incomplete); 12 undrafted indications and 2 discrepancies listed as v1.1 items in the unsigned inventory; signing batch 3 (ruled 2026-10-21): 26 signed, 26 retired, E02, E09, E14, E15 deferred, P1/P2 held, E27 ruled SIGN and not signable (tablets; owner to rule the unit). Signing is the owner's act.
 - **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05; the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg).
 - **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked. Since A34 it is offered the IM entry only.
-- **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21; same on main, owner to place). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
+- **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21). **Fixed by A35** (owner, 2026-10-22). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
 
 **The found list:**
 
