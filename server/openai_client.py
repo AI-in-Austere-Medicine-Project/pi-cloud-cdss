@@ -2279,6 +2279,15 @@ def build_allowed_doses(query: str, ctx: PatientContext,
         # by extension rather than by a ruling of its own.
         named = set(drug_contracts.resolve_drugs(q)) if drug_contracts else set()
         preferred = "midazolam" if "midazolam" in named else "lorazepam"
+        # A38 (owner, 2026-10-22): choose among the entries on the AVAILABLE
+        # route. Choosing first let the route filter (A34) drop the only
+        # choice: a seizing child with no IV got no dose beside a signed
+        # paediatric IM midazolam entry. IV and IO are one route; no route
+        # stated, every route.
+        route = ctx.route_preference
+        if route != "UNKNOWN":
+            same = {"IV", "IO"} if route in ("IV", "IO") else {route}
+            seizure = [x for x in seizure if x[1].get("route") in same]
         chosen = [x for x in seizure if x[0] == preferred][:1] or seizure[:1]
 
         for name, entry in chosen:
