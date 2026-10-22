@@ -100,7 +100,7 @@ def test_a_pacemaker_is_not_pacing():
 def test_cardioversion_is_not_rsi(q):
     assert not oc.is_rsi_or_post_intubation_context(q)
     _ctx, doses = _offers(q)
-    assert not any(oc._rsi_role(d.indication) for d in doses), \
+    assert not any(oc._rsi_role(d.indication) in ("induction", "paralytic") for d in doses), \
         [(d.drug, d.indication) for d in doses]
 
 

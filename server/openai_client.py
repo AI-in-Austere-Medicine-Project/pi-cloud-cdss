@@ -1453,6 +1453,13 @@ INDICATION_CLASSES = [
      r"|restrain\w*|thrashing"),
     ("RSI", "RSI", r"\brsi\b|induction",
      r"\brsi\b|intubat\w*|rapid sequence|induction"),
+    # Freeze plan item 2 (owner, 2026-10-21): procedural sedation for pacing
+    # or cardioversion is its own class, ahead of sedation, so "midazolam for
+    # pacing" is E13 (2.5-5 mg) and not the ID61 1 mg ketamine add-on. A
+    # pacemaker is not pacing.
+    ("pacing / cardioversion", "pacing or cardioversion", r"pacing|cardioversion",
+     r"\bpacing\b|\b(?:about|going|ready|prepar\w*) to pace\b|\bpace (?:him|her|them|the patient)\b"
+     r"|transcutaneous(?:ly)? pac\w*|\btcp\b|cardiover\w*"),
     ("sedation", "sedation (already intubated)", r"sedation",
      r"(?<!procedural )sedat\w*|intubated|post[- ]?intubation|\btubed\b|on the vent|ventilat\w*"),
     ("seizure", "seizure", r"seizure|epilep",
@@ -1531,7 +1538,7 @@ def stated_indication_first(query: str, doses: list) -> list:
         if d.drug not in named:
             return False
         classes = {indication_class(x.indication) for x in doses if x.drug == d.drug}
-        return len(classes) > 1 and indication_class(d.indication) in stated
+        return len(classes) > 1 and indication_class(d.indication) in _drug_stated_classes(stated, classes)
 
     return [d for d in doses if first(d)] + [d for d in doses if not first(d)]
 
@@ -1543,6 +1550,19 @@ def _check_classes(query: str) -> set:
     own post-intubation sedation line."""
     stated = stated_indication_classes(query)
     return stated | {"sedation"} if "RSI" in stated else stated
+
+
+PACING_CLASS = "pacing / cardioversion"
+
+
+def _drug_stated_classes(stated: set, drug_classes: set) -> set:
+    """The stated classes as they apply to one drug. Pacing is a procedural
+    sedation: for a drug signed for pacing, a stated pacing reads as that
+    class alone ("about to pace, midazolam for sedation" is E13, not the ID61
+    add-on). A drug with no pacing entry keeps the sedation reading it had."""
+    if PACING_CLASS in stated and PACING_CLASS in drug_classes:
+        return stated - {"sedation"}
+    return stated
 
 
 def stated_indication_matched(query: str, doses: list) -> tuple:
@@ -1569,7 +1589,8 @@ def stated_indication_matched(query: str, doses: list) -> tuple:
     kept, other = [], []
     for d in doses:
         classes = {indication_class(e.get("indication")) for e in signed.get(d.drug, [])}
-        if classes & stated and indication_class(d.indication) not in stated:
+        mine = _drug_stated_classes(stated, classes)
+        if classes & mine and indication_class(d.indication) not in mine:
             other.append(d)
         else:
             kept.append(d)
@@ -2224,7 +2245,8 @@ def build_allowed_doses(query: str, ctx: PatientContext,
         for drug_name in drug_contracts.servable_entries():
             superseded.add(drug_name)
 
-    is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
+    # "rsi" as a word: "cardioversion" contains it (pacing match, 2026-10-22).
+    is_rsi = bool(_RSI_WORD_RE.search(q)) or any(x in q for x in ['intubat', 'rapid sequence'])
     is_seizure = (any(x in q for x in ['seizure', 'seizing'])
                   or bool(_SEIZURE_STATUS_RE.search(q))
                   or is_active_seizure_query(q))
@@ -6348,10 +6370,15 @@ def is_vent_settings_query(text: str) -> bool:
     ]) or _VENT_SETTINGS_RE.search(q) is not None
 
 
+_RSI_WORD_RE = re.compile(r"\brsi\b")
+
+
 def is_rsi_or_post_intubation_context(text: str) -> bool:
     q = (text or "").lower()
-    return any(x in q for x in [
-        "rsi", "rapid sequence", "intubat", "post-intubation",
+    # "rsi" as a word (pacing match, 2026-10-22): as a substring it matched
+    # "cardioversion", and the RSI pre-gate served the bundle to it.
+    return bool(_RSI_WORD_RE.search(q)) or any(x in q for x in [
+        "rapid sequence", "intubat", "post-intubation",
         "post intubation", "after tube", "tube confirmed",
         "ventilator", "on the vent", "on a vent", "ketamine drip"
     ])
