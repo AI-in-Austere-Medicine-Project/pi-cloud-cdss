@@ -76,7 +76,8 @@ def test_the_signed_cards_still_serve():
 
 
 @pytest.mark.parametrize("query,words,what", [
-    (PUSH, ["push dose"], "push-dose epinephrine"),
+    # "push-dose" too: E05 (relabelled 2026-10-22) is a push-dose entry the card uses.
+    (PUSH, ["push dose", "push-dose"], "push-dose epinephrine"),
     (DRIP, ["infusion"], "epinephrine infusion"),
 ])
 def test_unsigning_the_entries_a_card_uses_yields_a_hold(monkeypatch, query, words, what):
