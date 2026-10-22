@@ -2789,6 +2789,47 @@ def served_confirm_vial_block(served: List[DoseCandidate],
 # REQUESTED OVERDOSE DETECTOR — runs BEFORE generator
 # ─────────────────────────────────────────────────────────────────────────────
 
+def signed_ceiling_mg(drug: str, ctx: PatientContext) -> Optional[float]:
+    """A36: the highest signed single dose of `drug` for this patient, in mg.
+
+    The drug's signed bolus entries (MASS or MASS_PER_KG; rates are not a
+    single dose) for the patient's population, on the stated route (IV and IO
+    one route; every route when none is stated), each at its range maximum for
+    the confirmed weight, capped at its own maximum single dose. An age-banded
+    entry counts only for its band; with no stated age, the banded entries
+    contribute their LOWEST maximum. None when nothing signed applies.
+    """
+    if drug_contracts is None or not ctx.confirmed_weight_kg:
+        return None
+    w = ctx.confirmed_weight_kg
+    route = ctx.route_preference
+    routes = ({"IV", "IO"} if route in ("IV", "IO") else {route}) if route != "UNKNOWN" else None
+    plain, banded = [], []
+    for e in drug_contracts.servable_entries().get(drug, []):
+        pop = e.get("population")
+        if (ctx.is_pediatric and pop == "adult") or (not ctx.is_pediatric and pop == "peds"):
+            continue
+        if routes is not None and e.get("route") not in routes:
+            continue
+        rng = e.get("dose_range") or {}
+        kind, unit, _why = drug_contracts.classify_units(rng.get("units"), bool(rng.get("per_kg")))
+        if kind not in (drug_contracts.MASS, drug_contracts.MASS_PER_KG) or rng.get("max") is None:
+            continue
+        mg = drug_contracts.to_mg(rng["max"] * (w if kind == drug_contracts.MASS_PER_KG else 1), unit)
+        cap, _ = drug_contracts._limit_mg(e.get("max_single"), w)
+        if cap is not None:
+            mg = min(mg, cap)
+        band = drug_contracts._age_band(e)
+        if band is None:
+            plain.append(mg)
+        elif ctx.age_years is None:
+            banded.append(mg)
+        elif band[0] <= ctx.age_years < band[1]:
+            plain.append(mg)
+    candidates = plain + ([min(banded)] if banded else [])
+    return max(candidates) if candidates else None
+
+
 def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> list:
     """
     Detect explicit unsafe doses requested by the provider in the query text.
@@ -2801,23 +2842,28 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
         return issues
 
     q = query.lower()
+    # A36 (owner, 2026-10-22): each ceiling is the highest signed single dose
+    # for this patient (signed_ceiling_mg). The fixed 2, 1.2 and 2 mg/kg it
+    # replaces were in no entry, and the ketamine one held the signed 4 mg/kg
+    # IM dose. The hold names no number but the request.
     patterns = {
-        "ketamine": (r"ketamine.{0,40}?(\d+(?:\.\d+)?)\s*mg", wt * 2.0),
-        "rocuronium": (r"rocuronium.{0,40}?(\d+(?:\.\d+)?)\s*mg|roc\b.{0,40}?(\d+(?:\.\d+)?)\s*mg", wt * 1.2),
-        "succinylcholine": (r"succinylcholine.{0,40}?(\d+(?:\.\d+)?)\s*mg|sux\b.{0,40}?(\d+(?:\.\d+)?)\s*mg", wt * 2.0),
+        "ketamine": r"ketamine.{0,40}?(\d+(?:\.\d+)?)\s*mg",
+        "rocuronium": r"rocuronium.{0,40}?(\d+(?:\.\d+)?)\s*mg|roc\b.{0,40}?(\d+(?:\.\d+)?)\s*mg",
+        "succinylcholine": r"succinylcholine.{0,40}?(\d+(?:\.\d+)?)\s*mg|sux\b.{0,40}?(\d+(?:\.\d+)?)\s*mg",
     }
 
-    for drug, (pattern, ceiling) in patterns.items():
+    for drug, pattern in patterns.items():
+        ceiling = signed_ceiling_mg(drug, ctx)
+        if ceiling is None:
+            continue
         for m in re.finditer(pattern, q):
             dose_txt = next((g for g in m.groups() if g), None)
-            if dose_txt and float(dose_txt) > ceiling:
-                # A35: the ceilings (2, 1.2, 2 mg/kg) are in no signed entry,
-                # so the hold does not print them. The check is unchanged.
+            if dose_txt and float(dose_txt) > ceiling + 1e-9:
                 issues.append(
                     f"Provider requested {drug} {float(dose_txt):g}mg for a "
-                    f"patient of {wt:g} kg, above this system's {drug} ceiling. "
-                    f"Ask for {drug} by name, with what it is for, to get the "
-                    f"signed dose."
+                    f"patient of {wt:g} kg, above the highest signed {drug} dose "
+                    f"for this patient. Ask for {drug} by name, with what it is "
+                    f"for, to get the signed dose."
                 )
     return issues
 

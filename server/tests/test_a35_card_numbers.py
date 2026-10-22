@@ -116,5 +116,5 @@ def test_the_overdose_hold_prints_no_unsigned_ceiling(q, ceiling):
     ctx = oc.rebuild_patient_context_from_history(q)
     (issue,) = oc.detect_requested_medication_overdose(q, ctx)
     assert ceiling not in issue, issue
-    assert "ceiling" in issue  # the check is unchanged; it still holds
+    assert "highest signed" in issue  # it still holds (A36: against the signed maximum)
     assert "a 80" not in issue, issue

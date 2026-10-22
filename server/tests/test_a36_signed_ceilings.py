@@ -50,8 +50,9 @@ def _ctx(q):
     ("20 kg child, 6 years old, ketamine IM", "ketamine", 60.0),
     # child succinylcholine is age-banded: 5 years and above 1.5 mg/kg,
     # under 5 years 2 mg/kg; with no age, the lower band
-    ("20 kg child, 6 years old, succinylcholine IV", "succinylcholine", 30.0),
-    ("12 kg child, 2 years old, succinylcholine IV", "succinylcholine", 24.0),
+    ("6 year old child 20 kg, succinylcholine IV", "succinylcholine", 30.0),
+    ("2 year old child 12 kg, succinylcholine IV", "succinylcholine", 24.0),
+    ("child 12 kg, succinylcholine IV", "succinylcholine", 18.0),  # no age: lower band
 ])
 def test_the_ceiling_is_the_highest_signed_dose_for_this_patient(q, drug, mg):
     assert oc.signed_ceiling_mg(drug, _ctx(q)) == pytest.approx(mg)
