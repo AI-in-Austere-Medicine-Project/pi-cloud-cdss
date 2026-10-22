@@ -134,8 +134,7 @@ def test_the_calculators_no_longer_carry_a_concentration():
     A calculator that still knew a concentration would be a second source of
     truth, and the second source is the one that goes stale.
     """
-    for cand in (oc.ketamine_analgesia_iv(80), oc.ketamine_analgesia_im(80),
-                 oc.ketamine_induction_iv(80, False),
+    for cand in (oc.ketamine_induction_iv(80, False),
                  oc.ketamine_post_intubation_iv(80),
                  oc.rocuronium_rsi(80, False), oc.succinylcholine_rsi(80, False),
                  oc.lorazepam_seizure(80)):

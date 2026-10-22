@@ -14,6 +14,7 @@ access)", 2 mg/kg, with no signed entry behind it.
     cd server && ./run_unit_tests.sh
 """
 import os
+import re
 
 import pytest
 
@@ -48,7 +49,8 @@ def test_the_served_dose_is_inside_the_signed_range_and_cap():
         q = f"{kg} kg adult, femur fracture, ketamine for pain IM"
         _ctx, card = _card(q)
         give = _give(card)
-        mg = float(give.split("ketamine IM: ")[1].split(" mg")[0])
+        # "ketamine IM: 60 mg" or, with a declared vial, "… ketamine IM (25 mg)".
+        mg = float(re.search(r"ketamine IM(?::| \()\s*([\d.]+) ?mg", give).group(1))
         # 0.5-1.0 mg/kg, never above the 100 mg single maximum.
         assert min(0.5 * kg, 100.0) <= mg <= min(1.0 * kg, 100.0), (kg, give)
 

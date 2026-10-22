@@ -1481,19 +1481,19 @@ DOSE_TEMPLATE_CASES = [
         "contract": lambda: [c for c in
                              [_oc._contract_analgesia_candidate(_analgesia_ctx("IV"))]
                              if c],
-        "backfill": [lambda w: _oc.ketamine_analgesia_iv(w)],
+        "backfill": [],
         "weight": 60.0,
     },
     {
-        # The bank has no IM analgesia entry. This case exists to pin that the
-        # backfill is ALLOWED here and that the card says so — and that the
-        # signed IM dissociative-sedation entry never leaks in to fill it.
-        "name": "ketamine_analgesia_im_backfill",
+        # A35: the IM card serves the signed IM pain entry ("breakthrough pain
+        # — IM/IN"); the 2 mg/kg calculator that backfilled it is gone, and
+        # the signed IM dissociative-sedation entry never fills it.
+        "name": "ketamine_analgesia_im",
         "render": lambda: _oc.build_ketamine_analgesia_response(_analgesia_ctx("IM")),
         "contract": lambda: [c for c in
                              [_oc._contract_analgesia_candidate(_analgesia_ctx("IM"))]
                              if c],
-        "backfill": [lambda w: _oc.ketamine_analgesia_im(w)],
+        "backfill": [],
         "weight": 60.0,
     },
     {
@@ -1699,16 +1699,20 @@ def test_a_signed_indication_is_never_substituted_for_a_different_one():
     """The IM analgesia case, pinned as its own assertion because it is the one
     the owner called out: ketamine's signed IM entries are dissociative
     sedation at 3-4 mg/kg, twelve to sixteen times the IV analgesia dose. A
-    pain request on the IM route must reach the calculator, never them."""
+    pain request on the IM route reaches the signed IM pain entry (A35:
+    "breakthrough pain — IM/IN", 0.5 mg/kg, 30 mg at 60 kg), never them, and
+    never the removed 2 mg/kg calculator (120 mg)."""
     ctx = _analgesia_ctx("IM")
-    assert _oc._contract_analgesia_candidate(ctx) is None, \
-        "an IM entry matched an analgesia request — check the route/indication scoping"
+    d = _oc._contract_analgesia_candidate(ctx)
+    assert d is not None and d.indication.startswith("breakthrough pain"), \
+        "an IM entry other than the pain entry matched an analgesia request"
+    assert d.dose_mg == 30.0, d
 
     text = _oc.build_ketamine_analgesia_response(ctx)
     give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
     assert "dissociative sedation" not in give, \
         "an agitation indication is being served as analgesia"
-    assert "120 mg" in text, "the declared IM backfill is not what got served"
+    assert "120 mg" not in text, "the removed 2 mg/kg IM calculator was served"
     # 3 and 4 mg/kg on a 60 kg patient.
     for smuggled in ("180 mg", "240 mg"):
         assert smuggled not in text, f"an agitation dose reached a pain card: {smuggled}"

@@ -1299,26 +1299,6 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
 # DETERMINISTIC DOSE CALCULATORS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def ketamine_analgesia_iv(weight_kg: float) -> DoseCandidate:
-    dose_mg = round(weight_kg * 0.3, 1)
-    return DoseCandidate(
-        drug="ketamine", indication="subdissociative analgesia", route="IV",
-        dose_mg=dose_mg,
-        source="deterministic_calculator:ketamine_analgesia_iv_0.3mgkg",
-        warning="Monitor airway and respirations. Subdissociative range."
-    )
-
-
-def ketamine_analgesia_im(weight_kg: float) -> DoseCandidate:
-    dose_mg = round(weight_kg * 2.0, 1)
-    return DoseCandidate(
-        drug="ketamine", indication="dissociative analgesia (IM — no IV access)",
-        route="IM", dose_mg=dose_mg,
-        source="deterministic_calculator:ketamine_analgesia_im_2mgkg",
-        warning="IM dose is higher than IV analgesia dose — this is expected and correct. Monitor airway."
-    )
-
-
 def ketamine_induction_iv(weight_kg: float, is_pediatric: bool) -> DoseCandidate:
     dose_mg = round(weight_kg * 1.5, 1)
     max_mg = weight_kg * 2.0 if is_pediatric else min(weight_kg * 2.0, 200.0)
@@ -1821,6 +1801,11 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
 
 
 ANALGESIA_INDICATIONS = ("moderate to severe pain",)
+# A35 (owner, 2026-10-22): the adult bank's IM pain entry is "breakthrough
+# pain — IM/IN (prolonged field care)", 0.5-1.0 mg/kg, max single 100 mg (JTS
+# ID91 p.33). An IM request falls back to it after "moderate to severe pain"
+# (the paediatric IM entry); it is never the dissociative-sedation entry.
+IM_ANALGESIA_INDICATIONS = ("breakthrough pain — im/in",)
 
 
 def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate]:
@@ -1843,8 +1828,12 @@ def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate
       substitution this whole layer exists to prevent. Owner instruction,
       2026-08-25: it must not stand in for analgesia.
 
-    Returns None when nothing is signed for that route — the caller backfills
-    from the legacy calculator and SAYS SO in the SOURCE line.
+    IM also takes "breakthrough pain — IM/IN" (A35), after "moderate to
+    severe pain": the adult bank's only IM pain entry.
+
+    Returns None when nothing is signed for that route, and the card holds.
+    The legacy calculators that used to backfill it (0.3 mg/kg IV, 2 mg/kg
+    IM, no signed entry behind either) were removed by A35.
     """
     if drug_contracts is None or ctx.dosing_weight_kg is None:
         return None
@@ -1852,8 +1841,11 @@ def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate
     if route not in ("IV", "IM"):
         return None
 
-    for name, entry in drug_contracts.signed_entries_by_indication(
-            ANALGESIA_INDICATIONS, ctx.is_pediatric, ctx.age_years):
+    lookups = [ANALGESIA_INDICATIONS] + ([IM_ANALGESIA_INDICATIONS] if route == "IM" else [])
+    candidates = [(n, e) for patterns in lookups
+                  for n, e in drug_contracts.signed_entries_by_indication(
+                      patterns, ctx.is_pediatric, ctx.age_years)]
+    for name, entry in candidates:
         if name != "ketamine" or entry.get("route") != route:
             continue
         r = drug_contracts.resolve_dose(entry, ctx.dosing_weight_kg)
@@ -2278,11 +2270,9 @@ def build_allowed_doses(query: str, ctx: PatientContext,
             superseded.add(drug_name)
 
     is_rsi = any(x in q for x in ['rsi', 'intubat', 'rapid sequence'])
-    is_analg = any(x in q for x in ['pain', 'analges', 'fracture', 'fx', 'arm', 'leg', 'analgesia'])
     is_seizure = (any(x in q for x in ['seizure', 'seizing'])
                   or bool(_SEIZURE_STATUS_RE.search(q))
                   or is_active_seizure_query(q))
-    has_ketamine = 'ketamine' in named and 'ketamine' not in superseded
     has_roc = 'rocuronium' in named and 'rocuronium' not in superseded
     has_succ = 'succinylcholine' in named and 'succinylcholine' not in superseded
     # 'benzo' is a CLASS word, not a lorazepam alias, and it is preserved here
@@ -2324,17 +2314,6 @@ def build_allowed_doses(query: str, ctx: PatientContext,
         # still gets the bundle's sedation slot.
         doses.extend(indication_matched(query, _contract_dose_candidates(query, ctx)))
         return _finish_doses(_without_contraindicated_sux(query, doses), ctx)
-
-    if has_ketamine:
-        if is_analg or (not is_seizure):
-            if ctx.route_preference == "IV":
-                doses.append(ketamine_analgesia_iv(w))
-            elif ctx.route_preference == "IM":
-                doses.append(ketamine_analgesia_im(w))
-            elif ctx.route_preference == "UNKNOWN":
-                # Build both — generator will present based on context
-                doses.append(ketamine_analgesia_iv(w))
-                doses.append(ketamine_analgesia_im(w))
 
     # SEIZURE IS A ROLE, filled the way the RSI bundle's roles are filled.
     #
@@ -6216,16 +6195,11 @@ def is_ketamine_analgesia_context(text: str) -> bool:
     return has_ketamine and has_pain
 
 
-# "Mixed" is for a card where SOME doses came from the bank — the RSI bundle,
-# with three roles and three provenances. This card serves exactly one dose, so
-# it is never mixed: it is contract, or it is not. When it is not, the medic is
-# owed the specific reason, because "this system has no contracts" and "the
-# contract bank is silent on THIS route" are different facts and only the second
-# one is true here.
-LEGACY_ANALGESIA_SOURCE = (
-    "Deterministic calculator — the signed contract bank holds no IM analgesia "
-    "entry for ketamine, and the signed IM entries are for dissociative "
-    "sedation at a much higher dose and were NOT used")
+# A35: with no signed analgesia entry on the route, the card holds. It names
+# the route and no number (the hold never states what is not signed).
+def ketamine_analgesia_unsigned_issue(route: str) -> str:
+    return (f"No ketamine dose for pain is signed for the {route} route for this "
+            f"patient, so none is given here. Use local protocol or medical control.")
 
 
 def ketamine_age_exclusions(ctx: PatientContext,
@@ -6274,7 +6248,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
 def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
     """Ketamine analgesia for a confirmed weight and a known route.
 
-    Contract first, calculator only where the bank is silent. This card used to
+    Signed contract only (A35). This card used to
     call ketamine_analgesia_iv() directly and print "deterministic calculator"
     underneath it, which is how it went on serving 0.3 mg/kg — 18 mg at 60 kg —
     after the owner signed NASEMSO's 0.25 mg/kg at 15 mg. It returns at step 2j,
@@ -6283,10 +6257,11 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
     over; the fix is the same fix, and the SOURCE line is now computed from what
     was actually served rather than asserted.
 
-    IM is the honest split: the bank has no signed IM analgesia entry, so IM
-    still comes from the calculator and the SOURCE line says "Mixed". What it
-    must NEVER do is reach for the signed IM dissociative-sedation entry to fill
-    the gap — see _contract_analgesia_candidate.
+    IM serves the signed IM pain entry (A35: the adult "breakthrough pain —
+    IM/IN", 0.5-1.0 mg/kg, max 100 mg). Where the route has no signed pain
+    entry the card holds; the 2 mg/kg IM calculator that used to fill the gap
+    is gone. What it must NEVER do is reach for the signed IM
+    dissociative-sedation entry — see _contract_analgesia_candidate.
     """
     if not ctx.confirmed_weight_kg or ctx.route_preference not in ["IV", "IM"]:
         return None
@@ -6299,10 +6274,9 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
 
     d = _contract_analgesia_candidate(ctx)
     if d is None:
-        # No signed entry for this route. Backfill, flagged.
-        d = (ketamine_analgesia_iv(ctx.confirmed_weight_kg)
-             if ctx.route_preference == "IV"
-             else ketamine_analgesia_im(ctx.confirmed_weight_kg))
+        # No signed entry for this route: hold (A35). No calculator backfill.
+        return build_safety_hold(
+            [ketamine_analgesia_unsigned_issue(ctx.route_preference)], "")
     d = resolve_dose_volume(d, ctx)
     served = [d]
 
@@ -6332,7 +6306,7 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
 **TLDR**
 {render_dose_summary(d, label)}
 
-**SOURCE**: {served_source_line(served, LEGACY_ANALGESIA_SOURCE)}
+**SOURCE**: {served_source_line(served, "no signed dose")}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 

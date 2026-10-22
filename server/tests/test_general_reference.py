@@ -48,7 +48,9 @@ def test_fallback_does_not_hijack_retrieved_answers(source_mode):
 
 
 def test_a_populated_dose_contract_keeps_the_query_on_the_dose_path():
-    contract = [oc.ketamine_analgesia_iv(80.0)]
+    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated", route_preference="IV")
+    contract = [oc._contract_analgesia_candidate(ctx)]
+    assert contract[0] is not None
     assert use(allowed_doses=contract) is False
 
 
