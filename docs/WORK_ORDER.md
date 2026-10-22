@@ -76,7 +76,10 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A32 | A stated indication restricts what the dose check accepts; another indication's dose of the same drug holds, naming both | **done**: #173, merged; owner, 2026-10-20 |
 | A33 | A recipe or rate that names no drug is the question's drug, or it holds | **done**: #175, merged; owner, 2026-10-21 (A32 harness finding) |
 | A34 | The offered doses are the stated route's only (IV and IO one route); "versed IM" is never offered the IV entry | **done**: #176, merged; owner, 2026-10-21 (freeze plan to v5.1.0, item 1; signing batch 2 finding 3) |
-| A35 | "Ketamine for pain IM" serves the signed adult IM entry or holds; every drug number a deterministic card emits has a signed entry behind it, or holds | **in review**: this PR; owner, 2026-10-22 (A34 harness finding; sweep) |
+| A35 | "Ketamine for pain IM" serves the signed adult IM entry or holds; every drug number a deterministic card emits has a signed entry behind it, or holds | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 (A34 harness finding; sweep) |
+| A36 | The requested-overdose ceilings come from the signed entries | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
+| A37 | The tension card's TXA line removed (not in its cited quote) and the card re-signed | **in review**: the v5.1.0 PR (#177); re-signed by Andrew Azelton, 2026-10-22 |
+| A38 | The seizure card chooses its benzodiazepine by the available route | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -870,6 +873,59 @@ The existing tests that pinned a calculator or the card's recipe were updated:
 | RSI, 80 kg | 160 mg / 96 mg / 40 mg |
 | seizing, 60 kg | lorazepam 4 mg |
 | ketamine 500 mg, 80 kg | held, no ceiling number |
+
+### The v5.1.0 freeze (owner, 2026-10-21 and 2026-10-22): one branch, one PR
+
+**Owner, 2026-10-22 (#177 review), process:** "Everything to v5.1.0 goes on ONE branch and ONE PR. Inside it, each item keeps its own commits, failing test first, in this order: A36 ceilings from signed entries; A37 tension card TXA line removed and re-signed; vent card settings printed for my signature ruling; A38 seizure card by available route; pacing match to E13; E05 relabel and re-sign; SAFETY.md, README and REFERENCE for 5.1.0 including the cited-in-code non-drug numbers. Run replay, suite and harness ONCE at the end. The report tags every moved row with the item that moved it, newly released rows listed for my sign-off. Anything the harness finds that isn't on this list is recorded in v1.1, not fixed. Do not merge."
+
+The branch is #177's (`a35-signed-cards`): A35 first, then the items below in that order. Each item's tests are committed failing before its change.
+
+**A36: the overdose ceilings come from the signed entries.**
+- `signed_ceiling_mg` is the highest signed single dose of the drug for this patient:
+  - the patient's population;
+  - the stated route, IV = IO (every route when none is stated);
+  - each entry's range maximum at the confirmed weight, capped at the entry's own maximum;
+  - age-banded entries by age; with no age, the lowest band.
+- It replaces the unsigned 2 / 1.2 / 2 mg/kg, and the hold names no number but the request.
+- Tests: `test_a36_signed_ceilings.py`, 15 of 19 failed first.
+
+**A37: the tension card's TXA line.**
+- "TXA within 3 hours" is removed from the THEN line: its quote (ID74 p.5) does not state it.
+- Re-signed by Andrew Azelton, 2026-10-22, as ruled.
+- Every number on the card is now in its cited quote.
+- Tests: `test_a37_tension_txa_line.py`, 4 of 4 failed first.
+
+**Vent card settings, for the owner's signature ruling.**
+- `docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md` has every line the five vent cards render, verbatim, with numbers marked and references, plus the Devine IBW constants.
+- One ruling line per card: SIGN / CHANGE / REMOVE / UNSIGN. Nothing is signed.
+- Tests: `test_vent_settings_packet.py`, 7 of 7 failed first.
+
+**A38: the seizure card by the available route.**
+- The seizure role chooses among the signed active-seizure entries on the stated route: lorazepam first, midazolam where named, else the route's entry.
+- A child with no IV gets IM midazolam 0.2 mg/kg. An adult with no IV still holds: there is no adult IM seizure entry.
+- Tests: `test_a38_seizure_by_route.py`, 2 of 7 failed first; the others pin what must not change.
+
+**Pacing match (freeze plan item 2).**
+- A "pacing / cardioversion" indication class sits ahead of sedation. E13 and the paediatric pacing/cardioversion entry are in it.
+- Its cue words are pacing, "about to pace", transcutaneous pacing, TCP and cardioversion. A pacemaker is not pacing.
+- For a drug signed for it, a stated pacing reads as that class alone, so the ID61 1 mg add-on holds. A drug with no pacing entry keeps the sedation reading it had.
+- Found writing it: "rsi" was matched as a substring, and "cardioversion" contains it. "midazolam for cardioversion" was served the RSI bundle (ketamine 160 mg, rocuronium 96 mg). The builder and the RSI pre-gate now match "rsi" as a word.
+- Tests: `test_pacing_match.py`, committed failing in two parts (15 of 18; then the cardioversion-RSI cases).
+
+**E05 relabel (freeze plan item 3).**
+- The new label is "push-dose vasopressor for hypotension / shock (SBP < 90)". Dose, sources and cautions are unchanged.
+- Unsigned and re-signed through `set_contract.py` by AI-AIM for Andrew Azelton, 2026-10-22.
+- The push-dose prep card's pattern takes "push-dose" as well as "push dose", so an adult in shock is served E05 (5–20 mcg).
+- Tests: `test_e05_relabel.py`, 6 of 8 failed first.
+
+**5.1.0 docs.**
+- SAFETY.md and README carry the counts read from the bank (108 of 118 signed, 36 retired, 10 unsigned) and the new guarantees.
+- SAFETY.md lists the non-drug numbers cited in code that no signature covers.
+- REFERENCE carries every item.
+- `server/version.py` and CHANGELOG are not changed (docs only, as ruled).
+- Tests: `test_release_5_1_docs.py`, 37 of 39 failed first.
+
+**Replay, suite and harness:** once, at the end of the branch. The results are in the PR report and in the section below.
 
 ### B1: source-mode labelling
 
@@ -1989,10 +2045,10 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 
 **From the A35 sweep (2026-10-22; owner to place):**
 
-- **The overdose ceiling holds signed doses.** Ketamine's 2 mg/kg ceiling is below the signed IM entries: agitation 4 mg/kg, refractory seizure 3–4 mg/kg, paediatric IM 3 mg/kg. "ketamine 320 mg IM" for an agitated 80 kg patient holds as an overdose. Matching the ceiling to the signed maximum would release those requests.
-- **A seizing patient with no IV access gets no benzodiazepine dose.** Lorazepam (IV only) is chosen first and the route filter drops it, so the card holds. The signed paediatric IM midazolam seizure entry is never chosen.
-- **The signed tension card's "TXA within 3 hours" is not in the quote it cites** (ID74 p.5). The DCR card's TLDR says the same, and its SOURCE omits ID18 p.9 (the signed TXA caution cites it).
-- **The vent cards are signed by "clinician"**, a role, not a name (2026-08-22).
+- **The overdose ceiling holds signed doses.** Ketamine's 2 mg/kg ceiling is below the signed IM entries: agitation 4 mg/kg, refractory seizure 3–4 mg/kg, paediatric IM 3 mg/kg. "ketamine 320 mg IM" for an agitated 80 kg patient holds as an overdose. **Fixed by A36.**
+- **A seizing patient with no IV access gets no benzodiazepine dose.** Lorazepam (IV only) is chosen first and the route filter drops it, so the card holds. The signed paediatric IM midazolam seizure entry is never chosen. **Fixed by A38.**
+- **The signed tension card's "TXA within 3 hours" is not in the quote it cites** (ID74 p.5). **Fixed by A37.** The DCR card's TLDR says the same, and its SOURCE omits ID18 p.9 (the signed TXA caution cites it): listed in SAFETY.md, v1.1.
+- **The vent cards are signed by "clinician"**, a role, not a name (2026-08-22). Printed for the owner's ruling: docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md.
 - **Unsigned or uncited, not drug numbers:**
   - vitals_rules.json carries no signoff;
   - the Devine IBW constants and the ketamine card's "reassess q5min" have no citation.
@@ -2006,7 +2062,7 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **B1 citation picks the wrong population** (found in signing batch 2's live harness, 2026-10-19): `jts_contract_citations` keys entries without population, so a paediatric entry's citation prints on the adult dose where the two share indication, route and version (14 signed pairs). Citation only. Owner, 2026-10-20: its own PR, after the epinephrine-in-shock item.
 - **The offered set is not filtered by route or stated indication** (found in signing batch 2's replay, 2026-10-19): "versed dose IM" is offered the IV procedural bolus. Owner, 2026-10-20: its own PR, after the wrong-population citation. The indication-blind ketamine rate check found with it is A30 (done, #171). The stated indication restricts the check since A32 (#173). **Route: fixed by A34** (owner, 2026-10-21, freeze plan item 1, ahead of the citation, which moved to v1.1).
 - **Open contract drafts:** the 39 incomplete drafts and P1, P2 (unsigned inventory, #146); the fentanyl analgesia infusion entry (#148); signing batch 1, analgesia (2026-10-14): 8 signed; NASEMSO IM ketamine, paediatric IN ketamine (incomplete) and ketorolac (excluded) unsigned; signing batch 2, sedation and antibiotics (ruled 2026-10-19): 5 signed; 8 held (SMOG midazolam procedural and ketamine infusion alternates; midazolam ventilated infusion, v1.1, its conflict open; rocuronium redose; paediatric ketamine infusion, v1.1; paediatric ceftriaxone sepsis, incomplete); 12 undrafted indications and 2 discrepancies listed as v1.1 items in the unsigned inventory; signing batch 3 (ruled 2026-10-21): 26 signed, 26 retired, E02, E09, E14, E15 deferred, P1/P2 held, E27 ruled SIGN and not signable (tablets; owner to rule the unit). Signing is the owner's act.
-- **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05; the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg).
+- **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05 (**fixed by the E05 relabel**); the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg) (**fixed by the pacing match**).
 - **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked. Since A34 it is offered the IM entry only.
 - **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21). **Fixed by A35** (owner, 2026-10-22). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
 

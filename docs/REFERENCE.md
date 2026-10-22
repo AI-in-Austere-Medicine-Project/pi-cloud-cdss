@@ -81,6 +81,13 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | A33 | A line that names no drug: its rate (and a recipe with a drug amount) is read as the question's one named drug and checked as that drug's rate; with none, it holds. A fluid's rate, a urine-output target and a fluid question's volume rate are left alone. | Owner, 2026-10-21 (A32 harness) | Done, #175 |
 | A34 | The offered doses are the stated route's only (IV and IO one route; IV access reads as IV, no access as IM); a drug with nothing on the route is offered nothing. "versed dose IM" is offered IM midazolam alone. | Signing batch 2, finding 3; owner, 2026-10-21 (freeze plan item 1) | Done, #176 |
 | A35 | Ketamine for pain IM serves the signed adult IM entry (breakthrough pain, 0.5 mg/kg, max 100 mg) or holds. Every drug number a deterministic card emits has a signed entry behind it, or holds: the legacy calculators, the prep card's own recipes and the printed overdose ceilings are gone. The list: docs/authoring/A35_CARD_NUMBERS_2026-10-22.md. | Owner, 2026-10-22 (A34 harness; sweep) | In review |
+| A36 | A requested ketamine, rocuronium or succinylcholine dose above the highest signed single dose for this patient holds (population, stated route with IV = IO, range maximum at the weight, capped at the entry's maximum; age bands by age, the lowest band with none). Replaces the unsigned 2 / 1.2 / 2 mg/kg; the hold names no number. | A35 sweep; owner, 2026-10-22 | In review (v5.1.0 PR) |
+| A37 | The tension-pneumothorax card's "TXA within 3 hours" is removed: its cited quote (ID74 p.5) did not state it. Every number on the card is in its quote. Re-signed by Andrew Azelton, 2026-10-22. | A35 sweep; owner, 2026-10-22 | In review (v5.1.0 PR) |
+| A38 | The seizure card chooses its benzodiazepine among the signed entries on the available route (lorazepam first, midazolam where named): a child with no IV gets IM midazolam 0.2 mg/kg; an adult with no IV still holds. | A35 sweep; owner, 2026-10-22 | In review (v5.1.0 PR) |
+| Pacing match | "Midazolam for pacing" or "cardioversion" is E13 (2.5–5 mg): a "pacing / cardioversion" class ahead of sedation; for a drug signed for it, the ID61 1 mg add-on holds. "rsi" is matched as a word, so "cardioversion" no longer calls the RSI bundle. | Batch 3 harness; owner, 2026-10-21 (freeze plan item 2) | In review (v5.1.0 PR) |
+| E05 relabel | E05 is "push-dose vasopressor for hypotension / shock (SBP < 90)" (ID83 p.24), re-signed by AI-AIM for Andrew Azelton, 2026-10-22; the push-dose prep card serves it to an adult in shock. | Batch 3 harness; owner, 2026-10-21 (freeze plan item 3) | In review (v5.1.0 PR) |
+| Vent card settings | Every line the five vent cards render, printed verbatim with references and the IBW constants, for the owner's SIGN / CHANGE / REMOVE / UNSIGN ruling (docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md). Nothing signed. | A35 sweep; owner, 2026-10-22 | Printed; owner to rule |
+| Release 5.1.0 | SAFETY.md, README and REFERENCE for 5.1.0: 108 of 118 entries signed, 36 retired; the indication- and route-specific check; no calculator; and the non-drug numbers cited in code, listed. The owner tags v5.1.0 after merging. | Owner, 2026-10-21/22 | In review (v5.1.0 PR) |
 
 ## 4. D items: data and speed
 
@@ -161,7 +168,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | [`MULTI_MODEL_BENCHMARK_2026-09-25.md`](MULTI_MODEL_BENCHMARK_2026-09-25.md) | Run 3: nine arms, hold lists, specifics, findings 1–8 |
 | [`LOCAL_LLM_BENCHMARK.md`](LOCAL_LLM_BENCHMARK.md) | Cloud vs `qwen2.5:3b`: the 2026-09-19 baseline, repeat 1, post-signing run 2. The base model's record; bench results are not appended to it. |
 | `DISTILL_BENCH_<tag>.md` | One per `make bench`: before/after against `qwen2.5:3b` |
-| [`../SAFETY.md`](../SAFETY.md) | What the system guarantees, what it does not, how a change is made (5.0.0) |
+| [`../SAFETY.md`](../SAFETY.md) | What the system guarantees, what it does not, how a change is made (5.1.0) |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | Release history; 5.0.0 is the v1.0 scope |
 | [`model_cards/edgecdss-v3.md`](model_cards/edgecdss-v3.md) | Hugging Face model card draft for `edgecdss-v3`: research artifact, not adopted; Qwen research licence. Not published |
 | [`FEEDBACK_REVIEW_2026-09-03.md`](FEEDBACK_REVIEW_2026-09-03.md) | The field feedback behind A3 and C1 |
@@ -189,7 +196,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 
 ## 9. v1.1 (not in the v1.0 scope)
 
-Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on the found list not in the v1.0 scope). Release 5.0.0 is the v1.0 scope.
+Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on the found list not in the v1.0 scope). Release 5.0.0 is the v1.0 scope; 5.1.0 is the signing freeze (owner, 2026-10-22).
 
 | Finding | Found in |
 |---|---|
@@ -206,12 +213,12 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 | The B1 SOURCE line can cite the paediatric entry on an adult dose: `jts_contract_citations` keys entries without population, and 14 signed adult/paediatric pairs share indication, route and version (live: adult cefazolin 2 g cited ID24 p.12's paediatric footnote). Citation only; owner, 2026-10-20: its own PR, after the epinephrine-in-shock item. | signing batch 2 |
 | A unitless weight ("he is 150") silently skips the RSI card. | #86 |
 | An eclamptic seizure is served lorazepam with no magnesium; the bank has no signed magnesium entry. SMOG p.37 puts magnesium first line in pregnancy. | #103 |
-| Signed in batch 3, not reached on the main path (nothing wrong served): the push-dose prep card refuses E05 (narrows by "shock" in the label); the haemorrhagic-shock pre-gate gives TXA only to a calcium question; rate entries (E06, E18) are not offered to the generator. | Signing batch 3 live harness |
+| Signed in batch 3, not reached on the main path (nothing wrong served): the push-dose prep card refuses E05 (narrows by "shock" in the label; fixed by the E05 relabel, 2026-10-22); the haemorrhagic-shock pre-gate gives TXA only to a calcium question; rate entries (E06, E18) are not offered to the generator. | Signing batch 3 live harness |
 | "versed dose IM" is answered, not asked which indication, now that adult IM midazolam has one signed class (U12): batch 3's one newly released replay row. Owner to rule. Since A34 it is offered the IM entry only. | Signing batch 3 replay |
 | "ketamine for pain IM" gets the legacy calculator's 2 mg/kg (160 mg at 80 kg). Fixed by A35. | A34 live harness |
-| The overdose ceiling (ketamine 2 mg/kg) holds signed doses (IM agitation 4 mg/kg, refractory seizure 3–4 mg/kg). Matching it to the signed maximum releases those requests: owner to rule. | A35 sweep |
-| A seizing patient with no IV access gets no benzodiazepine dose: lorazepam (IV) is chosen, then dropped by the route filter; the signed paediatric IM midazolam seizure entry is never chosen. Holds; nothing wrong served. | A35 sweep |
-| Non-drug numbers with no signed entry (TBI targets, q5min, IBW constants, NRS bands, vitals thresholds, syringe limits) are listed in A35, not changed; the signed tension card's "TXA within 3 hours" is not in its cited quote; the vent cards are signed by a role ("clinician"). Owner to rule. | A35 sweep |
+| The overdose ceiling (ketamine 2 mg/kg) holds signed doses (IM agitation 4 mg/kg, refractory seizure 3–4 mg/kg). Fixed by A36. | A35 sweep |
+| A seizing patient with no IV access gets no benzodiazepine dose: lorazepam (IV) is chosen, then dropped by the route filter; the signed paediatric IM midazolam seizure entry is never chosen. Fixed by A38. Holds; nothing wrong served. | A35 sweep |
+| Non-drug numbers with no signed entry (TBI targets, q5min, IBW constants, NRS bands, vitals thresholds, syringe limits) are listed in A35, not changed; the signed tension card's "TXA within 3 hours" is not in its cited quote (fixed by A37); the vent cards are signed by a role ("clinician"), printed for the owner's ruling. The non-drug numbers are listed in SAFETY.md. Owner to rule. | A35 sweep |
 | Uncited IV fluid rates are still served: a fluid isn't a drug the check recognises (run-3 finding 5). Closing it needs signed crystalloid entries: the owner's authoring job. | #108 |
 | The epinephrine card triggers only on "epi drip"; "epinephrine infusion rate" goes to the model and is held (mcg/min). | #110 |
 | A drug-choice question ("norepinephrine vs epinephrine drip") gets one drug's card. | #110 |
