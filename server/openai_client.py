@@ -2815,7 +2815,7 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
                 # so the hold does not print them. The check is unchanged.
                 issues.append(
                     f"Provider requested {drug} {float(dose_txt):g}mg for a "
-                    f"{wt:g}kg patient, above this system's {drug} ceiling. "
+                    f"patient of {wt:g} kg, above this system's {drug} ceiling. "
                     f"Ask for {drug} by name, with what it is for, to get the "
                     f"signed dose."
                 )
@@ -3643,6 +3643,9 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
                 "below). Never push from the ampoule.\n\n" if served else
                 "- No signed push-dose preparation for this request. Use local "
                 "protocol.\n\n")
+        tldr = ("- Push-dose epinephrine: the signed dose and its dilution, above.\n\n"
+                if served else
+                "- Push-dose epinephrine: no signed dose for this request; use local protocol.\n\n")
         return (
             "**PUSH-DOSE EPINEPHRINE PREP**\n"
             f"{prep}"
@@ -3655,7 +3658,7 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
             "**WATCH**\n"
             "- Continuous cardiac monitoring required. Use only with local protocol.\n\n"
             "**TLDR**\n"
-            "- Push-dose epinephrine: the signed dose and its dilution, above.\n\n"
+            f"{tldr}"
             f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
         ), []
