@@ -74,7 +74,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A30 | A rate entry outside bradycardia, cardiogenic and shock is matched only for its own stated indication | **done**: #171, merged; found signing batch 2 (#170), finding 2 |
 | A31 | A bare "ketamine drip" is not RSI: with no indication it is asked which indication | **done**: #172, merged; owner ruling 1, #170 review (2026-10-20) |
 | A32 | A stated indication restricts what the dose check accepts; another indication's dose of the same drug holds, naming both | **done**: #173, merged; owner, 2026-10-20 |
-| A33 | A recipe or rate that names no drug is the question's drug, or it holds | **in review**: this PR; owner, 2026-10-21 (A32 harness finding) |
+| A33 | A recipe or rate that names no drug is the question's drug, or it holds | **done**: #175, merged; owner, 2026-10-21 (A32 harness finding) |
+| A34 | The offered doses are the stated route's only (IV and IO one route); "versed IM" is never offered the IV entry | **in review**: this PR; owner, 2026-10-21 (freeze plan to v5.1.0, item 1; signing batch 2 finding 3) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -103,7 +104,7 @@ Owner asks outside the lettered items:
 | Contract batch 1, analgesia (owner, 2026-10-08): from the unsigned inventory, analgesia only. One entry is in the class: fentanyl, analgesia infusion, IV, adult (ketamine analgesia and morphine are already signed; ketamine's prolonged sedation infusion and naloxone IN are not analgesia). Drafted at 25-250 mcg/hr from JTS ID29 p.24, capped by ID12 p.24, every source with page and verbatim quote (checked against the PDFs). Starting rate: no source states one, left incomplete. The canine 2-10 mcg/kg/hour (SMOG p.57, MWD ID16) is excluded | **done**: #148, merged (the draft); the entry is unsigned, v1.1 |
 | Signing batch 1, analgesia (owner, 2026-10-14): ketamine (IV/IM/IN, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen, ketorolac, each with a verbatim quote, CPG ID and printed page; unquotable values incomplete; no signatures. Plus the live hold log for the last 7 days, to choose batch 2 | **in review**: ruled 2026-10-14; 8 signed (adult IM ketamine at 0.5–1.0 mg/kg after the owner's read), ketorolac excluded; ready to merge (see the section below) |
 | Signing batch 2, sedation and antibiotics (owner, 2026-10-16): midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin, ceftriaxone; per entry the proposed dose, route, maximum and repeat, a verbatim quote and the printed page; flagged where the sources disagree or no JTS/SMOG page states a number; no signatures | **in review**: ruled 2026-10-19; 5 signed, 8 held (see the section below) |
-| Signing batch 3, the last (owner, 2026-10-21): a review packet in Word and PDF, one page per unsigned entry (42), P1/P2 and the 12 undrafted indications; verbatim quote, printed page and the source page rendered with the line boxed; JTS first, SMOG second, NASEMSO noted only; RETIRE pre-marked where no JTS or SMOG page states a number; no signatures | **in review**: ruled by the owner 2026-10-21 and applied: 26 entries signed (24 rulings), 26 retired, 4 deferred, P1/P2 held; E27 ruled SIGN but not signable (tablets); replay 0 newly released except one which-indication question now answered (pipeline, "versed dose IM") |
+| Signing batch 3, the last (owner, 2026-10-21): a review packet in Word and PDF, one page per unsigned entry (42), P1/P2 and the 12 undrafted indications; verbatim quote, printed page and the source page rendered with the line boxed; JTS first, SMOG second, NASEMSO noted only; RETIRE pre-marked where no JTS or SMOG page states a number; no signatures | **done**: #174, merged; ruled by the owner 2026-10-21 and applied: 26 entries signed (24 rulings), 26 retired, 4 deferred, P1/P2 held; E27 ruled SIGN but not signable (tablets); replay 0 newly released except one which-indication question now answered (pipeline, "versed dose IM"; its IV offers removed by A34) |
 | Which indication (owner, 2026-10-15): a drug named with no indication, where more than one signed indication applies, is asked "which indication?" (like the vial question) instead of being offered every entry; the answer selects the entries. Found live: "Need to give ketamine 89kg IV established", then "500", served post-intubation sedation (44.5 mg) to a patient who was not intubated, validator SAFE | **done**: #165, merged (see the section below) |
 | Indication-only doses (owner, 2026-10-14; the v1.1 finding from #97): a question naming an injury or indication with no drug builds ALLOWED_DOSES from the signed entries for that indication, so the model is offered the dose instead of inventing one. Failing test from the femur-fracture question | **in review**: tib-fib release approved; rebased on #163; owner's #164 rulings applied and accepted (2026-10-15): pain severity clinician-declared, criteria as routing, opioids for moderate/severe only, RR < 10 for all ages (paediatric table v1.1, #168), doctrine recorded (docs/DESIGN_PRINCIPLES.md); to be rebased on #165
 | D6 bench script uses A22's context (owner, 2026-10-08): bench_remote.sh's tok/s probe asked Ollama for no num_ctx (default 4096: a different setting from the arms, a reload, a silent cut); it now asks for CDSS_LOCAL_NUM_CTX (8192) with truncate false, exported once for every local client and recorded in meta.json. Checked live: 8192, 100% GPU; an oversized prompt is refused, not cut. `make probe` (`ollama run`, a one-line prompt) is unchanged: it cannot set num_ctx and its prompt is short | **done**: #147, merged |
@@ -762,6 +763,63 @@ Newly held, each read:
 - "what pressor and what rate", no drug named: qwen wrote norepinephrine 10 mcg; held, as on main.
 - The ketamine drip recipe: held on its drugless mL/hr and mg/h rates, read as ketamine.
 - The crystalloid question: served, SAFE. It includes the line "Draw 2 mL of 500mL/mL NS IV (200mL)": IV fluids are not checked (the open finding from #108), not this item.
+
+### A34: the offered doses are the stated route's (owner, 2026-10-21; freeze plan to v5.1.0, item 1)
+
+**Owner, 2026-10-21 (freeze plan to v5.1.0):** "Route filter (finding 3): offered doses filtered by the stated route; 'versed IM' is never offered the IV entry. Failing test first."
+
+**Why:** found in signing batch 2's replay (2026-10-19). "versed dose IM" was offered every IV midazolam entry: the procedural bolus, pacing, agitation, ongoing sedation and post-intubation. Batch 3 signed adult IM midazolam (U12, sedation / anxiolysis), and the which-indication question, which counts the stated route's entries, then let the question through. The IV entries were still offered beside U12, so a model that wrote the IV bolus passed the dose check.
+
+**What changed:**
+- `_finish_doses`, which every path of `build_allowed_doses` goes through, keeps only the doses on `route_preference` when a route is known. IV and IO are one route for dosing, as in the which-indication question and the second-line seizure doses (A15).
+- A drug with nothing signed on the stated route is offered nothing, so a dose written for it holds.
+- The stated route is the context's own:
+  - an IM, IV or IO in the text;
+  - IV access with no route word ("IV is established") reads as IV;
+  - no access ("no IV access") reads as IM.
+- No route: every route, as before.
+
+**Tests:** `server/tests/test_route_filter.py`, committed failing first (10 of 11 on main):
+- "versed dose IM", "midazolam IM for agitation" and "no IV access, midazolam dose" are offered IM midazolam only;
+- ketamine for pain IM is offered IM only;
+- IV and IO keep IV and IO;
+- the IV bolus written for "versed dose IM" holds, and the signed IM 2 mg passes;
+- ertapenem IM (signed IV only) is offered nothing, and the IV gram holds;
+- with no route, every route is offered.
+
+Eight existing tests pinned IN fentanyl as offered to an IV question. They are updated to keep what they test:
+- `test_b1_source_mode_labelling` (2): the NASEMSO-only IN dose is asked with no route.
+- `test_free_text_doses` (6): the reference dose is the signed IV 50 mcg; the per-kg case is checked at 50 kg.
+
+**Suite:** 3,292 passed, 0 failed (6 skipped, 3 xfailed).
+
+**Replay** (against main `e31d1e6`, after #174): served (1,738), held (308), gate (1,408) and live logs (3,315) unchanged. Pipeline (812): 9 rows changed, and in each only the off-route offers drop. **0 newly held, 0 newly released.**
+
+| Row | Stated route | Dropped from the offers |
+|---|---|---|
+| A1-WT-013, "versed dose IM" | IM | the five IV midazolam entries; U12 (IM) stays |
+| A1-WT-026, "epinephrine IM dose and concentration" | IM | arrest, push-dose and bradycardia push (IV) |
+| H-SESS-013 (bank, run, live), "80kg male fx to tib fib, need pain meds IV is established" | IV | IN fentanyl and IM/IN breakthrough ketamine |
+| R2-ORAL-ROUTE-ASPIRATION-GROUP-NEG, "confused and hypoglycaemic — I have IV access" | IV | oral dextrose for an alert patient |
+| live, "80 kg adult, severe pain from a femur fracture, fentanyl IV" | IV | IN fentanyl |
+| live, "… closed femur fracture, IV access, what can I give" | IV | IN fentanyl and IM/IN ketamine |
+| live, 7-year-old, 75 lb, status seizure, "IV established" | IV | the IM ketamine entries (agitation, seizure) and IN pain |
+
+**Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29.
+
+| Question | Result |
+|---|---|
+| "versed dose IM" | midazolam IM 2 mg (U12), SAFE |
+| "80 kg adult, agitated and combative, midazolam IM" | held: qwen2.5:3b wrote the IM 2 mg, which is signed for sedation / anxiolysis, not agitation (A32) |
+| "80 kg adult, agitated, no IV access, midazolam dose" | held, for the same reason |
+| "80 kg adult, penetrating abdominal injury, ertapenem IM" | held: the 1 g has no signed IM entry |
+| "fentanyl IV" | 50 mcg IV |
+| "epinephrine IM dose and concentration" | 0.3 mg IM, anaphylaxis |
+| "versed dose" | asked which indication, as before |
+
+**For the owner:** IV access with no route word counts as a stated IV route, as the context has read it since A15. So a patient with IV access is not offered IN fentanyl or IM/IN ketamine.
+
+**Seen in the harness, not this item:** "ketamine for pain IM" gets the legacy calculator's 2 mg/kg (160 mg at 80 kg), not the signed adult IM breakthrough-pain entry (0.5 mg/kg). It is the same on main; see the found list.
 
 ### B1: source-mode labelling
 
@@ -1884,10 +1942,11 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **`qwen2.5:3b` as the offline validator does not catch procedural errors** (D7 v3 re-bench finding, owner to place). It called a low-and-loose tourniquet, "reapply" a tourniquet on loss of pulse and "do not re-warm" a hypothermic arrest SAFE. D7 made the comparison measurable; it did not make the offline validator adequate.
 - **`qwen2.5:3b` ignores the offered ketamine doses after "severe"** (found in the #164 live harness, 2026-10-16; owner: v1.1). On a second server in local mode, a femur-fracture pain question (80 kg, IV) was asked the severity; after the answer "severe", ALLOWED_DOSES offered ketamine 20 mg and 8 mg IV, and qwen2.5:3b wrote 100 mg, then 200 mg on the RR 8 case. The gate held both times ("does not match any ALLOWED_DOSES value"), so nothing wrong was served; but on device a severe-pain question often ends in a hold rather than the signed dose.
 - **B1 citation picks the wrong population** (found in signing batch 2's live harness, 2026-10-19): `jts_contract_citations` keys entries without population, so a paediatric entry's citation prints on the adult dose where the two share indication, route and version (14 signed pairs). Citation only. Owner, 2026-10-20: its own PR, after the epinephrine-in-shock item.
-- **The offered set is not filtered by route or stated indication** (found in signing batch 2's replay, 2026-10-19): "versed dose IM" is offered the IV procedural bolus. Owner, 2026-10-20: its own PR, after the wrong-population citation. The indication-blind ketamine rate check found with it is A30 (done, #171).
+- **The offered set is not filtered by route or stated indication** (found in signing batch 2's replay, 2026-10-19): "versed dose IM" is offered the IV procedural bolus. Owner, 2026-10-20: its own PR, after the wrong-population citation. The indication-blind ketamine rate check found with it is A30 (done, #171). The stated indication restricts the check since A32 (#173). **Route: fixed by A34** (owner, 2026-10-21, freeze plan item 1, ahead of the citation, which moved to v1.1).
 - **Open contract drafts:** the 39 incomplete drafts and P1, P2 (unsigned inventory, #146); the fentanyl analgesia infusion entry (#148); signing batch 1, analgesia (2026-10-14): 8 signed; NASEMSO IM ketamine, paediatric IN ketamine (incomplete) and ketorolac (excluded) unsigned; signing batch 2, sedation and antibiotics (ruled 2026-10-19): 5 signed; 8 held (SMOG midazolam procedural and ketamine infusion alternates; midazolam ventilated infusion, v1.1, its conflict open; rocuronium redose; paediatric ketamine infusion, v1.1; paediatric ceftriaxone sepsis, incomplete); 12 undrafted indications and 2 discrepancies listed as v1.1 items in the unsigned inventory; signing batch 3 (ruled 2026-10-21): 26 signed, 26 retired, E02, E09, E14, E15 deferred, P1/P2 held, E27 ruled SIGN and not signable (tablets; owner to rule the unit). Signing is the owner's act.
 - **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05; the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg).
-- **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked.
+- **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked. Since A34 it is offered the IM entry only.
+- **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21; same on main, owner to place). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
 
 **The found list:**
 
