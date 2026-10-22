@@ -1299,57 +1299,13 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
 # DETERMINISTIC DOSE CALCULATORS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def ketamine_induction_iv(weight_kg: float, is_pediatric: bool) -> DoseCandidate:
-    dose_mg = round(weight_kg * 1.5, 1)
-    max_mg = weight_kg * 2.0 if is_pediatric else min(weight_kg * 2.0, 200.0)
-    dose_mg = min(dose_mg, max_mg)
-    return DoseCandidate(
-        drug="ketamine", indication="RSI induction", route="IV",
-        dose_mg=dose_mg,
-        source="deterministic_calculator:ketamine_induction_iv_1.5mgkg",
-        warning="Give BEFORE paralytic. Confirm weight and route."
-    )
-
-
-def ketamine_post_intubation_iv(weight_kg: float) -> DoseCandidate:
-    dose_mg = round(weight_kg * 0.5, 1)
-    return DoseCandidate(
-        drug="ketamine", indication="post-intubation sedation q20-30min", route="IV",
-        dose_mg=dose_mg,
-        source="deterministic_calculator:ketamine_post_intubation_0.5mgkg",
-        warning="After tube confirmed only. Not the induction dose."
-    )
-
-
-def rocuronium_rsi(weight_kg: float, is_pediatric: bool) -> DoseCandidate:
-    dose_mg = round(weight_kg * 1.0, 1)
-    return DoseCandidate(
-        drug="rocuronium", indication="RSI paralytic", route="IV",
-        dose_mg=dose_mg,
-        source="deterministic_calculator:rocuronium_rsi_1mgkg",
-        warning="Give AFTER induction agent. Max 1.2mg/kg."
-    )
-
-
-def succinylcholine_rsi(weight_kg: float, is_pediatric: bool) -> DoseCandidate:
-    dkg = 2.0 if is_pediatric else 1.5
-    dose_mg = round(weight_kg * dkg, 1)
-    return DoseCandidate(
-        drug="succinylcholine", indication="RSI paralytic", route="IV",
-        dose_mg=dose_mg,
-        source=f"deterministic_calculator:succinylcholine_rsi_{dkg}mgkg",
-        warning="Contraindicated: hyperkalemia, burns >24hr, crush injury, denervation."
-    )
-
-
-def lorazepam_seizure(weight_kg: float) -> DoseCandidate:
-    dose_mg = min(round(weight_kg * 0.1, 1), 4.0)
-    return DoseCandidate(
-        drug="lorazepam", indication="active seizure", route="IV",
-        dose_mg=dose_mg,
-        source="deterministic_calculator:lorazepam_seizure_0.1mgkg_max4mg",
-        warning="Monitor respiratory depression."
-    )
+# The legacy calculators (ketamine induction 1.5 mg/kg, post-intubation 0.5
+# mg/kg, rocuronium 1.0 mg/kg, succinylcholine 1.5/2.0 mg/kg, lorazepam 0.1
+# mg/kg; and A35's ketamine analgesia 0.3 / 2 mg/kg) were DELETED by A35 (owner,
+# 2026-10-22: a number a card emits with no signed entry behind it is replaced
+# by a hold). They were unreachable while their drugs had servable entries, and
+# would have come back the moment a drug lost its last one, or drug_contracts
+# failed to import. A role with no signed entry now holds.
 
 
 def _rsi_role(indication: str) -> Optional[str]:
@@ -2249,7 +2205,6 @@ def build_allowed_doses(query: str, ctx: PatientContext,
             query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)
                                                 + _indication_only_candidates(query, ctx, current_query)))), ctx)
     w = ctx.dosing_weight_kg
-    ped = ctx.is_pediatric
     q = query.lower()
     doses = []
 
@@ -2273,8 +2228,6 @@ def build_allowed_doses(query: str, ctx: PatientContext,
     is_seizure = (any(x in q for x in ['seizure', 'seizing'])
                   or bool(_SEIZURE_STATUS_RE.search(q))
                   or is_active_seizure_query(q))
-    has_roc = 'rocuronium' in named and 'rocuronium' not in superseded
-    has_succ = 'succinylcholine' in named and 'succinylcholine' not in superseded
     # 'benzo' is a CLASS word, not a lorazepam alias, and it is preserved here
     # only because removing it would change current behaviour — which this
     # migration is not allowed to do. It is on the worksheet for the owner:
@@ -2285,29 +2238,10 @@ def build_allowed_doses(query: str, ctx: PatientContext,
 
     if is_rsi:
         # RSI is a BUNDLE — induction, one paralytic, post-tube sedation — so
-        # it is assembled by ROLE rather than by drug. The signed contract
-        # fills what it can and the legacy calculators backfill only the roles
-        # left empty.
-        #
-        # Filling by role rather than by drug is what stops the failure this
-        # replaced: suppressing the legacy calculator for a signed
-        # succinylcholine made has_succ false, which sent the old branch down
-        # its `else` and served the LEGACY ROCURONIUM alongside the signed
-        # succinylcholine. Two paralytics, one intubation.
+        # it is assembled by ROLE rather than by drug, from the signed
+        # contract. A role with no signed entry is left empty (A35: the legacy
+        # calculators that backfilled it are gone).
         contract = _contract_rsi_candidates(query, ctx)
-        filled = {_rsi_role(d.indication) for d in contract}
-        prefers_succ = has_succ and not succinylcholine_contraindicated(q)
-
-        if "induction" not in filled and "ketamine" not in superseded:
-            doses.append(ketamine_induction_iv(w, ped))
-        if "sedation" not in filled and "ketamine" not in superseded:
-            doses.append(ketamine_post_intubation_iv(w))
-        if "paralytic" not in filled:
-            if prefers_succ and "succinylcholine" not in superseded:
-                doses.append(succinylcholine_rsi(w, ped))
-            elif not prefers_succ and "rocuronium" not in superseded:
-                doses.append(rocuronium_rsi(w, ped))
-
         doses.extend(contract)
         # The bundle is filled by role; only the drug-named extras are held to
         # the query's indication (A1b). A seizing patient being intubated
@@ -2360,8 +2294,6 @@ def build_allowed_doses(query: str, ctx: PatientContext,
                 contraindications=list(drug_contracts.serve_contraindications(entry)),
                 dilution=drug_contracts.push_dilution(entry),
                 warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
-        if not chosen and "lorazepam" not in superseded:
-            doses.append(lorazepam_seizure(w))
 
     doses.extend(_contract_dose_candidates(query, ctx))
     doses.extend(_indication_only_candidates(query, ctx, current_query))
@@ -2879,9 +2811,13 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
         for m in re.finditer(pattern, q):
             dose_txt = next((g for g in m.groups() if g), None)
             if dose_txt and float(dose_txt) > ceiling:
+                # A35: the ceilings (2, 1.2, 2 mg/kg) are in no signed entry,
+                # so the hold does not print them. The check is unchanged.
                 issues.append(
-                    f"Provider requested {drug} {float(dose_txt):g}mg, "
-                    f"which exceeds safety ceiling {ceiling:.1f}mg for {wt:g}kg patient."
+                    f"Provider requested {drug} {float(dose_txt):g}mg for a "
+                    f"{wt:g}kg patient, above this system's {drug} ceiling. "
+                    f"Ask for {drug} by name, with what it is for, to get the "
+                    f"signed dose."
                 )
     return issues
 
@@ -3465,11 +3401,10 @@ def is_fixed_prep_request(query: str) -> bool:
 # without someone adding it here and being asked why.
 # ─────────────────────────────────────────────────────────────────────────────
 
-PREP_RECIPE_NUMBERS = {
-    # 1 mg of epinephrine into a 250 mL bag. The bag is the product; the
-    # patient gets a RATE off it, and that rate comes from a signed contract.
-    "epi_infusion_prep": ("1 mg",),
-}
+# A35 (owner, 2026-10-22): a drug number a card prints with no signed entry
+# behind it is replaced by a hold, recipes included. The epinephrine bag (1 mg
+# in 250 mL) was the only entry; the registry is empty and stays so.
+PREP_RECIPE_NUMBERS = {}
 
 # There is no fallback dose. The epinephrine cards used to keep the numbers
 # they printed before the contract engine existed — 5-20 mcg push, 2-10
@@ -3700,12 +3635,17 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
             issue = _prep_hold_issue("push-dose epinephrine")
             return build_safety_hold([issue], ""), [issue]
         give = _prep_give_block(served, note)
+        # A35: the syringe recipe is the signed entry's own (each signed
+        # push-dose entry states it in its cautions, printed below). The card
+        # no longer prints a copy of its own; with no entry served there is no
+        # recipe either.
+        prep = ("- Prepare the diluted syringe the signed entry states (CAUTIONS "
+                "below). Never push from the ampoule.\n\n" if served else
+                "- No signed push-dose preparation for this request. Use local "
+                "protocol.\n\n")
         return (
             "**PUSH-DOSE EPINEPHRINE PREP**\n"
-            "- Make 10 mcg/mL epinephrine.\n"
-            "- Draw 1 mL of 1:10,000 epinephrine (0.1mg/mL) into a 10 mL syringe.\n"
-            "- Add 9 mL normal saline. Total 10 mL.\n"
-            "- Final concentration: 10 mcg/mL.\n\n"
+            f"{prep}"
             "**GIVE**\n"
             f"{give}\n\n"
             "**CONTRAINDICATIONS**\n"
@@ -3715,7 +3655,7 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
             "**WATCH**\n"
             "- Continuous cardiac monitoring required. Use only with local protocol.\n\n"
             "**TLDR**\n"
-            "- 1 mL of 1:10,000 epi plus 9 mL NS = 10 mcg/mL push-dose epi.\n\n"
+            "- Push-dose epinephrine: the signed dose and its dilution, above.\n\n"
             f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
         ), []
@@ -3757,9 +3697,13 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
             issue = _prep_hold_issue("epinephrine infusion")
             return build_safety_hold([issue], ""), [issue]
         give = _prep_give_block(served, note)
+        # A35: the bag (1 mg in 250 mL = 4 mcg/mL) is in no signed entry, so
+        # the card states no bag and computes no mL/hr, as the norepinephrine
+        # card does.
         return (
-            "**EPINEPHRINE INFUSION PREP (Dirty Epi Drip)**\n"
-            "- Mix 1 mg epinephrine (1:10,000, 10 mL) in 250 mL NS = 4 mcg/mL.\n\n"
+            "**EPINEPHRINE INFUSION**\n"
+            "- Concentration: prepare per local protocol. No epinephrine infusion "
+            "preparation is signed here, so no pump rate in mL is computed.\n\n"
             "**RATE**\n"
             f"{give}\n\n"
             "**CONTRAINDICATIONS**\n"
@@ -3769,7 +3713,7 @@ def fixed_prep_outcome(query: str, ctx: Optional[PatientContext] = None
             "**WATCH**\n"
             "- Cardiac monitoring required. Peripheral line — monitor for extravasation.\n\n"
             "**TLDR**\n"
-            "- 1mg epi in 250mL NS = 4 mcg/mL. Titrate to MAP target.\n\n"
+            "- Epinephrine infusion: the signed rate above. Titrate to MAP target.\n\n"
             f"**SOURCE**: {served_source_line(served, LEGACY_PREP_SOURCE)}\n\n"
             "Guideline-based support only. Not a substitute for clinical judgment."
         ), []
@@ -6429,37 +6373,14 @@ def build_rsi_response(ctx: PatientContext, text: str) -> Optional[str]:
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
-    q = (text or "").lower()
-    w = ctx.confirmed_weight_kg
-    ped = ctx.is_pediatric
-
-    # ONE assembly path, and it is the same one build_allowed_doses() uses.
-    # This function used to call the calculators directly, which is how it went
-    # on serving 1.5 mg/kg ketamine and 1.0 mg/kg rocuronium after those
-    # entries were signed at 2 mg/kg and 1.2 mg/kg: the supersede rule lives in
-    # build_allowed_doses(), and the RSI pre-gate returns before ever reaching
-    # it. A second implementation of the bundle could not help but drift from
-    # the first. Signed contracts now fill what they can, and a calculator
-    # backfills a role only while its drug has no signed entry at all — the
-    # same condition, read from the same place.
+    # ONE assembly path, and it is the same one build_allowed_doses() uses:
+    # the signed contract, by role. This function used to call the calculators
+    # directly, which is how it went on serving 1.5 mg/kg ketamine and 1.0
+    # mg/kg rocuronium after those entries were signed at 2 mg/kg and 1.2
+    # mg/kg. The calculators are gone (A35); a role with no signed entry holds.
     by_role = {}
     for d in _contract_rsi_candidates(text, ctx):
         by_role.setdefault(_rsi_role(d.indication), d)
-
-    superseded = set(drug_contracts.servable_entries()) if drug_contracts else set()
-    # Burns RSI: avoid succinylcholine unless explicitly requested; default rocuronium.
-    use_succ = (any(x in q for x in ["succinylcholine", "sux", "succs"])
-                and not succinylcholine_contraindicated(q))
-
-    if "induction" not in by_role and "ketamine" not in superseded:
-        by_role["induction"] = ketamine_induction_iv(w, ped)
-    if "sedation" not in by_role and "ketamine" not in superseded:
-        by_role["sedation"] = ketamine_post_intubation_iv(w)
-    if "paralytic" not in by_role:
-        if use_succ and "succinylcholine" not in superseded:
-            by_role["paralytic"] = succinylcholine_rsi(w, ped)
-        elif not use_succ and "rocuronium" not in superseded:
-            by_role["paralytic"] = rocuronium_rsi(w, ped)
 
     by_role = {k: resolve_dose_volume(v, ctx) for k, v in by_role.items() if v}
     ket_ind = by_role.get("induction")
@@ -6487,7 +6408,7 @@ Guideline-based support only. Not a substitute for clinical judgment."""
             return (f"- ketamine {role}: {why}. No dose served — choose an "
                     f"alternative by local protocol{then}.")
         if d is None:
-            return f"- No signed contract and no calculator for the {role}. Use local protocol."
+            return f"- No signed dose for the {role} here. Use local protocol."
         return render_give_line(d)
 
     # Cautions, vial question and provenance all come from the shared choke

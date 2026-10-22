@@ -134,13 +134,12 @@ def test_the_calculators_no_longer_carry_a_concentration():
     A calculator that still knew a concentration would be a second source of
     truth, and the second source is the one that goes stale.
     """
-    for cand in (oc.ketamine_induction_iv(80, False),
-                 oc.ketamine_post_intubation_iv(80),
-                 oc.rocuronium_rsi(80, False), oc.succinylcholine_rsi(80, False),
-                 oc.lorazepam_seizure(80)):
-        assert cand.volume_ml is None, cand
-        assert cand.concentration_mg_ml is None, cand
-        assert cand.dose_mg > 0, "the milligram dose must be unaffected"
+    # A35 (owner, 2026-10-22) removed the calculators themselves: no number
+    # without a signed entry behind it. None may come back.
+    for name in ("ketamine_analgesia_iv", "ketamine_analgesia_im",
+                 "ketamine_induction_iv", "ketamine_post_intubation_iv",
+                 "rocuronium_rsi", "succinylcholine_rsi", "lorazepam_seizure"):
+        assert not hasattr(oc, name), name
 
 
 def test_no_concentration_literal_survives_in_the_source():
@@ -442,7 +441,8 @@ def test_a_recipe_is_not_a_prescription():
     """build_fixed_prep_response describes how to MAKE a dilution — its mL is
     not a patient dose and must not be audited as one."""
     recipe = oc.build_fixed_prep_response("how do I mix push dose epi")
-    assert recipe and "Draw 1 mL" in recipe
+    # A35: the recipe is the signed entry's caution, not the card's own line.
+    assert recipe and "1 mL of 0.1 mg/mL epinephrine" in recipe
     out, issues = oc.audit_volume_lines(recipe)
     assert issues == [] and out == recipe
 

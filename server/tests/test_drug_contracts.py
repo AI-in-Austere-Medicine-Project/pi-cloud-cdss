@@ -1458,10 +1458,7 @@ DOSE_TEMPLATE_CASES = [
             _rsi_case_ctx(), "need to RSI with ketamine and roc, 80kg IV"),
         "contract": lambda: _oc._contract_rsi_candidates(
             "need to RSI with ketamine and roc, 80kg IV", _rsi_case_ctx()),
-        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
-                     lambda w: _oc.ketamine_post_intubation_iv(w),
-                     lambda w: _oc.rocuronium_rsi(w, False),
-                     lambda w: _oc.succinylcholine_rsi(w, False)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 80.0,
     },
     {
@@ -1470,9 +1467,7 @@ DOSE_TEMPLATE_CASES = [
             _rsi_case_ctx(), "RSI now, BP 78/40, shocky"),
         "contract": lambda: _oc._contract_rsi_candidates(
             "RSI now, BP 78/40, shocky", _rsi_case_ctx()),
-        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
-                     lambda w: _oc.ketamine_post_intubation_iv(w),
-                     lambda w: _oc.rocuronium_rsi(w, False)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 80.0,
     },
     {
@@ -1578,7 +1573,7 @@ DOSE_TEMPLATE_CASES = [
                                                      _analgesia_ctx("IV")),
         "contract": lambda: _oc.build_allowed_doses("she is seizing, 60kg",
                                                     _analgesia_ctx("IV")),
-        "backfill": [lambda w: _oc.lorazepam_seizure(w)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 60.0,
     },
     {
@@ -1587,16 +1582,14 @@ DOSE_TEMPLATE_CASES = [
                                                 _analgesia_ctx("IV")),
         "contract": lambda: _oc.build_allowed_doses("she is seizing, 60kg",
                                                     _analgesia_ctx("IV")),
-        "backfill": [lambda w: _oc.lorazepam_seizure(w)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 60.0,
     },
     {
         "name": "allowed_doses_rsi",
         "render": lambda: _render_allowed_doses("60kg RSI now", _analgesia_ctx("IV")),
         "contract": lambda: _oc.build_allowed_doses("60kg RSI now", _analgesia_ctx("IV")),
-        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
-                     lambda w: _oc.ketamine_post_intubation_iv(w),
-                     lambda w: _oc.rocuronium_rsi(w, False)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 60.0,
     },
 ]
