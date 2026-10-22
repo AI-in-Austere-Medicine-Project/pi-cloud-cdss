@@ -3496,7 +3496,10 @@ PREP_RECIPE_NUMBERS = {}
 LEGACY_PREP_SOURCE = ("General Evidence-Based Medicine / deterministic preparation "
                       "card — no signed contract covered this request")
 
-EPI_PUSH_DOSE_INDICATIONS = ("push dose",)
+# "push-dose" too (freeze plan item 3, 2026-10-22): E05 is "push-dose
+# vasopressor for hypotension / shock (SBP < 90)", and "push dose" alone never
+# matched it, so the card could not serve it.
+EPI_PUSH_DOSE_INDICATIONS = ("push dose", "push-dose")
 EPI_INFUSION_INDICATIONS = ("infusion",)
 
 

@@ -1711,15 +1711,16 @@ def test_a_signed_indication_is_never_substituted_for_a_different_one():
         assert smuggled not in text, f"an agitation dose reached a pain card: {smuggled}"
 
 
-def test_the_push_dose_card_refuses_rather_than_reaching_for_the_wrong_entry():
-    """An adult shock push-dose request has no signed entry. The card must say
-    so — not answer with the bradycardia window, and not fall back to the
-    unsourced 5 mcg floor it used to print."""
+def test_the_push_dose_card_never_reaches_for_the_wrong_entry():
+    """An adult shock push-dose request gets the signed shock entry (E05,
+    "push-dose vasopressor for hypotension / shock (SBP < 90)", 5-20 mcg, JTS
+    ID83 p.24; freeze plan item 3), never the bradycardia window. Before E05
+    was relabelled the card refused here; the unsourced 5 mcg floor it once
+    printed is the same range only because ID83 now signs it."""
     text = _oc.build_fixed_prep_response("need push dose epi, BP 70/40 shocky")
     give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
-    assert "No signed entry for shock" in give
+    assert "hypotension / shock (SBP < 90)" in give
     assert "10-20 mcg" not in give, "the bradycardia window was substituted"
-    assert "5-20 mcg" not in give, "the retired unsourced floor is back"
 
 
 def test_the_retired_analgesia_hardcode_is_gone_from_the_iv_path():

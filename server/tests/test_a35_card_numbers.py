@@ -82,9 +82,11 @@ def test_the_recipe_still_reaches_the_medic_from_the_signed_entry():
 
 
 def test_a_push_dose_request_with_no_signed_entry_gets_no_recipe():
-    """An adult in shock: the prep card narrows to "shock" and has no entry
-    (item 3 of the freeze plan relabels E05). No number in the prep lines."""
-    card = oc.build_fixed_prep_response("need push dose epi, BP 70/40 shocky")
+    """A child with bradycardia: the bank has no paediatric bradycardia push
+    dose (the adult shock case had none until E05 was relabelled, freeze plan
+    item 3). No number in the prep lines."""
+    q = "6 year old child 20 kg, bradycardia HR 50, push dose epi"
+    card = oc.build_fixed_prep_response(q, oc.rebuild_patient_context_from_history(q))
     prep = _section(card, "PUSH-DOSE EPINEPHRINE PREP")
     assert prep and not any(ch.isdigit() for ch in prep), card
     # Nor does the TLDR point at a signed dose that is not there.

@@ -41,6 +41,8 @@ SERVER = pathlib.Path(__file__).resolve().parents[1]
 PDF_DIR = pathlib.Path(os.environ.get("JTS_PDF_DIR", SERVER / "data/jts_protocols"))
 RULING = "OWNER RULING 2026-10-21 (Andrew Azelton)"
 DATE = "2026-10-21"
+# Re-signed since, on the owner's ruling (freeze plan item 3: E05 relabelled).
+RESIGNED = {("epinephrine", "push-dose vasopressor for hypotension / shock (SBP < 90)", "adult", "IV"): "2026-10-22"}
 
 MIDAZ_PACING = "procedural sedation for pacing / cardioversion"
 PROPOFOL_INDUCTION = "induction of anaesthesia, hypotensive trauma patient (reduced dose)"
@@ -63,8 +65,8 @@ def _r(lo, hi, units, per_kg=False):
 # key -> (dose_range, max_single value or None, max_cumulative value or None,
 #         [(citation marker, printed page)], [serve-tier substrings])
 SIGNED = {
-    # E05
-    ("epinephrine", "push-dose vasopressor for hypotension", "adult", "IV"): (
+    # E05 (relabelled to ID83 p.24's wording and re-signed 2026-10-22, freeze plan item 3)
+    ("epinephrine", "push-dose vasopressor for hypotension / shock (SBP < 90)", "adult", "IV"): (
         _r(5.0, 20.0, "mcg"), None, None,
         [("CPG ID83", 24), ("SMOG", 12)], ["every 2-5 minutes", "10 mcg/mL"]),
     # E06
@@ -262,7 +264,7 @@ def _value(limit):
 @pytest.mark.parametrize("key", list(SIGNED), ids=_ids)
 def test_the_ruled_entries_are_signed_and_servable(key):
     e, d = _entry(*key)
-    assert e["signoff"] is True and e["reviewed_by"] == "AI-AIM" and e["review_date"] == DATE, key
+    assert e["signoff"] is True and e["reviewed_by"] == "AI-AIM" and e["review_date"] == RESIGNED.get(key, DATE), key
     assert not e["version"].endswith("-draft"), e["version"]
     ok, why = drug_contracts.entry_is_servable(e, d)
     assert ok, (key, why)
@@ -413,7 +415,7 @@ def test_unsigned_contracts_records_batch_3():
 # ── Indication classes ──────────────────────────────────────────────────────
 
 NEW_CLASSES = {
-    "push-dose vasopressor for hypotension": "shock",
+    "push-dose vasopressor for hypotension / shock (SBP < 90)": "shock",
     "infusion for refractory shock": "shock",
     "penetrating abdominal injury": "wound infection prophylaxis",
     "combat wound prophylaxis (oral)": "wound infection prophylaxis",
