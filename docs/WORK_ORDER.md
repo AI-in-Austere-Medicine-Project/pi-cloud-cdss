@@ -925,7 +925,54 @@ The branch is #177's (`a35-signed-cards`): A35 first, then the items below in th
 - `server/version.py` and CHANGELOG are not changed (docs only, as ruled).
 - Tests: `test_release_5_1_docs.py`, 37 of 39 failed first.
 
-**Replay, suite and harness:** once, at the end of the branch. The results are in the PR report and in the section below.
+**Replay, suite and harness:** run once, at the end of the branch.
+
+**Suite:** 3,425 passed, 1 failed (6 skipped, 3 xfailed).
+- The failure was `test_prep_card_holds`. It unsigns the entries the push-dose card uses by matching "push dose", which misses E05's "push-dose" label, so the card still served.
+- The test was updated under the E05 item; that file now passes (8 of 8). No code changed.
+
+**Replay** (against main `67cd451`, every item since A34): **0 newly held, 0 newly released** by the replay's definition. Every moved row, tagged with its item:
+
+| Replay | Rows | Changed |
+|---|---|---|
+| Served | 1,738 | 0 |
+| Held | 308 | 16 |
+| Gate | 1,408 | 0 |
+| Live logs | 3,373 | 0 |
+| Pipeline | 812 | 25 |
+
+- **Held, 16 rows (E05 relabel):** epinephrine holds whose text lists the signed indications now name E05 by its new label. All still hold; no other change.
+- **Pipeline, 25 rows:**
+  - **E05 relabel and A35, 8 push-dose prep cards** (A1-WT-025, A1-NOWT-015, A1-RX-001, A1-RX-002, A1-RX-006, and live "need to make push dose epi" ×2):
+    - A35 removes the card's own recipe lines.
+    - E05 adds its signed 5–20 mcg line beside the bradycardia 10–20 mcg, each labelled. The request named no indication, so every signed push-dose entry is listed, as designed.
+  - **E05 relabel, live "push dose epi, BP 70/40 shocky":** the card refused ("No signed entry for shock") and now serves E05, 5–20 mcg.
+  - **E05 relabel, 7 rows** (A1-WT-024, A1-PED-013, A1-COL-003, A1-COL-011, A1-COL-015, A1-RX-005, A1-DRIP-006): the offered list carries the new label; nothing else.
+  - **Pacing match, 5 rows** ("Need versed dose" ×3, "can I give midazolam to settle him for the move" ×2): the which-indication question offers "pacing or cardioversion" as a choice.
+  - **A37, 3 rows** (H-IM-07 ×2, a live chest GSW in shock): the tension card's THEN line no longer says "TXA within 3 hours".
+  - **A36, 2 live overdose holds** (ketamine 300 mg / rocuronium 60 mg for a 20 kg child; ketamine 500 mg at 80 kg): they still hold, without the ceiling number.
+- **For the owner's sign-off (newly served doses):** none of these rows was held, so the replay counts nothing as released. But 9 cards now serve a dose they did not: E05's 5–20 mcg on the 8 push-dose cards and on the shock card.
+
+**Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29.
+
+| Question | Result |
+|---|---|
+| ketamine for pain IM, 80 kg | 40 mg |
+| epi drip for shock | signed rates, no bag |
+| ketamine 320 mg IM for an agitated 80 kg adult | the vial question, not an overdose hold |
+| ketamine 500 mg IV | held |
+| succinylcholine 130 mg at 80 kg | held |
+| tension with shock | no TXA line |
+| seizing child, no IV | midazolam IM 4 mg |
+| seizing adult, no IV | held, no benzodiazepine |
+| seizing, IV access | lorazepam 4 mg |
+| push dose epi in shock or hypotension | E05 5–20 mcg |
+| push dose epi, bradycardia | 10–20 mcg |
+| ARDS on the vent | the signed-by-role card |
+| "about to pace, midazolam for sedation" | offered only 2.5 mg; qwen2.5:3b wrote 6.25 mg and it held |
+| "midazolam for cardioversion" | held: the model labelled the dose "procedural sedation for cardioversion", and the label check read it as another indication |
+
+Both pacing holds are on the v1.1 list.
 
 ### B1: source-mode labelling
 
@@ -2042,6 +2089,19 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 ## v1.1 (owner, 2026-10-11: everything on the found list not in the v1.0 scope)
 
 Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest trigger (A27), seizure misspellings (A28), the needle-decompression procedure and "pneumo" (A29). Everything else on the found list, and the open items below, are v1.1. Each is placed by the owner before work starts.
+
+**Found during the v5.1.0 freeze (2026-10-22), recorded, not fixed (owner's rule: anything not on the list goes to v1.1):**
+
+- **A paraphrased label for the right dose holds** (harness). For "80 kg adult, IV access, midazolam for cardioversion", qwen2.5:3b labelled the E13 dose "procedural sedation for cardioversion". The label check read that as another indication and held. Nothing wrong was served.
+- **qwen2.5:3b wrote midazolam 6.25 mg for pacing** (harness), when only 2.5 mg was offered. Held. This is the same class as the ketamine-after-"severe" item.
+- **The which-indication question reads "agitation, pacing or cardioversion or sedation (already intubated)"** (replay). The class word has its own "or".
+- **The age parser leaves age unset for "12 kg child, 2 years old"**, while "2 year old child 12 kg" and "2 yo" parse (found writing A36's tests).
+- **"rsi" is still matched as a substring in three places:**
+  - the route-question gate, so "cardioversion" is never asked a route;
+  - the paralytic-without-induction check;
+  - the non-medical override list.
+  Changing them would loosen a check or move routing (found during the pacing match).
+- **The DCR card's TLDR "TXA within 3 hours of injury"**: its SOURCE omits ID18 p.9, which the signed TXA caution cites. It is listed in SAFETY.md.
 
 **From the A35 sweep (2026-10-22; owner to place):**
 

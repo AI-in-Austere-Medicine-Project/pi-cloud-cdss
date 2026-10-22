@@ -219,6 +219,10 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 | The overdose ceiling (ketamine 2 mg/kg) holds signed doses (IM agitation 4 mg/kg, refractory seizure 3–4 mg/kg). Fixed by A36. | A35 sweep |
 | A seizing patient with no IV access gets no benzodiazepine dose: lorazepam (IV) is chosen, then dropped by the route filter; the signed paediatric IM midazolam seizure entry is never chosen. Fixed by A38. Holds; nothing wrong served. | A35 sweep |
 | Non-drug numbers with no signed entry (TBI targets, q5min, IBW constants, NRS bands, vitals thresholds, syringe limits) are listed in A35, not changed; the signed tension card's "TXA within 3 hours" is not in its cited quote (fixed by A37); the vent cards are signed by a role ("clinician"), printed for the owner's ruling. The non-drug numbers are listed in SAFETY.md. Owner to rule. | A35 sweep |
+| A paraphrased label for the right dose holds: "midazolam for cardioversion" was held when qwen2.5:3b labelled the E13 dose "procedural sedation for cardioversion". qwen2.5:3b also wrote midazolam 6.25 mg for pacing (only 2.5 mg offered; held). Nothing wrong served. | v5.1.0 harness |
+| The which-indication question reads "agitation, pacing or cardioversion or sedation (already intubated)". | v5.1.0 replay |
+| The age parser leaves age unset for "12 kg child, 2 years old". | v5.1.0 (A36 tests) |
+| "rsi" is still a substring match in the route-question gate, the paralytic-without-induction check and the non-medical override list; changing them would loosen a check or move routing. | v5.1.0 (pacing match) |
 | Uncited IV fluid rates are still served: a fluid isn't a drug the check recognises (run-3 finding 5). Closing it needs signed crystalloid entries: the owner's authoring job. | #108 |
 | The epinephrine card triggers only on "epi drip"; "epinephrine infusion rate" goes to the model and is held (mcg/min). | #110 |
 | A drug-choice question ("norepinephrine vs epinephrine drip") gets one drug's card. | #110 |
