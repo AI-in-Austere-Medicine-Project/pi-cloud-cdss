@@ -417,7 +417,7 @@ NEW_CLASSES = {
     "infusion for refractory shock": "shock",
     "penetrating abdominal injury": "wound infection prophylaxis",
     "combat wound prophylaxis (oral)": "wound infection prophylaxis",
-    MIDAZ_PACING: "sedation",
+    MIDAZ_PACING: "pacing / cardioversion",  # its own class since the pacing match (2026-10-22)
     "neonatal hypoglycaemia": "hypoglycaemia",
     PROPOFOL_INDUCTION: "RSI",
     "sedation infusion": "sedation",
@@ -434,7 +434,7 @@ NEW_CLASSES = {
     CEFTRI_TBI: "penetrating CNS injury",
     CEFTRI_TBI_PEDS: "penetrating CNS injury",
     CEFTRI_COVID: "pneumonia",
-    "procedural sedation (incl. cardioversion, transcutaneous pacing)": "sedation",
+    "procedural sedation (incl. cardioversion, transcutaneous pacing)": "pacing / cardioversion",  # its own class since the pacing match (2026-10-22)
     "procedural / conscious sedation": "sedation",
     "post-intubation sedation bolus": "sedation",
     "sedation / anxiolysis": "sedation",
