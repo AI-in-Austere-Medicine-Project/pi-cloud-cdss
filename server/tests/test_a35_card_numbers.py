@@ -87,6 +87,8 @@ def test_a_push_dose_request_with_no_signed_entry_gets_no_recipe():
     card = oc.build_fixed_prep_response("need push dose epi, BP 70/40 shocky")
     prep = _section(card, "PUSH-DOSE EPINEPHRINE PREP")
     assert prep and not any(ch.isdigit() for ch in prep), card
+    # Nor does the TLDR point at a signed dose that is not there.
+    assert "signed dose" not in _section(card, "TLDR").replace("no signed dose", ""), card
 
 
 # ── the epinephrine drip card ────────────────────────────────────────────────
@@ -115,3 +117,4 @@ def test_the_overdose_hold_prints_no_unsigned_ceiling(q, ceiling):
     (issue,) = oc.detect_requested_medication_overdose(q, ctx)
     assert ceiling not in issue, issue
     assert "ceiling" in issue  # the check is unchanged; it still holds
+    assert "a 80" not in issue, issue
