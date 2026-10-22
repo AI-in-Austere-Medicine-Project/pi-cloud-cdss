@@ -117,7 +117,7 @@ def test_the_card_states_no_dose():
     assert not oc.free_text_dose_issues(text, [])
 
 
-# ── the signed text (owner, 2026-10-12) ──────────────────────────────────────
+# ── the signed text (owner, 2026-10-12; re-signed 2026-10-22, A37) ──────────────────────────────────────
 
 SIGNED = {
     "do_this": [
@@ -133,7 +133,7 @@ SIGNED = {
         "Do not use short (5 cm) venous-access catheters: they rarely reach the chest cavity.",
         "Do not wait for imaging: absent or markedly decreased breath sounds after chest trauma indicate intervention without further testing."
     ],
-    "then_with_dcr": "After decompression, then reassess for hemorrhage — DCR (damage-control resuscitation) if shock persists: control bleeding, blood products, TXA within 3 hours.",
+    "then_with_dcr": "After decompression, then reassess for hemorrhage — DCR (damage-control resuscitation) if shock persists: control bleeding, blood products.",
     "tldr": "Suspected tension pneumothorax: needle decompress, 14 gauge 8cm catheter, 4th/5th ICS anterior axillary line, then tube thoracostomy.",
     "source_line": "JTS CPG ID74, Wartime Thoracic Injury (26 Dec 2018), p.5 (recognition), p.8 (needle decompression)"
 }
@@ -142,7 +142,7 @@ SIGNED = {
 def test_the_procedure_is_signed_by_the_owner():
     card = json.load(open(oc._TENSION_CARD_FILE, encoding="utf-8"))
     assert card["signoff"] is True
-    assert card["reviewed_by"] == "Andrew Azelton" and card["review_date"] == "2026-10-12"
+    assert card["reviewed_by"] == "Andrew Azelton" and card["review_date"] == "2026-10-22"  # re-signed, A37
 
 
 def test_the_signed_text_is_pinned_word_for_word():
