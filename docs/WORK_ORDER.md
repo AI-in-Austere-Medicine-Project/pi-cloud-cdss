@@ -975,6 +975,23 @@ The branch is #177's (`a35-signed-cards`): A35 first, then the items below in th
 
 Both pacing holds are on the v1.1 list.
 
+### Vial concentration is not a requested dose (owner, 2026-10-23; live finding, post-freeze, its own PR)
+
+**Owner:** "A concentration phrase (N mg/N mL, N mg in N mL, mg/mL, with or without "vial", "amp", "ampule") in the question is a vial concentration, never a requested dose."
+
+**Found live:** "Need to give ketamine. 75kg IV established and we have a 500mg/10ml vial" was held: the requested-overdose pre-gate read "ketamine … 500mg" as a 500 mg request, above A36's highest signed dose.
+
+**Change:** `requested_doses_mg()` removes the concentration phrases (`_CONCENTRATION_PHRASE_RE`; "bag" added for "1 mg in 250 mL bag") before reading ketamine, rocuronium and succinylcholine doses. The volume needs its mL, so "500 mg over 10 minutes" is still a dose. The vial is stored only when it is a signed presentation, as before (`match_confirmation`).
+
+**Results:**
+- **Tests:** test_vial_concentration_not_dose.py, 19 tests, committed failing first (13 failed on main). Suite: 3,445 passed, 6 skipped, 3 xfailed, 0 failed.
+- **Replay vs main (54aafac):** served 1,738, held 308, gate 1,408 and live logs 3,441 rows unchanged. Pipeline 816 rows, 2 changed, 0 newly held. Both were holds that now serve (the comparator counts neither as released, because it treats any non-SAFE verdict as held); for the owner's sign-off:
+  - live "Need to give ketamine. 75kg IV established and we have a 500mg/10ml vial": the hold becomes the which-indication question;
+  - live "need to give ketamine for pain i have a 500mg/50ml vial. Iv established Patient is 75kg": the hold becomes the signed ketamine analgesia card, IV 18.75 mg. 10 mg/mL is not a signed presentation, so the card gives no volume and asks for the vial.
+- **Live harness** (:8012, offline): run_tests.sh 29/29. The live query is asked which indication; "pain" then gets "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg)" (SAFE); "agitation" gets the signed 150 mg (3 mL). "1 mg in 250 mL bag" with an epi drip or ketamine is not a request. "100mg/10ml vial" for RSI gives rocuronium 9.6 mL. "give ketamine 500 mg IV, we have a 500mg/10ml vial" still holds.
+
+**Found, not changed (owner to rule):** "we have a 500 mg vial" (mass, no volume) and "500 mg in 10" (no mL) are still read as a 500 mg request and hold.
+
 ### B1: source-mode labelling
 
 A response whose served dose comes from a JTS-cited signed contract is JTS-grounded, regardless of retrieval score. The SOURCE line must carry the contract's citation. The evidence is a fentanyl IV query labelled "general" with ID61 chips showing. Test with that query. Format only.

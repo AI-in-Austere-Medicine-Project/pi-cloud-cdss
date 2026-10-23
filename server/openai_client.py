@@ -2861,6 +2861,36 @@ def signed_ceiling_mg(drug: str, ctx: PatientContext) -> Optional[float]:
     return max(candidates) if candidates else None
 
 
+# Owner, 2026-10-23 (live finding): a concentration in the question is the
+# vial, never a requested dose. "we have a 500mg/10ml vial" was held as a
+# 500 mg ketamine request. N mg/N mL, N mg / N mL, N mg in|per N mL, N mg/mL,
+# N mg per mL, with or without "vial", "amp", "ampule" or "bag". The volume
+# needs its mL: "500 mg over 10 minutes" is a dose and is still read as one.
+_CONCENTRATION_PHRASE_RE = re.compile(
+    r"\b\d+(?:\.\d+)?\s*(?:mg|mcg|g)\s*(?:/|\bin\b|\bper\b)\s*"
+    r"(?:\d+(?:\.\d+)?\s*)?m\s*l\b"
+    r"(?:\s*(?:vial|amp(?:oule|ule)?|bag)s?\b)?"
+)
+
+_REQUESTED_DOSE_PATTERNS = {
+    "ketamine": r"ketamine.{0,40}?(\d+(?:\.\d+)?)\s*mg",
+    "rocuronium": r"rocuronium.{0,40}?(\d+(?:\.\d+)?)\s*mg|roc\b.{0,40}?(\d+(?:\.\d+)?)\s*mg",
+    "succinylcholine": r"succinylcholine.{0,40}?(\d+(?:\.\d+)?)\s*mg|sux\b.{0,40}?(\d+(?:\.\d+)?)\s*mg",
+}
+
+
+def requested_doses_mg(query: str) -> list:
+    """(drug, mg) for each dose the question asks for, concentrations removed."""
+    q = _CONCENTRATION_PHRASE_RE.sub(" ", (query or "").lower())
+    out = []
+    for drug, pattern in _REQUESTED_DOSE_PATTERNS.items():
+        for m in re.finditer(pattern, q):
+            dose_txt = next((g for g in m.groups() if g), None)
+            if dose_txt:
+                out.append((drug, float(dose_txt)))
+    return out
+
+
 def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> list:
     """
     Detect explicit unsafe doses requested by the provider in the query text.
@@ -2872,30 +2902,19 @@ def detect_requested_medication_overdose(query: str, ctx: PatientContext) -> lis
     if not wt:
         return issues
 
-    q = query.lower()
     # A36 (owner, 2026-10-22): each ceiling is the highest signed single dose
     # for this patient (signed_ceiling_mg). The fixed 2, 1.2 and 2 mg/kg it
     # replaces were in no entry, and the ketamine one held the signed 4 mg/kg
     # IM dose. The hold names no number but the request.
-    patterns = {
-        "ketamine": r"ketamine.{0,40}?(\d+(?:\.\d+)?)\s*mg",
-        "rocuronium": r"rocuronium.{0,40}?(\d+(?:\.\d+)?)\s*mg|roc\b.{0,40}?(\d+(?:\.\d+)?)\s*mg",
-        "succinylcholine": r"succinylcholine.{0,40}?(\d+(?:\.\d+)?)\s*mg|sux\b.{0,40}?(\d+(?:\.\d+)?)\s*mg",
-    }
-
-    for drug, pattern in patterns.items():
+    for drug, mg in requested_doses_mg(query):
         ceiling = signed_ceiling_mg(drug, ctx)
-        if ceiling is None:
-            continue
-        for m in re.finditer(pattern, q):
-            dose_txt = next((g for g in m.groups() if g), None)
-            if dose_txt and float(dose_txt) > ceiling + 1e-9:
-                issues.append(
-                    f"Provider requested {drug} {float(dose_txt):g}mg for a "
-                    f"patient of {wt:g} kg, above the highest signed {drug} dose "
-                    f"for this patient. Ask for {drug} by name, with what it is "
-                    f"for, to get the signed dose."
-                )
+        if ceiling is not None and mg > ceiling + 1e-9:
+            issues.append(
+                f"Provider requested {drug} {mg:g}mg for a "
+                f"patient of {wt:g} kg, above the highest signed {drug} dose "
+                f"for this patient. Ask for {drug} by name, with what it is "
+                f"for, to get the signed dose."
+            )
     return issues
 
 
