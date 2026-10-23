@@ -18,14 +18,33 @@ import sys
 KINDS = ("served", "held", "gate", "log", "pipe")
 
 
+# What build_safety_hold writes first (openai_client). A test pins the two
+# together.
+HOLD_HEADER = "Clinical safety hold. This response was blocked."
+
+
 def is_hold(row):
-    """True if the row is a hold, False if it serves, None if unknown."""
+    """True if the medic got a hold, False if they got anything else, None if
+    the row cannot say.
+
+    Owner, 2026-10-23 (#178 review): a row is newly released when it was a
+    hold and now serves anything (card, dose, question), regardless of the
+    verdict label. So each replay is judged by what it served:
+    - pipe: the served response is the safety hold. A question
+      (SKIPPED_SAFE_GATE), a card (DETERMINISTIC_CHECKED), a reviewed answer
+      (NEEDS_HUMAN_REVIEW) and a new-patient notice all serve.
+    - gate: the gate blocked it. Its issues are the recorded validator's, the
+      same on both trees, and say nothing about this tree.
+    - served, held, log: the deterministic check returned issues.
+    """
     if not isinstance(row, dict):
         return None
+    if "response" in row:
+        return HOLD_HEADER in (row.get("response") or "")
+    if "blocked" in row:
+        return bool(row["blocked"])
     if "issues" in row:
         return bool(row["issues"])
-    if "verdict" in row:
-        return row.get("verdict") not in ("SAFE",) or row.get("boundary") is not None
     if "held" in row:
         return bool(row["held"])
     return None
@@ -42,6 +61,10 @@ def compare(before: dict, after: dict) -> dict:
                        if is_hold(before.get(k)) is False and is_hold(after.get(k)) is True],
         "newly_released": [k for k in changed
                            if is_hold(before.get(k)) is True and is_hold(after.get(k)) is False],
+        # A changed row either side cannot judge: listed, never counted as safe.
+        "unknown": [k for k in changed
+                    if (k in before and is_hold(before[k]) is None)
+                    or (k in after and is_hold(after[k]) is None)],
     }
 
 
@@ -65,7 +88,11 @@ def main(argv=None) -> int:
         a, b = json.load(open(a_path)), json.load(open(b_path))
         r = compare(a, b)
         print(f"{kind}: rows {r['rows']} (before {r['rows_before']}), changed {len(r['changed'])}, "
-              f"newly held {len(r['newly_held'])}, newly released {len(r['newly_released'])}")
+              f"newly held {len(r['newly_held'])}, newly released {len(r['newly_released'])}, "
+              f"unjudged {len(r['unknown'])}")
+        for label in ("newly_released", "newly_held", "unknown"):
+            for k in r[label]:
+                print(f"    [{label}] {k[:160]}")
         for k in r["changed"]:
             print("   ", k[:110])
             for side, row in (("before", a.get(k)), ("after", b.get(k))):
