@@ -1,0 +1,87 @@
+{
+ "[\"need to give ketamine for pain i have a 500mg/50ml vial. Iv established Patient is 75kg\", \"live\"]": {
+  "before": {
+   "origin": "live",
+   "query": "need to give ketamine for pain i have a 500mg/50ml vial. Iv established Patient is 75kg",
+   "history_turns": 0,
+   "source_mode": "DETERMINISTIC_PRE_GATE",
+   "verdict": "UNSAFE",
+   "boundary": null,
+   "allowed": null,
+   "response": "Clinical safety hold. This response was blocked.\n\nIssues identified:\n- Provider requested ketamine 500mg for a patient of 75 kg, above the highest signed ketamine dose for this patient. Ask for ketamine by name, with what it is for, to get the signed dose.\n\nReassess patient. Use local protocol. Contact medical control if available.\n\nGuideline-based support only. Not a substitute for clinical judgment."
+  },
+  "after": {
+   "origin": "live",
+   "query": "need to give ketamine for pain i have a 500mg/50ml vial. Iv established Patient is 75kg",
+   "history_turns": 0,
+   "source_mode": "DETERMINISTIC_PRE_GATE",
+   "verdict": "DETERMINISTIC_CHECKED",
+   "boundary": null,
+   "allowed": null,
+   "response": "**DO THIS**\n1. Confirm monitoring and airway equipment ready.\n2. Give ketamine by the IV route.\n3. Reassess pain, airway, respirations q5min.\n\n**GIVE**\n- ketamine IV: 18.75 mg. NO VOLUME — confirm concentration to compute volume. Indication: moderate to severe pain / analgesia.\n\n**CONTRAINDICATIONS**\n- ketamine — moderate to severe pain / analgesia: Hypersensitivity\n\n**CAUTIONS**\n- ketamine — moderate to severe pain / analgesia:\n  - NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.\n  - Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.\n- Ask **\"why this dose?\"** for the citations, the maxima, and anything held back from this list.\n\n**CONFIRM VIAL** (answer to get volumes; the mg doses above stand either way)\n- Which ketamine do you have — 500 mg / 10 mL vial (50 mg/mL)?\n\n**WATCH**\n- Airway, respirations, SpO2, mental status, and emergence reaction.\n\n**DON'T**\n- Do not redose without reassessment and local protocol.\n\n**TLDR**\n- 75kg patient: ketamine IV = 18.75mg.\n\n**SOURCE**: Signed dose contracts — each dose carries its own citation or owner declaration under CAUTIONS\n\nGuideline-based support only. Not a substitute for clinical judgment."
+  }
+ },
+ "[\"Need to give ketamine. 75kg IV established and we have a 500mg/10ml vial\", \"live\"]": {
+  "before": {
+   "origin": "live",
+   "query": "Need to give ketamine. 75kg IV established and we have a 500mg/10ml vial",
+   "history_turns": 0,
+   "source_mode": "DETERMINISTIC_PRE_GATE",
+   "verdict": "UNSAFE",
+   "boundary": null,
+   "allowed": null,
+   "response": "Clinical safety hold. This response was blocked.\n\nIssues identified:\n- Provider requested ketamine 500mg for a patient of 75 kg, above the highest signed ketamine dose for this patient. Ask for ketamine by name, with what it is for, to get the signed dose.\n\nReassess patient. Use local protocol. Contact medical control if available.\n\nGuideline-based support only. Not a substitute for clinical judgment."
+  },
+  "after": {
+   "origin": "live",
+   "query": "Need to give ketamine. 75kg IV established and we have a 500mg/10ml vial",
+   "history_turns": 0,
+   "source_mode": "PRE_GATE",
+   "verdict": "SKIPPED_SAFE_GATE",
+   "boundary": null,
+   "allowed": [
+    [
+     "ketamine",
+     "RSI induction",
+     150.0
+    ],
+    [
+     "ketamine",
+     "RSI induction — haemodynamically unstable / in extremis",
+     75.0
+    ],
+    [
+     "ketamine",
+     "agitated or violent patient — dissociative sedation",
+     150.0
+    ],
+    [
+     "ketamine",
+     "background pain — low-dose analgesia (prolonged field care)",
+     7.5
+    ],
+    [
+     "ketamine",
+     "moderate to severe pain / analgesia",
+     18.75
+    ],
+    [
+     "ketamine",
+     "ongoing sedation — loading dose (infusion pump available)",
+     75.0
+    ],
+    [
+     "ketamine",
+     "post-intubation sedation — repeated bolus (no infusion pump)",
+     37.5
+    ],
+    [
+     "ketamine",
+     "refractory seizure (benzodiazepine-refractory)",
+     150.0
+    ]
+   ],
+   "response": "Which indication for ketamine — agitation, RSI, sedation (already intubated), seizure or pain?"
+  }
+ }
+}
