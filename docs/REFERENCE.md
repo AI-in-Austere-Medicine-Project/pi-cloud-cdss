@@ -88,6 +88,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | E05 relabel | E05 is "push-dose vasopressor for hypotension / shock (SBP < 90)" (ID83 p.24), re-signed by AI-AIM for Andrew Azelton, 2026-10-22; the push-dose prep card serves it to an adult in shock. The nine cards that newly serve it were signed off by the owner (Andrew Azelton), 2026-10-23. | Batch 3 harness; owner, 2026-10-21 (freeze plan item 3) | In review (v5.1.0 PR) |
 | Vent card settings | Every line the five vent cards render, printed verbatim with references and the IBW constants, for the owner's SIGN / CHANGE / REMOVE / UNSIGN ruling (docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md). Nothing signed. | A35 sweep; owner, 2026-10-22 | Printed; owner to rule |
 | Release 5.1.0 | SAFETY.md, README and REFERENCE for 5.1.0: 108 of 118 entries signed, 36 retired; the indication- and route-specific check; no calculator; and the non-drug numbers cited in code, listed. `server/version.py` is 5.1.0 with its CHANGELOG entry. The owner tags v5.1.0 after merging. | Owner, 2026-10-21/22 | In review (v5.1.0 PR) |
+| Vial concentration | A concentration phrase in the question (N mg/N mL, N mg in or per N mL, N mg/mL; with or without vial, amp, ampule, bag) is the vial, never a requested dose: the requested-overdose pre-gate reads doses with those phrases removed. "Need to give ketamine. 75kg IV established and we have a 500mg/10ml vial" is asked which indication, not held; after "pain", ketamine IV 18.75 mg, 0.375 mL of 50 mg/mL. A dose stated outside the phrase is checked as before. | Live finding; owner, 2026-10-23 | In review |
 
 ## 4. D items: data and speed
 
@@ -228,4 +229,5 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 | A drug-choice question ("norepinephrine vs epinephrine drip") gets one drug's card. | #110 |
 | gpt-4o hits the organisation's 30,000 TPM limit on a sequential 30-set. | Run 3 (#87) |
 | The corpus was ingested from the superseded 2017 ID39; the 2026 edition is now in `jts_protocols`. Re-ingest is a separate decision. | #100 |
+| A vial named by mass alone ("we have a 500 mg vial") or with a unitless volume ("500 mg in 10") is still read as a 500 mg request and holds; the ruling covers phrases with mL. A stated concentration that is not a signed presentation (500 mg / 50 mL = 10 mg/mL) is not stored, so the card gives the mg dose with no volume. Owner to rule. | Vial concentration harness (2026-10-23) |
 | The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list; ID40 p.3 does. A re-sign. | #100 |
