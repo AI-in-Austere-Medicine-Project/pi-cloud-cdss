@@ -952,6 +952,7 @@ The branch is #177's (`a35-signed-cards`): A35 first, then the items below in th
   - **A37, 3 rows** (H-IM-07 ×2, a live chest GSW in shock): the tension card's THEN line no longer says "TXA within 3 hours".
   - **A36, 2 live overdose holds** (ketamine 300 mg / rocuronium 60 mg for a 20 kg child; ketamine 500 mg at 80 kg): they still hold, without the ceiling number.
 - **For the owner's sign-off (newly served doses):** none of these rows was held, so the replay counts nothing as released. But 9 cards now serve a dose they did not: E05's 5–20 mcg on the 8 push-dose cards and on the shock card.
+  - **Signed off, owner (Andrew Azelton), 2026-10-23 (#177 approved):** the nine E05 cards.
 
 **Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29.
 
