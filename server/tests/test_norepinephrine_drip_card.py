@@ -81,7 +81,8 @@ def test_mix_norepi_gets_the_card(run):
 
 def test_the_epinephrine_drip_card_is_unchanged(run):
     text = run("how do i make an epi drip for shock")["response"]
-    assert "EPINEPHRINE INFUSION PREP" in text and CARD not in text
+    # A35 renamed the heading: the card no longer states a bag to prepare.
+    assert "**EPINEPHRINE INFUSION**" in text and CARD not in text
 
 
 def test_a_question_about_norepinephrine_is_not_the_card(run):

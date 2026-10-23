@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+## [5.1.0] — 2026-10-23
+
+The v5.1.0 freeze (owner, 2026-10-21/22): the signing batches finished, and every dose a card prints comes from a signed entry. The rulings are in [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md); each item's status is in [`docs/REFERENCE.md`](docs/REFERENCE.md); the guarantees are in [`SAFETY.md`](SAFETY.md).
+
+### The contract bank: 108 of 118 entries signed
+
+- **Signing batch 2 (sedation, antibiotics, #170):** 5 entries signed, 8 held.
+- **Signing batch 3, the last (#174):** 26 signed, 26 retired, 4 deferred.
+- **Retirements:** 36 entries are retired, kept on record and never served. 26 of them were retired by the owner on 2026-10-21 because no JTS or SMOG page states their number. The 10 still unsigned hold.
+- **E05 relabel (#177):** E05 is "push-dose vasopressor for hypotension / shock (SBP < 90)" (JTS ID83 p.24), re-signed 2026-10-22. The push-dose prep card serves it to an adult in shock; the nine cards that newly serve it were signed off by the owner on 2026-10-23.
+
+### The dose check: indication and route
+
+- **A33 (#175):** a rate or recipe in a line that names no drug is read as the question's one named drug and checked as that drug's; with none, it holds.
+- **A34, the route filter (#176):** the offered doses are the stated route's only. IV and IO are one route; IV access reads as IV, no access as IM. "versed dose IM" is offered IM midazolam alone.
+- **Pacing match (#177):** "midazolam for pacing" or "cardioversion" is E13 (2.5–5 mg); the ID61 1 mg add-on holds. "rsi" is matched as a word, so "cardioversion" no longer calls the RSI bundle.
+
+### No calculator: every number on a card is signed (#177)
+
+- **A35:** ketamine for pain IM serves the signed adult IM entry (0.5–1.0 mg/kg, max 100 mg) or holds. The legacy calculators, the prep card's own recipes and the epinephrine drip's bag are gone; a role with no signed entry holds. The list: [`docs/authoring/A35_CARD_NUMBERS_2026-10-22.md`](docs/authoring/A35_CARD_NUMBERS_2026-10-22.md).
+- **A36:** a requested ketamine, rocuronium or succinylcholine dose above the highest signed single dose for this patient (population, route, weight, age band) holds. This replaces the unsigned 2 / 1.2 / 2 mg/kg ceilings, and the hold names no number. A signed dose, such as ketamine 4 mg/kg IM for agitation, is no longer held as an overdose.
+- **A37:** the tension-pneumothorax card no longer says "TXA within 3 hours", which its cited quote (ID74 p.5) does not state. Re-signed 2026-10-22.
+- **A38:** the seizure card chooses its benzodiazepine among the signed entries on the available route. A child with no IV gets IM midazolam 0.2 mg/kg; an adult with no IV still holds.
+
+### Also since 5.0.0
+
+Signing batch 1, analgesia (#163). A drug named with no indication is asked which (#165); an indication-only question is offered that indication's signed entries (#164). A30, the rate check is indication-specific beyond the pressors (#171); A31, a bare ketamine drip is asked which indication (#172); A32, a stated indication restricts the dose check (#173). On-device models in the picker (C2, C3, #162).
+
+### Not in this release
+
+- **The vent cards' settings** are printed for the owner's ruling ([`docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md`](docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md)). They still carry `reviewed_by "clinician"`, a role and not a name.
+- **Found and deferred to v1.1** (the work order's v1.1 list): two offline-harness pacing holds (nothing wrong served), the which-indication wording, the age parser, the remaining "rsi" substring matches, and the DCR card's TXA line citation.
+
 ## [5.0.0] — 2026-10-12
 
 The v1.0 scope (owner, 2026-10-11): 110 merged changes since 4.3.0, nearly all of them to the safety layer. The plan and every ruling behind them are in [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md); each item's one-line meaning and status is in [`docs/REFERENCE.md`](docs/REFERENCE.md). What the system does and does not guarantee is in [`SAFETY.md`](SAFETY.md).

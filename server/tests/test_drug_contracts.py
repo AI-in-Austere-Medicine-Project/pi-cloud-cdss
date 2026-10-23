@@ -1458,10 +1458,7 @@ DOSE_TEMPLATE_CASES = [
             _rsi_case_ctx(), "need to RSI with ketamine and roc, 80kg IV"),
         "contract": lambda: _oc._contract_rsi_candidates(
             "need to RSI with ketamine and roc, 80kg IV", _rsi_case_ctx()),
-        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
-                     lambda w: _oc.ketamine_post_intubation_iv(w),
-                     lambda w: _oc.rocuronium_rsi(w, False),
-                     lambda w: _oc.succinylcholine_rsi(w, False)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 80.0,
     },
     {
@@ -1470,9 +1467,7 @@ DOSE_TEMPLATE_CASES = [
             _rsi_case_ctx(), "RSI now, BP 78/40, shocky"),
         "contract": lambda: _oc._contract_rsi_candidates(
             "RSI now, BP 78/40, shocky", _rsi_case_ctx()),
-        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
-                     lambda w: _oc.ketamine_post_intubation_iv(w),
-                     lambda w: _oc.rocuronium_rsi(w, False)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 80.0,
     },
     {
@@ -1481,19 +1476,19 @@ DOSE_TEMPLATE_CASES = [
         "contract": lambda: [c for c in
                              [_oc._contract_analgesia_candidate(_analgesia_ctx("IV"))]
                              if c],
-        "backfill": [lambda w: _oc.ketamine_analgesia_iv(w)],
+        "backfill": [],
         "weight": 60.0,
     },
     {
-        # The bank has no IM analgesia entry. This case exists to pin that the
-        # backfill is ALLOWED here and that the card says so — and that the
-        # signed IM dissociative-sedation entry never leaks in to fill it.
-        "name": "ketamine_analgesia_im_backfill",
+        # A35: the IM card serves the signed IM pain entry ("breakthrough pain
+        # — IM/IN"); the 2 mg/kg calculator that backfilled it is gone, and
+        # the signed IM dissociative-sedation entry never fills it.
+        "name": "ketamine_analgesia_im",
         "render": lambda: _oc.build_ketamine_analgesia_response(_analgesia_ctx("IM")),
         "contract": lambda: [c for c in
                              [_oc._contract_analgesia_candidate(_analgesia_ctx("IM"))]
                              if c],
-        "backfill": [lambda w: _oc.ketamine_analgesia_im(w)],
+        "backfill": [],
         "weight": 60.0,
     },
     {
@@ -1578,7 +1573,7 @@ DOSE_TEMPLATE_CASES = [
                                                      _analgesia_ctx("IV")),
         "contract": lambda: _oc.build_allowed_doses("she is seizing, 60kg",
                                                     _analgesia_ctx("IV")),
-        "backfill": [lambda w: _oc.lorazepam_seizure(w)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 60.0,
     },
     {
@@ -1587,16 +1582,14 @@ DOSE_TEMPLATE_CASES = [
                                                 _analgesia_ctx("IV")),
         "contract": lambda: _oc.build_allowed_doses("she is seizing, 60kg",
                                                     _analgesia_ctx("IV")),
-        "backfill": [lambda w: _oc.lorazepam_seizure(w)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 60.0,
     },
     {
         "name": "allowed_doses_rsi",
         "render": lambda: _render_allowed_doses("60kg RSI now", _analgesia_ctx("IV")),
         "contract": lambda: _oc.build_allowed_doses("60kg RSI now", _analgesia_ctx("IV")),
-        "backfill": [lambda w: _oc.ketamine_induction_iv(w, False),
-                     lambda w: _oc.ketamine_post_intubation_iv(w),
-                     lambda w: _oc.rocuronium_rsi(w, False)],
+        "backfill": [],  # A35: no calculator backfills a role
         "weight": 60.0,
     },
 ]
@@ -1699,30 +1692,35 @@ def test_a_signed_indication_is_never_substituted_for_a_different_one():
     """The IM analgesia case, pinned as its own assertion because it is the one
     the owner called out: ketamine's signed IM entries are dissociative
     sedation at 3-4 mg/kg, twelve to sixteen times the IV analgesia dose. A
-    pain request on the IM route must reach the calculator, never them."""
+    pain request on the IM route reaches the signed IM pain entry (A35:
+    "breakthrough pain — IM/IN", 0.5 mg/kg, 30 mg at 60 kg), never them, and
+    never the removed 2 mg/kg calculator (120 mg)."""
     ctx = _analgesia_ctx("IM")
-    assert _oc._contract_analgesia_candidate(ctx) is None, \
-        "an IM entry matched an analgesia request — check the route/indication scoping"
+    d = _oc._contract_analgesia_candidate(ctx)
+    assert d is not None and d.indication.startswith("breakthrough pain"), \
+        "an IM entry other than the pain entry matched an analgesia request"
+    assert d.dose_mg == 30.0, d
 
     text = _oc.build_ketamine_analgesia_response(ctx)
     give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
     assert "dissociative sedation" not in give, \
         "an agitation indication is being served as analgesia"
-    assert "120 mg" in text, "the declared IM backfill is not what got served"
+    assert "120 mg" not in text, "the removed 2 mg/kg IM calculator was served"
     # 3 and 4 mg/kg on a 60 kg patient.
     for smuggled in ("180 mg", "240 mg"):
         assert smuggled not in text, f"an agitation dose reached a pain card: {smuggled}"
 
 
-def test_the_push_dose_card_refuses_rather_than_reaching_for_the_wrong_entry():
-    """An adult shock push-dose request has no signed entry. The card must say
-    so — not answer with the bradycardia window, and not fall back to the
-    unsourced 5 mcg floor it used to print."""
+def test_the_push_dose_card_never_reaches_for_the_wrong_entry():
+    """An adult shock push-dose request gets the signed shock entry (E05,
+    "push-dose vasopressor for hypotension / shock (SBP < 90)", 5-20 mcg, JTS
+    ID83 p.24; freeze plan item 3), never the bradycardia window. Before E05
+    was relabelled the card refused here; the unsourced 5 mcg floor it once
+    printed is the same range only because ID83 now signs it."""
     text = _oc.build_fixed_prep_response("need push dose epi, BP 70/40 shocky")
     give = text.split("**GIVE**")[1].split("**CAUTIONS**")[0]
-    assert "No signed entry for shock" in give
+    assert "hypotension / shock (SBP < 90)" in give
     assert "10-20 mcg" not in give, "the bradycardia window was substituted"
-    assert "5-20 mcg" not in give, "the retired unsourced floor is back"
 
 
 def test_the_retired_analgesia_hardcode_is_gone_from_the_iv_path():

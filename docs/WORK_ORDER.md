@@ -75,7 +75,11 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A31 | A bare "ketamine drip" is not RSI: with no indication it is asked which indication | **done**: #172, merged; owner ruling 1, #170 review (2026-10-20) |
 | A32 | A stated indication restricts what the dose check accepts; another indication's dose of the same drug holds, naming both | **done**: #173, merged; owner, 2026-10-20 |
 | A33 | A recipe or rate that names no drug is the question's drug, or it holds | **done**: #175, merged; owner, 2026-10-21 (A32 harness finding) |
-| A34 | The offered doses are the stated route's only (IV and IO one route); "versed IM" is never offered the IV entry | **in review**: this PR; owner, 2026-10-21 (freeze plan to v5.1.0, item 1; signing batch 2 finding 3) |
+| A34 | The offered doses are the stated route's only (IV and IO one route); "versed IM" is never offered the IV entry | **done**: #176, merged; owner, 2026-10-21 (freeze plan to v5.1.0, item 1; signing batch 2 finding 3) |
+| A35 | "Ketamine for pain IM" serves the signed adult IM entry or holds; every drug number a deterministic card emits has a signed entry behind it, or holds | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 (A34 harness finding; sweep) |
+| A36 | The requested-overdose ceilings come from the signed entries | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
+| A37 | The tension card's TXA line removed (not in its cited quote) and the card re-signed | **in review**: the v5.1.0 PR (#177); re-signed by Andrew Azelton, 2026-10-22 |
+| A38 | The seizure card chooses its benzodiazepine by the available route | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -820,6 +824,156 @@ Eight existing tests pinned IN fentanyl as offered to an IV question. They are u
 **For the owner:** IV access with no route word counts as a stated IV route, as the context has read it since A15. So a patient with IV access is not offered IN fentanyl or IM/IN ketamine.
 
 **Seen in the harness, not this item:** "ketamine for pain IM" gets the legacy calculator's 2 mg/kg (160 mg at 80 kg), not the signed adult IM breakthrough-pain entry (0.5 mg/kg). It is the same on main; see the found list.
+
+### A35: a deterministic card's drug numbers are signed, or hold (owner, 2026-10-22; found in the A34 harness)
+
+**Owner, 2026-10-22 (#176 review):** "A35, failing test first. 'Ketamine for pain IM, 80 kg' serves the signed adult IM entry (40–80 mg, cap 100) or holds; the legacy 2 mg/kg calculator is removed. Then sweep every deterministic card: list every number a card can emit and the signed entry it comes from. Any number with no signed entry behind it is replaced by a hold, with the list in the PR for me to read."
+
+**Ruled the same day (scope):**
+- Drug numbers only: doses, rates, volumes, concentrations and recipes. Non-drug numbers are listed, not changed.
+- The overdose ceilings keep their check and drop their number.
+
+**The list:** [`docs/authoring/A35_CARD_NUMBERS_2026-10-22.md`](authoring/A35_CARD_NUMBERS_2026-10-22.md). It covers every number by card, its signed entry or source, and what changed.
+
+**What changed:**
+- **Ketamine analgesia card:**
+  - For IM, after "moderate to severe pain" (the paediatric IM entry), it takes the adult "breakthrough pain — IM/IN" entry (JTS ID91 p.33, 0.5–1.0 mg/kg, max single 100 mg): 40 mg at 80 kg.
+  - With no signed entry on the route, it holds.
+  - The analgesia calculators (0.3 mg/kg IV, 2 mg/kg IM) are removed.
+- **Push-dose prep card:** it prints no recipe of its own. Each signed push-dose entry states the recipe in its cautions; with no entry served, there is no recipe.
+- **Epinephrine drip card:** it states no bag (1 mg in 250 mL = 4 mcg/mL is in no entry): concentration per local protocol, and no mL/hr. `PREP_RECIPE_NUMBERS` is empty.
+- **Requested-overdose hold:** the check is unchanged. It no longer prints the unsigned ceiling (ketamine 2, rocuronium 1.2, succinylcholine 2 mg/kg).
+- **The legacy calculators are removed**, with their backfill paths in the builder and the RSI card: ketamine induction and post-intubation, rocuronium, succinylcholine, lorazepam. They were unreachable while their drugs were signed, and came back if a drug lost its last entry or the bank failed to import. Now a role with no signed entry holds.
+
+**Tests**, each committed failing first:
+- `server/tests/test_a35_ketamine_im_analgesia.py`: 8 of 9 failed on main.
+- `server/tests/test_a35_card_numbers.py`: 15 of 16 failed on main. Its replay follow-up (the no-entry TLDR and the hold's grammar) failed 4 before its fix.
+
+The existing tests that pinned a calculator or the card's recipe were updated:
+- `test_drug_contracts` declares no backfill, and the IM analgesia case expects the signed entry.
+- `test_drug_concentrations`: the calculators are absent; the recipe is the entry's caution.
+- `test_general_reference` and `test_norepinephrine_drip_card`: updated to match.
+
+**Suite:** 3,317 passed, 0 failed (6 skipped, 3 xfailed).
+
+**Replay** (against main `67cd451`): served (1,738), held (308), gate (1,408) and live logs (3,373) unchanged. Pipeline (812): 10 rows changed, **0 newly held, 0 newly released.**
+- Eight push-dose prep cards (A1-WT-025, A1-NOWT-015, A1-RX-001, A1-RX-002, A1-RX-006, and three live) lose the card's own recipe lines. Each points to the signed entry's caution, which carries the same recipe.
+- "push dose epi, BP 70/40 shocky" (live) has no signed entry, so it now says "No signed push-dose preparation".
+- Two live overdose holds (ketamine 300 mg and rocuronium 60 mg for a 20 kg child; ketamine 500 mg at 80 kg) still hold, without the ceiling number.
+
+**Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29.
+
+| Question | Result |
+|---|---|
+| "ketamine for pain IM", 80 kg | 40 mg IM, breakthrough pain, "each dose no more than 100 mg" |
+| ketamine for pain IV, 80 kg | 20 mg |
+| ketamine for pain IM, 20 kg child | 10 mg |
+| push dose epi, bradycardia | 10–20 mcg, with the NASEMSO recipe in CAUTIONS |
+| epi drip, shock | 2–10 mcg/min and 0.05–0.3 mcg/kg/min, no bag |
+| RSI, 80 kg | 160 mg / 96 mg / 40 mg |
+| seizing, 60 kg | lorazepam 4 mg |
+| ketamine 500 mg, 80 kg | held, no ceiling number |
+
+### The v5.1.0 freeze (owner, 2026-10-21 and 2026-10-22): one branch, one PR
+
+**Owner, 2026-10-22 (#177 review), process:** "Everything to v5.1.0 goes on ONE branch and ONE PR. Inside it, each item keeps its own commits, failing test first, in this order: A36 ceilings from signed entries; A37 tension card TXA line removed and re-signed; vent card settings printed for my signature ruling; A38 seizure card by available route; pacing match to E13; E05 relabel and re-sign; SAFETY.md, README and REFERENCE for 5.1.0 including the cited-in-code non-drug numbers. Run replay, suite and harness ONCE at the end. The report tags every moved row with the item that moved it, newly released rows listed for my sign-off. Anything the harness finds that isn't on this list is recorded in v1.1, not fixed. Do not merge."
+
+The branch is #177's (`a35-signed-cards`): A35 first, then the items below in that order. Each item's tests are committed failing before its change.
+
+**A36: the overdose ceilings come from the signed entries.**
+- `signed_ceiling_mg` is the highest signed single dose of the drug for this patient:
+  - the patient's population;
+  - the stated route, IV = IO (every route when none is stated);
+  - each entry's range maximum at the confirmed weight, capped at the entry's own maximum;
+  - age-banded entries by age; with no age, the lowest band.
+- It replaces the unsigned 2 / 1.2 / 2 mg/kg, and the hold names no number but the request.
+- Tests: `test_a36_signed_ceilings.py`, 15 of 19 failed first.
+
+**A37: the tension card's TXA line.**
+- "TXA within 3 hours" is removed from the THEN line: its quote (ID74 p.5) does not state it.
+- Re-signed by Andrew Azelton, 2026-10-22, as ruled.
+- Every number on the card is now in its cited quote.
+- Tests: `test_a37_tension_txa_line.py`, 4 of 4 failed first.
+
+**Vent card settings, for the owner's signature ruling.**
+- `docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md` has every line the five vent cards render, verbatim, with numbers marked and references, plus the Devine IBW constants.
+- One ruling line per card: SIGN / CHANGE / REMOVE / UNSIGN. Nothing is signed.
+- Tests: `test_vent_settings_packet.py`, 7 of 7 failed first.
+
+**A38: the seizure card by the available route.**
+- The seizure role chooses among the signed active-seizure entries on the stated route: lorazepam first, midazolam where named, else the route's entry.
+- A child with no IV gets IM midazolam 0.2 mg/kg. An adult with no IV still holds: there is no adult IM seizure entry.
+- Tests: `test_a38_seizure_by_route.py`, 2 of 7 failed first; the others pin what must not change.
+
+**Pacing match (freeze plan item 2).**
+- A "pacing / cardioversion" indication class sits ahead of sedation. E13 and the paediatric pacing/cardioversion entry are in it.
+- Its cue words are pacing, "about to pace", transcutaneous pacing, TCP and cardioversion. A pacemaker is not pacing.
+- For a drug signed for it, a stated pacing reads as that class alone, so the ID61 1 mg add-on holds. A drug with no pacing entry keeps the sedation reading it had.
+- Found writing it: "rsi" was matched as a substring, and "cardioversion" contains it. "midazolam for cardioversion" was served the RSI bundle (ketamine 160 mg, rocuronium 96 mg). The builder and the RSI pre-gate now match "rsi" as a word.
+- Tests: `test_pacing_match.py`, committed failing in two parts (15 of 18; then the cardioversion-RSI cases).
+
+**E05 relabel (freeze plan item 3).**
+- The new label is "push-dose vasopressor for hypotension / shock (SBP < 90)". Dose, sources and cautions are unchanged.
+- Unsigned and re-signed through `set_contract.py` by AI-AIM for Andrew Azelton, 2026-10-22.
+- The push-dose prep card's pattern takes "push-dose" as well as "push dose", so an adult in shock is served E05 (5–20 mcg).
+- Tests: `test_e05_relabel.py`, 6 of 8 failed first.
+
+**5.1.0 docs.**
+- SAFETY.md and README carry the counts read from the bank (108 of 118 signed, 36 retired, 10 unsigned) and the new guarantees.
+- SAFETY.md lists the non-drug numbers cited in code that no signature covers.
+- REFERENCE carries every item.
+- `server/version.py` and CHANGELOG are not changed (docs only, as ruled).
+- Tests: `test_release_5_1_docs.py`, 37 of 39 failed first.
+
+**Replay, suite and harness:** run once, at the end of the branch.
+
+**Suite:** 3,425 passed, 1 failed (6 skipped, 3 xfailed).
+- The failure was `test_prep_card_holds`. It unsigns the entries the push-dose card uses by matching "push dose", which misses E05's "push-dose" label, so the card still served.
+- The test was updated under the E05 item; that file now passes (8 of 8). No code changed.
+
+**Replay** (against main `67cd451`, every item since A34): **0 newly held, 0 newly released** by the replay's definition. Every moved row, tagged with its item:
+
+| Replay | Rows | Changed |
+|---|---|---|
+| Served | 1,738 | 0 |
+| Held | 308 | 16 |
+| Gate | 1,408 | 0 |
+| Live logs | 3,373 | 0 |
+| Pipeline | 812 | 25 |
+
+- **Held, 16 rows (E05 relabel):** epinephrine holds whose text lists the signed indications now name E05 by its new label. All still hold; no other change.
+- **Pipeline, 25 rows:**
+  - **E05 relabel and A35, 8 push-dose prep cards** (A1-WT-025, A1-NOWT-015, A1-RX-001, A1-RX-002, A1-RX-006, and live "need to make push dose epi" ×2):
+    - A35 removes the card's own recipe lines.
+    - E05 adds its signed 5–20 mcg line beside the bradycardia 10–20 mcg, each labelled. The request named no indication, so every signed push-dose entry is listed, as designed.
+  - **E05 relabel, live "push dose epi, BP 70/40 shocky":** the card refused ("No signed entry for shock") and now serves E05, 5–20 mcg.
+  - **E05 relabel, 7 rows** (A1-WT-024, A1-PED-013, A1-COL-003, A1-COL-011, A1-COL-015, A1-RX-005, A1-DRIP-006): the offered list carries the new label; nothing else.
+  - **Pacing match, 5 rows** ("Need versed dose" ×3, "can I give midazolam to settle him for the move" ×2): the which-indication question offers "pacing or cardioversion" as a choice.
+  - **A37, 3 rows** (H-IM-07 ×2, a live chest GSW in shock): the tension card's THEN line no longer says "TXA within 3 hours".
+  - **A36, 2 live overdose holds** (ketamine 300 mg / rocuronium 60 mg for a 20 kg child; ketamine 500 mg at 80 kg): they still hold, without the ceiling number.
+- **For the owner's sign-off (newly served doses):** none of these rows was held, so the replay counts nothing as released. But 9 cards now serve a dose they did not: E05's 5–20 mcg on the 8 push-dose cards and on the shock card.
+  - **Signed off, owner (Andrew Azelton), 2026-10-23 (#177 approved):** the nine E05 cards.
+
+**Live harness** (second uvicorn on :8012, offline, no keys): `run_tests.sh` 29/29.
+
+| Question | Result |
+|---|---|
+| ketamine for pain IM, 80 kg | 40 mg |
+| epi drip for shock | signed rates, no bag |
+| ketamine 320 mg IM for an agitated 80 kg adult | the vial question, not an overdose hold |
+| ketamine 500 mg IV | held |
+| succinylcholine 130 mg at 80 kg | held |
+| tension with shock | no TXA line |
+| seizing child, no IV | midazolam IM 4 mg |
+| seizing adult, no IV | held, no benzodiazepine |
+| seizing, IV access | lorazepam 4 mg |
+| push dose epi in shock or hypotension | E05 5–20 mcg |
+| push dose epi, bradycardia | 10–20 mcg |
+| ARDS on the vent | the signed-by-role card |
+| "about to pace, midazolam for sedation" | offered only 2.5 mg; qwen2.5:3b wrote 6.25 mg and it held |
+| "midazolam for cardioversion" | held: the model labelled the dose "procedural sedation for cardioversion", and the label check read it as another indication |
+
+Both pacing holds are on the v1.1 list.
 
 ### B1: source-mode labelling
 
@@ -1937,6 +2091,31 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 
 Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest trigger (A27), seizure misspellings (A28), the needle-decompression procedure and "pneumo" (A29). Everything else on the found list, and the open items below, are v1.1. Each is placed by the owner before work starts.
 
+**Found during the v5.1.0 freeze (2026-10-22), recorded, not fixed (owner's rule: anything not on the list goes to v1.1):**
+
+- **A paraphrased label for the right dose holds** (harness). For "80 kg adult, IV access, midazolam for cardioversion", qwen2.5:3b labelled the E13 dose "procedural sedation for cardioversion". The label check read that as another indication and held. Nothing wrong was served.
+- **qwen2.5:3b wrote midazolam 6.25 mg for pacing** (harness), when only 2.5 mg was offered. Held. This is the same class as the ketamine-after-"severe" item.
+- **The which-indication question reads "agitation, pacing or cardioversion or sedation (already intubated)"** (replay). The class word has its own "or".
+- **The age parser leaves age unset for "12 kg child, 2 years old"**, while "2 year old child 12 kg" and "2 yo" parse (found writing A36's tests).
+- **"rsi" is still matched as a substring in three places:**
+  - the route-question gate, so "cardioversion" is never asked a route;
+  - the paralytic-without-induction check;
+  - the non-medical override list.
+  Changing them would loosen a check or move routing (found during the pacing match).
+- **The DCR card's TLDR "TXA within 3 hours of injury"**: its SOURCE omits ID18 p.9, which the signed TXA caution cites. It is listed in SAFETY.md.
+
+**From the A35 sweep (2026-10-22; owner to place):**
+
+- **The overdose ceiling holds signed doses.** Ketamine's 2 mg/kg ceiling is below the signed IM entries: agitation 4 mg/kg, refractory seizure 3–4 mg/kg, paediatric IM 3 mg/kg. "ketamine 320 mg IM" for an agitated 80 kg patient holds as an overdose. **Fixed by A36.**
+- **A seizing patient with no IV access gets no benzodiazepine dose.** Lorazepam (IV only) is chosen first and the route filter drops it, so the card holds. The signed paediatric IM midazolam seizure entry is never chosen. **Fixed by A38.**
+- **The signed tension card's "TXA within 3 hours" is not in the quote it cites** (ID74 p.5). **Fixed by A37.** The DCR card's TLDR says the same, and its SOURCE omits ID18 p.9 (the signed TXA caution cites it): listed in SAFETY.md, v1.1.
+- **The vent cards are signed by "clinician"**, a role, not a name (2026-08-22). Printed for the owner's ruling: docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md.
+- **Unsigned or uncited, not drug numbers:**
+  - vitals_rules.json carries no signoff;
+  - the Devine IBW constants and the ketamine card's "reassess q5min" have no citation.
+- **Why-this-dose lists every signed entry of the drug**, unfiltered by route or indication.
+- **"d50 amp" and "dextrose prep" are prep terms with no card.**
+
 **From the D6 and D7 benches:**
 
 - **`qwen2.5:3b` as the offline validator does not catch procedural errors** (D7 v3 re-bench finding, owner to place). It called a low-and-loose tourniquet, "reapply" a tourniquet on loss of pulse and "do not re-warm" a hypothermic arrest SAFE. D7 made the comparison measurable; it did not make the offline validator adequate.
@@ -1944,9 +2123,9 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **B1 citation picks the wrong population** (found in signing batch 2's live harness, 2026-10-19): `jts_contract_citations` keys entries without population, so a paediatric entry's citation prints on the adult dose where the two share indication, route and version (14 signed pairs). Citation only. Owner, 2026-10-20: its own PR, after the epinephrine-in-shock item.
 - **The offered set is not filtered by route or stated indication** (found in signing batch 2's replay, 2026-10-19): "versed dose IM" is offered the IV procedural bolus. Owner, 2026-10-20: its own PR, after the wrong-population citation. The indication-blind ketamine rate check found with it is A30 (done, #171). The stated indication restricts the check since A32 (#173). **Route: fixed by A34** (owner, 2026-10-21, freeze plan item 1, ahead of the citation, which moved to v1.1).
 - **Open contract drafts:** the 39 incomplete drafts and P1, P2 (unsigned inventory, #146); the fentanyl analgesia infusion entry (#148); signing batch 1, analgesia (2026-10-14): 8 signed; NASEMSO IM ketamine, paediatric IN ketamine (incomplete) and ketorolac (excluded) unsigned; signing batch 2, sedation and antibiotics (ruled 2026-10-19): 5 signed; 8 held (SMOG midazolam procedural and ketamine infusion alternates; midazolam ventilated infusion, v1.1, its conflict open; rocuronium redose; paediatric ketamine infusion, v1.1; paediatric ceftriaxone sepsis, incomplete); 12 undrafted indications and 2 discrepancies listed as v1.1 items in the unsigned inventory; signing batch 3 (ruled 2026-10-21): 26 signed, 26 retired, E02, E09, E14, E15 deferred, P1/P2 held, E27 ruled SIGN and not signable (tablets; owner to rule the unit). Signing is the owner's act.
-- **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05; the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg).
+- **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05 (**fixed by the E05 relabel**); the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg) (**fixed by the pacing match**).
 - **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked. Since A34 it is offered the IM entry only.
-- **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21; same on main, owner to place). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
+- **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21). **Fixed by A35** (owner, 2026-10-22). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
 
 **The found list:**
 

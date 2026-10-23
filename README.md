@@ -5,7 +5,7 @@ Open source. Edge deployed. Safety findings published.
 
 > ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
 
-**Current release: 5.0.0** — [changelog entry](CHANGELOG.md#500--2026-10-12) · [`SAFETY.md`](SAFETY.md): what the system guarantees and what it does not · [work order](docs/WORK_ORDER.md) and [one-line reference](docs/REFERENCE.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
+**Current release: 5.1.0** — what changed: [What's new in 5.1](#whats-new-in-51) and the [work order](docs/WORK_ORDER.md) · 5.0.0: [changelog entry](CHANGELOG.md#500--2026-10-12) · [`SAFETY.md`](SAFETY.md): what the system guarantees and what it does not · [work order](docs/WORK_ORDER.md) and [one-line reference](docs/REFERENCE.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
 Previous release: 4.3.0 — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/TECH_NOTES_v4.3.md)
 
@@ -18,6 +18,21 @@ EdgeCDSS is a self-hosted clinical decision support system for austere, remote, 
 The entire system — knowledge base, retrieval engine, safety gates, web interface, feedback system, and audit logs — runs on a single **NVIDIA Jetson Orin Nano** at the point of care. Public access flows through an outbound-only Cloudflare Tunnel. The deployment is network agnostic: satellite, broadband, Wi-Fi, Ethernet, or LTE/5G.
 
 **Try it:** the live portal is at **https://cdss.arcanekg.com** (demo access token is pre-filled in the interface).
+
+## What's new in 5.1
+
+5.1 is the signing release. Every contract entry still unsigned at 5.0 was put to the owner and ruled on; the dose check now reads the question's indication and route; and every drug number a card prints now traces to a signature. What it guarantees is in [`SAFETY.md`](SAFETY.md).
+
+- **108 of 118 contract entries are signed** (69 of 109 at 5.0), across signing batches 1–3. 36 retired entries are kept on record and never serve; 26 of them were retired on 2026-10-21 because no JTS or SMOG page states their number. The 10 still unsigned hold.
+- **The dose check is indication- and route-specific.** A stated indication accepts only its own signed doses; another indication's dose of the same drug holds (A32). A stated route is offered only its own doses (A34). A rate or recipe line that names no drug is read as the question's drug, or holds (A33).
+- **No calculator.** The legacy dose calculators are removed. Every drug number a deterministic card prints (dose, rate, volume, concentration, recipe) comes from a signed entry or holds (A35). "Ketamine for pain IM" serves the signed IM entry (0.5 mg/kg, max 100 mg), no longer 2 mg/kg.
+- **Requested-overdose ceilings come from the signed entries** (A36). A request above the highest signed dose for this patient holds; the signed 4 mg/kg IM ketamine for agitation no longer does.
+- **Cards:**
+  - The seizure card doses by the available route (A38).
+  - Midazolam for pacing or cardioversion gets the signed pacing entry, and "cardioversion" is no longer read as RSI.
+  - A patient in shock gets the signed push-dose entry (E05, JTS ID83 p.24).
+  - The tension-pneumothorax card's TXA line, which its cited quote did not state, is removed and the card re-signed (A37).
+- **For the owner's ruling:** the vent card settings (signed by a role, not a name) and the non-drug numbers written in code. Both are listed in [`SAFETY.md`](SAFETY.md).
 
 ## What's new in 5.0
 
@@ -228,7 +243,7 @@ In local mode the portal is local-only: the picker offers exactly the on-device 
 **Test it:**
 
 ```bash
-cd server && ./run_unit_tests.sh   # ~2,700 offline tests, 1-3 minutes — no network, no API key, no ChromaDB
+cd server && ./run_unit_tests.sh   # ~3,400 offline tests, 3-5 minutes — no network, no API key, no ChromaDB
 bash server/run_tests.sh           # 29 clinical cases against a running endpoint
 ```
 
@@ -405,7 +420,7 @@ measured.
 
 ## Validation status
 
-- Offline regression suite: **~2,700 tests** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it, committed failing before the fix
+- Offline regression suite: **~3,400 tests** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it, committed failing before the fix
 - Automated clinical suite: **29 cases** (`server/run_tests.sh`) against a running endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
 - Every safety change is replayed against the stored answers (served, held, live logs, the full pipeline): 0 newly released is required, and every movement is read and signed off by the owner
 - A signed 30-scenario evaluation set ([`docs/EVALUATION_SET_30.md`](docs/EVALUATION_SET_30.md)); benchmark counts are advisory, and a model ships only when every served answer has been read

@@ -2011,7 +2011,7 @@
           "adjudication": "OWNER RULING 2026-09-24 (Andrew Azelton): signed. NASEMSO p.121's 0.1 mg/kg is recorded as a suspected source error (10x the conventional dose) and is not served. The hypothermia ruling on the adult entry applies here too: any arrest with a stated core temperature below 30 °C."
         },
         {
-          "indication": "push-dose vasopressor for hypotension",
+          "indication": "push-dose vasopressor for hypotension / shock (SBP < 90)",
           "population": "adult",
           "route": "IV",
           "dose_range": {
@@ -2084,7 +2084,7 @@
           ],
           "signoff": true,
           "reviewed_by": "AI-AIM",
-          "review_date": "2026-10-21",
+          "review_date": "2026-10-22",
           "version": "0.5.0",
           "extraction_notes": "Drafted 2026-10-21 (signing batch 3) from the review packet, item E05. The old note ('NASEMSO 403; WHO no regimen') is superseded: JTS ID83 p.24 states the dose. JTS ID83 and SMOG p.12 agree on 5-20 mcg every 2-5 minutes; no conflict. No JTS or SMOG page states a maximum. ID83's 'very slow IV push. 1 cc/min for 10 minutes' is printed as quoted and not served. SMOG p.114's 0.05-0.1 mg push dose is refractory anaphylaxis, a different indication. Contraindication from SMOG p.114 (the 1:10,000 monograph). Recorded, not shown: SMOG CY24 p.12 (RSI page) gives the same 5-20 mcg IV every 2-5 minutes. SMOG p.114's push dose (0.05-0.1 mg) is for refractory anaphylaxis, a different indication.",
           "flags": [],

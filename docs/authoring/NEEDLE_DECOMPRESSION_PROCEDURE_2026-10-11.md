@@ -45,7 +45,9 @@
 
 ### THEN (only with shock physiology)
 
-**1. After decompression, then reassess for hemorrhage — DCR (damage-control resuscitation) if shock persists: control bleeding, blood products, TXA within 3 hours.**
+**1. After decompression, then reassess for hemorrhage — DCR (damage-control resuscitation) if shock persists: control bleeding, blood products.**
+
+*A37 (owner, 2026-10-22): "TXA within 3 hours" removed from this line, which read "… blood products, TXA within 3 hours." Its cited quote (ID74 p.5) does not state it; the TXA dose and window are the signed TXA entry's, on the DCR card. Re-signed by Andrew Azelton, 2026-10-22.*
 - ID74 p.5: "While a patient with thoracic trauma and a pneumothorax may present with multiple injuries and an alternate explanation for hypotension (such as cardiac tamponade, intraabdominal bleeding, or hemothorax), immediate needle or tube thoracostomy is the necessary first step in this scenario."
 
 The THEN line's DCR steps are the signed DCR card's (owner ruling 1, 2026-09-24); ID74 p.5 is cited for the order: decompression first.
