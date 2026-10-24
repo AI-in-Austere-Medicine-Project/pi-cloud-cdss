@@ -1301,16 +1301,25 @@ def pending_question_kind(last_response: str) -> Optional[str]:
     return None
 
 
-def answers_pending_question(kind: Optional[str], query: str) -> bool:
+def answers_pending_question(kind: Optional[str], query: str,
+                             prior_queries: str = "") -> bool:
     q = query or ""
     if kind == "weight":
         return bool(_WEIGHT_ANSWER_RE.search(q))
     if kind == "route":
         return bool(_ROUTE_ANSWER_RE.search(q))
     if kind == "vial":
-        # "500", "500 in 10", or a turn about the vial itself (the "Vial
-        # math" chip: "Show the vial math for that dose.").
-        return bool(re.search(r"\d|\b(?:vial|volume|ml|concentration)\b", q, re.IGNORECASE))
+        # A declared presentation of a drug under discussion ("500", "500 in
+        # 10", "50 mg/mL"), as rsi_bundle_should_resume requires, or a turn
+        # about the vial itself (the "Vial math" chip: "Show the vial math for
+        # that dose."). A number alone is not enough: "what does a GCS of 9
+        # mean" is not a vial (live harness, 2026-10-24).
+        if re.search(r"\b(?:vial|ampoule|ampule|amp|volume|ml|concentration)\b", q, re.IGNORECASE):
+            return True
+        if drug_concentrations is None or drug_contracts is None:
+            return False
+        return any(drug_concentrations.match_confirmation(d, q) is not None
+                   for d in drug_contracts.resolve_drugs(prior_queries or ""))
     if kind == "indication":
         return bool(stated_indication_classes(q))
     if kind == "severity":
@@ -1331,7 +1340,7 @@ def scope_request(query: str, prior_queries: str, last_response: str = "") -> tu
       before.
     """
     kind = pending_question_kind(last_response)
-    answered = kind is not None and answers_pending_question(kind, query)
+    answered = kind is not None and answers_pending_question(kind, query, prior_queries)
     named = {g for _s, _e, g in _drug_spans(query)}
     if named:
         keep = set(named) - negated_drugs(query)
