@@ -992,6 +992,60 @@ Both pacing holds are on the v1.1 list.
 
 **Found, not changed (owner to rule):** "we have a 500 mg vial" (mass, no volume) and "500 mg in 10" (no mL) are still read as a 500 mg request and hold.
 
+### Replay release count (owner, 2026-10-23; tooling, its own PR)
+
+**Owner:** "The replay comparison counts a row as newly released when its before-state was a hold and its after-state serves anything (card, dose, question), regardless of verdict label. Failing test first using the two #178 rows. Re-run the comparison for #170–#178 against their pre-merge mains and report whether any release was missed. No server change."
+
+**Found in #178:** the two live rows that went from the safety hold to the which-indication question and to the ketamine analgesia card were counted as still held. The pipeline replay was judged by verdict label, and a question (SKIPPED_SAFE_GATE) or a card (DETERMINISTIC_CHECKED) is not "SAFE". The gate replay was judged by the recorded validator's issues, which are the same on both trees, so a gate row whose `blocked` changed was never counted, held or released.
+
+**Change:** the comparison is tracked at `server/tools/replay_compare.py`, first exactly as it ran in each worktree's `replay-out/compare.py`, then fixed. `is_hold()` judges by what was served:
+- a pipeline row is a hold when its response carries the safety hold header (`build_safety_hold`; a test pins the two together);
+- a gate row when the gate blocked it;
+- a served, held or log row when the deterministic check returns issues (unchanged).
+
+A changed row that neither side can judge is listed as unjudged and never counted as safe. No server code changed. The replay runners stay in each worktree's `replay-out/`.
+
+**Tests:** `server/tests/test_replay_compare.py` (15) with the two #178 rows as a fixture, committed failing first (11 failed).
+
+**Re-run, #170–#178:** all five replays on each merge and on the main before #171 (10 trees, today's inputs: served 1,738, held 308, gate 1,408, live logs 3,499, pipeline 816). Newly held / newly released, old comparator then new:
+
+| PR (before → after) | Rows changed | Old | New |
+|---|---|---|---|
+| #171 (65788f0 → 49cd349) | 0 | 0 / 0 | 0 / 0 |
+| #172 (49cd349 → 2aa932d) | pipeline 1 | 0 / 0 | 0 / 0 |
+| #170 (2aa932d → 92007c5) | served 5, held 45, pipeline 12 | 0 / 0 | 0 / 0 |
+| #173 (92007c5 → 24652bb) | log 46 | 0 / 0 | 0 / 0 |
+| #175 (24652bb → 19cd77c) | served 8, held 3, gate 2, log 2 | 6 / 0 | 8 / 0 |
+| #174 (19cd77c → e31d1e6) | served 8, held 62, log 1, pipeline 27 | 1 / 1 | 0 / 0 |
+| #176 (e31d1e6 → 67cd451) | pipeline 9 | 0 / 0 | 0 / 0 |
+| #177 (67cd451 → 54aafac) | held 16, pipeline 27 | 0 / 0 | 0 / 0 |
+| #178 (54aafac → 316441f) | pipeline 2 | 0 / 0 | 0 / 2 |
+
+- **No release was missed** in #170–#177. #178's two are the rows the owner signed off on 2026-10-23.
+- **#175, gate:** 2 rows newly held that the old comparator could not see (G-DIC-04 and G-MTN-05: A33 holds a drugless rate and recipe). They are the same answers already counted newly held in the served replay. Holding more is not a release.
+- **#174, pipeline:** the old comparator's 1 / 1 were a question and an answer swapping places. "versed dose IM" went from the which-indication question to an answer (reported then, owner to rule). "rocephin dose for this infection" went from an answer to the question. By the owner's definition a question serves, so neither is a hold and both now count 0.
+
+**Third count, newly doses (owner, 2026-10-24, #179 review):** "any row whose after-state serves a dose that its before-state did not (question → dose, no-dose card → dose, hold → dose). Listed by row like the others; my sign-off required."
+- `is_dosing()`: a hold never doses. A pipeline row doses when its response states a dose (a number with mg, mcg, g, units, mEq, mmol, rates included; concentration phrases such as 50 mg/mL or 500 mg / 10 mL removed; a volume alone is not a dose), or when it reached the stubbed generator with doses offered. Served, held and gate rows are read from the answer text in the row key. Log rows keep no text, so a log row that serves counts as dosing.
+- Tests: `server/tests/test_replay_newly_doses.py` (20), with "versed dose IM" (#174) and the E05 shock card (#177) as a fixture, committed failing first (19 failed).
+- **On the #170–#178 outputs, 10 rows newly dose, all for the owner's sign-off:**
+
+| PR | Row | Before → after |
+|---|---|---|
+| #170 | "cefazolin dose for the wound" (eval run) | generator, nothing offered → offered cefazolin 2,000 mg (open fracture / wound prophylaxis) |
+| #170 | "give 500 milligrams of cefazolin for the open fracture, confirm" (bank and eval run, 2 rows) | the same |
+| #170 | "rocephin dose for this infection" (eval run) | generator, nothing offered → offered ceftriaxone 2,000 mg (sepsis) |
+| #174 | "does he need vitamin K here" (eval run) | generator, nothing offered → offered phytomenadione 10 mg (warfarin reversal) |
+| #174 | "ertapenem dose for penetrating abdominal injury" (eval run) | generator, nothing offered → offered ertapenem 1,000 mg |
+| #174 | "how much moxifloxacin for the combat wound pack" (eval run) | generator, nothing offered → offered moxifloxacin 400 mg (oral) |
+| #174 | "versed dose IM" (eval run) | the which-indication question → offered the IM midazolam entries |
+| #177 | "push dose epi, BP 70/40 shocky" (live) | "No signed entry for shock" → E05 5–20 mcg (signed off 2026-10-23) |
+| #178 | "need to give ketamine for pain i have a 500mg/50ml vial…" (live) | the hold → ketamine IV 18.75 mg (signed off 2026-10-23) |
+
+  The #170 and #174 rows are entries signed in batches 2 and 3 now being offered; with the generator stubbed, the replay shows what is offered, not what the model writes.
+
+**Found (2026-10-23), counted since 2026-10-24 by newly doses:** under this definition a question that becomes a served dose ("versed dose IM", #174) and a no-dose card that becomes a dose ("push dose epi, BP 70/40 shocky", #177, the E05 card signed off 2026-10-23) are serve-to-serve, so the count does not flag them. Both were found by reading the changed rows and reported at the time.
+
 ### B1: source-mode labelling
 
 A response whose served dose comes from a JTS-cited signed contract is JTS-grounded, regardless of retrieval score. The SOURCE line must carry the contract's citation. The evidence is a fentanyl IV query labelled "general" with ID61 chips showing. Test with that query. Format only.

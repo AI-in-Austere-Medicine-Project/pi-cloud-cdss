@@ -1,0 +1,95 @@
+{
+ "[\"versed dose IM\", \"run\"]": {
+  "pr": "#174",
+  "before": {
+   "origin": "run:A1-WT-013",
+   "query": "versed dose IM",
+   "history_turns": 0,
+   "source_mode": "PRE_GATE",
+   "verdict": "SKIPPED_SAFE_GATE",
+   "boundary": null,
+   "allowed": [
+    [
+     "midazolam",
+     "agitated or violent patient / behavioural emergency",
+     5.0
+    ],
+    [
+     "midazolam",
+     "ongoing sedation (prolonged field care)",
+     0.5
+    ],
+    [
+     "midazolam",
+     "procedural sedation",
+     1.0
+    ]
+   ],
+   "response": "Which indication for midazolam — agitation or sedation (already intubated)?"
+  },
+  "after": {
+   "origin": "run:A1-WT-013",
+   "query": "versed dose IM",
+   "history_turns": 0,
+   "source_mode": "JTS_GROUNDED",
+   "verdict": "SAFE",
+   "boundary": null,
+   "allowed": [
+    [
+     "midazolam",
+     "agitated or violent patient / behavioural emergency",
+     5.0
+    ],
+    [
+     "midazolam",
+     "ongoing sedation (prolonged field care)",
+     0.5
+    ],
+    [
+     "midazolam",
+     "post-intubation sedation bolus",
+     1.0
+    ],
+    [
+     "midazolam",
+     "procedural sedation",
+     1.0
+    ],
+    [
+     "midazolam",
+     "procedural sedation for pacing / cardioversion",
+     2.5
+    ],
+    [
+     "midazolam",
+     "sedation / anxiolysis",
+     2.0
+    ]
+   ],
+   "response": "STUB"
+  }
+ },
+ "[\"push dose epi, BP 70/40 shocky\", \"live\"]": {
+  "pr": "#177",
+  "before": {
+   "origin": "live",
+   "query": "push dose epi, BP 70/40 shocky",
+   "history_turns": 0,
+   "source_mode": "FIXED_PREP",
+   "verdict": "SAFE",
+   "boundary": null,
+   "allowed": null,
+   "response": "**PUSH-DOSE EPINEPHRINE PREP**\n- Make 10 mcg/mL epinephrine.\n- Draw 1 mL of 1:10,000 epinephrine (0.1mg/mL) into a 10 mL syringe.\n- Add 9 mL normal saline. Total 10 mL.\n- Final concentration: 10 mcg/mL.\n\n**GIVE**\n- No signed entry for shock in an adult patient at this preparation. Do NOT extrapolate from the entries that are signed (symptomatic bradycardia — push dose) — they are different indications at different numbers. Use local protocol, or ask for the infusion if that is what this patient needs.\n\n**CONTRAINDICATIONS**\n- None recorded on these entries. That is a gap in the record, not a clearance.\n\n**CAUTIONS**\n- None recorded for these entries.\n\n**WATCH**\n- Continuous cardiac monitoring required. Use only with local protocol.\n\n**TLDR**\n- 1 mL of 1:10,000 epi plus 9 mL NS = 10 mcg/mL push-dose epi.\n\n**SOURCE**: General Evidence-Based Medicine / deterministic preparation card — no signed contract covered this request\n\nGuideline-based support only. Not a substitute for clinical judgment."
+  },
+  "after": {
+   "origin": "live",
+   "query": "push dose epi, BP 70/40 shocky",
+   "history_turns": 0,
+   "source_mode": "FIXED_PREP",
+   "verdict": "SAFE",
+   "boundary": null,
+   "allowed": null,
+   "response": "**PUSH-DOSE EPINEPHRINE PREP**\n- Prepare the diluted syringe the signed entry states (CAUTIONS below). Never push from the ampoule.\n\n**GIVE**\n- epinephrine IV: 5-20 mcg. Indication: push-dose vasopressor for hypotension / shock (SBP < 90).\n\n**CONTRAINDICATIONS**\n- epinephrine — push-dose vasopressor for hypotension / shock (SBP < 90): Uncontrolled hypertension is a relative contraindication (SMOG CY24 p.114)\n\n**CAUTIONS**\n- epinephrine — push-dose vasopressor for hypotension / shock (SBP < 90):\n  - Push-dose syringe: 1 mL of 1:10,000 (100 mcg/mL) epinephrine in 9 mL NS gives 10 mcg/mL; 5-20 mcg is 0.5-2 mL (JTS ID83 p.24).\n  - For SBP under 90. Repeat every 2-5 minutes; give the low end (0.5-1 mL) while the drip is prepared (JTS ID83 p.24).\n  - Very slow IV/IO push: rapid push can cause rebound tachycardia, hypertensive emergency and cardiac arrest (JTS ID83 p.24).\n- Ask **\"why this dose?\"** for the citations, the maxima, and anything held back from this list.\n\n**WATCH**\n- Continuous cardiac monitoring required. Use only with local protocol.\n\n**TLDR**\n- Push-dose epinephrine: the signed dose and its dilution, above.\n\n**SOURCE**: Signed dose contracts — each dose carries its own citation or owner declaration under CAUTIONS\n\nGuideline-based support only. Not a substitute for clinical judgment."
+  }
+ }
+}
