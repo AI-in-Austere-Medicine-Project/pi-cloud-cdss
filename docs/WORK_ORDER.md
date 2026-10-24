@@ -1025,7 +1025,26 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - **#175, gate:** 2 rows newly held that the old comparator could not see (G-DIC-04 and G-MTN-05: A33 holds a drugless rate and recipe). They are the same answers already counted newly held in the served replay. Holding more is not a release.
 - **#174, pipeline:** the old comparator's 1 / 1 were a question and an answer swapping places. "versed dose IM" went from the which-indication question to an answer (reported then, owner to rule). "rocephin dose for this infection" went from an answer to the question. By the owner's definition a question serves, so neither is a hold and both now count 0.
 
-**Found, not changed (owner to rule):** under this definition a question that becomes a served dose ("versed dose IM", #174) and a no-dose card that becomes a dose ("push dose epi, BP 70/40 shocky", #177, the E05 card signed off 2026-10-23) are serve-to-serve, so the count does not flag them. Both were found by reading the changed rows and reported at the time.
+**Third count, newly doses (owner, 2026-10-24, #179 review):** "any row whose after-state serves a dose that its before-state did not (question → dose, no-dose card → dose, hold → dose). Listed by row like the others; my sign-off required."
+- `is_dosing()`: a hold never doses. A pipeline row doses when its response states a dose (a number with mg, mcg, g, units, mEq, mmol, rates included; concentration phrases such as 50 mg/mL or 500 mg / 10 mL removed; a volume alone is not a dose), or when it reached the stubbed generator with doses offered. Served, held and gate rows are read from the answer text in the row key. Log rows keep no text, so a log row that serves counts as dosing.
+- Tests: `server/tests/test_replay_newly_doses.py` (20), with "versed dose IM" (#174) and the E05 shock card (#177) as a fixture, committed failing first (19 failed).
+- **On the #170–#178 outputs, 10 rows newly dose, all for the owner's sign-off:**
+
+| PR | Row | Before → after |
+|---|---|---|
+| #170 | "cefazolin dose for the wound" (eval run) | generator, nothing offered → offered cefazolin 2,000 mg (open fracture / wound prophylaxis) |
+| #170 | "give 500 milligrams of cefazolin for the open fracture, confirm" (bank and eval run, 2 rows) | the same |
+| #170 | "rocephin dose for this infection" (eval run) | generator, nothing offered → offered ceftriaxone 2,000 mg (sepsis) |
+| #174 | "does he need vitamin K here" (eval run) | generator, nothing offered → offered phytomenadione 10 mg (warfarin reversal) |
+| #174 | "ertapenem dose for penetrating abdominal injury" (eval run) | generator, nothing offered → offered ertapenem 1,000 mg |
+| #174 | "how much moxifloxacin for the combat wound pack" (eval run) | generator, nothing offered → offered moxifloxacin 400 mg (oral) |
+| #174 | "versed dose IM" (eval run) | the which-indication question → offered the IM midazolam entries |
+| #177 | "push dose epi, BP 70/40 shocky" (live) | "No signed entry for shock" → E05 5–20 mcg (signed off 2026-10-23) |
+| #178 | "need to give ketamine for pain i have a 500mg/50ml vial…" (live) | the hold → ketamine IV 18.75 mg (signed off 2026-10-23) |
+
+  The #170 and #174 rows are entries signed in batches 2 and 3 now being offered; with the generator stubbed, the replay shows what is offered, not what the model writes.
+
+**Found (2026-10-23), counted since 2026-10-24 by newly doses:** under this definition a question that becomes a served dose ("versed dose IM", #174) and a no-dose card that becomes a dose ("push dose epi, BP 70/40 shocky", #177, the E05 card signed off 2026-10-23) are serve-to-serve, so the count does not flag them. Both were found by reading the changed rows and reported at the time.
 
 ### B1: source-mode labelling
 
