@@ -137,3 +137,21 @@ def test_an_answer_keeps_the_pending_request(seen, turns, expect):
 ])
 def test_negated_drugs(q, drugs):
     assert oc.negated_drugs(q) == drugs
+
+
+# ── live harness, 2026-10-24: a stray digit is not a vial answer ─────────────
+
+@pytest.mark.parametrize("not_an_answer", [
+    "what does a GCS of 9 mean",
+    "BP is 90/60 now",
+    "he is 25 years old",
+])
+def test_a_number_that_is_not_a_vial_does_not_answer_the_vial_question(seen, not_an_answer):
+    rs = run_flow(["need to give ketamine 80kg adult IV", not_an_answer])
+    assert rs[0]["response"].startswith("Which ketamine do you have"), rs[0]["response"]
+    assert not _is_ketamine_question(rs[1]["response"]), rs[1]["response"]
+
+
+@pytest.mark.parametrize("answer", ["500", "500 in 10", "50 mg/mL", "the 500 mg vial", "50"])
+def test_a_declared_presentation_answers_the_vial_question(answer):
+    assert oc.answers_pending_question("vial", answer, "need to give ketamine 80kg adult IV")
