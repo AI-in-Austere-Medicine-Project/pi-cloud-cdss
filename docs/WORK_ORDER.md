@@ -1028,7 +1028,7 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Third count, newly doses (owner, 2026-10-24, #179 review):** "any row whose after-state serves a dose that its before-state did not (question → dose, no-dose card → dose, hold → dose). Listed by row like the others; my sign-off required."
 - `is_dosing()`: a hold never doses. A pipeline row doses when its response states a dose (a number with mg, mcg, g, units, mEq, mmol, rates included; concentration phrases such as 50 mg/mL or 500 mg / 10 mL removed; a volume alone is not a dose), or when it reached the stubbed generator with doses offered. Served, held and gate rows are read from the answer text in the row key. Log rows keep no text, so a log row that serves counts as dosing.
 - Tests: `server/tests/test_replay_newly_doses.py` (20), with "versed dose IM" (#174) and the E05 shock card (#177) as a fixture, committed failing first (19 failed).
-- **On the #170–#178 outputs, 10 rows newly dose, all for the owner's sign-off:**
+- **On the #170–#178 outputs, 10 rows newly dose, all for the owner's sign-off:** all 10 signed off by the owner (Andrew Azelton), 2026-10-24. Merged, #179.
 
 | PR | Row | Before → after |
 |---|---|---|
