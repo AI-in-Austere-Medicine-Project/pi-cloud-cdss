@@ -6652,6 +6652,30 @@ def rsi_bundle_should_resume(query: str, prior_queries: str,
                for drug in (ctx.drugs_named or []))
 
 
+def ketamine_analgesia_should_resume(query: str, prior_queries: str,
+                                     last_response: str = "") -> bool:
+    """Whether this turn completes a ketamine-for-pain request in flight.
+
+    Live harness, 2026-10-24: the card's pre-gate reads the current turn, so
+    the vial answer ("500 mg / 10 mL") and "pain" as the answer to "Which
+    indication for ketamine" went to the model, which echoed the question or
+    wrote another dose, instead of the card's "Draw 0.4 mL of 50mg/mL
+    ketamine IV (20 mg)". As rsi_bundle_should_resume: ketamine is under
+    discussion, no RSI is, and this turn is the vial (a declared ketamine
+    presentation) or the pain answer to the indication question. The card's
+    own conditions (weight, route, pain in the request) still apply.
+    """
+    if drug_contracts is None or "ketamine" not in drug_contracts.resolve_drugs(prior_queries or ""):
+        return False
+    if should_use_rsi_pregate(prior_queries or "") or should_use_rsi_pregate(query):
+        return False
+    if (drug_concentrations is not None
+            and drug_concentrations.match_confirmation("ketamine", query) is not None):
+        return True
+    return ((last_response or "").startswith("Which indication for ketamine")
+            and stated_indication_classes(query) == {"pain"})
+
+
 def build_rsi_response(ctx: PatientContext, text: str) -> Optional[str]:
     """
     Deterministic RSI bundle. RSI should not ask "IV or IM" unless no access is stated.
@@ -7903,7 +7927,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         _current_is_ketamine = is_ketamine_analgesia_context(query) or query.strip().lower() in [
             "iv", "im", "io", "intramuscular", "intravenous",
             "only have im", "im only", "no iv", "only have iv"
-        ]
+        ] or ketamine_analgesia_should_resume(query, prior_queries, _last_response)
         _current_is_other_med = _has_any_word(query.lower(), ["epi", "roc", "sux", "succs"]) or any(x in query.lower() for x in [
             "epinephrine", "blood", "ltowb", "txa", "tranexamic",
             "rocuronium", "succinylcholine", "fentanyl",

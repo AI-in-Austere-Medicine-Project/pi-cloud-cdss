@@ -75,17 +75,15 @@ def test_the_live_query_is_not_held_and_asks_which_indication(seen):
 
 
 def test_after_pain_the_signed_iv_analgesia_dose_is_served_in_mg_and_ml(seen):
+    # Since 2026-10-24 the deterministic analgesia card answers "pain" here
+    # (ketamine_analgesia_should_resume), not the model.
     first = run(LIVE)
     r = run("pain", [{"query": LIVE, "response": first["response"]}])
-    d = seen["allowed"][0]
-    assert (d.drug, d.route, d.indication) == (
-        "ketamine", "IV", "moderate to severe pain / analgesia"), d
-    assert d.concentration_mg_ml == 50.0
-    assert d.volume_ml == pytest.approx(d.dose_mg / 50.0)
     resp = r["response"]
+    assert r["source_mode"] == "DETERMINISTIC_PRE_GATE", resp[:200]
     assert r["validator_result"] not in ("UNSAFE", "BLOCKED"), r
-    assert f"{d.dose_mg:g} mg" in resp, resp
-    assert re.search(rf"{d.volume_ml:g} mL", resp), resp
+    assert "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg)" in resp, resp
+    assert "Indication: moderate to severe pain / analgesia" in resp
 
 
 @pytest.mark.parametrize("q", [
