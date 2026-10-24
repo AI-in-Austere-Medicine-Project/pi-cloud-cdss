@@ -992,6 +992,70 @@ Both pacing holds are on the v1.1 list.
 
 **Found, not changed (owner to rule):** "we have a 500 mg vial" (mass, no volume) and "500 mg in 10" (no mL) are still read as a 500 mg request and hold.
 
+### Live log 2026-10-24: pending questions and mL before the vial (owner; one PR)
+
+**Owner (pasted, confirmed in their own words: "yes do both, also run some more questions to find other bug similar to this and fix them. goal is the llm giving a stright answer in mL"):**
+1. "Pending vial (or any pending) question swallows the next turns … A pending question clears when the next turn names a different drug, negates the drug, or is not an answer to it; the new request is then handled normally."
+2. "mL served from an unconfirmed vial … Until confirmed, mg only, with the vial question; no mL anywhere in the answer, including vial-math sections."
+
+**Live (cdss_session_2026-10-24.jsonl):** after "have a 6 year old in pain. need to give ketamine iV established weight is 45kg", three turns each got the ketamine vial question:
+- "Now I need to give mag";
+- "i need to give magnesium";
+- "I dont want to give ketamine i want to give magnesium now".
+
+The first of them carried "Vial math — ketamine IV 9 mg: 0.18 mL of 50 mg/mL undiluted — confirm vial", and the card's brief said "1.8 mL — confirm vial".
+
+**Fixes, each with its failing test committed first:**
+1. **Pending question clears** (`scope_request`, `negated_drugs`). The gates and the dose builder read drugs from the scoped text:
+   - earlier drugs the current turn does not name, or negates, are struck;
+   - a turn that names no drug and does not answer the pending question (and is not a bare "yes"/"ok") strikes the pending drug.
+   
+   Drugs are recognised from the bank, the lexicon and the slang table ("mag"). An answer keeps the request pending, so the next question follows. Same class, found probing: "fentanyl instead" got the ketamine route question; "magnesium for asthma" was offered only ketamine doses; "80 kg adult, IV" skipped the vial and indication questions.
+2. **No mL before the vial.** For a drug whose vial question is pending:
+   - the brief keeps the card's no-volume reason, and its conditional volume is gone (`single_signed_volume`, `conditional_volume_line`, `vial_math_line` deleted);
+   - the "Vial math" chip gets the vial question alone;
+   - the entry's mL cautions wait for the vial, replaced by one line saying so; the signed text is unchanged;
+   - the dose check holds an answer that states the drug's mL (`unconfirmed_volume_issues`). On main it passed "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)" with the vial unconfirmed.
+   
+   Kit-declared single vials are unchanged.
+3. **A vial answer** is a declared presentation or the vial itself, not any number: "what does a GCS of 9 mean" got the vial question again (live harness).
+4. **The ketamine analgesia card resumes, with the mL** (`ketamine_analgesia_should_resume`), on the vial answer or on "pain" as the which-indication answer. Before, these went to the model, which echoed the vial question, gave no dose, or wrote 80 mg (held).
+5. **An adult dose request that only a weight can answer asks for the weight.** "need to give ketamine" → "IV" went to the model with nothing offered, and the answer was held.
+
+**Results:**
+- **Suite:** 3,535 passed, 6 skipped, 3 xfailed, 0 failed.
+- **Tests updated to the ruling:**
+  - the brief, vial-math and dilution tests that pinned the conditional volumes;
+  - four fixtures that drew ketamine mL from an unconfirmed vial now confirm it;
+  - the S6 live fixture gains its fourth issue;
+  - "pain" as the indication answer is now the card;
+  - run_tests.sh's paediatric check.
+- **Replay vs main 6221981** (newly held / newly released / newly doses):
+  - **served** 1,738: 9 changed, 2 / 0 / 0;
+  - **held** 308: 29 changed, 0 / 0 / 0;
+  - **gate** 1,408: 1 changed, 1 / 0 / 0;
+  - **live logs** 3,565: 113 changed, 1 / 0 / 0;
+  - **pipeline** 820: 42 changed, 0 / 0 / 0.
+  - Every served, held, gate and log change is the one new issue, ketamine mL before the vial is confirmed.
+- **The newly held rows:**
+  - A1-RX-004 "how do I dilute ketamine for IV push" (a recipe in mL);
+  - G-MTN-03, served and gate: "Sedate with 0.4 mL of 100mg/mL ketamine IM", a vial the kit does not stock;
+  - live 2026-08-11 "80kg male fx to tib fib, need pain meds IV is established": "Draw 0.2 mL of 100mg/mL ketamine IV (20mg)", served live and wrong for the 50 mg/mL vial.
+- **Pipeline:**
+  - 38 rows: model answer → the weight question (fix 5). None had a dose offered, except "I said norepinephrine not epinephrine, what is the dose", which was offered epinephrine and now strikes it (fix 1).
+  - 3 paediatric ketamine cards lose their dilution cautions until the vial is confirmed (fix 2).
+  - The live magnesium turn reaches the model instead of the route question (fix 1).
+- **Live harness** (:8012, offline): run_tests.sh 29/29.
+  - The live session's magnesium turns are handled as magnesium (no signed dose, so held).
+  - "need to give ketamine" → IV → 80 kg → 500 → pain ends in "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)".
+  - The card → vial flow gives the mL for an adult, a child (0.08 mL) and IM (0.8 mL); RSI → vial gives every mL.
+  - No mL appears before a vial answer in any flow.
+
+**Found, not changed (v1.1, owner to rule):** listed in REFERENCE §9.
+- The offline model's wrong mg (held).
+- The drugs with no declared vial, and E05's syringe mL.
+- "80kgIV", and the push-speed question now asked the weight.
+
 ### Replay release count (owner, 2026-10-23; tooling, its own PR)
 
 **Owner:** "The replay comparison counts a row as newly released when its before-state was a hold and its after-state serves anything (card, dose, question), regardless of verdict label. Failing test first using the two #178 rows. Re-run the comparison for #170–#178 against their pre-merge mains and report whether any release was missed. No server change."
