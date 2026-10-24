@@ -1215,18 +1215,151 @@ def has_pending_route_sensitive_request(prior_queries: str) -> bool:
     return route_changes_dose(prior_queries or "")
 
 
+# Owner, 2026-10-24 (live log): "A pending question clears when the next turn
+# names a different drug, negates the drug, or is not an answer to it; the new
+# request is then handled normally." Live, three magnesium turns after a
+# ketamine card each got the ketamine vial question: the gates asked about
+# every drug named anywhere in the conversation, and the dose builder offered
+# every one of them. scope_request() is what those readers see instead.
+
+# A negation in the drug's own clause, at most three words before it: "I dont
+# want to give ketamine", "not ketamine", "instead of ketamine", "hold the
+# ketamine". "no IV" or "no allergies" negate no drug.
+_DRUG_NEGATION_RE = re.compile(
+    r"(?:\bdon'?t\b|\bdo not\b|\bnot\b|\bno\b|\bnever\b|\bstop\b|\binstead of\b"
+    r"|\brather than\b|\bwithout\b|\bskip\b|\bhold(?: off)?\b)"
+    r"(?:\s+[\w']+){0,3}\s*$")
+_CLAUSE_BREAK_RE = re.compile(r"[,.;:!?]")
+
+
+def _drug_spans(text: str) -> list:
+    """(start, end, generic) for each drug term in `text`, longest match wins,
+    on the same masking resolve_drugs uses (class phrases are not drugs).
+    Every recognised drug, not only the bank's: magnesium has no contract, and
+    "now I need to give mag" names a different drug all the same."""
+    if drug_contracts is None:
+        return []
+    masked = drug_contracts.mask_class_phrases((text or "").lower())
+    spans = []
+    for term, generic in drug_contracts.recognised_drug_index().items():
+        for m in re.finditer(drug_contracts._term_pattern(term), masked):
+            spans.append((m.start(), m.end(), generic))
+    return [s for s in spans
+            if not any(s2 <= s[0] and s[1] <= e2 and (e2 - s2) > (s[1] - s[0])
+                       for s2, e2, _ in spans)]
+
+
+def negated_drugs(text: str) -> set:
+    """Drugs the turn names only to refuse them."""
+    low = (text or "").lower()
+    out, kept = set(), set()
+    prev_end = 0
+    for start, end, generic in sorted(_drug_spans(low)):
+        # The clause before this drug, back to a break or the previous drug:
+        # in "instead of ketamine give fentanyl" the negation is ketamine's.
+        clause = _CLAUSE_BREAK_RE.split(low[prev_end:start])[-1]
+        (out if _DRUG_NEGATION_RE.search(clause) else kept).add(generic)
+        prev_end = end
+    return out - kept
+
+
+def _strike_drugs(text: str, keep: set) -> str:
+    """`text` with every drug not in `keep` blanked, same offsets."""
+    out = list(text or "")
+    for start, end, generic in _drug_spans(text):
+        if generic not in keep:
+            out[start:end] = " " * (end - start)
+    return "".join(out)
+
+
+_ACK_RE = re.compile(r"^\s*(?:yes|yeah|yep|y|ok|okay|k|sure|please|go on|go ahead|"
+                     r"continue|\?+)\s*[.!?]*\s*$", re.IGNORECASE)
+_WEIGHT_ANSWER_RE = re.compile(r"\b\d+(?:\.\d+)?\s*(?:kgs?|kilo\w*|lbs?|pounds?)\b|^\s*\d+(?:\.\d+)?\s*$",
+                               re.IGNORECASE)
+_ROUTE_ANSWER_RE = re.compile(r"\b(?:iv|io|im|intravenous\w*|intraosseous|intramuscular\w*|"
+                              r"access|line)\b", re.IGNORECASE)
+_SEVERITY_ANSWER_RE = re.compile(r"\b(?:mild|moderate|severe|\d+)\b", re.IGNORECASE)
+
+
+def pending_question_kind(last_response: str) -> Optional[str]:
+    """What the last response asked before dosing, or None."""
+    r = (last_response or "").strip()
+    if r.startswith("Which indication for "):
+        return "indication"
+    if re.match(r"Which .+? do you have", r):
+        return "vial"
+    if r.startswith("IV or IM?"):
+        return "route"
+    if r.startswith("Need weight in kg") or r.startswith(WEIGHT_CONFIRM_ASK):
+        return "weight"
+    if r.startswith("Pain severity?"):
+        return "severity"
+    # A card that served mg and asked for the vial alongside (CONFIRM VIAL)
+    # is waiting on that answer too.
+    if "**CONFIRM VIAL**" in r:
+        return "vial"
+    return None
+
+
+def answers_pending_question(kind: Optional[str], query: str) -> bool:
+    q = query or ""
+    if kind == "weight":
+        return bool(_WEIGHT_ANSWER_RE.search(q))
+    if kind == "route":
+        return bool(_ROUTE_ANSWER_RE.search(q))
+    if kind == "vial":
+        # "500", "500 in 10", or a turn about the vial itself (the "Vial
+        # math" chip: "Show the vial math for that dose.").
+        return bool(re.search(r"\d|\b(?:vial|volume|ml|concentration)\b", q, re.IGNORECASE))
+    if kind == "indication":
+        return bool(stated_indication_classes(q))
+    if kind == "severity":
+        return bool(_SEVERITY_ANSWER_RE.search(q))
+    return False
+
+
+def scope_request(query: str, prior_queries: str, last_response: str = "") -> tuple:
+    """(prior, query, answered): the text the drug-reading gates and the dose
+    builder read for this turn, and whether it answers a pending question.
+
+    - The turn names a drug: earlier drugs it does not name, and any it
+      negates, are struck from both. Its request is handled as asked.
+    - It names none and the last response was a question it does not answer
+      (and is not a bare "yes" / "ok"): the pending drug is struck, and the
+      turn is handled normally.
+    - Otherwise (an answer, an acknowledgement, a follow-up to a card): as
+      before.
+    """
+    kind = pending_question_kind(last_response)
+    answered = kind is not None and answers_pending_question(kind, query)
+    named = {g for _s, _e, g in _drug_spans(query)}
+    if named:
+        keep = set(named) - negated_drugs(query)
+        return _strike_drugs(prior_queries, keep), _strike_drugs(query, keep), answered
+    if kind is not None and not answered and not _ACK_RE.match(query or ""):
+        return _strike_drugs(prior_queries, set()), query, False
+    return prior_queries, query, answered
+
+
 def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
-             last_response: str = "", cue_query: Optional[str] = None) -> tuple:
+             last_response: str = "", cue_query: Optional[str] = None,
+             request_query: Optional[str] = None,
+             answered_pending: bool = False) -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
     `cue_query` is the turn indication cues are read from (severity_cue_query).
+    `prior_queries` and `request_query` are scope_request's: drugs this turn
+    dropped are not in them. `answered_pending`: this turn answered the
+    question a dose request is waiting on, so the request is still pending.
     """
-    combined_ctx = (prior_queries + " " + query).lower()
+    combined_ctx = (prior_queries + " " + (request_query if request_query is not None
+                                           else query)).lower()
     current_or_pending_med_request = (
         wants_medication_dose(query)
         or (query_is_weight_answer(query) and has_pending_route_sensitive_request(prior_queries))
+        or (answered_pending and wants_medication_dose(prior_queries))
     )
 
     if current_or_pending_med_request:
@@ -7411,6 +7544,13 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         # previous patient's drug, dose or vitals cannot reach them.
         conversation_history = list((conversation_history or [])[patient_start:])
         prior_queries, full_query_history = build_full_query_history(query, conversation_history)
+        # Owner, 2026-10-24: a pending question clears when this turn names a
+        # different drug, negates it, or does not answer it (scope_request).
+        # Everything below that reads drugs from the history reads this.
+        _last_response = ((conversation_history or [{}])[-1] or {}).get("response") or ""
+        prior_queries, request_query, answered_pending = scope_request(
+            query, prior_queries, _last_response)
+        full_query_history = f"{prior_queries} {request_query}".strip()
         if state is not None:
             # The live context, not its dict form: _finalise needs the
             # VitalReading objects the caution table reads.
@@ -7833,8 +7973,9 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         cue_query = severity_cue_query(query, conversation_history)
         gate_action, gate_response = pre_gate(
             query, patient_ctx, prior_queries,
-            last_response=((conversation_history or [{}])[-1] or {}).get("response") or "",
-            cue_query=cue_query)
+            last_response=_last_response,
+            cue_query=cue_query, request_query=request_query,
+            answered_pending=answered_pending)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
             # The "Vial math" chip lands on the which-vial question. Where the
