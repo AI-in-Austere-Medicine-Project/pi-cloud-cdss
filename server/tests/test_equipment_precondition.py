@@ -46,6 +46,9 @@ def pump_issue(mg, purpose="sedation"):
 
 
 def run_gate(history, response, issues):
+    # The fixtures draw from the 50 mg/mL vial, so the vial is confirmed: an
+    # unconfirmed one holds any ketamine mL (owner, 2026-10-24).
+    history = f"{history}, ketamine 500 mg / 10 mL vial"
     ctx = oc.rebuild_patient_context_from_history(history, conversation_history=[])
     allowed = oc.build_allowed_doses(history, ctx)
     det = oc.run_deterministic_checks(history, response, ctx, allowed)

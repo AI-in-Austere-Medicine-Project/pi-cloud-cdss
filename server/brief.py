@@ -31,17 +31,10 @@ it, and that is the only thing that makes it safe to put first:
          entry for that drug, route and indication is per-kg and recomputing it
          at the patient's confirmed weight gives exactly the printed dose (a
          capped dose does not, so it gets no basis it does not follow);
-       - for a line the card printed with no volume, when exactly ONE
-         presentation of that drug is signed: "At 50 mg/mL that's 0.125 mL —
-         confirm vial", rounded and bounded by the same syringe rules
-         drug_concentrations applies to every volume. Zero or several signed
-         presentations, or a volume no syringe can draw, keep the card's own
-         no-volume reason. The CONFIRM VIAL block is untouched either way.
-         When the entry declares a push dilution made from that vial, the
-         diluted volume follows ("Diluted to 5 mg/mL (…): 2 mL."), or stands
-         alone as "Dilute first — …" when the vial volume cannot be drawn or
-         is under 0.2 mL; that undiluted volume is then the Vial math chip's
-         answer (vial_math_lines), not the first screen's.
+       - nothing for a line the card printed with no volume: it keeps the
+         card's own no-volume reason. No mL is computed before the vial is
+         confirmed (owner, 2026-10-24; SAFETY.md), so the brief, like the
+         card, gives the mg and the card's CONFIRM VIAL asks.
 
   Three slots when the response doses: (a) the dose line(s); (b) the card's
      first next action — the first DO THIS step that is neither equipment
@@ -155,7 +148,6 @@ _MG_LINE_RE = re.compile(
 _DRAW_LINE_RE = re.compile(
     r"^Draw [\d.]+ mL of [\d.]+ ?mg/mL (?P<drug>.+?) (?P<route>\S+) "
     r"\((?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\)\.$")
-_TO_MG = {"mg": 1.0, "mcg": 0.001, "g": 1000.0}
 # All-caps tokens of four or more letters that are acronyms, not shouting.
 # Three letters and under are left alone (IV, TBI, GCS, TXA): nearly all
 # acronyms, and the shouted short words are listed in _SHOUTED_SHORT.
@@ -445,33 +437,6 @@ def per_kg_basis(drug: str, route: str, value: float, unit: str,
     return f"({rng['min']:g} {rng['units']} × {weight_kg:g} kg)"
 
 
-def line_dilution(drug: str, route: str, value: float, unit: str,
-                  indication: str, weight_kg):
-    """The push dilution declared on this dose's entry, or None."""
-    entry = _line_entry(drug, route, value, unit, indication, weight_kg)
-    if entry is None:
-        return None
-    try:
-        import drug_contracts
-    except Exception:
-        return None
-    return drug_contracts.push_dilution(entry)
-
-
-def conditional_volume(drug: str, dose_mg: float, dilution=None) -> str:
-    """"At 50 mg/mL that's 0.13 mL — confirm vial", or "" to keep the card's line.
-
-    With a declared push dilution, the diluted volume too (or instead, when
-    the vial volume cannot be drawn).
-    """
-    try:
-        import drug_concentrations
-    except Exception:
-        return ""
-    # The sentence itself lives in drug_concentrations, which owns volumes.
-    return drug_concentrations.conditional_volume_line(drug, dose_mg, dilution)
-
-
 def dose_line(item: str, weight_kg=None) -> str:
     """One dose, for slot (a): the GIVE clause verbatim, then what it computes to."""
     clause = dose_clause(item)
@@ -479,7 +444,6 @@ def dose_line(item: str, weight_kg=None) -> str:
     head, why = (m.group("head"), m.group("why")) if m else (clause, None)
     parsed = _MG_LINE_RE.match(head) or _DRAW_LINE_RE.match(head)
     out = head
-    dilution = None
     if parsed:
         value, unit = float(parsed.group("value")), parsed.group("unit")
         key = (parsed.group("drug"), parsed.group("route"), value, unit,
@@ -487,47 +451,8 @@ def dose_line(item: str, weight_kg=None) -> str:
         basis = per_kg_basis(*key)
         if basis:
             out = f"{head[:-1]} {basis}."
-        dilution = line_dilution(*key)
     if why is not None:
-        cond = (conditional_volume(parsed.group("drug"),
-                                   float(parsed.group("value")) * _TO_MG[parsed.group("unit")],
-                                   dilution)
-                if parsed else "")
-        out += " " + (cond or f"No volume — {why}.")
-    return out
-
-
-def vial_math_lines(response_text: str, weight_kg=None) -> list:
-    """The undiluted vial volumes the brief withheld from this card's doses.
-
-    ["ketamine IV 5 mg: 0.1 mL of 50 mg/mL undiluted — confirm vial."] for
-    each GIVE-type line that printed no volume, whose entry
-    declares a push dilution, and whose undiluted draw is under the brief's
-    floor (drug_concentrations.vial_math_line). The "Vial math" chip's answer
-    carries them; everything else it would say, the brief already did.
-    """
-    try:
-        import drug_concentrations
-    except Exception:
-        return []
-    out = []
-    _, sections = parse_sections(response_text)
-    for name, lines in sections:
-        if name not in DOSE_SECTIONS:
-            continue
-        for item in _top_items(lines):
-            m = _NO_VOLUME_RE.match(dose_clause(item))
-            parsed = _MG_LINE_RE.match(m.group("head")) if m else None
-            if not parsed:
-                continue
-            value, unit = float(parsed.group("value")), parsed.group("unit")
-            dilution = line_dilution(parsed.group("drug"), parsed.group("route"),
-                                     value, unit, _indication(item), weight_kg)
-            line = drug_concentrations.vial_math_line(
-                parsed.group("drug"), value * _TO_MG[unit], dilution)
-            if line:
-                label = f"{parsed.group('drug')} {parsed.group('route')} {value:g} {unit}"
-                out.append(f"{label}: {line}")
+        out += f" No volume — {why}."
     return out
 
 

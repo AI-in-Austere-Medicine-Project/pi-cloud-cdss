@@ -2468,6 +2468,29 @@ def build_allowed_doses(query: str, ctx: PatientContext,
 CONFIRM_CONCENTRATION_LINE = "confirm concentration to compute volume"
 
 
+# Owner, 2026-10-24 (live log, finding 2): "a millilitre is served only from
+# a confirmed concentration. Until confirmed, mg only, with the vial question;
+# no mL anywhere in the answer." A volume is a number with mL (mL/kg too); a
+# concentration or the vial's own label ("50 mg/mL", "500 mg / 10 mL vial")
+# is not one.
+_ML_VOLUME_RE = re.compile(r"\b\d+(?:\.\d+)?\s*m\s*l\b", re.IGNORECASE)
+VOLUMES_AFTER_VIAL_LINE = "Volumes and any dilution: given once the vial is confirmed."
+
+
+def states_ml_volume(text: str) -> bool:
+    return _ML_VOLUME_RE.search(
+        _CONCENTRATION_PHRASE_RE.sub(" ", (text or "").lower())) is not None
+
+
+def vial_unconfirmed(drug: str, ctx: Optional[PatientContext]) -> bool:
+    """The kit asks which vial for this drug and this patient has not said."""
+    if drug_concentrations is None:
+        return False
+    confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
+    status, _c, _p = drug_concentrations.resolve(drug, confirmed)
+    return status == drug_concentrations.NEEDS_CONFIRMATION
+
+
 def resolve_dose_volume(d: DoseCandidate,
                         ctx: Optional[PatientContext] = None) -> DoseCandidate:
     """Fill volume_ml/concentration_mg_ml from the confirmed concentration.
@@ -2487,6 +2510,13 @@ def resolve_dose_volume(d: DoseCandidate,
         # reason rides along so the GIVE line can say which.
         why = drug_concentrations.volume_refusal(d.drug, d.dose_mg, confirmed,
                                                  dilution=d.dilution)
+        if vial_unconfirmed(d.drug, ctx):
+            # The entry's own dilution and mL lines wait for the vial too: on
+            # the card and in what the generator is offered.
+            kept = [c for c in d.cautions if not states_ml_volume(c)]
+            if len(kept) != len(d.cautions):
+                kept.append(VOLUMES_AFTER_VIAL_LINE)
+                d = dc_replace(d, cautions=kept, warning="; ".join(kept) or None)
         return dc_replace(d, volume_refusal=why) if why else d
     return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc)
 
@@ -5224,6 +5254,28 @@ def hemorrhage_control_issues(current_query: str, response_text: str) -> list:
             "Control the bleeding now and use local protocol."]
 
 
+def unconfirmed_volume_issues(response_text: str, ctx: PatientContext) -> list:
+    """One issue per drug whose mL an answer states before its vial is confirmed.
+
+    Read sentence by sentence: a sentence that names the drug and states a
+    volume. Live, the dose check passed "Draw 0.4 mL of 50mg/mL ketamine IV
+    (20 mg)" with the ketamine vial unconfirmed: the mg matched, and nothing
+    asked where the 50 mg/mL came from.
+    """
+    if drug_contracts is None:
+        return []
+    out = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n", response_text or ""):
+        if not states_ml_volume(sentence):
+            continue
+        for drug in drug_contracts.resolve_drugs(sentence):
+            if vial_unconfirmed(drug, ctx) and drug not in out:
+                out.append(drug)
+    return [f"The answer gives a {drug} volume in mL before the vial is confirmed. "
+            f"Give the {drug} dose in mg and ask which vial; the mL follows from "
+            f"the confirmed vial." for drug in out]
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
                               allowed_doses: Optional[List[DoseCandidate]] = None,
@@ -5288,6 +5340,9 @@ def run_deterministic_checks(query: str, response_text: str,
 
     # ── Doses stated outside the canonical GIVE line ──────────────────────
     issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx, query))
+
+    # ── A millilitre from a vial not yet confirmed (owner, 2026-10-24) ────
+    issues.extend(unconfirmed_volume_issues(response_text, patient_ctx))
 
     # ── A23: an actively bleeding patient, an answer with no control step ──
     issues.extend(hemorrhage_control_issues(current_query if current_query is not None else query,
@@ -7978,16 +8033,8 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             answered_pending=answered_pending)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
-            # The "Vial math" chip lands on the which-vial question. Where the
-            # last card's brief gave only the diluted volume, the undiluted
-            # one it withheld is said here, beside the question it depends on.
-            if (gate_action == "ASK" and conversation_history
-                    and gate_response.startswith("Which ")):
-                withheld = brief_mod.vial_math_lines(
-                    (conversation_history[-1] or {}).get("response") or "",
-                    patient_ctx.confirmed_weight_kg)
-                if withheld:
-                    gate_response += " Vial math — " + " · ".join(withheld)
+            # The "Vial math" chip lands on the which-vial question, and only
+            # that: no mL before the vial is confirmed (owner, 2026-10-24).
             return {
                 "response": gate_response,
                 "sources": [],

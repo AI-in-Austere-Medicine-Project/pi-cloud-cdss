@@ -54,10 +54,10 @@ def test_the_ketamine_brief_is_three_slots(served):
     "Age < 3 months", which a 25 kg child clears — so slot (c) is empty."""
     r = served["ped_ketamine_iv"]
     assert r["brief"].splitlines() == [
-        # (a) the GIVE line verbatim, its per-kg basis, and — the undiluted
-        # 0.1 mL being under 0.2 mL — the declared push dilution (#65) alone
-        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). Dilute first — 5 mg/mL "
-        "(1 mL of 50 mg/mL + 9 mL normal saline): 1 mL — confirm vial.",
+        # (a) the GIVE line verbatim and its per-kg basis; no volume before the
+        # vial is confirmed (owner, 2026-10-24)
+        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). No volume — confirm concentration "
+        "to compute volume.",
         # (b) DO THIS step 3: step 1 is equipment preamble, step 2 restates the dose
         "Reassess pain, airway, respirations q5min.",
     ]
@@ -79,13 +79,8 @@ def test_every_line_of_the_ketamine_brief_traces_to_the_card_or_a_computation(se
                  and e["route"] == "IV" and e["population"] == "peds")
     assert entry["dose_range"]["min"] == 0.2 and entry["dose_range"]["units"] == "mg/kg"
     assert r["patient_context"]["confirmed_weight_kg"] == 25
-    # The volume is the one the card serves once the medic confirms the vial:
-    # resolve_dose_volume goes through drug_concentrations.volume_ml, and with
-    # the vial confirmed that returns the same number.
-    # 5 mg at the declared 5 mg/mL dilution is 1 mL.
-    dil = oc.drug_contracts.push_dilution(entry)
-    assert dil["concentration_mg_ml"] == 5.0
-    assert "5 mg/mL (1 mL of 50 mg/mL + 9 mL normal saline): 1 mL" in line_a
+    # No volume is computed before the vial is confirmed (owner, 2026-10-24).
+    assert " mL" not in line_a.replace("mg/mL", "")
 
 
 def test_the_dose_line_is_verbatim(served):
@@ -142,12 +137,14 @@ NO_VOL = ("**GIVE**\n- ketamine IV: 6.25 mg. NO VOLUME — confirm concentration
           "compute volume. Indication: moderate to severe pain / analgesia.\n")
 
 
-def test_one_signed_presentation_gives_a_conditional_volume():
+def test_one_signed_presentation_still_gives_no_volume_before_the_vial():
+    """Before 2026-10-24 the brief said "At 50 mg/mL that's 0.125 mL — confirm
+    vial." A millilitre is served only from a confirmed vial."""
     assert [p["label_text"] for p in dcn.signed_presentations("ketamine")] == \
         ["500 mg / 10 mL vial"], "the pinned test kit changed"
     b = brief.build_brief(NO_VOL, oc.MEDICATION_TERMS)["brief"]
-    assert "At 50 mg/mL that's 0.125 mL — confirm vial." in b
-    assert "No volume" not in b
+    assert "At 50 mg/mL" not in b and "0.125 mL" not in b
+    assert "No volume — confirm concentration to compute volume." in b
 
 
 def test_several_signed_presentations_keep_the_cards_reason(monkeypatch):

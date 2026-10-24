@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from openai_client import (  # noqa: E402
     CANONICAL_GIVE_RE, SAFETY_OVERRIDES, DeterministicCheck, DoseCandidate,
     PatientContext, apply_safety_gate, find_fired_override,
-    run_deterministic_checks,
+    run_deterministic_checks, unconfirmed_volume_issues,
 )
 from test_fixtures import (  # noqa: E402
     FIXED_PREP_PUSH_DOSE_EPI, GENERAL_LAB_REFERENCE, GENERAL_MODE_GIVE_LINE,
@@ -546,7 +546,12 @@ def test_populated_contract_behaviour_unchanged():
                     [LORAZEPAM_4MG_IV],
                     query="159lb male unable to ventilate effectively status post oral trauma")
     assert result.passed is False
-    assert sorted(result.issues) == sorted(S6_POPULATED_CONTRACT_ISSUES)
+    # Since 2026-10-24 the answer's ketamine mL, from a vial nobody confirmed
+    # (100 mg/mL, not even the stocked one), is a fourth issue.
+    assert sorted(result.issues) == sorted(
+        S6_POPULATED_CONTRACT_ISSUES + unconfirmed_volume_issues(
+            S6_POPULATED_CONTRACT_RESPONSE, ADULT_WITH_WEIGHT))
+    assert len(result.issues) == len(S6_POPULATED_CONTRACT_ISSUES) + 1
 
 
 def test_matching_dose_under_a_populated_contract_still_passes():

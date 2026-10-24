@@ -106,26 +106,26 @@ def test_the_served_card_keeps_the_line_the_brief_drops():
     assert "Age < 3 months" in r["response"].split("**CONTRAINDICATIONS**")[1]
 
 
-# ── 2. the undiluted volume moves to Vial math ───────────────────────────────
+# ── 2. no volume before the vial is confirmed (owner, 2026-10-24) ─────────────
+# Before: the brief gave "Dilute first — …: 1 mL — confirm vial" and the Vial
+# math chip "0.1 mL of 50 mg/mL undiluted — confirm vial". A millilitre is
+# served only from a confirmed vial (test_no_ml_before_vial_confirmed.py).
 
-def test_the_brief_gives_the_diluted_instruction_alone_under_0_2_ml():
+def test_the_brief_gives_the_mg_and_no_volume_before_the_vial():
     card = oc.build_ketamine_analgesia_response(_ctx(25.0, 6.0))
     b = brief.build_brief(card, oc.MEDICATION_TERMS, weight_kg=25.0, age_years=6.0)["brief"]
     assert b.splitlines()[0] == (
-        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). Dilute first — 5 mg/mL "
-        "(1 mL of 50 mg/mL + 9 mL normal saline): 1 mL — confirm vial.")
+        "ketamine IV: 5 mg (0.2 mg/kg × 25 kg). No volume — confirm concentration "
+        "to compute volume.")
 
 
-def test_the_vial_math_chip_carries_the_undiluted_volume():
+def test_the_vial_math_chip_is_the_vial_question_alone():
     q = "ketamine IV for pain, 6 year old 25kg child, IV access"
     first = _run(q)
     chip = _run(CHIPS["Vial math"], [{"query": q, "response": first["response"]}])
     assert chip["source_mode"] == "PRE_GATE"
-    assert chip["response"] == (
-        "Which ketamine do you have — 500 mg / 10 mL vial (50 mg/mL)? "
-        "Vial math — ketamine IV 5 mg: 0.1 mL of 50 mg/mL undiluted — confirm vial.")
-    # It is on the chip's first screen too, not only in the response.
-    assert "0.1 mL of 50 mg/mL undiluted" in chip["brief"]
+    assert chip["response"] == "Which ketamine do you have — 500 mg / 10 mL vial (50 mg/mL)?"
+    assert " mL of " not in chip["brief"]
 
 
 def test_the_vial_math_chip_adds_nothing_for_an_adult():
@@ -135,10 +135,10 @@ def test_the_vial_math_chip_adds_nothing_for_an_adult():
     assert chip["response"] == "Which ketamine do you have — 500 mg / 10 mL vial (50 mg/mL)?"
 
 
-def test_no_dilution_no_withheld_volume():
-    assert dcn.vial_math_line("ketamine", 5.0, None) == ""
-    assert dcn.conditional_volume_line("ketamine", 5.0, None) == \
-        "At 50 mg/mL that's 0.1 mL — confirm vial."
+def test_the_unconfirmed_volume_helpers_are_gone():
+    for name in ("vial_math_line", "conditional_volume_line", "single_signed_volume"):
+        assert not hasattr(dcn, name), name
+    assert not hasattr(brief, "vial_math_lines")
 
 
 # ── 3. the stale TLDR sentence ───────────────────────────────────────────────
@@ -181,10 +181,8 @@ def test_no_volume_is_printed_with_a_trailing_zero(query):
 
 
 def test_a_sub_millilitre_draw_keeps_three_decimals_and_its_leading_zero():
-    ctx = _ctx(25.0, 6.0)
-    assert dcn.single_signed_volume("ketamine", 6.25) == (0.125, 50.0)
-    assert dcn.conditional_volume_line("ketamine", 6.25) == \
-        "At 50 mg/mL that's 0.125 mL — confirm vial."
+    vol, conc = dcn.volume_ml("ketamine", 6.25, {"ketamine": 50.0})
+    assert (vol, conc) == (0.125, 50.0)
     ctx = _ctx(80.0, ped=False)
     ctx.confirmed_concentrations = {"ketamine": 50.0}
     card = oc.build_ketamine_analgesia_response(ctx)
@@ -198,9 +196,9 @@ def test_a_sub_millilitre_draw_keeps_three_decimals_and_its_leading_zero():
 def test_the_adult_rsi_brief_is_unchanged():
     b = _run("RSI an 80kg male trauma patient ketamine and rocuronium")["brief"]
     assert b.splitlines()[0] == (
-        "[RSI induction] ketamine IV: 160 mg (2 mg/kg × 80 kg). At 50 mg/mL that's "
-        "3.2 mL — confirm vial. · [RSI paralytic] Draw 9.6 mL of 10mg/mL rocuronium IV "
-        "(96 mg) (1.2 mg/kg × 80 kg). · [post-intubation sedation — repeated bolus "
-        "(no infusion pump)] ketamine IV: 40 mg (0.5 mg/kg × 80 kg). At 50 mg/mL "
-        "that's 0.8 mL — confirm vial.")
+        "[RSI induction] ketamine IV: 160 mg (2 mg/kg × 80 kg). No volume — confirm "
+        "concentration to compute volume. · [RSI paralytic] Draw 9.6 mL of 10mg/mL "
+        "rocuronium IV (96 mg) (1.2 mg/kg × 80 kg). · [post-intubation sedation — "
+        "repeated bolus (no infusion pump)] ketamine IV: 40 mg (0.5 mg/kg × 80 kg). "
+        "No volume — confirm concentration to compute volume.")
     assert "Dilute" not in b and "Age <" not in b
