@@ -1350,6 +1350,16 @@ def scope_request(query: str, prior_queries: str, last_response: str = "") -> tu
     return prior_queries, query, answered
 
 
+def _needs_weight_to_dose(text: str, ctx: PatientContext) -> bool:
+    named = drug_contracts.resolve_drugs(text)
+    if not named:
+        return False
+    live = drug_contracts.servable_entries()
+    per_kg = any((e.get("dose_range") or {}).get("per_kg")
+                 for d in named for e in live.get(d, []))
+    return per_kg and not any(d.drug in named for d in build_allowed_doses(text, ctx))
+
+
 def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
              last_response: str = "", cue_query: Optional[str] = None,
              request_query: Optional[str] = None,
@@ -1393,6 +1403,16 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
         ]) or _has_any_word(combined_ctx, ["roc", "sux", "succs"])
         if route_changes_dose(combined_ctx) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
             return "ASK", "IV or IM? Do you have access?"
+
+        # An adult whose request only a weight can answer (live harness,
+        # 2026-10-24): "need to give ketamine" -> "IV" went to the model with
+        # nothing offered, and its mg/kg answer was held. Asked when a drug the
+        # request names has signed per-kg entries and nothing can be offered
+        # without a weight; a fixed adult dose (fentanyl IV, naloxone) is not.
+        if (not ctx.has_confirmed_weight and ctx.estimated_weight_kg is None
+                and drug_contracts is not None
+                and _needs_weight_to_dose(combined_ctx, ctx)):
+            return "ASK", "Need weight in kg before dosing."
 
         # Which vial? Asked for the same reason route is asked: the answer
         # changes the number the medic draws up, and guessing is worse than
