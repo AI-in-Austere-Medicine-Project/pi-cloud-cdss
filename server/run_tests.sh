@@ -84,7 +84,9 @@ run_test "Ped estimated weight blocks dose" "give ketamine" '[{"query":"need ket
 # D1 (2026-09-28): 4 mg = SMOG CY24 paediatric 0.2 mg/kg x 20 kg, from the
 # signed peds contract entry, with its owner-declared 5 mg/mL dilution for IV
 # push and the SMOG emergence caution.
-run_test "Ped 20kg IV ketamine: 4 mg, 5 mg/mL, SMOG" "6 year old, 20kg, arm fracture, ketamine IV for pain" "[]" "pass" "IV: 4 mg" "5 mg/mL" "SMOG"
+# Owner, 2026-10-24: the dilution's mL lines wait for the confirmed vial, so
+# the unconfirmed card says so instead of quoting the 5 mg/mL recipe.
+run_test "Ped 20kg IV ketamine: 4 mg, SMOG, dilution after the vial" "6 year old, 20kg, arm fracture, ketamine IV for pain" "[]" "pass" "IV: 4 mg" "given once the vial is confirmed" "SMOG"
 
 # ── P1 SAFETY CASES ──────────────────────────────────────────────
 echo ""
