@@ -80,6 +80,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A36 | The requested-overdose ceilings come from the signed entries | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
 | A37 | The tension card's TXA line removed (not in its cited quote) and the card re-signed | **in review**: the v5.1.0 PR (#177); re-signed by Andrew Azelton, 2026-10-22 |
 | A38 | The seizure card chooses its benzodiazepine by the available route | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
+| A39 | A question naming a drug with no signed entry at all holds before the model, naming the drug and "no signed dose" | **in review**; owner, 2026-10-25 (live log 2026-10-25, row 34) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -1086,6 +1087,44 @@ The first of them carried "Vial math — ketamine IV 9 mg: 0.18 mL of 50 mg/mL u
 - The offline model's wrong mg (held).
 - The drugs with no declared vial, and E05's syringe mL.
 - "80kgIV", and the push-speed question now asked the weight.
+
+### A39: a drug with no signed entry holds before the model (owner, 2026-10-25; live log 2026-10-25)
+
+**Owner (2026-10-25, after #181 merged):** "A39, failing test first: a question that names a drug with no signed entry at all is held deterministically before the model runs, with the hold naming the drug and 'no signed dose'; the model is not called. Fixture: 'don't want ketamine, I need magnesium', 75 kg. Magnesium itself goes on the v1.1 signing list."
+
+**Live (cdss_session_2026-10-25.jsonl, row 34):** after "ketamine for pain, 75 kg IV, 500mg/10ml vial", "I don’t want ketamine, I need magnesium" went to the model (GENERAL_MEDICAL). It wrote magnesium sulfate 10 g; the dose check held it ("EdgeCDSS has no signed magnesium sulfate dose"). Nothing wrong was served, but only because the model wrote a number: an answer about magnesium with no number in it would have been served.
+
+**Fix** (`unsigned_drugs_named`, `unsigned_drug_hold_issue`; step 2l-0, just before the standard pre-gate):
+- A drug the turn names (bank, lexicon or slang: "mag", "amio") with no servable entry for it or for a named form of it ("calcium" is signed as chloride and gluconate) holds: "Magnesium sulfate: no signed dose. EdgeCDSS has no signed entry for magnesium sulfate, so it gives no answer about it: use local protocol or medical control." Source mode DETERMINISTIC_PRE_GATE, verdict UNSAFE, no generator or validator call.
+- Every unsigned drug named is listed; a turn that also names a signed drug ("fentanyl or ketorolac") still holds.
+- Not a request, so not held here (the turn goes on as before, and the dose check still reads what the model writes):
+  - a drug the turn refuses ("not amiodarone"), read with a straight or curly apostrophe;
+  - a drug the patient takes, took or is allergic to: a cue earlier in its clause (took, taking, overdosed, ingested, history of, allergic, already, prescribed), "on" right before it unless the clause asks to start or put the patient on it, or an overdose word right after it ("oxycodone overdose").
+- After the deterministic cards: a card that answers without the model still answers.
+- **Tests:** `test_a39_unsigned_drug_holds_before_model.py` (20; suite 3,596 passed, 1 failed: the pre-existing corpus alias count, same on main; the fixture one-turn, after a weight, and after the ketamine vial question; named, refused and history cases).
+- **Moved test:** `test_general_reference.py`, "how do i mix a dopamine drip" was served in general mode; dopamine has no signed entry, so it now holds before the model.
+- **Replay vs main e0cf475** (newly held / newly released / newly doses):
+  - **served** 1,738: 0 changed;
+  - **held** 308: 0 changed;
+  - **gate** 1,408: 0 changed;
+  - **live logs** 3,649: 0 changed;
+  - **pipeline** 826: 17 changed, 17 / 0 / 0.
+  - Served, held, gate and log replay the dose check, which A39 does not change. Every pipeline change is a turn asking for an unsigned drug, now held before the model.
+- **The 17 newly held pipeline rows:**
+  - magnesium, live ×5: "I don’t want ketamine, I need magnesium" (the fixture; on main the refused ketamine was asked its route, see below), "I dont want to give ketamine i want to give magnesium now", "Now I need to give mag", "i need to give magnesium"; run: "magnesium sulfate dose for eclampsia";
+  - amiodarone ×5: "Need the amiodarone drip", "What is a normal trip rate for 150 mg of amiodarone over 10 minutes" (live); "i need to now give amio iv" (bank, run, live);
+  - adenosine, live ×2: "need adenosine dose", "need to give adenosine. pt is a 10 year old in SVT. IV established" (on main: asked the weight);
+  - diltiazem ×2: "his rate is irregular and fast at times, what about diltiazem" (bank, run; R2-BRADYCARDIA-AV-NODAL-BLOCKER-POS);
+  - antivenom, pralidoxime, oxytocin (runs A3-GEN-005, -026, -020).
+- **Live harness** (:8012, offline): run_tests.sh 29/29.
+  - The fixture holds in one turn, after "75 kg adult", and after the ketamine vial question, each in 0.1–0.8 s with no model call. The live session's three magnesium turns hold the same way; "how much amiodarone for VT, 80 kg adult" holds.
+  - "adult, overdosed on oxycodone, RR 6" and "pt on metoprolol, HR 38, BP 70/40" go to the model as before.
+  - The #181 flows (step by step to mL, card then vial, child, IM, RSI, vial math chip, negate then new drug) are unchanged.
+
+**Found, not changed (v1.1, owner to rule):** listed in REFERENCE §9.
+- `negated_drugs` does not read a curly apostrophe: "I don’t want ketamine" (as a phone types it) is not a refusal, so the pending-question rule (#181 fix 1) keeps ketamine in scope. On main the fixture with no history was asked "IV or IM?". A39 reads it for its own hold only.
+- A refused drug from an earlier turn is asked again: after the held magnesium turn, "75 kg" is asked "IV or IM? Do you have access?" for the ketamine the medic refused (same on main).
+- A follow-up that does not name the unsigned drug ("how much?") is not held here; it reaches the model and the dose check reads what it writes.
 
 ### Replay release count (owner, 2026-10-23; tooling, its own PR)
 
@@ -2263,6 +2302,8 @@ Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (own
 5. "Peds volumes. 0.08 mL is at the limit of what can be drawn accurately. Consider a dilution instruction on the peds card (for example, dilute to 10 mg/mL first)."
 
 "Once it's merged, the vial gate, the weight gate, and the 'fixed dose needs adult confirmation' rule are the core of the med-assist calculator."
+
+**Signing list (owner, 2026-10-25, A39):** magnesium sulfate. No entry is signed; until one is, every magnesium question holds before the model (A39). SMOG CY24 p.37 puts it first line for eclamptic seizure.
 
 Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest trigger (A27), seizure misspellings (A28), the needle-decompression procedure and "pneumo" (A29). Everything else on the found list, and the open items below, are v1.1. Each is placed by the owner before work starts.
 

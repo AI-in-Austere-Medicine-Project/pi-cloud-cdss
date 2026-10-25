@@ -292,13 +292,15 @@ _DOPAMINE_PREP_RECIPE = (
 )
 
 
-def test_a_recipe_in_general_mode_is_served(stub_llm):
+def test_a_recipe_for_an_unsigned_drug_holds_before_the_model(stub_llm):
+    """Was served in general mode. A39 (owner, 2026-10-25): a question naming a
+    drug with no signed entry at all holds before the model; dopamine has none."""
     stub_llm["reply"] = _DOPAMINE_PREP_RECIPE
     result = run("how do i mix a dopamine drip", stub_llm)
-    assert result["source_mode"] == "GENERAL_REFERENCE"
-    assert result["validator_result"] == "SAFE"
-    assert gr.has_banner(result["response"])
-    assert "1600 mcg/mL" in result["response"]
+    assert result["source_mode"] == "DETERMINISTIC_PRE_GATE"
+    assert result["validator_result"] == "UNSAFE"
+    assert "Dopamine: no signed dose" in result["response"]
+    assert "1600 mcg/mL" not in result["response"]
 
 
 def test_non_medical_refusal_is_unchanged(stub_llm):

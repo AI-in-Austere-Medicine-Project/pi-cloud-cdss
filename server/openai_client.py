@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 23 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 24 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -1291,6 +1291,62 @@ def _strike_drugs(text: str, keep: set) -> str:
         if generic not in keep:
             out[start:end] = " " * (end - start)
     return "".join(out)
+
+
+# A39 (owner, 2026-10-25): "a question that names a drug with no signed entry
+# at all is held deterministically before the model runs, with the hold
+# naming the drug and 'no signed dose'; the model is not called." Live,
+# "don't want ketamine, I need magnesium" went to the generator; only the
+# dose check held the number it wrote, and an answer with no number in it
+# would have been served.
+#
+# A drug the patient takes, took or is allergic to is not asked for: "pt on
+# metoprolol, HR 38" and "overdosed on oxycodone" go on as before (the dose
+# check still reads whatever the model writes). A cue anywhere earlier in the
+# drug's clause, or "on" right before it ("start him on magnesium" is a
+# request), or an overdose word right after it.
+_HISTORY_DRUG_BEFORE_RE = re.compile(
+    r"\b(?:takes|taking|took|taken|overdos\w*|od'?d|ingest\w*|swallowed|"
+    r"home\s+med\w*|history\s+of|hx\s+of|h/o|allerg\w*|already|prescribed)\b")
+_HISTORY_DRUG_ON_RE = re.compile(r"\bon\s+(?:[\w']+\s+)?$")
+_PUT_ON_RE = re.compile(r"\b(?:start\w*|put|begin|switch\w*|keep|give)\b")
+_HISTORY_DRUG_AFTER_RE = re.compile(
+    r"^\s*(?:overdose|od|ingestion|toxicity|tox|poisoning|allergy)\b")
+
+
+def _is_signed_drug(generic: str) -> bool:
+    """Any servable entry for the drug, or for a named form of it: "calcium"
+    is signed as calcium chloride and calcium gluconate."""
+    live = drug_contracts.servable_entries()
+    return bool(live.get(generic)) or any(n.startswith(generic + " ") for n in live)
+
+
+def unsigned_drugs_named(query: str) -> list:
+    """The drugs this turn asks about that have no signed entry at all, in the
+    order named. Refused and history mentions are not asked about."""
+    if drug_contracts is None:
+        return []
+    low = (query or "").lower().replace("’", "'")
+    refused = negated_drugs(low)
+    out = []
+    for start, end, generic in sorted(_drug_spans(low)):
+        if generic in refused or generic in out or _is_signed_drug(generic):
+            continue
+        clause = _CLAUSE_BREAK_RE.split(low[:start])[-1]
+        after = _CLAUSE_BREAK_RE.split(low[end:])[0]
+        taken_on = _HISTORY_DRUG_ON_RE.search(clause) and not _PUT_ON_RE.search(clause)
+        if (_HISTORY_DRUG_BEFORE_RE.search(clause) or taken_on
+                or _HISTORY_DRUG_AFTER_RE.search(after)):
+            continue
+        out.append(generic)
+    return out
+
+
+def unsigned_drug_hold_issue(drugs: list) -> str:
+    names = ", ".join(drugs)
+    return (f"{names[:1].upper()}{names[1:]}: no signed dose. EdgeCDSS has no signed "
+            f"entry for {' or '.join(drugs)}, so it gives no answer about "
+            f"{'them' if len(drugs) > 1 else 'it'}: use local protocol or medical control.")
 
 
 _ACK_RE = re.compile(r"^\s*(?:yes|yeah|yep|y|ok|okay|k|sure|please|go on|go ahead|"
@@ -7725,7 +7781,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    twenty-three early returns before retrieval — count them with the source_mode
+    twenty-four early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -8298,6 +8354,17 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
                 "validator_issues": [],
                 "patient_context": patient_ctx.to_dict()
             }
+
+        # Step 2l-0 (A39): a drug this turn asks about with no signed entry at
+        # all holds here, before any question about it and before the model.
+        unsigned = unsigned_drugs_named(query)
+        if unsigned:
+            issue = unsigned_drug_hold_issue(unsigned)
+            print(f"🛑 UNSIGNED DRUG PRE-GATE: {', '.join(unsigned)}")
+            return {"response": build_safety_hold([issue], ""),
+                    "sources": [], "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "UNSAFE", "validator_issues": [issue],
+                    "patient_context": patient_ctx.to_dict()}
 
         # Step 2l: Standard pre-gate (weight/route) — after all deterministic cases
         cue_query = severity_cue_query(query, conversation_history)
