@@ -1021,6 +1021,27 @@ The first of them carried "Vial math — ketamine IV 9 mg: 0.18 mL of 50 mg/mL u
 3. **A vial answer** is a declared presentation or the vial itself, not any number: "what does a GCS of 9 mean" got the vial question again (live harness).
 4. **The ketamine analgesia card resumes, with the mL** (`ketamine_analgesia_should_resume`), on the vial answer or on "pain" as the which-indication answer. Before, these went to the model, which echoed the vial question, gave no dose, or wrote 80 mg (held).
 5. **An adult dose request that only a weight can answer asks for the weight.** "need to give ketamine" → "IV" went to the model with nothing offered, and the answer was held.
+6. **A fixed adult dose needs an adult first** (owner, #181 review, 2026-10-25, added to this PR): "Fentanyl IV and naloxone are answered without a weight because they have a fixed adult dose. How does the system know the patient is an adult? If age isn't established, a fixed adult dose for a child is exactly the failure you've been closing. Fixed doses should require an adult confirmation (or a weight) first, the same way mL requires a vial."
+   - No age read as an adult (`is_pediatric` defaults False). Now `adult_established` = not paediatric and (an age ≥ 18, "adult", "yes" to the question, or a confirmed weight).
+   - With no weight, nothing builds until an adult is established. The pre-gate asks 'Adult patient? Say "adult", or give the age or the weight in kg.' before the weight question; "child" goes on to the weight question.
+   - The fixed-dose hold with no age says to confirm an adult; the pain severity question lists a drug as needing a weight when no age is established.
+   - Tests that used an unaged context as "an adult with no weight" now state the adult.
+   - Found in its replay and fixed in the same item (failing test first): a turn naming a drug in words the dose-request test does not read ("how much naloxone, he is barely breathing", "how much D50", "how much calcium gluconate for hyperkalemia") is asked too, rather than reaching the model with nothing offered.
+   - **Replay, fix 6 alone (vs cc8d24a):** 0 newly held / 0 newly released / 0 newly doses in all five replays.
+     - Served 10, held 101, log 217 changed: all held before and after; the hold now says the age is not established.
+     - Pipeline 75 changed: 74 rows now get the adult question (55 were model answers, 19 were another question first: severity, which indication); the levetiracetam seizure card with no age loses its 2000 mg line, and its GIVE line still asks for a weight, which brings both doses back. Listed row by row in `replay-out/adult_question_rows.txt`.
+   - **Suite:** 3,556 passed, 5 skipped, 3 xfailed, 1 failed: `test_corpus_alias_hit_count` (38 != 44), which fails the same on main 6221981 against the audit corpus available here.
+   - **Harness (:8012, offline, qwen2.5:3b):** run_tests.sh 29/29.
+     - "naloxone dose" → adult question; "adult", "yes" or "80 kg" → the signed 0.4 mg (1 mL of 0.4 mg/mL); "child" → the weight question; "16 year old" → the weight question; "adult male, naloxone dose" is not asked.
+     - #181's flows unchanged: every ketamine mL follows a vial answer (adult 0.4 mL, child 0.08 mL, IM 0.8 mL, RSI).
+   - **The two INC-001 answers today:**
+     - Replayed (the recorded answers through today's checks): 07:51 held on its mg (16.3 mg is not the signed 13.6 mg) and its mL; 09:12 held on its mL (its 20 mg is the signed dose).
+     - Asked fresh on :8012: 07:51 serves ketamine IV 13.6 mg with no volume until the vial is confirmed, then "Draw 0.272 mL of 50mg/mL ketamine IV (13.6 mg)". 09:12 is asked the pain severity; after "severe" the model gives ketamine IV 20 mg with no volume, and after the vial answer still no volume (the analgesia card does not resume on this path). Correct in mg; no mL served.
+   - **Found in the harness, not changed (owner to rule; REFERENCE §9):**
+     - **An mL stated for a drug with no signed vial passes.** "no not ketamine, morphine" (80 kg adult): the offline model served "Draw 8 mL of morphine IV (8 mg)", SAFE. The kit lists morphine 10, 2 and 1 mg/mL, all unsigned; from the 10 mg/mL ampoule, 8 mL is 80 mg. The dose check passes that line on main too: `unconfirmed_volume_issues` covers a drug whose vial question is pending, not a drug with no signed vial. Harness only; not seen live.
+     - After a severity answer the request goes to the model, not the ketamine analgesia card, so a vial answer never brings the mL (09:12 above).
+
+**Incident (owner, #181 review):** the live 2026-08-11 row below is INC-001 in `docs/INCIDENT_RESPONSE.md` (created in this PR, with the protocol). A test session (owner, 2026-10-25). A second row of the same session (07:51, the burn patient, "0.163 mL of 100mg/mL", served SAFE) is part of it; it was already held on main by its milligrams.
 
 **Results:**
 - **Suite:** 3,535 passed, 6 skipped, 3 xfailed, 0 failed.
@@ -2223,6 +2244,15 @@ Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here
 Finding 5 has been placed but not yet given an item letter. Finding 6 is E1 (owner, 2026-09-29).
 
 ## v1.1 (owner, 2026-10-11: everything on the found list not in the v1.0 scope)
+
+**Owner, #181 review (2026-10-25), in priority order:**
+1. "Declare the vials. Epinephrine needs separate 1 mg/mL and 0.1 mg/mL entries, since mixing those up is a classic error. Calcium needs chloride vs. gluconate. Until these are declared, those four drugs stay mg-only, which is the right fail-safe."
+2. "Fix the '80kgIV' parse. It fails safe (it asks again), but a medic who already gave the weight will be irritated by being asked twice."
+3. "Fix the over-triggering. 'How fast do I push' is a rate question, not a dose question, and shouldn't need a weight."
+4. "Add a ketamine agitation card. The model is currently generating those numbers and getting held every time. A card gives a deterministic answer instead of a hold."
+5. "Peds volumes. 0.08 mL is at the limit of what can be drawn accurately. Consider a dilution instruction on the peds card (for example, dilute to 10 mg/mL first)."
+
+"Once it's merged, the vial gate, the weight gate, and the 'fixed dose needs adult confirmation' rule are the core of the med-assist calculator."
 
 Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest trigger (A27), seizure misspellings (A28), the needle-decompression procedure and "pneumo" (A29). Everything else on the found list, and the open items below, are v1.1. Each is placed by the owner before work starts.
 
