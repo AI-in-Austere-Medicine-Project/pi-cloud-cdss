@@ -212,7 +212,7 @@ def test_with_no_weight_the_question_says_which_drugs_need_one():
     """"Need to know what pain med to give" (H-SESS-043, live) was told
     "severe → ketamine, fentanyl, morphine dosing"; with no weight only the
     fixed doses resolve, so the line must not promise a weight-based one."""
-    q = "Need to know what pain med to give"
+    q = "Need to know what pain med to give, adult"
     _a, text = oc.pre_gate(q, _ctx(q))
     severe = next(l for l in text.splitlines() if re.match(r"\W*severe\b", l, re.I))
     offered = severe.split("→")[1].split("(")[0]
@@ -240,7 +240,7 @@ def test_the_criteria_state_no_drug_and_no_dose():
 def test_every_drug_the_question_names_is_signed_for_pain():
     import drug_contracts
     signed = {n for n, _e in drug_contracts.signed_entries_by_indication(("pain",))}
-    for q in (UNDECLARED, "Need to know what pain med to give"):
+    for q in (UNDECLARED, "Need to know what pain med to give, adult"):
         _a, text = oc.pre_gate(q, _ctx(q))
         named = {w for w in re.findall(r"[a-z]+", text.lower()) if w in drug_contracts.servable_entries()}
         assert named and named <= signed, (named, signed)

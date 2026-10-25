@@ -191,7 +191,7 @@ def test_no_contract_means_no_free_text_dose():
 
 # ── what the medic reads ─────────────────────────────────────────────────────
 
-NO_WEIGHT = oc.PatientContext()
+NO_WEIGHT = oc.PatientContext(adult_confirmed=True)  # an adult: no age is not one (owner, #181 review)
 
 
 @pytest.mark.parametrize("text,allowed,ctx,expected", [

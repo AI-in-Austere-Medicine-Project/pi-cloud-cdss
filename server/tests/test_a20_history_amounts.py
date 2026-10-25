@@ -16,7 +16,7 @@ import pytest
 
 import openai_client as oc
 
-ADULT_NO_WEIGHT = oc.PatientContext()
+ADULT_NO_WEIGHT = oc.PatientContext(adult_confirmed=True)  # an adult: no age is not one (owner, #181 review)
 TXA_QUERY = "hx: DVT + thrombosis. TXA still ok in his case?"
 
 

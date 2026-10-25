@@ -442,6 +442,17 @@ class PatientContext:
     # Describes the CURRENT turn plus anything a prior turn established, and
     # is cleared by a patient boundary with the rest of the context.
     ams_stated: bool = False
+    # The medic said "adult", or answered yes to ADULT_CONFIRM_ASK, or stated
+    # an age of 18 or over. A known age decides it in both directions, as it
+    # decides is_pediatric. Cleared by a patient boundary with the rest.
+    adult_confirmed: bool = False
+
+    @property
+    def adult_established(self) -> bool:
+        """A fixed adult dose may be offered: an adult was confirmed, or a
+        weight was (owner, #181 review: "an adult confirmation (or a weight)").
+        No age is not an adult."""
+        return not self.is_pediatric and (self.adult_confirmed or self.has_confirmed_weight)
 
     @property
     def dosing_weight_kg(self) -> Optional[float]:
@@ -754,6 +765,11 @@ def extract_patient_context(query: str,
              and ctx.estimated_weight_kg < PEDIATRIC_WEIGHT_CEILING_KG)):
         ctx.is_pediatric = True
 
+    if ctx.age_years is not None:
+        ctx.adult_confirmed = ctx.age_years >= 18
+    elif _has_any_word(q, ["adult"]):
+        ctx.adult_confirmed = True
+
     # ── Estimated weight from age (context only — never used for dosing) ─
     if (ctx.is_pediatric and ctx.age_years is not None
             and ctx.confirmed_weight_kg is None
@@ -837,6 +853,10 @@ def extract_patient_context(query: str,
 # Interpolating the number would put this response outside the set and it
 # would be validated, cautioned and banner-able like a clinical plan.
 WEIGHT_CONFIRM_ASK = "Confirm the weight in kg before dosing — I only have an estimate."
+# Owner, #181 review (2026-10-25): a fixed adult dose (fentanyl IV, naloxone)
+# was answered for a patient with no age, because no age read as an adult.
+# Asked the way the vial is asked; "yes", "adult", an age or a weight answers.
+ADULT_CONFIRM_ASK = 'Adult patient? Say "adult", or give the age or the weight in kg.'
 
 # F-3 (eval baseline, G-MTN-08). "his sugar came back at 32, he's confused"
 # was answered with "provide oral glucose (e.g., glucose gel or candy)" and no
@@ -1154,6 +1174,7 @@ def procedure_issues(query: str, response_text: str) -> list:
 SAFE_GATE_RESPONSES = {
     "Need weight in kg before dosing.",
     WEIGHT_CONFIRM_ASK,
+    ADULT_CONFIRM_ASK,
     "IV or IM? Do you have access?",
     "Need concentration before giving mL dose.",
     "Need rhythm before antiarrhythmic.",
@@ -1278,6 +1299,8 @@ _WEIGHT_ANSWER_RE = re.compile(r"\b\d+(?:\.\d+)?\s*(?:kgs?|kilo\w*|lbs?|pounds?)
                                re.IGNORECASE)
 _ROUTE_ANSWER_RE = re.compile(r"\b(?:iv|io|im|intravenous\w*|intraosseous|intramuscular\w*|"
                               r"access|line)\b", re.IGNORECASE)
+_ADULT_ANSWER_RE = re.compile(r"\b(?:adult|infant|child|toddler|kid|pediatric|paediatric|"
+                              r"newborn|neonate|baby)\b", re.IGNORECASE)
 _SEVERITY_ANSWER_RE = re.compile(r"\b(?:mild|moderate|severe|\d+)\b", re.IGNORECASE)
 
 
@@ -1292,6 +1315,8 @@ def pending_question_kind(last_response: str) -> Optional[str]:
         return "route"
     if r.startswith("Need weight in kg") or r.startswith(WEIGHT_CONFIRM_ASK):
         return "weight"
+    if r.startswith(ADULT_CONFIRM_ASK):
+        return "adult"
     if r.startswith("Pain severity?"):
         return "severity"
     # A card that served mg and asked for the vial alongside (CONFIRM VIAL)
@@ -1308,6 +1333,9 @@ def answers_pending_question(kind: Optional[str], query: str,
         return bool(_WEIGHT_ANSWER_RE.search(q))
     if kind == "route":
         return bool(_ROUTE_ANSWER_RE.search(q))
+    if kind == "adult":
+        return bool(_ACK_RE.match(q) or _ADULT_ANSWER_RE.search(q)
+                    or _WEIGHT_ANSWER_RE.search(q) or _stated_age_years(q.lower()) is not None)
     if kind == "vial":
         # A declared presentation of a drug under discussion ("500", "500 in
         # 10", "50 mg/mL"), as rsi_bundle_should_resume requires, or a turn
@@ -1360,6 +1388,17 @@ def _needs_weight_to_dose(text: str, ctx: PatientContext) -> bool:
     return per_kg and not any(d.drug in named for d in build_allowed_doses(text, ctx))
 
 
+def _fixed_dose_waits_for_adult(text: str, ctx: PatientContext) -> bool:
+    """Something would be offered for this request once an adult is established."""
+    return bool(build_allowed_doses(text, dc_replace(ctx, adult_confirmed=True)))
+
+
+def confirms_adult(query: str, last_response: str) -> bool:
+    """A bare "yes" to ADULT_CONFIRM_ASK."""
+    return ((last_response or "").startswith(ADULT_CONFIRM_ASK)
+            and bool(_ACK_RE.match(query or "")))
+
+
 def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
              last_response: str = "", cue_query: Optional[str] = None,
              request_query: Optional[str] = None,
@@ -1403,6 +1442,13 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
         ]) or _has_any_word(combined_ctx, ["roc", "sux", "succs"])
         if route_changes_dose(combined_ctx) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
             return "ASK", "IV or IM? Do you have access?"
+
+        # A fixed adult dose waits for an adult (owner, #181 review): no age is
+        # not an adult. Before the weight question: either answer serves it.
+        if (not ctx.is_pediatric and not ctx.adult_established
+                and drug_contracts is not None
+                and _fixed_dose_waits_for_adult(combined_ctx, ctx)):
+            return "ASK", ADULT_CONFIRM_ASK
 
         # An adult whose request only a weight can answer (live harness,
         # 2026-10-24): "need to give ketamine" -> "IV" went to the model with
@@ -2219,8 +2265,12 @@ def _pain_entries_by_severity(ctx: PatientContext) -> dict:
             why = vitals_mod.armed_triggers(name, ctx.vitals, flags)
             if why:
                 withheld.setdefault(name, why)
-            elif _contract_candidate(name, entry, ctx.dosing_weight_kg) is None:
-                unweighed.append(name)      # a per-kg entry with no weight resolves to nothing
+            elif (_contract_candidate(name, entry, ctx.dosing_weight_kg) is None
+                  or not ctx.adult_established):
+                # A per-kg entry with no weight resolves to nothing, and with no
+                # age nothing builds at all (build_allowed_doses): a weight
+                # answers both.
+                unweighed.append(name)
             elif name not in offered:
                 offered.append(name)
         out[level] = (offered, {n: w for n, w in withheld.items() if n not in offered},
@@ -2382,7 +2432,11 @@ def build_allowed_doses(query: str, ctx: PatientContext,
         # asks for one before dosing, and run_deterministic_checks holds any
         # paediatric dose served without it; a fixed paediatric entry is no
         # exception to either.
-        if ctx.is_pediatric:
+        #
+        # Nor does a patient with no age (owner, #181 review, 2026-10-25): no
+        # age read as an adult, so "naloxone dose" built the adult 0.4 mg for
+        # a patient nobody had aged. The pre-gate asks ADULT_CONFIRM_ASK.
+        if not ctx.adult_established:
             return []
         return _finish_doses(stated_indication_first(query, indication_matched(
             query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)
@@ -5150,6 +5204,12 @@ def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
                 f"answered here until one is signed: use local protocol or medical control.")
     if patient_ctx is not None and not patient_ctx.has_confirmed_weight:
         fixed_for = _adult_fixed_single_dose_indications(drug, patient_ctx)
+        if fixed_for and not patient_ctx.adult_established:
+            return (f"{said}, but no signed {drug} dose was offered: the patient's age "
+                    f"is not established. The signed adult {drug} single doses are "
+                    f"fixed: confirm the patient is an adult (or give the age or the "
+                    f"weight in kg), then ask for {drug} by name and say what it is for. "
+                    f"It is signed for {'; '.join(fixed_for)}.")
         if fixed_for:
             # A5: an adult's fixed entries build without a weight, so a weight
             # would not have changed this. Say what would.
@@ -6325,6 +6385,8 @@ def _replay_patient(query, conversation_history, session_ctx, now_ts):
                 ctx = PatientContext()
                 start = i
             ctx = extract_patient_context(prior_q, prior_ctx=ctx, turn_ts=turn_ts)
+            if i and confirms_adult(prior_q, conversation_history[i - 1].get("response", "")):
+                ctx.adult_confirmed = True
             prev_ts = turn_ts or prev_ts
 
     reason = detect_patient_boundary(query, ctx, prev_ts=prev_ts, now_ts=now_ts)
@@ -6343,6 +6405,8 @@ def _replay_patient(query, conversation_history, session_ctx, now_ts):
         ctx = PatientContext()
 
     ctx = extract_patient_context(query, prior_ctx=ctx, turn_ts=now_ts)
+    if conversation_history and confirms_adult(query, conversation_history[-1].get("response", "")):
+        ctx.adult_confirmed = True
     # Only the CURRENT turn's boundary drives the notice. extract_patient_context
     # is called on a context whose field is already clear, so this cannot leak
     # from a boundary that happened earlier in the replay.

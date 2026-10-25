@@ -23,7 +23,7 @@ import drug_contracts as dc  # noqa: E402
 import openai_client as oc  # noqa: E402
 import providers  # noqa: E402
 
-ADULT_NO_WEIGHT = oc.PatientContext()
+ADULT_NO_WEIGHT = oc.PatientContext(adult_confirmed=True)  # an adult: no age is not one (owner, #181 review)
 HISTORY = [{"query": "adult male casualty, penetrating chest wound, awake",
             "response": "ok"}]
 

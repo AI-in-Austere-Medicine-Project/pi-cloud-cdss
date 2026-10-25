@@ -174,7 +174,7 @@ def test_the_signed_seizure_dose_passes_for_a_seizing_patient():
 
 @pytest.mark.parametrize("query", [
     "80kg male, violent and agitated, versed dose",
-    "agitated violent patient, midazolam dose",
+    "adult, agitated violent patient, midazolam dose",
 ])
 def test_premise_a_behavioural_emergency_keeps_its_5_mg(query):
     _ctx, doses = built(query)

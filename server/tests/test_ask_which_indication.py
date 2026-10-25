@@ -144,7 +144,7 @@ def test_for_pain_the_pain_dose_comes_before_the_post_intubation_dose():
 
 
 @pytest.mark.parametrize("q,drug,kept", [
-    ("epi dose for cardiac arrest", "epinephrine",
+    ("adult, epi dose for cardiac arrest", "epinephrine",
      {"anaphylaxis", "symptomatic bradycardia — push dose"}),
     ("midazolam dose for sedation", "midazolam",
      {"agitated or violent patient / behavioural emergency"}),
