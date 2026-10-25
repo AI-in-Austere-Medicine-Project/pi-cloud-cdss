@@ -245,8 +245,9 @@ def test_end_to_end_fallback_labels_and_serves(stub_llm):
     # Caught by the route pre-gate, which sits above retrieval entirely.
     ("how much ketamine do i give", "PRE_GATE"),
     # Reaches retrieval, comes back INSUFFICIENT, and is still refused the
-    # general path by the dosing guard.
-    ("how much calcium gluconate for hyperkalemia", "INSUFFICIENT"),
+    # general path by the dosing guard. "adult": with no age the adult
+    # question comes first (owner, #181 review), above retrieval.
+    ("how much calcium gluconate for hyperkalemia, adult", "INSUFFICIENT"),
 ])
 def test_end_to_end_dose_question_does_not_fall_back(stub_llm, query, expected_mode):
     """The refusal this feature removes must NOT be removed for dosing."""

@@ -1393,6 +1393,12 @@ def _fixed_dose_waits_for_adult(text: str, ctx: PatientContext) -> bool:
     return bool(build_allowed_doses(text, dc_replace(ctx, adult_confirmed=True)))
 
 
+def _asks_adult(text: str, ctx: PatientContext) -> bool:
+    return (not ctx.is_pediatric and not ctx.adult_established
+            and drug_contracts is not None
+            and _fixed_dose_waits_for_adult(text, ctx))
+
+
 def confirms_adult(query: str, last_response: str) -> bool:
     """A bare "yes" to ADULT_CONFIRM_ASK."""
     return ((last_response or "").startswith(ADULT_CONFIRM_ASK)
@@ -1445,9 +1451,7 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
 
         # A fixed adult dose waits for an adult (owner, #181 review): no age is
         # not an adult. Before the weight question: either answer serves it.
-        if (not ctx.is_pediatric and not ctx.adult_established
-                and drug_contracts is not None
-                and _fixed_dose_waits_for_adult(combined_ctx, ctx)):
+        if _asks_adult(combined_ctx, ctx):
             return "ASK", ADULT_CONFIRM_ASK
 
         # An adult whose request only a weight can answer (live harness,
@@ -1480,6 +1484,16 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
                     question = drug_concentrations.confirmation_question(drug)
                     if question:
                         return "ASK", question
+
+    # A turn naming a drug whose fixed dose waits for an adult, in words the
+    # dose-request test does not read ("how much naloxone", "how much D50"):
+    # asked too, or the model gets nothing offered and its number holds.
+    if (not current_or_pending_med_request
+            and drug_contracts is not None
+            and drug_contracts.resolve_drugs((request_query if request_query is not None
+                                              else query).lower())
+            and _asks_adult(combined_ctx, ctx)):
+        return "ASK", ADULT_CONFIRM_ASK
 
     # Which indication? After the vial, for the same reason the vial is after
     # weight and route. Also on the reply to a question this gate (or the
