@@ -122,3 +122,71 @@ def test_a_pending_vial_still_holds_and_says_so():
 def test_a_rate_is_not_read_as_a_volume(line):
     ctx = oc.extract_patient_context("80 kg adult, morphine")
     assert oc.unconfirmed_volume_issues(line, ctx) == []
+
+
+# ── Owner ruling on recipes (2026-10-25) ────────────────────────────────────
+# "An mL serves when it comes from a confirmed vial OR from a signed entry's
+# own recipe line (the concentration stated in the signed quote, e.g. E05's
+# 10 mcg/mL push-dose syringe). Any other preparation or volume holds."
+
+ADULT = oc.PatientContext(adult_confirmed=True)
+
+
+@pytest.mark.parametrize("line", [
+    # E05's own recipe line, verbatim from its signed caution.
+    "Push-dose syringe: 1 mL of 1:10,000 (100 mcg/mL) epinephrine in 9 mL NS gives "
+    "10 mcg/mL; 5-20 mcg is 0.5-2 mL (JTS ID83 p.24).",
+    # A dose drawn from that signed syringe, which the line names.
+    "Draw 2 mL of 10 mcg/mL epinephrine IV (20 mcg).",
+    # The signed cardiac-arrest syringe (0.1 mg/mL, 10 mL for 1 mg).
+    "Draw 10 mL of the 0.1 mg/mL (1:10,000) epinephrine syringe IV (1 mg).",
+])
+def test_a_signed_recipe_volume_serves(line):
+    assert oc.unconfirmed_volume_issues(line, ADULT) == []
+
+
+def test_a_recipe_from_a_vial_waits_for_the_vial():
+    """Ketamine's declared 5 mg/mL push dilution starts from the 50 mg/mL vial:
+    it serves once that vial is confirmed, and holds while the kit asks (#181)."""
+    line = "Draw 4 mL of 5 mg/mL ketamine IV (20 mg)."
+    issues = oc.unconfirmed_volume_issues(line, ADULT)
+    assert len(issues) == 1 and "no confirmed vial" in issues[0], issues
+    confirmed = oc.PatientContext(adult_confirmed=True, confirmed_concentrations={"ketamine": 50.0})
+    assert oc.unconfirmed_volume_issues(line, confirmed) == []
+    quoted = ("OWNER-DECLARED dilution for IV push (no guideline states one): 5 mg/mL — "
+              "1 mL of ketamine 50 mg/mL in 9 mL of normal saline.")
+    assert oc.unconfirmed_volume_issues(quoted, ADULT), "a quoted recipe waits for the vial too"
+
+
+@pytest.mark.parametrize("line,drug", [
+    # No signed norepinephrine preparation exists.
+    ("Mix 4 mg norepinephrine in 250 mL NS (16 mcg/mL).", "norepinephrine"),
+    # The epinephrine bag left the cards in A35; nothing signed prepares it.
+    ("Add 1 mg epinephrine to a 250 mL bag of NS.", "epinephrine"),
+    # The 1:1,000 ampoule IV: signed text names 1 mg/mL only as the vial for IM
+    # and as what NOT to push; neither is a preparation.
+    ("Draw 1 mL of 1 mg/mL epinephrine IV (1 mg).", "epinephrine"),
+    # A recipe volume with no concentration named: from the ampoule, 2 mg.
+    ("Give 2 mL of epinephrine IV (20 mcg).", "epinephrine"),
+    # The old push-dose card's own copy of the recipe, not the signed line.
+    ("Draw 1 mL of 1:10,000 epinephrine (0.1mg/mL) into a 10 mL syringe.", "epinephrine"),
+])
+def test_any_other_preparation_or_volume_holds(line, drug):
+    issues = oc.unconfirmed_volume_issues(line, ADULT)
+    assert len(issues) == 1 and drug in issues[0] and "no confirmed vial" in issues[0], issues
+
+
+def test_the_push_dose_card_serves():
+    """The card prints the signed entry's recipe (A35), so it passes."""
+    q = "need to make push dose epi"
+    card = oc.build_fixed_prep_response(q, ADULT)
+    assert "10 mcg/mL" in card
+    assert oc.unconfirmed_volume_issues(card, ADULT) == []
+
+
+def test_the_fentanyl_ml_with_no_vial_holds():
+    """Owner: the fentanyl "1 mL of 0.05 mg/mL" hold is correct (no signed vial,
+    no signed fentanyl preparation)."""
+    issues = oc.unconfirmed_volume_issues(
+        "Draw 1 mL of 0.05mg/mL fentanyl IV (0.05mg). Indication: acute pain.", ADULT)
+    assert len(issues) == 1 and "fentanyl" in issues[0], issues
