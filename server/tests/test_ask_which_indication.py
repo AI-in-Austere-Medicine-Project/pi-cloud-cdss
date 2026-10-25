@@ -98,8 +98,6 @@ ALL_KETAMINE_CLASSES = {"pain", "RSI", "sedation", "agitation", "seizure"}
 
 
 @pytest.mark.parametrize("answer,kept", [
-    ("pain", "pain"),
-    ("for pain", "pain"),
     ("sedation", "sedation"),
     ("agitation", "agitation"),
     ("seizure", "seizure"),
@@ -114,6 +112,18 @@ def test_the_answer_puts_that_indications_doses_first_and_removes_none(seen, ans
     n = ket.count(kept)
     assert n and ket[:n] == [kept] * n, (answer, ket)
     assert set(ket) == ALL_KETAMINE_CLASSES, (answer, ket)
+
+
+@pytest.mark.parametrize("answer", ["pain", "for pain"])
+def test_the_pain_answer_is_the_signed_analgesia_card_with_the_ml(seen, answer):
+    """Since 2026-10-24 (live harness): "pain" completes a ketamine-for-pain
+    request, and the deterministic card answers it: the signed analgesia dose,
+    in mL from the confirmed vial, not the model choosing among the offers."""
+    history = HISTORY_AT_TURN_2 + [{"query": TURN_2, "response": "Which indication for ketamine — ...?"}]
+    r = run(answer, history)
+    assert r["source_mode"] == "DETERMINISTIC_PRE_GATE", r["response"][:200]
+    assert "of 50mg/mL ketamine IV" in r["response"], r["response"]
+    assert "Indication: moderate to severe pain / analgesia" in r["response"]
 
 
 def test_an_answer_that_names_no_indication_is_asked_again(seen):
@@ -134,7 +144,7 @@ def test_for_pain_the_pain_dose_comes_before_the_post_intubation_dose():
 
 
 @pytest.mark.parametrize("q,drug,kept", [
-    ("epi dose for cardiac arrest", "epinephrine",
+    ("adult, epi dose for cardiac arrest", "epinephrine",
      {"anaphylaxis", "symptomatic bradycardia — push dose"}),
     ("midazolam dose for sedation", "midazolam",
      {"agitated or violent patient / behavioural emergency"}),

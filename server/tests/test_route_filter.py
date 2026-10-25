@@ -37,7 +37,7 @@ def _issues(history, text):
 
 
 @pytest.mark.parametrize("q", [
-    "versed dose IM",
+    "adult, versed dose IM",
     "80 kg adult, midazolam IM for agitation",
     "80 kg adult, no IV access, midazolam dose",
 ])
@@ -73,10 +73,10 @@ def test_the_iv_dose_written_for_versed_im_holds():
 
 
 def test_the_signed_im_dose_for_versed_im_still_passes():
-    _ctx, doses = _offers("versed dose IM")
+    _ctx, doses = _offers("adult, versed dose IM")
     (im,) = [d for d in doses if d.drug == "midazolam"]
     text = f"**GIVE**\n- Midazolam {im.dose_mg:g} mg IM for sedation / anxiolysis."
-    assert _issues("versed dose IM", text) == []
+    assert _issues("adult, versed dose IM", text) == []
 
 
 def test_a_drug_with_nothing_on_the_stated_route_is_offered_nothing():
@@ -95,5 +95,5 @@ def test_naloxone_im_keeps_its_im_entry_only():
 
 
 def test_no_stated_route_offers_every_route():
-    _ctx, doses = _offers("versed dose")
+    _ctx, doses = _offers("adult, versed dose")
     assert {"IV", "IM"} <= {d.route for d in doses if d.drug == "midazolam"}

@@ -571,17 +571,14 @@ def test_the_tldr_degrades_with_the_give_line():
 
 
 def test_the_card_stays_silent_about_an_unconfirmed_volume():
-    """The pinned kit signs ONE ketamine vial and the card still asks which, so
-    the volume is computable and the BRIEF states it conditionally. The card
-    does not: owner decision 2026-09-18, one conditional sentence per answer.
-    Nor does its TLDR say "Volume not computed" (fix/brief-polish): the volume
-    is computed, so that sentence was stale. The TLDR states the mg alone.
+    """The pinned kit signs ONE ketamine vial and the card still asks which.
+    Neither the card nor (since 2026-10-24) the brief states a volume until the
+    vial is confirmed. Nor does its TLDR say "Volume not computed"
+    (fix/brief-polish). The TLDR states the mg alone.
     """
     ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
                          route_preference="IV")
     text = oc.build_ketamine_analgesia_response(ctx)
-    assert dcn.single_signed_volume("ketamine", 20.0) == (0.4, 50.0), \
-        "the volume IS computable on this kit; the point is that the card does not say so"
     assert "confirm vial" not in text.lower().replace("**confirm vial**", "")
     assert "Volume not computed" not in text
     tldr = text.split("**TLDR**")[1].split("**")[0]

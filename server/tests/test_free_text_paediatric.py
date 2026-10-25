@@ -107,8 +107,11 @@ def test_the_signed_paediatric_dose_passes(line):
     "Ketamine comes as 50 mg/mL.",
 ])
 def test_preparations_and_concentrations_are_still_not_doses(line):
+    """No mass here is read as a dose. A bag's mL is a preparation, and since
+    the owner's #181 recipe ruling (2026-10-25) one no signed entry states
+    holds on its volume; that is the only issue."""
     det, _ = _issues(line, "ok now what")
-    assert det.passed, det.issues
+    assert all("volume in mL with no confirmed vial" in i for i in det.issues), det.issues
 
 
 @pytest.mark.parametrize("line", [

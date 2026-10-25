@@ -442,6 +442,17 @@ class PatientContext:
     # Describes the CURRENT turn plus anything a prior turn established, and
     # is cleared by a patient boundary with the rest of the context.
     ams_stated: bool = False
+    # The medic said "adult", or answered yes to ADULT_CONFIRM_ASK, or stated
+    # an age of 18 or over. A known age decides it in both directions, as it
+    # decides is_pediatric. Cleared by a patient boundary with the rest.
+    adult_confirmed: bool = False
+
+    @property
+    def adult_established(self) -> bool:
+        """A fixed adult dose may be offered: an adult was confirmed, or a
+        weight was (owner, #181 review: "an adult confirmation (or a weight)").
+        No age is not an adult."""
+        return not self.is_pediatric and (self.adult_confirmed or self.has_confirmed_weight)
 
     @property
     def dosing_weight_kg(self) -> Optional[float]:
@@ -754,6 +765,11 @@ def extract_patient_context(query: str,
              and ctx.estimated_weight_kg < PEDIATRIC_WEIGHT_CEILING_KG)):
         ctx.is_pediatric = True
 
+    if ctx.age_years is not None:
+        ctx.adult_confirmed = ctx.age_years >= 18
+    elif _has_any_word(q, ["adult"]):
+        ctx.adult_confirmed = True
+
     # ── Estimated weight from age (context only — never used for dosing) ─
     if (ctx.is_pediatric and ctx.age_years is not None
             and ctx.confirmed_weight_kg is None
@@ -837,6 +853,10 @@ def extract_patient_context(query: str,
 # Interpolating the number would put this response outside the set and it
 # would be validated, cautioned and banner-able like a clinical plan.
 WEIGHT_CONFIRM_ASK = "Confirm the weight in kg before dosing — I only have an estimate."
+# Owner, #181 review (2026-10-25): a fixed adult dose (fentanyl IV, naloxone)
+# was answered for a patient with no age, because no age read as an adult.
+# Asked the way the vial is asked; "yes", "adult", an age or a weight answers.
+ADULT_CONFIRM_ASK = 'Adult patient? Say "adult", or give the age or the weight in kg.'
 
 # F-3 (eval baseline, G-MTN-08). "his sugar came back at 32, he's confused"
 # was answered with "provide oral glucose (e.g., glucose gel or candy)" and no
@@ -1154,6 +1174,7 @@ def procedure_issues(query: str, response_text: str) -> list:
 SAFE_GATE_RESPONSES = {
     "Need weight in kg before dosing.",
     WEIGHT_CONFIRM_ASK,
+    ADULT_CONFIRM_ASK,
     "IV or IM? Do you have access?",
     "Need concentration before giving mL dose.",
     "Need rhythm before antiarrhythmic.",
@@ -1215,18 +1236,194 @@ def has_pending_route_sensitive_request(prior_queries: str) -> bool:
     return route_changes_dose(prior_queries or "")
 
 
+# Owner, 2026-10-24 (live log): "A pending question clears when the next turn
+# names a different drug, negates the drug, or is not an answer to it; the new
+# request is then handled normally." Live, three magnesium turns after a
+# ketamine card each got the ketamine vial question: the gates asked about
+# every drug named anywhere in the conversation, and the dose builder offered
+# every one of them. scope_request() is what those readers see instead.
+
+# A negation in the drug's own clause, at most three words before it: "I dont
+# want to give ketamine", "not ketamine", "instead of ketamine", "hold the
+# ketamine". "no IV" or "no allergies" negate no drug.
+_DRUG_NEGATION_RE = re.compile(
+    r"(?:\bdon'?t\b|\bdo not\b|\bnot\b|\bno\b|\bnever\b|\bstop\b|\binstead of\b"
+    r"|\brather than\b|\bwithout\b|\bskip\b|\bhold(?: off)?\b)"
+    r"(?:\s+[\w']+){0,3}\s*$")
+_CLAUSE_BREAK_RE = re.compile(r"[,.;:!?]")
+
+
+def _drug_spans(text: str) -> list:
+    """(start, end, generic) for each drug term in `text`, longest match wins,
+    on the same masking resolve_drugs uses (class phrases are not drugs).
+    Every recognised drug, not only the bank's: magnesium has no contract, and
+    "now I need to give mag" names a different drug all the same."""
+    if drug_contracts is None:
+        return []
+    masked = drug_contracts.mask_class_phrases((text or "").lower())
+    spans = []
+    for term, generic in drug_contracts.recognised_drug_index().items():
+        for m in re.finditer(drug_contracts._term_pattern(term), masked):
+            spans.append((m.start(), m.end(), generic))
+    return [s for s in spans
+            if not any(s2 <= s[0] and s[1] <= e2 and (e2 - s2) > (s[1] - s[0])
+                       for s2, e2, _ in spans)]
+
+
+def negated_drugs(text: str) -> set:
+    """Drugs the turn names only to refuse them."""
+    low = (text or "").lower()
+    out, kept = set(), set()
+    prev_end = 0
+    for start, end, generic in sorted(_drug_spans(low)):
+        # The clause before this drug, back to a break or the previous drug:
+        # in "instead of ketamine give fentanyl" the negation is ketamine's.
+        clause = _CLAUSE_BREAK_RE.split(low[prev_end:start])[-1]
+        (out if _DRUG_NEGATION_RE.search(clause) else kept).add(generic)
+        prev_end = end
+    return out - kept
+
+
+def _strike_drugs(text: str, keep: set) -> str:
+    """`text` with every drug not in `keep` blanked, same offsets."""
+    out = list(text or "")
+    for start, end, generic in _drug_spans(text):
+        if generic not in keep:
+            out[start:end] = " " * (end - start)
+    return "".join(out)
+
+
+_ACK_RE = re.compile(r"^\s*(?:yes|yeah|yep|y|ok|okay|k|sure|please|go on|go ahead|"
+                     r"continue|\?+)\s*[.!?]*\s*$", re.IGNORECASE)
+_WEIGHT_ANSWER_RE = re.compile(r"\b\d+(?:\.\d+)?\s*(?:kgs?|kilo\w*|lbs?|pounds?)\b|^\s*\d+(?:\.\d+)?\s*$",
+                               re.IGNORECASE)
+_ROUTE_ANSWER_RE = re.compile(r"\b(?:iv|io|im|intravenous\w*|intraosseous|intramuscular\w*|"
+                              r"access|line)\b", re.IGNORECASE)
+_ADULT_ANSWER_RE = re.compile(r"\b(?:adult|infant|child|toddler|kid|pediatric|paediatric|"
+                              r"newborn|neonate|baby)\b", re.IGNORECASE)
+_SEVERITY_ANSWER_RE = re.compile(r"\b(?:mild|moderate|severe|\d+)\b", re.IGNORECASE)
+
+
+def pending_question_kind(last_response: str) -> Optional[str]:
+    """What the last response asked before dosing, or None."""
+    r = (last_response or "").strip()
+    if r.startswith("Which indication for "):
+        return "indication"
+    if re.match(r"Which .+? do you have", r):
+        return "vial"
+    if r.startswith("IV or IM?"):
+        return "route"
+    if r.startswith("Need weight in kg") or r.startswith(WEIGHT_CONFIRM_ASK):
+        return "weight"
+    if r.startswith(ADULT_CONFIRM_ASK):
+        return "adult"
+    if r.startswith("Pain severity?"):
+        return "severity"
+    # A card that served mg and asked for the vial alongside (CONFIRM VIAL)
+    # is waiting on that answer too.
+    if "**CONFIRM VIAL**" in r:
+        return "vial"
+    return None
+
+
+def answers_pending_question(kind: Optional[str], query: str,
+                             prior_queries: str = "") -> bool:
+    q = query or ""
+    if kind == "weight":
+        return bool(_WEIGHT_ANSWER_RE.search(q))
+    if kind == "route":
+        return bool(_ROUTE_ANSWER_RE.search(q))
+    if kind == "adult":
+        return bool(_ACK_RE.match(q) or _ADULT_ANSWER_RE.search(q)
+                    or _WEIGHT_ANSWER_RE.search(q) or _stated_age_years(q.lower()) is not None)
+    if kind == "vial":
+        # A declared presentation of a drug under discussion ("500", "500 in
+        # 10", "50 mg/mL"), as rsi_bundle_should_resume requires, or a turn
+        # about the vial itself (the "Vial math" chip: "Show the vial math for
+        # that dose."). A number alone is not enough: "what does a GCS of 9
+        # mean" is not a vial (live harness, 2026-10-24).
+        if re.search(r"\b(?:vial|ampoule|ampule|amp|volume|ml|concentration)\b", q, re.IGNORECASE):
+            return True
+        if drug_concentrations is None or drug_contracts is None:
+            return False
+        return any(drug_concentrations.match_confirmation(d, q) is not None
+                   for d in drug_contracts.resolve_drugs(prior_queries or ""))
+    if kind == "indication":
+        return bool(stated_indication_classes(q))
+    if kind == "severity":
+        return bool(_SEVERITY_ANSWER_RE.search(q))
+    return False
+
+
+def scope_request(query: str, prior_queries: str, last_response: str = "") -> tuple:
+    """(prior, query, answered): the text the drug-reading gates and the dose
+    builder read for this turn, and whether it answers a pending question.
+
+    - The turn names a drug: earlier drugs it does not name, and any it
+      negates, are struck from both. Its request is handled as asked.
+    - It names none and the last response was a question it does not answer
+      (and is not a bare "yes" / "ok"): the pending drug is struck, and the
+      turn is handled normally.
+    - Otherwise (an answer, an acknowledgement, a follow-up to a card): as
+      before.
+    """
+    kind = pending_question_kind(last_response)
+    answered = kind is not None and answers_pending_question(kind, query, prior_queries)
+    named = {g for _s, _e, g in _drug_spans(query)}
+    if named:
+        keep = set(named) - negated_drugs(query)
+        return _strike_drugs(prior_queries, keep), _strike_drugs(query, keep), answered
+    if kind is not None and not answered and not _ACK_RE.match(query or ""):
+        return _strike_drugs(prior_queries, set()), query, False
+    return prior_queries, query, answered
+
+
+def _needs_weight_to_dose(text: str, ctx: PatientContext) -> bool:
+    named = drug_contracts.resolve_drugs(text)
+    if not named:
+        return False
+    live = drug_contracts.servable_entries()
+    per_kg = any((e.get("dose_range") or {}).get("per_kg")
+                 for d in named for e in live.get(d, []))
+    return per_kg and not any(d.drug in named for d in build_allowed_doses(text, ctx))
+
+
+def _fixed_dose_waits_for_adult(text: str, ctx: PatientContext) -> bool:
+    """Something would be offered for this request once an adult is established."""
+    return bool(build_allowed_doses(text, dc_replace(ctx, adult_confirmed=True)))
+
+
+def _asks_adult(text: str, ctx: PatientContext) -> bool:
+    return (not ctx.is_pediatric and not ctx.adult_established
+            and drug_contracts is not None
+            and _fixed_dose_waits_for_adult(text, ctx))
+
+
+def confirms_adult(query: str, last_response: str) -> bool:
+    """A bare "yes" to ADULT_CONFIRM_ASK."""
+    return ((last_response or "").startswith(ADULT_CONFIRM_ASK)
+            and bool(_ACK_RE.match(query or "")))
+
+
 def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
-             last_response: str = "", cue_query: Optional[str] = None) -> tuple:
+             last_response: str = "", cue_query: Optional[str] = None,
+             request_query: Optional[str] = None,
+             answered_pending: bool = False) -> tuple:
     """
     Deterministic pre-gate before any LLM call.
     Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
     `cue_query` is the turn indication cues are read from (severity_cue_query).
+    `prior_queries` and `request_query` are scope_request's: drugs this turn
+    dropped are not in them. `answered_pending`: this turn answered the
+    question a dose request is waiting on, so the request is still pending.
     """
-    combined_ctx = (prior_queries + " " + query).lower()
+    combined_ctx = (prior_queries + " " + (request_query if request_query is not None
+                                           else query)).lower()
     current_or_pending_med_request = (
         wants_medication_dose(query)
         or (query_is_weight_answer(query) and has_pending_route_sensitive_request(prior_queries))
+        or (answered_pending and wants_medication_dose(prior_queries))
     )
 
     if current_or_pending_med_request:
@@ -1252,6 +1449,21 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
         if route_changes_dose(combined_ctx) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
             return "ASK", "IV or IM? Do you have access?"
 
+        # A fixed adult dose waits for an adult (owner, #181 review): no age is
+        # not an adult. Before the weight question: either answer serves it.
+        if _asks_adult(combined_ctx, ctx):
+            return "ASK", ADULT_CONFIRM_ASK
+
+        # An adult whose request only a weight can answer (live harness,
+        # 2026-10-24): "need to give ketamine" -> "IV" went to the model with
+        # nothing offered, and its mg/kg answer was held. Asked when a drug the
+        # request names has signed per-kg entries and nothing can be offered
+        # without a weight; a fixed adult dose (fentanyl IV, naloxone) is not.
+        if (not ctx.has_confirmed_weight and ctx.estimated_weight_kg is None
+                and drug_contracts is not None
+                and _needs_weight_to_dose(combined_ctx, ctx)):
+            return "ASK", "Need weight in kg before dosing."
+
         # Which vial? Asked for the same reason route is asked: the answer
         # changes the number the medic draws up, and guessing is worse than
         # asking. Fires only where the kit declares more than one signed
@@ -1272,6 +1484,16 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
                     question = drug_concentrations.confirmation_question(drug)
                     if question:
                         return "ASK", question
+
+    # A turn naming a drug whose fixed dose waits for an adult, in words the
+    # dose-request test does not read ("how much naloxone", "how much D50"):
+    # asked too, or the model gets nothing offered and its number holds.
+    if (not current_or_pending_med_request
+            and drug_contracts is not None
+            and drug_contracts.resolve_drugs((request_query if request_query is not None
+                                              else query).lower())
+            and _asks_adult(combined_ctx, ctx)):
+        return "ASK", ADULT_CONFIRM_ASK
 
     # Which indication? After the vial, for the same reason the vial is after
     # weight and route. Also on the reply to a question this gate (or the
@@ -2057,8 +2279,12 @@ def _pain_entries_by_severity(ctx: PatientContext) -> dict:
             why = vitals_mod.armed_triggers(name, ctx.vitals, flags)
             if why:
                 withheld.setdefault(name, why)
-            elif _contract_candidate(name, entry, ctx.dosing_weight_kg) is None:
-                unweighed.append(name)      # a per-kg entry with no weight resolves to nothing
+            elif (_contract_candidate(name, entry, ctx.dosing_weight_kg) is None
+                  or not ctx.adult_established):
+                # A per-kg entry with no weight resolves to nothing, and with no
+                # age nothing builds at all (build_allowed_doses): a weight
+                # answers both.
+                unweighed.append(name)
             elif name not in offered:
                 offered.append(name)
         out[level] = (offered, {n: w for n, w in withheld.items() if n not in offered},
@@ -2220,7 +2446,11 @@ def build_allowed_doses(query: str, ctx: PatientContext,
         # asks for one before dosing, and run_deterministic_checks holds any
         # paediatric dose served without it; a fixed paediatric entry is no
         # exception to either.
-        if ctx.is_pediatric:
+        #
+        # Nor does a patient with no age (owner, #181 review, 2026-10-25): no
+        # age read as an adult, so "naloxone dose" built the adult 0.4 mg for
+        # a patient nobody had aged. The pre-gate asks ADULT_CONFIRM_ASK.
+        if not ctx.adult_established:
             return []
         return _finish_doses(stated_indication_first(query, indication_matched(
             query, _without_contraindicated_sux(query, _contract_dose_candidates(query, ctx)
@@ -2335,6 +2565,29 @@ def build_allowed_doses(query: str, ctx: PatientContext,
 CONFIRM_CONCENTRATION_LINE = "confirm concentration to compute volume"
 
 
+# Owner, 2026-10-24 (live log, finding 2): "a millilitre is served only from
+# a confirmed concentration. Until confirmed, mg only, with the vial question;
+# no mL anywhere in the answer." A volume is a number with mL (mL/kg too); a
+# concentration or the vial's own label ("50 mg/mL", "500 mg / 10 mL vial")
+# is not one.
+_ML_VOLUME_RE = re.compile(r"\b\d+(?:\.\d+)?\s*m\s*l\b", re.IGNORECASE)
+VOLUMES_AFTER_VIAL_LINE = "Volumes and any dilution: given once the vial is confirmed."
+
+
+def states_ml_volume(text: str) -> bool:
+    return _ML_VOLUME_RE.search(
+        _CONCENTRATION_PHRASE_RE.sub(" ", (text or "").lower())) is not None
+
+
+def vial_unconfirmed(drug: str, ctx: Optional[PatientContext]) -> bool:
+    """The kit asks which vial for this drug and this patient has not said."""
+    if drug_concentrations is None:
+        return False
+    confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
+    status, _c, _p = drug_concentrations.resolve(drug, confirmed)
+    return status == drug_concentrations.NEEDS_CONFIRMATION
+
+
 def resolve_dose_volume(d: DoseCandidate,
                         ctx: Optional[PatientContext] = None) -> DoseCandidate:
     """Fill volume_ml/concentration_mg_ml from the confirmed concentration.
@@ -2354,6 +2607,13 @@ def resolve_dose_volume(d: DoseCandidate,
         # reason rides along so the GIVE line can say which.
         why = drug_concentrations.volume_refusal(d.drug, d.dose_mg, confirmed,
                                                  dilution=d.dilution)
+        if vial_unconfirmed(d.drug, ctx):
+            # The entry's own dilution and mL lines wait for the vial too: on
+            # the card and in what the generator is offered.
+            kept = [c for c in d.cautions if not states_ml_volume(c)]
+            if len(kept) != len(d.cautions):
+                kept.append(VOLUMES_AFTER_VIAL_LINE)
+                d = dc_replace(d, cautions=kept, warning="; ".join(kept) or None)
         return dc_replace(d, volume_refusal=why) if why else d
     return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc)
 
@@ -4958,6 +5218,12 @@ def _free_dose_hold_line(drug: str, shown: str, has_contract_dose: bool,
                 f"answered here until one is signed: use local protocol or medical control.")
     if patient_ctx is not None and not patient_ctx.has_confirmed_weight:
         fixed_for = _adult_fixed_single_dose_indications(drug, patient_ctx)
+        if fixed_for and not patient_ctx.adult_established:
+            return (f"{said}, but no signed {drug} dose was offered: the patient's age "
+                    f"is not established. The signed adult {drug} single doses are "
+                    f"fixed: confirm the patient is an adult (or give the age or the "
+                    f"weight in kg), then ask for {drug} by name and say what it is for. "
+                    f"It is signed for {'; '.join(fixed_for)}.")
         if fixed_for:
             # A5: an adult's fixed entries build without a weight, so a weight
             # would not have changed this. Say what would.
@@ -5091,6 +5357,172 @@ def hemorrhage_control_issues(current_query: str, response_text: str) -> list:
             "Control the bleeding now and use local protocol."]
 
 
+# A volume drawn from the vial: a number with mL that is not a rate ("2 mL/hr",
+# "0.1 mL/kg", "mL per hour"). Read after the concentration phrases are removed,
+# as states_ml_volume does.
+_DRAWN_ML_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*m\s*l\b(?!\s*(?:/|per\b))", re.IGNORECASE)
+_STATED_MASS_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(mcg|µg|μg|ug|micrograms?|mg|milligrams?|g|grams?)\b(?!\s*/)",
+                             re.IGNORECASE)
+_MASS_TO_MG = {"mcg": 0.001, "µg": 0.001, "μg": 0.001, "ug": 0.001, "microgram": 0.001,
+               "micrograms": 0.001, "mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
+               "g": 1000.0, "gram": 1000.0, "grams": 1000.0}
+
+
+def _volume_hold_text(drug: str, status: Optional[str], conc: Optional[float]) -> str:
+    if conc is not None:
+        return (f"The answer gives a {drug} volume in mL that does not follow from the "
+                f"confirmed {conc:g} mg/mL vial and the dose it states. Give the {drug} "
+                f"dose in mg, or its volume at {conc:g} mg/mL.")
+    if drug_concentrations is not None and status == drug_concentrations.NEEDS_CONFIRMATION:
+        return (f"The answer gives a {drug} volume in mL with no confirmed vial. Give the "
+                f"{drug} dose in mg and ask which vial; the mL follows from the confirmed vial.")
+    return (f"The answer gives a {drug} volume in mL with no confirmed vial and no signed "
+            f"{drug} preparation it follows from. Give the {drug} dose in mg only.")
+
+
+# ── Signed preparations (owner, #181 review, 2026-10-25) ────────────────────
+# "An mL serves when it comes from a confirmed vial OR from a signed entry's
+# own recipe line (the concentration stated in the signed quote, e.g. E05's
+# 10 mcg/mL push-dose syringe). Any other preparation or volume holds."
+#
+# A signed entry's recipe is read from its own text (cautions and source
+# quotes) and its declared push_dilution. A concentration counts only where
+# the text PREPARES it: what a recipe gives, makes or is ("gives 10 mcg/mL",
+# "Concentration: 10mcg epinephrine/mL", "the 0.1 mg/mL syringe", "that 10
+# mcg/mL dilution", "the 3 mg/mL mix"). "Use the 1 mg/mL concentration for the
+# IM route" names the vial, not a preparation, and "Not the 1 mg/mL ampoule"
+# is a negation: neither counts, or an IV line from the 1:1,000 ampoule would
+# pass. Each preparation keeps its entry's route.
+_CONC_IN_TEXT_RE = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(mcg|µg|μg|ug|mg|g)\s*(?:[a-z]+\s*)?/\s*ml\b|\b1\s*:\s*(1,?000|10,?000)\b",
+    re.IGNORECASE)
+_PREPARES_BEFORE_RE = re.compile(r"(?:gives?|giving|prepare[sd]?|makes?|yield\w*|concentration:?)\s*$",
+                                 re.IGNORECASE)
+_PREPARED_AFTER_RE = re.compile(r"^\s*(?:\([^)]*\)\s*)?(?:syringe|dilution|solution|mix\w*)\b",
+                                re.IGNORECASE)
+_NEGATED_BEFORE_RE = re.compile(r"\b(?:not|never|no|avoid|without)\b[^.;]*$", re.IGNORECASE)
+_ROUTE_WORD_RES = {
+    "IV": re.compile(r"\b(?:iv|io|intravenous\w*|intraosseous\w*)\b", re.IGNORECASE),
+    "IM": re.compile(r"\b(?:im|intramuscular\w*)\b", re.IGNORECASE),
+    "IN": re.compile(r"\bIN\b|\bintranasal\w*|\bnasal\b"),
+    "PO": re.compile(r"\b(?:po|oral\w*|by mouth)\b", re.IGNORECASE),
+    "NEB": re.compile(r"\bneb\w*|\binhal\w*", re.IGNORECASE),
+}
+
+
+def _concentrations_in(text: str) -> list:
+    """[(mg/mL, start, end)] for every concentration a text states."""
+    out = []
+    for m in _CONC_IN_TEXT_RE.finditer(text or ""):
+        if m.group(3):
+            conc = 0.1 if m.group(3).replace(",", "") == "10000" else 1.0
+        else:
+            conc = float(m.group(1)) * _MASS_TO_MG[m.group(2).lower()]
+        out.append((conc, m.start(), m.end()))
+    return out
+
+
+def _normalised(text: str) -> str:
+    t = re.sub(r"^[\s>*\-•\d.)]+", "", (text or "").lower())
+    return re.sub(r"\s+", " ", t.replace("*", "")).strip()
+
+
+def _signed_preparations(drug: str) -> tuple:
+    """([normalised signed recipe text], {route: {prepared mg/mL}}) for a drug."""
+    texts, prepared = [], {}
+    for e in (drug_contracts.servable_entries().get(drug) or []) if drug_contracts else []:
+        route = (e.get("route") or "").upper()
+        own = [c if isinstance(c, str) else (c or {}).get("text", "") for c in e.get("cautions") or []]
+        own += [(src or {}).get("quote", "") for src in e.get("sources") or []]
+        dil = drug_contracts.push_dilution(e)
+        if dil:
+            prepared.setdefault(route, set()).add(float(dil["concentration_mg_ml"]))
+        for t in own:
+            if not t:
+                continue
+            texts.append(_normalised(t))
+            for conc, a, b in _concentrations_in(t):
+                before, after = t[max(0, a - 40):a], t[b:b + 30]
+                if _NEGATED_BEFORE_RE.search(before):
+                    continue
+                if _PREPARES_BEFORE_RE.search(before) or _PREPARED_AFTER_RE.search(after):
+                    prepared.setdefault(route, set()).add(conc)
+    return texts, prepared
+
+
+def _quotes_signed_line(sentence: str, signed_texts: list) -> bool:
+    """The sentence is a signed entry's own text, verbatim."""
+    s = _normalised(sentence)
+    return len(s) >= 20 and any(s in t for t in signed_texts)
+
+
+def _derives(volume: float, masses: list, conc: float) -> bool:
+    return any(m > 0 and abs(volume - m / conc) <= (m / conc) * 0.05 for m in masses)
+
+
+def unconfirmed_volume_issues(response_text: str, ctx: PatientContext) -> list:
+    """One issue per drug whose mL an answer states without a vial it follows from.
+
+    Owner, #181 review (2026-10-25): "any mL in a served answer for a drug must
+    be derivable from a confirmed or signed concentration for that drug;
+    otherwise the answer holds, naming the drug and 'no confirmed vial'."
+
+    Read sentence by sentence: a sentence that names the drug and states a
+    volume. The volume must be a mass stated in the same sentence at the
+    drug's resolved concentration (drug_concentrations.resolve: the confirmed
+    vial, or the kit's one signed vial where it asks no question), within 5%.
+    Live, the dose check passed "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)"
+    with the ketamine vial unconfirmed (2026-10-24); in the harness it passed
+    "Draw 8 mL of morphine IV (8 mg)", morphine having no signed vial at all.
+    A pump rate is not read: it comes from a bag, not the vial.
+    """
+    if drug_contracts is None:
+        return []
+    confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
+    out, signed = {}, {}
+    for sentence in re.split(r"(?<=[.!?])\s+|\n", response_text or ""):
+        plain = _CONCENTRATION_PHRASE_RE.sub(" ", sentence.lower())
+        volumes = [float(v) for v in _DRAWN_ML_RE.findall(plain)]
+        if not volumes:
+            continue
+        drugs = drug_contracts.resolve_drugs(sentence)
+        if not drugs:
+            continue
+        masses = [float(n) * _MASS_TO_MG[u.lower()] for n, u in _STATED_MASS_RE.findall(plain)]
+        stated = {round(c, 6) for c, _a, _b in _concentrations_in(sentence)}
+        routes = {r for r, rx in _ROUTE_WORD_RES.items() if rx.search(sentence)}
+        vials, quoted, drawn_from = {}, False, {}
+        for drug in drugs:
+            status, conc = None, None
+            if drug_concentrations is not None:
+                status, conc, _p = drug_concentrations.resolve(drug, confirmed)
+                if status != drug_concentrations.RESOLVED:
+                    conc = None
+            vials[drug] = (status, conc)
+            if drug not in signed:
+                signed[drug] = _signed_preparations(drug)
+            texts, prepared = signed[drug]
+            drawn_from[drug] = set()
+            # A recipe starts from a vial: while the kit is asking which one
+            # (#181, fix 2), no recipe volume serves, quoted or derived.
+            if drug_concentrations is not None and status == drug_concentrations.NEEDS_CONFIRMATION:
+                continue
+            quoted = quoted or _quotes_signed_line(sentence, texts)
+            # A signed preparation the sentence names, on that preparation's route.
+            drawn_from[drug] = {c for r in routes for c in prepared.get(r, ())
+                                if round(c, 6) in stated}
+        if quoted:
+            continue
+        for v in volumes:
+            if any((conc and _derives(v, masses, conc))
+                   or any(_derives(v, masses, c) for c in drawn_from[d])
+                   for d, (_st, conc) in vials.items()):
+                continue
+            for drug, (status, conc) in vials.items():
+                out.setdefault(drug, _volume_hold_text(drug, status, conc))
+    return list(out.values())
+
+
 def run_deterministic_checks(query: str, response_text: str,
                               patient_ctx: PatientContext,
                               allowed_doses: Optional[List[DoseCandidate]] = None,
@@ -5155,6 +5587,9 @@ def run_deterministic_checks(query: str, response_text: str,
 
     # ── Doses stated outside the canonical GIVE line ──────────────────────
     issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx, query))
+
+    # ── A millilitre that no confirmed or signed vial gives (owner, 2026-10-24/25) ──
+    issues.extend(unconfirmed_volume_issues(response_text, patient_ctx))
 
     # ── A23: an actively bleeding patient, an answer with no control step ──
     issues.extend(hemorrhage_control_issues(current_query if current_query is not None else query,
@@ -6108,6 +6543,8 @@ def _replay_patient(query, conversation_history, session_ctx, now_ts):
                 ctx = PatientContext()
                 start = i
             ctx = extract_patient_context(prior_q, prior_ctx=ctx, turn_ts=turn_ts)
+            if i and confirms_adult(prior_q, conversation_history[i - 1].get("response", "")):
+                ctx.adult_confirmed = True
             prev_ts = turn_ts or prev_ts
 
     reason = detect_patient_boundary(query, ctx, prev_ts=prev_ts, now_ts=now_ts)
@@ -6126,6 +6563,8 @@ def _replay_patient(query, conversation_history, session_ctx, now_ts):
         ctx = PatientContext()
 
     ctx = extract_patient_context(query, prior_ctx=ctx, turn_ts=now_ts)
+    if conversation_history and confirms_adult(query, conversation_history[-1].get("response", "")):
+        ctx.adult_confirmed = True
     # Only the CURRENT turn's boundary drives the notice. extract_patient_context
     # is called on a context whose field is already clear, so this cannot leak
     # from a boundary that happened earlier in the replay.
@@ -6453,6 +6892,30 @@ def rsi_bundle_should_resume(query: str, prior_queries: str,
         return False
     return any(drug_concentrations.match_confirmation(drug, query) is not None
                for drug in (ctx.drugs_named or []))
+
+
+def ketamine_analgesia_should_resume(query: str, prior_queries: str,
+                                     last_response: str = "") -> bool:
+    """Whether this turn completes a ketamine-for-pain request in flight.
+
+    Live harness, 2026-10-24: the card's pre-gate reads the current turn, so
+    the vial answer ("500 mg / 10 mL") and "pain" as the answer to "Which
+    indication for ketamine" went to the model, which echoed the question or
+    wrote another dose, instead of the card's "Draw 0.4 mL of 50mg/mL
+    ketamine IV (20 mg)". As rsi_bundle_should_resume: ketamine is under
+    discussion, no RSI is, and this turn is the vial (a declared ketamine
+    presentation) or the pain answer to the indication question. The card's
+    own conditions (weight, route, pain in the request) still apply.
+    """
+    if drug_contracts is None or "ketamine" not in drug_contracts.resolve_drugs(prior_queries or ""):
+        return False
+    if should_use_rsi_pregate(prior_queries or "") or should_use_rsi_pregate(query):
+        return False
+    if (drug_concentrations is not None
+            and drug_concentrations.match_confirmation("ketamine", query) is not None):
+        return True
+    return ((last_response or "").startswith("Which indication for ketamine")
+            and stated_indication_classes(query) == {"pain"})
 
 
 def build_rsi_response(ctx: PatientContext, text: str) -> Optional[str]:
@@ -7411,6 +7874,13 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         # previous patient's drug, dose or vitals cannot reach them.
         conversation_history = list((conversation_history or [])[patient_start:])
         prior_queries, full_query_history = build_full_query_history(query, conversation_history)
+        # Owner, 2026-10-24: a pending question clears when this turn names a
+        # different drug, negates it, or does not answer it (scope_request).
+        # Everything below that reads drugs from the history reads this.
+        _last_response = ((conversation_history or [{}])[-1] or {}).get("response") or ""
+        prior_queries, request_query, answered_pending = scope_request(
+            query, prior_queries, _last_response)
+        full_query_history = f"{prior_queries} {request_query}".strip()
         if state is not None:
             # The live context, not its dict form: _finalise needs the
             # VitalReading objects the caution table reads.
@@ -7699,7 +8169,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         _current_is_ketamine = is_ketamine_analgesia_context(query) or query.strip().lower() in [
             "iv", "im", "io", "intramuscular", "intravenous",
             "only have im", "im only", "no iv", "only have iv"
-        ]
+        ] or ketamine_analgesia_should_resume(query, prior_queries, _last_response)
         _current_is_other_med = _has_any_word(query.lower(), ["epi", "roc", "sux", "succs"]) or any(x in query.lower() for x in [
             "epinephrine", "blood", "ltowb", "txa", "tranexamic",
             "rocuronium", "succinylcholine", "fentanyl",
@@ -7833,20 +8303,13 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         cue_query = severity_cue_query(query, conversation_history)
         gate_action, gate_response = pre_gate(
             query, patient_ctx, prior_queries,
-            last_response=((conversation_history or [{}])[-1] or {}).get("response") or "",
-            cue_query=cue_query)
+            last_response=_last_response,
+            cue_query=cue_query, request_query=request_query,
+            answered_pending=answered_pending)
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
-            # The "Vial math" chip lands on the which-vial question. Where the
-            # last card's brief gave only the diluted volume, the undiluted
-            # one it withheld is said here, beside the question it depends on.
-            if (gate_action == "ASK" and conversation_history
-                    and gate_response.startswith("Which ")):
-                withheld = brief_mod.vial_math_lines(
-                    (conversation_history[-1] or {}).get("response") or "",
-                    patient_ctx.confirmed_weight_kg)
-                if withheld:
-                    gate_response += " Vial math — " + " · ".join(withheld)
+            # The "Vial math" chip lands on the which-vial question, and only
+            # that: no mL before the vial is confirmed (owner, 2026-10-24).
             return {
                 "response": gate_response,
                 "sources": [],

@@ -27,6 +27,11 @@ os.environ.setdefault("OPENAI_API_KEY", "test-offline")
 import openai_client as oc  # noqa: E402
 
 
+def _adult(query):
+    """No age is not an adult (owner, #181 review): these holds are an adult's."""
+    return oc.extract_patient_context(f"adult. {query}")
+
+
 def _issues(query, response, ctx=None, allowed=None):
     ctx = ctx if ctx is not None else oc.extract_patient_context(query)
     return oc.run_deterministic_checks(query, response, ctx, allowed or []).issues
@@ -52,7 +57,7 @@ FIXED = [
 def test_a_fixed_dose_hold_does_not_blame_the_weight(query, response, drug, indication):
     # A23: "he is bleeding out" answered with TXA alone also holds for having no
     # haemorrhage control; this test is about the dose issue's text.
-    issues = [i for i in _issues(query, response) if "haemorrhage control" not in i]
+    issues = [i for i in _issues(query, response, _adult(query)) if "haemorrhage control" not in i]
     assert len(issues) == 1, issues
     assert "weight" not in issues[0].lower(), issues[0]
 
@@ -67,7 +72,7 @@ def test_a_fixed_dose_hold_says_what_makes_it_answerable(query, response, drug, 
 
 def test_what_the_medic_reads_through_the_gate():
     query, response, drug, _ = FIXED[0]
-    ctx = oc.extract_patient_context(query)
+    ctx = _adult(query)
     det = oc.run_deterministic_checks(query, response, ctx, [])
     out = oc.apply_safety_gate(response, det, {"result": "SAFE", "issues": [],
                                                "rationale": ""}, ctx, query)

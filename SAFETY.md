@@ -30,7 +30,8 @@ These are enforced in code and pinned by tests. A change that weakens one is not
   - a line that names no drug: its dose, rate or recipe is read as the question's one named drug and checked as that drug's, and with no drug to attribute it holds (A18, A33).
   - A history amount ("he took 240 mg") is not a dose. A negated dose is exempt only from the check it negates.
 - **A requested dose above the highest signed dose for this patient holds** before any model is called. The highest signed dose is read for the patient's population, route and weight, from the signed entries (A36).
-- **A millilitre is served only from a confirmed vial concentration.** Until then the dose is in mg.
+- **A millilitre is served only from a confirmed vial concentration.** Until then the dose is in mg, with the vial question, and no mL appears anywhere in the answer: not in the brief, the "Vial math" chip, the entry's dilution cautions or the offered doses, and a model answer that states the drug's mL holds (2026-10-24). A vial the kit declares as the only one (rocuronium, succinylcholine, TXA, lorazepam, naloxone) is confirmed by the kit.
+- **A pending question does not swallow the next request.** A turn that names a different drug, negates the drug, or does not answer the question is handled as its own request (2026-10-24).
 - **Cautions never state another drug's dose**, so the model is not handed a number for a drug the question did not ask about.
 
 **Cards** (deterministic; no model)
@@ -92,7 +93,7 @@ The A35 sweep (2026-10-22) listed every number a deterministic card can print. T
 | Haemorrhagic-shock (DCR) card | TLDR "TXA within 3 hours of injury" | The signed TXA caution beside it cites ID18 p.9; the card's SOURCE line does not. |
 | Pain-severity question | NRS 1–3 / 4–6 / 7–10 | Owner note (#164); no clinical citation |
 | Vitals cautions, on every non-gated card (`vitals_rules.json`, no signoff field) | SBP < 90, MAP < 65, RR < 10, SpO2 < 90, HR < 50 (AV-nodal blockers), temperature < 35 °C (TXA), GCS ≤ 8 (nothing by mouth), glucose < 70; plausibility ranges | none |
-| Volumes | a volume below 0.05 mL or above 60 mL is not served; the brief's undiluted floor is 0.2 mL | none ("physical facts") |
+| Volumes | a volume below 0.05 mL or above 60 mL is not served | none ("physical facts") |
 | Vent cards | tidal volume on the Devine ideal body weight (50 / 45.5 kg + 2.3 kg per inch over 60 in) | none |
 | Vent cards | every setting (VT 6 mL/kg, RR, PEEP, FiO2, SpO2, plateau, EtCO2), signed by the role "clinician" | the card's references |
 

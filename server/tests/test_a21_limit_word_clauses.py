@@ -16,7 +16,7 @@ import pytest
 
 import openai_client as oc
 
-TXA_QUERY = "hx: DVT + thrombosis. TXA still ok in his case?"  # signed TXA: 2 g
+TXA_QUERY = "adult, hx: DVT + thrombosis. TXA still ok in his case?"  # signed TXA: 2 g
 TEACHER_LINE = "If 1 g already given and <3 hours from injury: give 1 g more, not 2 g."
 
 

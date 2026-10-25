@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from openai_client import (  # noqa: E402
     CANONICAL_GIVE_RE, SAFETY_OVERRIDES, DeterministicCheck, DoseCandidate,
     PatientContext, apply_safety_gate, find_fired_override,
-    run_deterministic_checks,
+    run_deterministic_checks, unconfirmed_volume_issues,
 )
 from test_fixtures import (  # noqa: E402
     FIXED_PREP_PUSH_DOSE_EPI, GENERAL_LAB_REFERENCE, GENERAL_MODE_GIVE_LINE,
@@ -402,7 +402,10 @@ def test_a_preparation_recipe_survives_the_dose_contract_check():
     assert re.findall(CANONICAL_GIVE_RE, GENERAL_PREP_RECIPE.lower()) == []
     result = run_deterministic_checks("how do i mix a norepinephrine drip",
                                       GENERAL_PREP_RECIPE, PatientContext(), [])
-    assert result.passed is True, result.issues
+    # Owner, #181 review (2026-10-25): an mL serves only from a confirmed vial
+    # or a signed entry's own recipe line. No norepinephrine preparation is
+    # signed, so the recipe's volumes hold; no dose is read from it.
+    assert result.issues == ["The answer gives a norepinephrine volume in mL with no confirmed vial and no signed norepinephrine preparation it follows from. Give the norepinephrine dose in mg only."], result.issues
 
 
 def test_no_served_response_logs_unsafe():
@@ -532,8 +535,15 @@ def test_fixed_prep_text_is_not_a_canonical_give_line():
     preparation recipes.
     """
     assert re.findall(CANONICAL_GIVE_RE, FIXED_PREP_PUSH_DOSE_EPI.lower()) == []
-    assert checks(FIXED_PREP_PUSH_DOSE_EPI, ADULT_NO_WEIGHT, [],
-                  query="need to make push dose epi").passed is True
+    # This is the card's text before A35, its own copy of the recipe. Since the
+    # owner's #181 recipe ruling (2026-10-25) that copy holds on its volumes;
+    # the card today prints the signed entry's recipe line, which serves.
+    old = checks(FIXED_PREP_PUSH_DOSE_EPI, ADULT_NO_WEIGHT, [], query="need to make push dose epi")
+    assert old.issues and all("epinephrine volume in mL" in i for i in old.issues), old.issues
+    from openai_client import build_fixed_prep_response
+    card = build_fixed_prep_response("need to make push dose epi", ADULT_NO_WEIGHT)
+    new = checks(card, ADULT_NO_WEIGHT, [], query="need to make push dose epi")
+    assert not [i for i in new.issues if "volume in mL" in i], new.issues
 
 
 def test_populated_contract_behaviour_unchanged():
@@ -546,7 +556,12 @@ def test_populated_contract_behaviour_unchanged():
                     [LORAZEPAM_4MG_IV],
                     query="159lb male unable to ventilate effectively status post oral trauma")
     assert result.passed is False
-    assert sorted(result.issues) == sorted(S6_POPULATED_CONTRACT_ISSUES)
+    # Since 2026-10-24 the answer's ketamine mL, from a vial nobody confirmed
+    # (100 mg/mL, not even the stocked one), is a fourth issue.
+    assert sorted(result.issues) == sorted(
+        S6_POPULATED_CONTRACT_ISSUES + unconfirmed_volume_issues(
+            S6_POPULATED_CONTRACT_RESPONSE, ADULT_WITH_WEIGHT))
+    assert len(result.issues) == len(S6_POPULATED_CONTRACT_ISSUES) + 1
 
 
 def test_matching_dose_under_a_populated_contract_still_passes():
