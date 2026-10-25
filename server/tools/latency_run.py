@@ -23,29 +23,34 @@ B3 = ["80 kg adult, BP 70/40 after 2 L of fluid, still in shock, epinephrine inf
       "70 kg adult, severe malaria, confused, artesunate dose",
       "80 kg adult, symptomatic bradycardia, about to pace, midazolam for sedation",
       "80 kg adult, intubated, propofol infusion rate for sedation"]
-items = [{"set": "warmup", "id": "warmup", "query": "how do I reassess a splinted forearm fracture", "history": []}]
-for l in open("/home/andrew/projects/cdss-eval/runs/run-tests-mm3-20260925/scenarios-30.jsonl"):
-    s = json.loads(l)
-    items.append({"set": "eval30", "id": s["id"], "query": s["query"],
-                  "history": [h for h in (s.get("history") or []) if isinstance(h, dict)]})
-items += [{"set": "batch2", "id": f"B2-{i+1}", "query": q, "history": []} for i, q in enumerate(B2)]
-items += [{"set": "batch3", "id": f"B3-{i+1}", "query": q, "history": []} for i, q in enumerate(B3)]
-items.append({"set": "magnesium", "id": "MG-A39", "query": "don't want ketamine, I need magnesium, 75 kg", "history": []})
-out = []
-for it in items:
-    body = json.dumps({"query": it["query"], "device_id": "v1-latency", "timestamp": "2026-10-25T00:00:00",
-                       "voice_mode": "brief", "conversation_history": it["history"],
-                       "session_id": "v1-latency"}).encode()
-    req = urllib.request.Request(API, body, {"Content-Type": "application/json",
-                                             "X-Access-Token": "edgecdss-demo-2026", "X-Test-Run": "1"})
-    t = time.perf_counter()
-    with urllib.request.urlopen(req, timeout=900) as r:
-        d = json.load(r)
-    wall = round((time.perf_counter() - t) * 1000, 1)
-    out.append({**{k: it[k] for k in ("set", "id", "query")}, "history_turns": len(it["history"]),
-                "query_id": d.get("query_id"), "source_mode": d.get("source_mode"),
-                "validator": d.get("validator_result"), "model": d.get("model"),
-                "client_wall_ms": wall, "processing_time_ms": d.get("processing_time_ms"),
-                "response": d.get("response", "")[:400]})
-    print(it["id"], d.get("source_mode"), wall, flush=True)
-json.dump(out, open(sys.argv[1], "w"), indent=1)
+def main(out_path):
+    items = [{"set": "warmup", "id": "warmup", "query": "how do I reassess a splinted forearm fracture", "history": []}]
+    for l in open("/home/andrew/projects/cdss-eval/runs/run-tests-mm3-20260925/scenarios-30.jsonl"):
+        s = json.loads(l)
+        items.append({"set": "eval30", "id": s["id"], "query": s["query"],
+                      "history": [h for h in (s.get("history") or []) if isinstance(h, dict)]})
+    items += [{"set": "batch2", "id": f"B2-{i+1}", "query": q, "history": []} for i, q in enumerate(B2)]
+    items += [{"set": "batch3", "id": f"B3-{i+1}", "query": q, "history": []} for i, q in enumerate(B3)]
+    items.append({"set": "magnesium", "id": "MG-A39", "query": "don't want ketamine, I need magnesium, 75 kg", "history": []})
+    out = []
+    for it in items:
+        body = json.dumps({"query": it["query"], "device_id": "v1-latency", "timestamp": "2026-10-25T00:00:00",
+                           "voice_mode": "brief", "conversation_history": it["history"],
+                           "session_id": "v1-latency"}).encode()
+        req = urllib.request.Request(API, body, {"Content-Type": "application/json",
+                                                 "X-Access-Token": "edgecdss-demo-2026", "X-Test-Run": "1"})
+        t = time.perf_counter()
+        with urllib.request.urlopen(req, timeout=900) as r:
+            d = json.load(r)
+        wall = round((time.perf_counter() - t) * 1000, 1)
+        out.append({**{k: it[k] for k in ("set", "id", "query")}, "history_turns": len(it["history"]),
+                    "query_id": d.get("query_id"), "source_mode": d.get("source_mode"),
+                    "validator": d.get("validator_result"), "model": d.get("model"),
+                    "client_wall_ms": wall, "processing_time_ms": d.get("processing_time_ms"),
+                    "response": d.get("response", "")[:400]})
+        print(it["id"], d.get("source_mode"), wall, flush=True)
+    json.dump(out, open(out_path, "w"), indent=1)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])

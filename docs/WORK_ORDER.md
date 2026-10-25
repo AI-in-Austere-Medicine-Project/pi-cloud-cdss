@@ -89,7 +89,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B1 | Source-mode labelling | **done**: #128, merged and deployed |
 | B2 | Generator section headers | **done**: #129, merged and deployed |
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
-| V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **in review**; owner, 2026-10-25 |
+| V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
+| V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **in review**; owner, 2026-10-25 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1180,6 +1181,39 @@ A changed row that neither side can judge is listed as unjudged and never counte
   The #170 and #174 rows are entries signed in batches 2 and 3 now being offered; with the generator stubbed, the replay shows what is offered, not what the model writes.
 
 **Found (2026-10-23), counted since 2026-10-24 by newly doses:** under this definition a question that becomes a served dose ("versed dose IM", #174) and a no-dose card that becomes a dose ("push dose epi, BP 70/40 shocky", #177, the E05 card signed off 2026-10-23) are serve-to-serve, so the count does not flag them. Both were found by reading the changed rows and reported at the time.
+
+### V2: local voice, Kokoro-82M (owner, 2026-10-25)
+
+**Owner:** "V2: replace /speak with local Kokoro-82M (kokoro-onnx, CPU, weights and voices on disk, espeak-ng via apt; no network after install). Keep the ElevenLabs path deleted, not optional. Measure text-sent → first-audio → audio-end on the 20 harness answers and the magnesium hold; report median and p90. No change to answer text yet. PR, do not merge."
+
+**Done (one PR; failing tests first):**
+- **`tts.py`:** loads `kokoro-v1.0.onnx` and `voices-v1.0.bin` from `CDSS_KOKORO_DIR` (default `server/data/kokoro`) with apt's libespeak-ng. It loads once, synthesises off the event loop, and answers 16-bit mono 24 kHz WAV.
+  - Voice `bm_george`, `en-gb`, speed 0.85: the nearest to the ElevenLabs voice and speed it replaces.
+  - `config_problem` names a missing file, library or package.
+  - Local mode keeps voice.
+- **ElevenLabs is deleted from the server:** code, `.env.example`, the first-time guide, RECOVERY. `ELEVENLABS_API_KEY` stays in the redaction list only, for a key left in an existing `.env`.
+- **Install:**
+  - `server/tools/install_kokoro.sh` downloads the files and checks their sha256. It's the only networked step.
+  - `kokoro-onnx==0.6.1` added to `requirements-server.txt`.
+  - espeak-ng: libespeak-ng1 and espeak-ng-data 1.51 were already installed on the Jetson from apt. The `espeak-ng` CLI package is not installed and is not needed.
+- **Tests:**
+  - `test_tts_contract.py` rewritten (17). One of them runs the real model with every connection refused.
+  - `test_local_only_portal.py`: voice is on the device in local mode.
+- **Replay vs main efdf0e5:** served 1,738, held 308, gate 1,408, live logs 3,827, pipeline 831. 0 changed in every one.
+- **Suite:** 3,615 passed. 1 failed: the corpus alias count, which fails the same way on main.
+
+**Timing** (`docs/VOICE_LOCAL_KOKORO_2026-10-25.md`; 20 batch 2/3 answers and the magnesium hold, offline):
+- **Text sent → first audio:** median 17.0 s, p90 34.3 s.
+- **Clip length:** median 22.7 s, p90 46.0 s.
+- **Text sent → audio end:** median 39.7 s, p90 80.3 s.
+- **Synthesis:** about 0.75× real time on the CPU, and the whole clip is made before any of it plays, so first audio is about three-quarters of the clip's length.
+- **Holds are the longest texts:** a hold has no brief, so its full text is spoken. The 889-character epinephrine hold waits 49 s for first audio. The magnesium hold: first audio 18.0 s, end 42.4 s.
+- Measured at the HTTP client, not in a browser. The portal's V1 `/speak/timing` will give browser figures.
+- No change to answer text.
+
+**Found, not changed (owner to rule):**
+- `client/cdss_client.py`, the separate desktop client, still calls ElevenLabs directly. It doesn't go through `/speak`.
+- `server/tools/latency_run.py` (V1) ran its whole run when imported. It is now guarded under `__main__`, and that is fixed in this PR. The V2 measurement imported it, so the V1 51-item run went first in the same process. It ran sequentially, before any `/speak` was timed.
 
 ### V1: voice latency baseline (owner, 2026-10-25)
 
