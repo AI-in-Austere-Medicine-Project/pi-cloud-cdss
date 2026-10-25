@@ -1,44 +1,54 @@
 """
-EdgeCDSS — voice output (ElevenLabs).
+EdgeCDSS — voice output: Kokoro-82M on the device (kokoro-onnx, CPU).
+
+V2 (owner, 2026-10-25): "replace /speak with local Kokoro-82M (kokoro-onnx,
+CPU, weights and voices on disk, espeak-ng via apt; no network after install).
+Keep the ElevenLabs path deleted, not optional." There is no cloud voice and
+no switch back to one. Nothing here opens a connection: the weights and voices
+are read from CDSS_KOKORO_DIR, and phonemes come from apt's libespeak-ng.
+tools/install_kokoro.sh puts the files there, the one step that needs the
+network.
 
 Isolated from the clinical core by design: every failure in here degrades to
 "no audio", never to a missing, delayed or altered clinical answer.
+Importable without kokoro_onnx, numpy or the weights — the offline suite pins
+the contract in this module, and the clinical path must not be able to fail
+because the voice path is missing a file. (Same reason openai_client is
+importable without the OpenAI SDK; see P-0.)
 
-Importable with no key, no network and no httpx — the offline suite pins the
-contract in this module, and the clinical path must not be able to fail because
-the voice path is misconfigured. (Same reason openai_client is importable
-without the OpenAI SDK; see P-0.)
-
-Why this module exists: /speak inlined the ElevenLabs call and collapsed every
-upstream failure into `500 ElevenLabs error`. The v4.1 outage was a 400
-`api_key_id_used_as_api_key` — the key *ID* from the dashboard had been pasted
-into ELEVENLABS_API_KEY instead of the key — and the endpoint reported exactly
-as much about that as it would about a dead network: nothing.
+What the v4.1 outage taught still holds: a failure names its cause (which
+file, which library) and /status reports voice only when it can be produced.
 """
 
+import asyncio
+import ctypes.util
+import io
 import os
+import pathlib
 import re as _re
+import threading
+import wave
 
 # One numeric-env parser for the repo: a typo'd knob degrades to the default
 # and says so, it never raises. See openai_client._env_number.
 from openai_client import _env_number
 
-API_BASE = "https://api.elevenlabs.io/v1/text-to-speech"
+DEFAULT_DIR = pathlib.Path(__file__).resolve().parent / "data" / "kokoro"
+MODEL_FILE = "kokoro-v1.0.onnx"
+VOICES_FILE = "voices-v1.0.bin"
 
-# ElevenLabs API keys are secrets and start with 'sk_'. The dashboard shows a
-# 64-character hex key *ID* beside each key; that ID is an identifier, not a
-# credential. Pasting it is a silent, plausible-looking config error that costs
-# a 400 on every single request, so it is caught here before the network.
-KEY_PREFIX = "sk_"
+# British male, the nearest to the ElevenLabs "George" the portal spoke with,
+# at the same 0.85 speed it used for intelligibility.
+DEFAULT_VOICE = "bm_george"
+DEFAULT_LANG = "en-gb"
+DEFAULT_SPEED = 0.85
 
-DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"        # George
-DEFAULT_MODEL_ID = "eleven_multilingual_v2"
-
-# Long inputs are rejected upstream. A brief-mode answer is far under this; a
-# detailed-mode answer plus expansion can approach it, and a clear local 413
-# beats a 400 that has already cost a round trip and a character quota.
+# A brief-mode answer is far under this; the cap keeps a runaway detailed
+# answer from holding the CPU for minutes.
 DEFAULT_MAX_CHARS = 2500
-DEFAULT_TIMEOUT_S = 30.0
+
+_ENGINE = None
+_ENGINE_LOCK = threading.Lock()
 
 
 class VoiceUnavailable(Exception):
@@ -55,54 +65,97 @@ class VoiceUnavailable(Exception):
         self.detail = detail
 
 
-def config_problem():
-    """Why voice cannot work, decided before any network call. None if it looks usable.
+def _model_dir() -> pathlib.Path:
+    return pathlib.Path((os.getenv("CDSS_KOKORO_DIR") or "").strip() or DEFAULT_DIR)
 
-    Deliberately conservative: this only rejects values that CANNOT be a key.
-    A well-formed but revoked or out-of-quota key still has to fail upstream.
-    """
-    # Local-only portal (owner, 2026-10-12): voice output is a cloud call
-    # (ElevenLabs), so it is off when the server answers on the device.
-    if (os.getenv("CDSS_LLM_PROVIDER") or "").strip().lower() == "local":
-        return "voice output is off in local mode: it needs the cloud (ElevenLabs)"
-    key = (os.getenv("ELEVENLABS_API_KEY") or "").strip()
-    if not key:
-        return ("voice output is not configured on this server "
-                "(ELEVENLABS_API_KEY is unset)")
-    if not key.startswith(KEY_PREFIX):
-        return ("ELEVENLABS_API_KEY is not an ElevenLabs API key — keys start "
-                f"with '{KEY_PREFIX}'. A 64-character hex value is the key ID "
-                "shown beside the key in the dashboard, not the key itself; "
-                "the API rejects it with api_key_id_used_as_api_key.")
+
+def _espeak_paths():
+    """(library, data directory) of apt's espeak-ng, or (None, None).
+    CDSS_ESPEAK_LIB / CDSS_ESPEAK_DATA override the search."""
+    lib = (os.getenv("CDSS_ESPEAK_LIB") or "").strip()
+    if not lib:
+        name = ctypes.util.find_library("espeak-ng")
+        for d in ("/usr/lib/aarch64-linux-gnu", "/usr/lib/x86_64-linux-gnu", "/usr/lib"):
+            if name and os.path.exists(os.path.join(d, name)):
+                lib = os.path.join(d, name)
+                break
+    data = (os.getenv("CDSS_ESPEAK_DATA") or "").strip()
+    if lib and not data:
+        data = os.path.join(os.path.dirname(lib), "espeak-ng-data")
+    if not lib or not os.path.exists(lib) or not os.path.isdir(data):
+        return None, None
+    return lib, data
+
+
+def _kokoro_importable() -> bool:
+    try:
+        import kokoro_onnx  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def config_problem():
+    """Why voice cannot work, decided before any synthesis. None if it can."""
+    d = _model_dir()
+    missing = [f for f in (MODEL_FILE, VOICES_FILE) if not (d / f).is_file()]
+    if missing:
+        return (f"voice output needs the Kokoro files {', '.join(missing)} in {d} "
+                f"(tools/install_kokoro.sh, or set CDSS_KOKORO_DIR)")
+    if _espeak_paths() == (None, None):
+        return ("voice output needs espeak-ng's library and data "
+                "(sudo apt install espeak-ng)")
+    if not _kokoro_importable():
+        return "voice output needs the kokoro-onnx package (pip install kokoro-onnx)"
     return None
 
 
 def voice_available() -> bool:
-    """What /status and /health must report instead of a hard-coded True."""
+    """What /status and /health must report instead of a hard-coded True.
+    Checks the files and libraries; does not load the model."""
     return config_problem() is None
 
 
-def _upstream_reason(response) -> str:
-    """Human-readable cause from an ElevenLabs error body.
+def _load_engine():
+    from kokoro_onnx import EspeakConfig, Kokoro
+    lib, data = _espeak_paths()
+    d = _model_dir()
+    return Kokoro(str(d / MODEL_FILE), str(d / VOICES_FILE),
+                  espeak_config=EspeakConfig(lib_path=lib, data_path=data))
 
-    ElevenLabs answers `{"detail": {"status": ..., "message": ...}}` or
-    `{"detail": "..."}`. Error bodies never carry the key, and /speak is reached
-    with a token that is printed in the web client, so echoing the upstream
-    reason surfaces nothing that was private — and it is the whole difference
-    between a five-minute fix and an unexplained dead button.
-    """
-    try:
-        detail = response.json().get("detail", "")
-    except Exception:
-        detail = (response.text or "")
-    if isinstance(detail, dict):
-        detail = detail.get("message") or detail.get("status") or str(detail)
-    detail = str(detail).strip()
-    return detail[:300] if detail else "(no error body)"
+
+def _engine():
+    """The model, loaded once (about 2 s on the Jetson) and kept."""
+    global _ENGINE
+    with _ENGINE_LOCK:
+        if _ENGINE is None:
+            _ENGINE = _load_engine()
+        return _ENGINE
+
+
+def _wav(samples, sample_rate: int) -> bytes:
+    """16-bit mono PCM WAV: the browser plays it with no decoder to install."""
+    import numpy as np
+    pcm = (np.clip(np.asarray(samples, dtype=np.float32), -1.0, 1.0) * 32767).astype("<i2")
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(int(sample_rate))
+        w.writeframes(pcm.tobytes())
+    return buf.getvalue()
+
+
+def _synthesize_blocking(text: str) -> bytes:
+    voice = (os.getenv("CDSS_KOKORO_VOICE") or "").strip() or DEFAULT_VOICE
+    lang = (os.getenv("CDSS_KOKORO_LANG") or "").strip() or DEFAULT_LANG
+    speed = _env_number("CDSS_KOKORO_SPEED", DEFAULT_SPEED, float)
+    samples, sample_rate = _engine().create(text, voice=voice, speed=speed, lang=lang)
+    return _wav(samples, sample_rate)
 
 
 async def synthesize(text: str) -> bytes:
-    """MP3 bytes for `text`, or VoiceUnavailable carrying the status and reason."""
+    """WAV bytes for `text`, or VoiceUnavailable carrying the status and reason."""
     text = (text or "").strip()
     if not text:
         raise VoiceUnavailable(400, "No text provided")
@@ -116,39 +169,13 @@ async def synthesize(text: str) -> bytes:
     if problem:
         raise VoiceUnavailable(503, problem)
 
+    # CPU-bound for seconds: off the event loop, or /health stalls behind it
+    # and the watchdog restarts the service (AE-4).
     try:
-        import httpx                      # lazy: this module must import without it
-    except ImportError:
-        raise VoiceUnavailable(503, "voice output needs httpx, which is not installed")
-
-    voice_id = (os.getenv("ELEVENLABS_VOICE_ID") or DEFAULT_VOICE_ID).strip()
-    model_id = (os.getenv("ELEVENLABS_MODEL_ID") or DEFAULT_MODEL_ID).strip()
-    timeout = _env_number("CDSS_SPEAK_TIMEOUT_S", DEFAULT_TIMEOUT_S, float)
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{API_BASE}/{voice_id}",
-                headers={"xi-api-key": os.getenv("ELEVENLABS_API_KEY").strip(),
-                         "Content-Type": "application/json"},
-                json={"text": text,
-                      "model_id": model_id,
-                      "voice_settings": {"stability": 0.5,
-                                         "similarity_boost": 0.75,
-                                         "speed": 0.85}},
-                timeout=timeout)
+        return await asyncio.to_thread(_synthesize_blocking, text)
     except Exception as e:
-        # Starlink drops and tunnel flaps are the normal condition here. Voice
-        # needs the network; the clinical answer already on screen does not.
         raise VoiceUnavailable(
-            503, f"ElevenLabs unreachable ({type(e).__name__}) — voice needs connectivity.")
-
-    if response.status_code != 200:
-        raise VoiceUnavailable(
-            502, f"ElevenLabs returned {response.status_code}: {_upstream_reason(response)}")
-    if not response.content:
-        raise VoiceUnavailable(502, "ElevenLabs returned an empty audio body.")
-    return response.content
+            503, f"local voice failed ({type(e).__name__}: {str(e)[:200]})") from e
 
 
 def normalize_for_speech(text: str) -> str:

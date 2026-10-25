@@ -16,3 +16,6 @@ openai>=1.30.0
 # claude-sonnet-5 and claude-opus-5 all round-trip through providers.chat().
 anthropic==1.0.0
 chromadb>=0.5.0
+# V2: voice on the device (Kokoro-82M, CPU). Weights: server/tools/install_kokoro.sh;
+# espeak-ng from apt. Pinned to what was measured on the Jetson, 2026-10-25.
+kokoro-onnx==0.6.1

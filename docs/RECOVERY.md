@@ -37,8 +37,7 @@ python server/tools/ingest_jts.py
 
 # 5. Secrets — create server/.env (NOT the repo root; the service's WorkingDirectory is server/):
 #   OPENAI_API_KEY=...
-#   ELEVENLABS_API_KEY=sk_...     (optional — voice degrades gracefully without it;
-#                                  must be the key, not the 64-char hex key ID)
+#   (voice needs no key: sudo apt install espeak-ng; bash server/tools/install_kokoro.sh)
 #   CDSS_LOG_DIR=./logs
 
 # 6. Run

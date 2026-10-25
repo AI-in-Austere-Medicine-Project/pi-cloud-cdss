@@ -96,7 +96,7 @@ python tools/build_protocol_index.py     # builds the clinical router index
 
 **Getting an OpenAI API key:** create an account at [platform.openai.com](https://platform.openai.com), add a payment method, then API Keys → Create. Copy it immediately — it's shown once. Cost is roughly $0.001 per query at the model tier this project uses; $5 lasts a long evaluation.
 
-**Optional voice output:** add `ELEVENLABS_API_KEY` from [elevenlabs.io](https://elevenlabs.io) (free tier: 10,000 characters/month). **Copy the key itself — it starts with `sk_`.** The dashboard also shows a 64-character hex key *ID* next to each key; that is an identifier, not a credential, and pasting it makes every voice request fail. Without a key, the status line reads `voice off`, the 🔊 button reports audio unavailable, and everything else works normally.
+**Optional voice output:** voice runs on the device (Kokoro-82M) with no key and no network. Install it once: `sudo apt install espeak-ng`, `pip install kokoro-onnx==0.6.1`, then `bash server/tools/install_kokoro.sh` (downloads and checks the 350 MB of weights and voices into `server/data/kokoro`). Without those files, the status line reads `voice off` and says which one is missing, the 🔊 button reports audio unavailable, and everything else works normally.
 
 **Deploying on a Jetson Orin Nano:** run `bash jetson_cdss_setup_v2.sh` — it installs packages, builds the environment, and registers the server as a system service that starts on boot.
 

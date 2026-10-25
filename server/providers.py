@@ -435,6 +435,8 @@ def _reset_status_cache():
 # It is now FIELD-based. The field list is read from providers.json's own
 # key_env declarations, so a provider added there is redacted from the moment
 # it is added rather than the moment someone remembers to add a pattern here.
+# ELEVENLABS_API_KEY stays listed after V2 removed cloud voice: a key left in
+# an existing .env is still a secret this process can read.
 _EXTRA_SECRET_ENV = ("ELEVENLABS_API_KEY", "CDSS_ACCESS_TOKEN")
 
 # Below this a value is not a credential — it is "", "0" or a test stub — and
