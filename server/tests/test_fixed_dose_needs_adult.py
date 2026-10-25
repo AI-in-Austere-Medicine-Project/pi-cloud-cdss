@@ -130,3 +130,23 @@ def test_a_fixed_dose_hold_with_no_age_asks_for_an_adult():
     issues = oc.run_deterministic_checks(
         query, "**GIVE**\n- Epinephrine 1 mg IV every 3-5 minutes.", ctx, []).issues
     assert any("confirm the patient is an adult" in i for i in issues), issues
+
+
+# ── A dose question the request detector does not read (replay, 2026-10-25) ──
+
+@pytest.mark.parametrize("query", [
+    "how much naloxone, he is barely breathing",
+    "how much D50 do I push",
+    "how much calcium gluconate for hyperkalemia",
+])
+def test_a_drug_question_with_a_fixed_dose_and_no_age_asks_adult(seen, query):
+    """"how much" is not a dose word to wants_medication_dose, so these went to
+    the model with the fixed dose offered; with no age, nothing is offered, so
+    ask rather than let the model's number hold."""
+    (r,) = run_flow([query])
+    assert r["response"] == oc.ADULT_CONFIRM_ASK, r["response"]
+
+
+def test_a_drug_named_only_in_history_does_not_ask_again(seen):
+    rs = run_flow(["adult male, naloxone dose", "what is his GCS if he opens eyes to pain"])
+    assert rs[1]["response"] != oc.ADULT_CONFIRM_ASK
