@@ -93,7 +93,9 @@ def test_a_named_recipe_with_a_signed_rate_still_passes():
     text = ("**GIVE**\n- Mix 4 mg norepinephrine in 250 mL NS (16 mcg/mL). "
             "Start 0.1 mcg/kg/min, titrate to MAP 65.")
     q = "80 kg adult in septic shock, BP 72/40, norepinephrine infusion"
-    assert _issues(q, text) == []
+    # The rate passes A33. The bag's 250 mL now holds: no signed norepinephrine
+    # preparation (owner, #181 review, 2026-10-25: any other preparation holds).
+    assert _issues(q, text) == ["The answer gives a norepinephrine volume in mL with no confirmed vial and no signed norepinephrine preparation it follows from. Give the norepinephrine dose in mg only."]
 
 
 # ── Found in the A33 replay: not a drug's rate ──────────────────────────────

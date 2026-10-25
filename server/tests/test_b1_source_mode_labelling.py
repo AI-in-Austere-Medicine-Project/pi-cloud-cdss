@@ -25,9 +25,11 @@ QUERY = "80 kg adult, severe pain from a femur fracture, fentanyl IV"
 QUERY_ANY_ROUTE = "80 kg adult, severe pain from a femur fracture, fentanyl"
 GENERAL_SOURCE = "**SOURCE**: General Evidence-Based Medicine (outside retrieved JTS scope)"
 # The signed adult IV fixed dose (JTS PFC, CPG ID61): 50 mcg.
-ID61_GIVE = "**GIVE**\n- Draw 1 mL of 0.05mg/mL fentanyl IV (0.05mg). Indication: acute pain.\n"
+# No fentanyl vial is signed, so the dose is served without a volume (owner,
+# #181 review: "the fentanyl '1 mL of 0.05 mg/mL' hold is correct").
+ID61_GIVE = "**GIVE**\n- Give fentanyl 50 mcg IV. Indication: acute pain.\n"
 # The IN entry cites NASEMSO only: 1 mcg/kg at 80 kg.
-NASEMSO_GIVE = "**GIVE**\n- Draw 1.6 mL of 0.05mg/mL fentanyl IN (0.08mg). Indication: acute pain.\n"
+NASEMSO_GIVE = "**GIVE**\n- Give fentanyl 80 mcg IN. Indication: acute pain.\n"
 SAFE = '{"result": "SAFE", "issues": [], "rationale": "ok"}'
 # gpt-4o-mini's served answer to QUERY, from the live session log of 2026-10-03,
 # verbatim: GENERAL_MEDICAL, the ID61-signed 50 mcg in the no-volume form the
@@ -133,7 +135,7 @@ def test_only_the_source_line_changes(monkeypatch):
     n = _run(monkeypatch, NASEMSO_GIVE + "\n" + GENERAL_SOURCE, QUERY_ANY_ROUTE)
     body = [l for l in r["response"].splitlines() if not l.startswith("**SOURCE**")]
     other = [l for l in n["response"].splitlines() if not l.startswith("**SOURCE**")]
-    assert len(body) == len(other) and "0.05" in "\n".join(body), r["response"]
+    assert len(body) == len(other) and "50 mcg" in "\n".join(body), r["response"]
     assert r["sources"][1]["title"] == "Analgesia and Sedation Management during Prolonged Field Care"
 
 

@@ -5357,26 +5357,170 @@ def hemorrhage_control_issues(current_query: str, response_text: str) -> list:
             "Control the bleeding now and use local protocol."]
 
 
+# A volume drawn from the vial: a number with mL that is not a rate ("2 mL/hr",
+# "0.1 mL/kg", "mL per hour"). Read after the concentration phrases are removed,
+# as states_ml_volume does.
+_DRAWN_ML_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*m\s*l\b(?!\s*(?:/|per\b))", re.IGNORECASE)
+_STATED_MASS_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(mcg|µg|μg|ug|micrograms?|mg|milligrams?|g|grams?)\b(?!\s*/)",
+                             re.IGNORECASE)
+_MASS_TO_MG = {"mcg": 0.001, "µg": 0.001, "μg": 0.001, "ug": 0.001, "microgram": 0.001,
+               "micrograms": 0.001, "mg": 1.0, "milligram": 1.0, "milligrams": 1.0,
+               "g": 1000.0, "gram": 1000.0, "grams": 1000.0}
+
+
+def _volume_hold_text(drug: str, status: Optional[str], conc: Optional[float]) -> str:
+    if conc is not None:
+        return (f"The answer gives a {drug} volume in mL that does not follow from the "
+                f"confirmed {conc:g} mg/mL vial and the dose it states. Give the {drug} "
+                f"dose in mg, or its volume at {conc:g} mg/mL.")
+    if drug_concentrations is not None and status == drug_concentrations.NEEDS_CONFIRMATION:
+        return (f"The answer gives a {drug} volume in mL with no confirmed vial. Give the "
+                f"{drug} dose in mg and ask which vial; the mL follows from the confirmed vial.")
+    return (f"The answer gives a {drug} volume in mL with no confirmed vial and no signed "
+            f"{drug} preparation it follows from. Give the {drug} dose in mg only.")
+
+
+# ── Signed preparations (owner, #181 review, 2026-10-25) ────────────────────
+# "An mL serves when it comes from a confirmed vial OR from a signed entry's
+# own recipe line (the concentration stated in the signed quote, e.g. E05's
+# 10 mcg/mL push-dose syringe). Any other preparation or volume holds."
+#
+# A signed entry's recipe is read from its own text (cautions and source
+# quotes) and its declared push_dilution. A concentration counts only where
+# the text PREPARES it: what a recipe gives, makes or is ("gives 10 mcg/mL",
+# "Concentration: 10mcg epinephrine/mL", "the 0.1 mg/mL syringe", "that 10
+# mcg/mL dilution", "the 3 mg/mL mix"). "Use the 1 mg/mL concentration for the
+# IM route" names the vial, not a preparation, and "Not the 1 mg/mL ampoule"
+# is a negation: neither counts, or an IV line from the 1:1,000 ampoule would
+# pass. Each preparation keeps its entry's route.
+_CONC_IN_TEXT_RE = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(mcg|µg|μg|ug|mg|g)\s*(?:[a-z]+\s*)?/\s*ml\b|\b1\s*:\s*(1,?000|10,?000)\b",
+    re.IGNORECASE)
+_PREPARES_BEFORE_RE = re.compile(r"(?:gives?|giving|prepare[sd]?|makes?|yield\w*|concentration:?)\s*$",
+                                 re.IGNORECASE)
+_PREPARED_AFTER_RE = re.compile(r"^\s*(?:\([^)]*\)\s*)?(?:syringe|dilution|solution|mix\w*)\b",
+                                re.IGNORECASE)
+_NEGATED_BEFORE_RE = re.compile(r"\b(?:not|never|no|avoid|without)\b[^.;]*$", re.IGNORECASE)
+_ROUTE_WORD_RES = {
+    "IV": re.compile(r"\b(?:iv|io|intravenous\w*|intraosseous\w*)\b", re.IGNORECASE),
+    "IM": re.compile(r"\b(?:im|intramuscular\w*)\b", re.IGNORECASE),
+    "IN": re.compile(r"\bIN\b|\bintranasal\w*|\bnasal\b"),
+    "PO": re.compile(r"\b(?:po|oral\w*|by mouth)\b", re.IGNORECASE),
+    "NEB": re.compile(r"\bneb\w*|\binhal\w*", re.IGNORECASE),
+}
+
+
+def _concentrations_in(text: str) -> list:
+    """[(mg/mL, start, end)] for every concentration a text states."""
+    out = []
+    for m in _CONC_IN_TEXT_RE.finditer(text or ""):
+        if m.group(3):
+            conc = 0.1 if m.group(3).replace(",", "") == "10000" else 1.0
+        else:
+            conc = float(m.group(1)) * _MASS_TO_MG[m.group(2).lower()]
+        out.append((conc, m.start(), m.end()))
+    return out
+
+
+def _normalised(text: str) -> str:
+    t = re.sub(r"^[\s>*\-•\d.)]+", "", (text or "").lower())
+    return re.sub(r"\s+", " ", t.replace("*", "")).strip()
+
+
+def _signed_preparations(drug: str) -> tuple:
+    """([normalised signed recipe text], {route: {prepared mg/mL}}) for a drug."""
+    texts, prepared = [], {}
+    for e in (drug_contracts.servable_entries().get(drug) or []) if drug_contracts else []:
+        route = (e.get("route") or "").upper()
+        own = [c if isinstance(c, str) else (c or {}).get("text", "") for c in e.get("cautions") or []]
+        own += [(src or {}).get("quote", "") for src in e.get("sources") or []]
+        dil = drug_contracts.push_dilution(e)
+        if dil:
+            prepared.setdefault(route, set()).add(float(dil["concentration_mg_ml"]))
+        for t in own:
+            if not t:
+                continue
+            texts.append(_normalised(t))
+            for conc, a, b in _concentrations_in(t):
+                before, after = t[max(0, a - 40):a], t[b:b + 30]
+                if _NEGATED_BEFORE_RE.search(before):
+                    continue
+                if _PREPARES_BEFORE_RE.search(before) or _PREPARED_AFTER_RE.search(after):
+                    prepared.setdefault(route, set()).add(conc)
+    return texts, prepared
+
+
+def _quotes_signed_line(sentence: str, signed_texts: list) -> bool:
+    """The sentence is a signed entry's own text, verbatim."""
+    s = _normalised(sentence)
+    return len(s) >= 20 and any(s in t for t in signed_texts)
+
+
+def _derives(volume: float, masses: list, conc: float) -> bool:
+    return any(m > 0 and abs(volume - m / conc) <= (m / conc) * 0.05 for m in masses)
+
+
 def unconfirmed_volume_issues(response_text: str, ctx: PatientContext) -> list:
-    """One issue per drug whose mL an answer states before its vial is confirmed.
+    """One issue per drug whose mL an answer states without a vial it follows from.
+
+    Owner, #181 review (2026-10-25): "any mL in a served answer for a drug must
+    be derivable from a confirmed or signed concentration for that drug;
+    otherwise the answer holds, naming the drug and 'no confirmed vial'."
 
     Read sentence by sentence: a sentence that names the drug and states a
-    volume. Live, the dose check passed "Draw 0.4 mL of 50mg/mL ketamine IV
-    (20 mg)" with the ketamine vial unconfirmed: the mg matched, and nothing
-    asked where the 50 mg/mL came from.
+    volume. The volume must be a mass stated in the same sentence at the
+    drug's resolved concentration (drug_concentrations.resolve: the confirmed
+    vial, or the kit's one signed vial where it asks no question), within 5%.
+    Live, the dose check passed "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)"
+    with the ketamine vial unconfirmed (2026-10-24); in the harness it passed
+    "Draw 8 mL of morphine IV (8 mg)", morphine having no signed vial at all.
+    A pump rate is not read: it comes from a bag, not the vial.
     """
     if drug_contracts is None:
         return []
-    out = []
+    confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
+    out, signed = {}, {}
     for sentence in re.split(r"(?<=[.!?])\s+|\n", response_text or ""):
-        if not states_ml_volume(sentence):
+        plain = _CONCENTRATION_PHRASE_RE.sub(" ", sentence.lower())
+        volumes = [float(v) for v in _DRAWN_ML_RE.findall(plain)]
+        if not volumes:
             continue
-        for drug in drug_contracts.resolve_drugs(sentence):
-            if vial_unconfirmed(drug, ctx) and drug not in out:
-                out.append(drug)
-    return [f"The answer gives a {drug} volume in mL before the vial is confirmed. "
-            f"Give the {drug} dose in mg and ask which vial; the mL follows from "
-            f"the confirmed vial." for drug in out]
+        drugs = drug_contracts.resolve_drugs(sentence)
+        if not drugs:
+            continue
+        masses = [float(n) * _MASS_TO_MG[u.lower()] for n, u in _STATED_MASS_RE.findall(plain)]
+        stated = {round(c, 6) for c, _a, _b in _concentrations_in(sentence)}
+        routes = {r for r, rx in _ROUTE_WORD_RES.items() if rx.search(sentence)}
+        vials, quoted, drawn_from = {}, False, {}
+        for drug in drugs:
+            status, conc = None, None
+            if drug_concentrations is not None:
+                status, conc, _p = drug_concentrations.resolve(drug, confirmed)
+                if status != drug_concentrations.RESOLVED:
+                    conc = None
+            vials[drug] = (status, conc)
+            if drug not in signed:
+                signed[drug] = _signed_preparations(drug)
+            texts, prepared = signed[drug]
+            drawn_from[drug] = set()
+            # A recipe starts from a vial: while the kit is asking which one
+            # (#181, fix 2), no recipe volume serves, quoted or derived.
+            if drug_concentrations is not None and status == drug_concentrations.NEEDS_CONFIRMATION:
+                continue
+            quoted = quoted or _quotes_signed_line(sentence, texts)
+            # A signed preparation the sentence names, on that preparation's route.
+            drawn_from[drug] = {c for r in routes for c in prepared.get(r, ())
+                                if round(c, 6) in stated}
+        if quoted:
+            continue
+        for v in volumes:
+            if any((conc and _derives(v, masses, conc))
+                   or any(_derives(v, masses, c) for c in drawn_from[d])
+                   for d, (_st, conc) in vials.items()):
+                continue
+            for drug, (status, conc) in vials.items():
+                out.setdefault(drug, _volume_hold_text(drug, status, conc))
+    return list(out.values())
 
 
 def run_deterministic_checks(query: str, response_text: str,
@@ -5444,7 +5588,7 @@ def run_deterministic_checks(query: str, response_text: str,
     # ── Doses stated outside the canonical GIVE line ──────────────────────
     issues.extend(free_text_dose_issues(response_text, allowed_doses, patient_ctx, query))
 
-    # ── A millilitre from a vial not yet confirmed (owner, 2026-10-24) ────
+    # ── A millilitre that no confirmed or signed vial gives (owner, 2026-10-24/25) ──
     issues.extend(unconfirmed_volume_issues(response_text, patient_ctx))
 
     # ── A23: an actively bleeding patient, an answer with no control step ──
