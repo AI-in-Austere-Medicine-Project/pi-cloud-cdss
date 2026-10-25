@@ -142,7 +142,7 @@ def test_the_log_records_the_validators_returned_model(monkeypatch, tmp_path):
             return {"documents": [["protocol text"]], "metadatas": [[{"source": "JTS", "page": 1}]], "distances": [[0.5]]}
     r = oc.query_with_rag("80 kg adult, femur fracture, what do I do", _R())
     entry = json.loads(next(tmp_path.glob("*.jsonl")).read_text().splitlines()[-1])
-    assert entry["log_schema"] == 16
+    assert entry["log_schema"] == 17
     assert entry["validator_model_returned"] == f"{providers.validator_model()}-as-named-by-the-provider"
     assert entry["model_returned"] != entry["validator_model_returned"] or entry["model_returned"].endswith("-as-named-by-the-provider")
     assert r.get("validator_model_returned")

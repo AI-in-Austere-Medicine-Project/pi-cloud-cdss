@@ -81,9 +81,15 @@ def logdir(monkeypatch, tmp_path):
     def chat(system, messages, **k):
         if "Clinical Safety Validator" in (system or ""):
             return VALIDATOR_OK
+        # As Ollama reports it: the model's own generation time.
+        providers._TIMING.set({"eval_s": 0.0001, "first_token_source": "ollama_eval_duration"})
         return "**DO THIS**\n1. Reassess distal pulses and capillary refill."
     monkeypatch.setattr(providers, "chat", chat)
     return tmp_path
+
+
+def _q(query):
+    return {"query": query, "device_id": "test", "timestamp": "2026-10-25T00:00:00"}
 
 
 def _lines(path):
@@ -98,7 +104,7 @@ def test_the_schema_is_17():
 
 
 def test_a_model_answer_logs_every_stage_in_order(logdir):
-    r = call("POST", "/query", json={"query": MODEL_QUERY}, headers=TOKEN)
+    r = call("POST", "/query", json=_q(MODEL_QUERY), headers=TOKEN)
     assert r.status_code == 200, r.text
     (line,) = _lines(logdir)
     assert line["log_schema"] == 17
@@ -112,7 +118,7 @@ def test_a_model_answer_logs_every_stage_in_order(logdir):
 
 
 def test_a_card_answer_logs_no_retrieval_doses_model_or_validator(logdir):
-    r = call("POST", "/query", json={"query": CARD_QUERY}, headers=TOKEN)
+    r = call("POST", "/query", json=_q(CARD_QUERY), headers=TOKEN)
     assert r.json()["source_mode"] == "DETERMINISTIC_PRE_GATE"
     (line,) = _lines(logdir)
     t = line["timings"]
@@ -123,7 +129,7 @@ def test_a_card_answer_logs_no_retrieval_doses_model_or_validator(logdir):
 
 
 def test_the_event_stream_path_logs_response_sent_too(logdir):
-    r = call("POST", "/query", json={"query": MODEL_QUERY},
+    r = call("POST", "/query", json=_q(MODEL_QUERY),
              headers={**TOKEN, "Accept": "text/event-stream"})
     assert r.status_code == 200 and "event: final" in r.text
     (line,) = _lines(logdir)
@@ -143,7 +149,7 @@ def test_the_timer_changes_nothing_in_the_answer(logdir):
     """No behaviour change: the same question, timed and untimed, gives the
     same response and verdict."""
     direct = oc.query_with_rag(MODEL_QUERY, _JtsHit())
-    http = call("POST", "/query", json={"query": MODEL_QUERY}, headers=TOKEN).json()
+    http = call("POST", "/query", json=_q(MODEL_QUERY), headers=TOKEN).json()
     assert http["response"] == direct["response"]
     assert http["validator_result"] == direct["validator_result"]
     assert http["source_mode"] == direct["source_mode"]

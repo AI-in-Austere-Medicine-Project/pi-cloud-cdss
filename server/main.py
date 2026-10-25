@@ -8,17 +8,37 @@ from collections import deque
 import asyncio
 import json
 import os
+import time
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
 from version import __version__
 from openai_client import INPUT_MODES, query_with_rag
+import openai_client
 import general_reference
+import latency
 import providers
 import tts
 
 load_dotenv()
 app = FastAPI(title="CDSS Cloud API", version=__version__)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+
+
+class _ArrivalTime:
+    """V1: when the request reached the app, before body parsing and
+    validation, for the latency log's request_received. Reads nothing and
+    changes nothing."""
+
+    def __init__(self, inner):
+        self.inner = inner
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            scope.setdefault("state", {})["v1_arrival"] = time.perf_counter()
+        await self.inner(scope, receive, send)
+
+
+app.add_middleware(_ArrivalTime)
 
 try:
     chromadb_client = ChromaDBClient()
@@ -269,6 +289,10 @@ def _wants_event_stream(http_request: Request) -> bool:
           dependencies=[Depends(require_token)])
 async def query_endpoint(request: QueryRequest, http_request: Request):
     start = datetime.now()
+    # V1: the turn's timer, from arrival; latency.finish() marks response_sent
+    # and writes the log line query_with_rag deferred.
+    turn = latency.start(origin="http",
+                         t=(http_request.scope.get("state") or {}).get("v1_arrival"))
     # T-2: self-declared test-suite traffic. Log hygiene only — run_tests.sh
     # fires at the live endpoint by design, and nothing may branch on this.
     synthetic = http_request.headers.get("X-Test-Run", "") == "1"
@@ -276,7 +300,8 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
                   conversation_history=request.conversation_history,
                   synthetic=synthetic, model=request.model or None,
                   input_mode=request.input_mode,
-                  session_id=request.session_id)
+                  session_id=request.session_id,
+                  latency_turn=turn)
 
     # D4 (owner, 2026-10-08): one request, two events, for a client that asks
     # for text/event-stream. "early" carries the header and the patient strip,
@@ -311,6 +336,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
                         break
             finally:
                 await task
+                latency.finish(turn)
 
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache"})
@@ -328,6 +354,10 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
         return _query_response(result, request, ms)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # The last point this handler controls: the response object is built
+        # and goes to the server to be sent.
+        latency.finish(turn)
 
 # AE-1. The other three endpoints have carried the token gate since the token
 # existed; this one was simply missed. Without it every field below was an
@@ -420,6 +450,7 @@ async def speak_endpoint(http_request: Request):
     # that forgot it would produce a spoken answer with no indication it did not
     # come from JTS — the one thing general reference is not allowed to do.
     text = general_reference.for_speech(spoken, body.get("source", ""))
+    t0 = time.perf_counter()
     try:
         audio = await tts.synthesize(tts.normalize_for_speech(text))
     except tts.VoiceUnavailable as e:
@@ -427,4 +458,39 @@ async def speak_endpoint(http_request: Request):
         # is what let a pasted key ID sit unnoticed behind a dead button.
         print(f"⚠️  /speak {e.status}: {e.detail}")
         raise HTTPException(status_code=e.status, detail=e.detail)
-    return Response(content=audio, media_type="audio/mpeg")
+    # V1: the synthesis time, so the portal's timing record can split the
+    # wait into synthesis and transfer.
+    synth_ms = round((time.perf_counter() - t0) * 1000, 1)
+    return Response(content=audio, media_type="audio/mpeg",
+                    headers={"X-Synth-Ms": str(synth_ms),
+                             "Access-Control-Expose-Headers": "X-Synth-Ms"})
+
+
+class SpeakTiming(BaseModel):
+    """V1: one listen-button press, timed by the portal (ms from the moment
+    the text was sent to /speak). Null where the step was not reached."""
+    query_id: str = Field("", max_length=MAX_ID_CHARS)
+    session_id: str = Field("", max_length=MAX_ID_CHARS)
+    text_chars: Optional[int] = Field(None, ge=0, le=MAX_RESPONSE_CHARS)
+    synth_ms: Optional[float] = Field(None, ge=0, le=3_600_000)
+    text_sent_to_response_ms: Optional[float] = Field(None, ge=0, le=3_600_000)
+    first_audio_ms: Optional[float] = Field(None, ge=0, le=3_600_000)
+    audio_end_ms: Optional[float] = Field(None, ge=0, le=3_600_000)
+    outcome: str = Field("", max_length=32)   # "ended" | "error" | "blocked"
+
+
+TTS_LOG_SCHEMA_VERSION = 1
+
+
+@app.post("/speak/timing", dependencies=[Depends(require_token)])
+async def speak_timing_endpoint(timing: SpeakTiming):
+    """Beside the session log, not in it: every session-log line is one query,
+    and the replay and audit tools read it that way. Joined by query_id."""
+    entry = {"ts": datetime.utcnow().isoformat() + "Z",
+             "tts_log_schema": TTS_LOG_SCHEMA_VERSION, **timing.model_dump()}
+    log_dir = openai_client._LOG_DIR
+    log_dir.mkdir(parents=True, exist_ok=True)
+    path = log_dir / f"cdss_tts_timing_{datetime.utcnow().strftime('%Y-%m-%d')}.jsonl"
+    with open(path, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+    return {"status": "received"}

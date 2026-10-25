@@ -516,9 +516,40 @@ function validatorBadge(v) {
   return '<span class="badge warn">' + esc(v || 'REVIEW') + '</span>';
 }
 
-async function speak(text, btn, source, brief) {
+// V1 (owner, 2026-10-25): the listen path, timed — text sent, first audio,
+// audio end — and posted once per press to /speak/timing, joined to the
+// answer by query_id. Measurement only: a failed post is ignored, and nothing
+// here changes what is spoken or when.
+function speakTimer(queryId, chars) {
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const t0 = now();
+  const rec = { query_id: queryId || '', session_id: sessionId, text_chars: chars,
+                synth_ms: null, text_sent_to_response_ms: null, first_audio_ms: null,
+                audio_end_ms: null, outcome: '' };
+  let sent = false;
+  return {
+    at(field) { rec[field] = Math.round((now() - t0) * 10) / 10; },
+    set(field, v) { rec[field] = v; },
+    send(outcome) {
+      if (sent) return;
+      sent = true;
+      rec.outcome = outcome;
+      try {
+        fetch('/speak/timing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json',
+                     'X-Access-Token': document.getElementById('token').value },
+          body: JSON.stringify(rec)
+        }).catch(function () {});
+      } catch (e) {}
+    }
+  };
+}
+
+async function speak(text, btn, source, brief, queryId) {
   btn.textContent = '…';
   let url = null;
+  const timer = speakTimer(queryId, String(brief || text || '').length);
   try {
     const r = await fetch('/speak', {
       method: 'POST',
@@ -528,6 +559,9 @@ async function speak(text, btn, source, brief) {
       // the flag rather than the phrase keeps one definition of the wording.
       body: JSON.stringify({ text, source, brief: brief || '' })
     });
+    timer.at('text_sent_to_response_ms');
+    const synth = r.headers && r.headers.get ? parseFloat(r.headers.get('X-Synth-Ms')) : NaN;
+    if (!isNaN(synth)) timer.set('synth_ms', synth);
     if (!r.ok) {
       // The server now says WHY. Surface it instead of a blank failure.
       let why = 'HTTP ' + r.status;
@@ -538,11 +572,22 @@ async function speak(text, btn, source, brief) {
     url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audio.onended = audio.onerror = function () { URL.revokeObjectURL(url); url = null; };
+    if (audio.addEventListener) {
+      audio.addEventListener('playing', function () { timer.at('first_audio_ms'); });
+      audio.addEventListener('ended', function () { timer.at('audio_end_ms'); timer.send('ended'); });
+      audio.addEventListener('error', function () { timer.send('error'); });
+    }
     // play() rejects on an autoplay block. Unawaited, that read as success.
-    await audio.play();
+    try {
+      await audio.play();
+    } catch (e) {
+      timer.send('blocked');
+      throw e;
+    }
     btn.textContent = '🔊 listen';
     btn.title = '';
   } catch (e) {
+    timer.send('error');
     if (url) URL.revokeObjectURL(url);
     btn.textContent = 'audio unavailable';
     btn.title = e.message || 'audio unavailable';
@@ -955,7 +1000,7 @@ async function ask(followUp, inputMode) {
         // The brief is what is heard; the server speaks it in preference to
         // the full text whenever it is sent. An older server sends no brief.
         speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source,
-              d.brief || '');
+              d.brief || '', d.query_id || '');
       };
     });
     decoration('section toggles', function () {
