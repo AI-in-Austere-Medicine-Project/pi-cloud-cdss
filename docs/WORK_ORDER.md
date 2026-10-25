@@ -89,6 +89,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B1 | Source-mode labelling | **done**: #128, merged and deployed |
 | B2 | Generator section headers | **done**: #129, merged and deployed |
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
+| V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **in review**; owner, 2026-10-25 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1179,6 +1180,26 @@ A changed row that neither side can judge is listed as unjudged and never counte
   The #170 and #174 rows are entries signed in batches 2 and 3 now being offered; with the generator stubbed, the replay shows what is offered, not what the model writes.
 
 **Found (2026-10-23), counted since 2026-10-24 by newly doses:** under this definition a question that becomes a served dose ("versed dose IM", #174) and a no-dose card that becomes a dose ("push dose epi, BP 70/40 shocky", #177, the E05 card signed off 2026-10-23) are serve-to-serve, so the count does not flag them. Both were found by reading the changed rows and reported at the time.
+
+### V1: voice latency baseline (owner, 2026-10-25)
+
+**Owner:** "New item V1, voice latency baseline. No behaviour change. Instrument the pipeline with timestamps at: request received, pre-gate done, retrieval done, doses built, LLM first token, LLM last token, validator done, response sent. Log them per turn in the session log (schema bump, migration, test). Add TTS timing on the portal's 'listen' path: text sent, first audio, audio end. Run EVALUATION_SET_30 plus the ten batch 2/3 questions and the magnesium hold offline with qwen2.5:3b and report per-stage median and p90, split deterministic-card answers vs model answers, with the three slowest turns broken down. Do not optimise anything. PR, do not merge."
+
+**Done (one PR; failing tests first):**
+- `server/latency.py`, a per-turn timer. `main.py` starts it at arrival (an ASGI middleware, before parsing). The pipeline marks each stage. `latency.finish()` marks `response_sent` and writes the log line. The LLM first token is the reply's arrival less Ollama's `eval_duration`, so the request is unchanged. A cloud reply reports none, and the stage is null.
+- **Session log schema 17:** `timings`, null where a stage was not reached. `server/tools/migrate_session_log.py` upgrades into a copy, never in place.
+- **TTS:** `/speak` returns `X-Synth-Ms`. The portal posts text sent to response, first audio and audio end to `/speak/timing`, which writes its own `cdss_tts_timing_<date>.jsonl` beside the session log, joined by `query_id`.
+- **Tests:** `test_v1_latency.py` (15, including a node run of the portal's listen path). Schema assertions moved from 16 to 17 in five test files.
+- **Replay vs main 44ed010:** served 1,738, held 308, gate 1,408, live logs 3,765, pipeline 829. 0 changed in every one.
+- **Suite:** 3,611 passed. 1 failed: the corpus alias count, which fails the same way on main.
+
+**The baseline:** `docs/VOICE_LATENCY_BASELINE_2026-10-25.md`. 51 items, offline, qwen2.5:3b generator and validator, one warm pass.
+- **Deterministic answers** (26): total median 62 ms, p90 89 ms.
+- **Model answers** (25): total median 12.5 s, p90 16.2 s. Generation, first to last token, is the largest part (median 7.1 s), then the validator (3.3 s), then the wait to the first token (1.6 s). Retrieval is 0.46 s.
+- **The three slowest** are batch 3 dose questions, 16–18.5 s each: artesunate, cefazolin for a penetrating brain injury, paediatric ceftriaxone.
+- A cold model load cost 68.7 s to the first token (the warm-up turn).
+- **Not measured:** TTS, because `/speak` is ElevenLabs and the run is offline. Also the validator's own first token.
+- **"The ten batch 2/3 questions":** no list of ten is recorded. All 20 batch 2 and 3 live-harness questions were run.
 
 ### B1: source-mode labelling
 
