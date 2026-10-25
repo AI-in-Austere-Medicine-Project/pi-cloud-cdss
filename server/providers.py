@@ -726,6 +726,14 @@ _RETURNED = contextvars.ContextVar("edgecdss_chat_returned", default=None)
 _FALLBACK = contextvars.ContextVar("edgecdss_chat_fallback", default=None)
 
 
+# V1: what the last chat() in this context said about its own timing —
+# {"eval_s": seconds the model spent generating, "first_token_source"} — or
+# None. Ollama's non-streamed reply carries eval_duration, so the first token
+# is the reply's arrival less that, with no change to the request (owner,
+# 2026-10-25: no behaviour change). A cloud reply says nothing: None.
+_TIMING = contextvars.ContextVar("edgecdss_chat_timing", default=None)
+
+
 # The cloud bound for chat() calls made inside cloud_timeout_for(); None is
 # CDSS_LLM_CLOUD_TIMEOUT. A ContextVar rather than a chat() argument so the
 # many stand-ins for chat() in the suite keep their signature.
@@ -764,6 +772,13 @@ def reset_served() -> None:
     _SERVED.set(None)
     _FALLBACK.set(None)
     _RETURNED.set(None)
+    _TIMING.set(None)
+
+
+def last_chat_timing() -> Optional[dict]:
+    """{"eval_s", "first_token_source"} for the last chat() here, or None.
+    Read it immediately after the call; the next chat() overwrites it."""
+    return _TIMING.get()
 
 
 def last_chat_returned_model() -> Optional[str]:
@@ -861,6 +876,10 @@ def _chat_local_native(spec: ModelSpec, system: str, messages: list,
         raise ProviderUnavailable(f"local/{spec.id}: HTTP {e.code}: {_redact(detail)[:200]}") from None
     _TRUNCATED.set(result.get("done_reason") == "length" if result.get("done") else None)
     _RETURNED.set(result.get("model"))
+    eval_ns = result.get("eval_duration")
+    _TIMING.set({"eval_s": eval_ns / 1e9 if isinstance(eval_ns, (int, float)) else None,
+                 "first_token_source": ("ollama_eval_duration"
+                                        if isinstance(eval_ns, (int, float)) else None)})
     return ((result.get("message") or {}).get("content") or "").strip()
 
 
@@ -947,6 +966,7 @@ def chat(system: str, messages: list, *, model: str,
     _SERVED.set(None)
     _FALLBACK.set(None)
     _RETURNED.set(None)
+    _TIMING.set(None)
     spec = MODELS.get(model)
     if spec is None:
         raise ProviderUnavailable(f"unknown model {model!r}")

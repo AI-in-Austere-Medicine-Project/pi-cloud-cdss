@@ -126,6 +126,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | C1 | The feedback instrument: session id, the full context in `/feedback`, a working comment field. | Done, #131. Log schema 15 (query_id, session_id). Issue tags: server/issue_tags.json, applied in their own PR |
 | C2 | The portal picker lists the on-device Ollama models (`qwen2.5:3b`, `edgecdss-v3`), labelled "(on device)", when Ollama has them. A pick goes to the device and is validated there (D7's rule: `qwen2.5:3b` on the live service), with no cloud call; the answer names its model. Un-deferred the local-model portal toggle; v3 listed on the owner's ruling. Default unchanged. | Done, #162 |
 | C3 | Under `CDSS_LLM_PROVIDER=local` the portal is local-only: the picker is exactly the on-device models Ollama has (`qwen2.5:3b`, `edgecdss-v3`), default `CDSS_LLM_MODEL`, validator `CDSS_VALIDATOR_MODEL`; cloud providers are reported off with no network call; voice is off; the startup line names the mode. No outbound HTTP on the portal path. Found: an `edgecdss-v3` pick took 113–174 s on the 8 GB Jetson, re-attributed to cold loads and memory pressure. One-resident-at-a-time was tested and dropped (owner, 2026-10-15): reloads cost 35–73 s against 8 s warm for v3 with both resident. Live stays both-resident. | Done, #162 |
+| V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17, migration tool), TTS timing on the portal's listen path, and an offline qwen2.5:3b baseline. No behaviour change, nothing optimised. | In review |
 | Which indication | A drug named with no indication, offered in more than one indication class, is asked "Which indication for <drug> — …?" after the vial question; the answer puts the stated indication's doses first and removes none (owner, #165 review). Found live 2026-10-15: ketamine post-intubation sedation served to a patient who was not intubated. | Done, #165 |
 
 ## 6. Training vocabulary
@@ -164,6 +165,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | Served / held | Served: the answer reaches the medic. Held: a check withholds it and a hold message replaces it. | See the 30-set row |
 | Specifics present | Owner-reviewed draft specifics found verbatim in served answers. Term matching, not a correctness score. | Run 3, the same 13 scenarios: claude-opus-5 37/48 (77%), gpt-4o-mini 8/48 (17%), qwen 10/44, 10/40, 9/48. `make bench` scores it per arm since 2026-10-02 |
 | Latency | Server processing time on model turns: median / p95. | Run 3: gpt-4o-mini 3.2 / 4.8 s (as deployed); qwen2.5:3b 12.2–13.5 / 38.3–38.6 s |
+| Stage timings (V1) | Session log schema 17 `timings`: ms from request received to pre-gate, retrieval, doses, LLM first token (Ollama reply less its eval time), LLM last token, validator and response sent; null where not reached. TTS: `cdss_tts_timing_<date>.jsonl` (text sent to response, first audio, audio end, synth ms), joined by query_id. | V1 baseline, 2026-10-25, offline qwen2.5:3b, 51 items: deterministic 62 / 89 ms (median / p90); model 12.5 / 16.2 s, of which generation 7.1 / 9.5 s, validator 3.3 / 4.5 s, to first token 1.6 / 2.6 s, retrieval 0.46 / 0.49 s; cold load 68.7 s. `VOICE_LATENCY_BASELINE_2026-10-25.md` |
 | Deterministic identity | Answers that never reach a model must be byte-identical across arms and runs. | Run 3: 32 queries, byte-identical across all 11 as-deployed passes |
 | Replay | Re-run stored answers through the changed checks, and compare against main. | 537 served answers at the time of the order |
 | Newly held / newly released | Replay deltas. Every new hold is read and classified. A new release must be 0, and so must a cloud regression. | Required: 0 newly released |
@@ -185,6 +187,7 @@ Every A item finishes before any D item starts, because D5's dataset is built th
 | [`A6_CONTRAINDICATED_PROCEDURES_DESIGN.md`](A6_CONTRAINDICATED_PROCEDURES_DESIGN.md) | A6's proposal: the procedure table, matching, false-positive risks, signing |
 | [`authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md`](authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md) | Sources and dose options for A15, ketamine as a second-line seizure drug |
 | [`TESTING_LOCAL.md`](TESTING_LOCAL.md) | Manual checks for the offline and hybrid modes on a second server |
+| [`VOICE_LATENCY_BASELINE_2026-10-25.md`](VOICE_LATENCY_BASELINE_2026-10-25.md) | V1: per-stage latency, deterministic vs model, offline qwen2.5:3b, the method and every turn |
 | [`tools/distill/README.md`](../tools/distill/README.md) | The D6 toolchain: install, targets, isolation, the three gotchas |
 
 ## 8. Standing rules

@@ -47,8 +47,8 @@ LONG = "**DO THIS**\n" + "\n".join(f"{i}. Step number {i} of a long answer." for
 
 
 def test_schema_is_16():
-    assert oc.LOG_SCHEMA_VERSION == 16  # E1 (schema 16): validator_model_returned; C1 (15): query_id, session_id
-    assert _log({"response": "x"})["log_schema"] == 16
+    assert oc.LOG_SCHEMA_VERSION == 17  # V1 (17): timings; E1 (16): validator_model_returned; C1 (15): query_id, session_id
+    assert _log({"response": "x"})["log_schema"] == 17
 
 
 def test_a_served_answer_is_logged_in_full():

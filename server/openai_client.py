@@ -53,6 +53,7 @@ from functools import lru_cache
 from typing import Literal, Optional, List, Tuple
 import brief as brief_mod
 import general_reference
+import latency
 import providers
 import vent_module
 
@@ -257,7 +258,14 @@ def _get_log_file() -> pathlib.Path:
 # /feedback report names both, so it can be joined to this line.
 # Schema 16 (E1) adds `validator_model_returned`: the model the provider's reply
 # named for the validator call, beside the generator's `model_returned`.
-LOG_SCHEMA_VERSION = 16
+# Schema 17 (V1) adds `timings`: ms from request received to each stage
+# (latency.STAGES: pre-gate, retrieval, doses, LLM first and last token,
+# validator, response sent), null for a stage the turn never reached, with
+# `llm_first_token_source` and `origin` ("http": main.py timed the request and
+# response_sent; "direct": a caller with no HTTP request, response_sent null).
+# A line migrated from an earlier schema (tools/migrate_session_log.py) carries
+# `timings: null` and `migrated_from_schema`: not measured is not zero.
+LOG_SCHEMA_VERSION = 17
 
 # The input modes /query accepts. Closed, so a typo in a client is a 422 rather
 # than a new category silently appearing in the audit log.
@@ -290,7 +298,8 @@ def knowledge_source(source_mode: str) -> str:
 
 def log_query(query: str, result: dict, conversation_history: list = None,
               pipeline_ms: Optional[int] = None, synthetic: bool = False,
-              input_mode: str = "typed", session_id: str = ""):
+              input_mode: str = "typed", session_id: str = "",
+              timings: Optional[dict] = None):
     """
     Write one structured log entry per query.
     JSONL format — one JSON object per line.
@@ -352,6 +361,7 @@ def log_query(query: str, result: dict, conversation_history: list = None,
             "vitals_cautions": result.get("vitals_cautions", []),
             "generation_truncated": result.get("generation_truncated"),
             "pipeline_ms": pipeline_ms,
+            "timings": timings,
             "history_turns": len(conversation_history) if conversation_history else 0,
             "patient_ctx": {
                 k: v for k, v in (result.get("patient_context") or {}).items()
@@ -7860,6 +7870,19 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     return result
 
 
+def _mark_generator(start: float, end: float, timing: Optional[dict]) -> None:
+    """V1: the generator call's first and last token on the active turn. The
+    first is the reply's arrival less the model's own eval time, where the
+    provider reported one (Ollama); otherwise unknown, and left null."""
+    eval_s = (timing or {}).get("eval_s")
+    if eval_s is not None:
+        latency.mark("llm_first_token", max(start, end - eval_s))
+        turn = latency.current()
+        if turn is not None:
+            turn["llm_first_token_source"] = timing.get("first_token_source")
+    latency.mark_last("llm_last_token", end)
+
+
 def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = False,
                              conversation_history: list = None,
                              session_ctx: Optional[PatientContext] = None,
@@ -7872,6 +7895,9 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     state: dict = {"on_early": on_early}
     result = _run_pipeline(query, chromadb_client, voice_mode,
                            conversation_history, session_ctx, model, state)
+    # A deterministic answer returned before Step 3: the pre-gates are done
+    # when it is. On the model path this was marked at Step 3 and stays.
+    latency.mark("pre_gate_done")
     result = _finalise(result, state.get("patient_ctx"))
     # Every response carries both, null when no model wrote the text — a
     # deterministic card is not attributable to a model or a provider.
@@ -8388,6 +8414,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
 
         # Step 3: RAG retrieval — use router-enhanced query if available
         # Improve vent query ChromaDB search
+        latency.mark("pre_gate_done")
         search_query = query
         if is_vent_settings_query(query):
             search_query = query + " mechanical ventilation tidal volume PEEP lung protective"
@@ -8406,6 +8433,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
             search_query, n_results=_env_number("CDSS_RAG_TOP_K", 10, int),
             where=retrieval_species_filter(full_query_history))
         assessment = classify_retrieval(raw_results)
+        latency.mark("retrieval_done")
         print(f"📚 {assessment.source_mode} (top: {assessment.top_score}, "
               f"cos {retrieval_cosine(assessment.top_score):.2f})")
 
@@ -8415,6 +8443,7 @@ def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
         print(f"💊 {len(allowed_doses)} dose candidates built")
 
         allowed_actions = build_allowed_actions(full_query_history, patient_ctx)
+        latency.mark("doses_built")
 
         # Step 4b: general medical reference fallback (F-4).
         # Retrieval found nothing usable and this is not a dosing question, so
@@ -8489,11 +8518,13 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
                 print(f"early event error (non-fatal): {e}")
         providers.reset_truncation()
         providers.reset_served()
+        gen_start = time.perf_counter()
         with providers.cloud_timeout_for(providers.generator_timeout_s(requested_model)):
             response_text = providers.chat(
                 system_prompt, messages,
                 model=model, temperature=0.2, max_tokens=700,
             )
+        _mark_generator(gen_start, time.perf_counter(), providers.last_chat_timing())
         # Now, before the validator's own chat() overwrites it.
         generation_truncated = providers.last_chat_truncated()
         generator_served = providers.last_chat_served()
@@ -8509,6 +8540,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         providers.reset_served()
         llm_result = validate_response(full_transcript, response_text, patient_ctx,
                                        allowed_dose_block, now_ts=now_ts, generator_model=model)
+        latency.mark("validator_done")
         validator_served = providers.last_chat_served()
         validator_returned = providers.last_chat_returned_model()
         validator_fallback = providers.last_chat_fallback()
@@ -8628,7 +8660,8 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
                    model: Optional[str] = None,
                    input_mode: str = "typed",
                    session_id: str = "",
-                   on_early=None) -> dict:
+                   on_early=None,
+                   latency_turn: Optional[dict] = None) -> dict:
     """
     Public entry point. Calls internal pipeline and logs every query/response.
 
@@ -8641,7 +8674,14 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     excludes FastAPI request parsing and response serialisation, so it reads
     lower than the processing_time_ms badge the client shows. The names are
     kept distinct so the two are never compared as if interchangeable.
+
+    `latency_turn` (V1): main.py's timer, started when the request arrived.
+    With it, the log line waits for latency.finish(), so it can carry
+    response_sent; without one, this call times itself from here and logs at
+    return, response_sent null. Nothing in the pipeline reads it.
     """
+    turn = latency_turn if latency_turn is not None else latency.start(origin="direct")
+    latency.activate(turn)
     t0 = time.perf_counter()
     # C1: one id per query, in the response and on its log line, so a feedback
     # report can name the exact answer it is about. Log hygiene only. Minted
@@ -8657,7 +8697,15 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     result["source"] = knowledge_source(result.get("source_mode", "UNKNOWN"))
     result["query_id"] = query_id
     pipeline_ms = int((time.perf_counter() - t0) * 1000)
-    log_query(query, result, conversation_history,
-              pipeline_ms=pipeline_ms, synthetic=synthetic,
-              input_mode=input_mode, session_id=session_id)
+    latency.activate(None)
+
+    def write_log():
+        log_query(query, result, conversation_history,
+                  pipeline_ms=pipeline_ms, synthetic=synthetic,
+                  input_mode=input_mode, session_id=session_id,
+                  timings=latency.record(turn))
+    if latency_turn is not None:
+        turn["deferred_log"] = write_log
+    else:
+        write_log()
     return result
