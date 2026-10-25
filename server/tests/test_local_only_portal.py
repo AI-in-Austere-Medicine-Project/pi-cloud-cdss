@@ -13,9 +13,9 @@ listed only providers that authenticate. The owner's spec:
   and the portal path makes no outbound HTTP call.
 
 Outbound calls the portal path could make: a cloud provider's auth check in
-/status and /models (when a key is left set), and ElevenLabs voice. In local
-mode neither is made: cloud providers are reported off without a call, and
-voice is off.
+/status and /models (when a key is left set). In local mode it is not made:
+cloud providers are reported off without a call. Voice is on the device
+(Kokoro, V2) and makes none.
 """
 import socket
 import subprocess
@@ -85,10 +85,14 @@ def test_the_validator_is_cdss_validator_model_for_both(local, monkeypatch, pick
     assert providers.validator_model(pick) == "edgecdss-v3"
 
 
-def test_voice_is_off_in_local_mode(local, monkeypatch):
-    monkeypatch.setenv("ELEVENLABS_API_KEY", "sk_" + "0" * 40)
-    assert tts.voice_available() is False
-    assert "local" in tts.config_problem().lower()
+def test_voice_is_on_the_device_in_local_mode(local, monkeypatch, tmp_path):
+    """V2 (owner, 2026-10-25): voice is local Kokoro, so local mode keeps it."""
+    (tmp_path / tts.MODEL_FILE).write_bytes(b"x")
+    (tmp_path / tts.VOICES_FILE).write_bytes(b"x")
+    monkeypatch.setenv("CDSS_KOKORO_DIR", str(tmp_path))
+    monkeypatch.setattr(tts, "_espeak_paths", lambda: ("/lib/libespeak-ng.so.1", "/data"))
+    monkeypatch.setattr(tts, "_kokoro_importable", lambda: True)
+    assert tts.config_problem() is None and tts.voice_available() is True
 
 
 # ── a request ────────────────────────────────────────────────────────────────
