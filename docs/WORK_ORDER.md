@@ -1123,9 +1123,18 @@ The first of them carried "Vial math — ketamine IV 9 mg: 0.18 mL of 50 mg/mL u
   - The #181 flows (step by step to mL, card then vial, child, IM, RSI, vial math chip, negate then new drug) are unchanged.
 
 **Found, not changed (v1.1, owner to rule):** listed in REFERENCE §9.
-- `negated_drugs` does not read a curly apostrophe: "I don’t want ketamine" (as a phone types it) is not a refusal, so the pending-question rule (#181 fix 1) keeps ketamine in scope. On main the fixture with no history was asked "IV or IM?". A39 reads it for its own hold only.
+- **Fixed in its own PR (owner, 2026-10-25), below.** `negated_drugs` did not read a curly apostrophe: "I don’t want ketamine" (as a phone types it) is not a refusal, so the pending-question rule (#181 fix 1) keeps ketamine in scope. On main the fixture with no history was asked "IV or IM?". A39 reads it for its own hold only.
 - A refused drug from an earlier turn is asked again: after the held magnesium turn, "75 kg" is asked "IV or IM? Do you have access?" for the ketamine the medic refused (same on main).
 - A follow-up that does not name the unsigned drug ("how much?") is not held here; it reaches the model and the dose check reads what it writes.
+
+### A refusal typed with a curly apostrophe (owner, 2026-10-25; found in A39's replay; its own PR)
+
+**Owner:** "Where is the curly-apostrophe fix; was it in #182 or not done? If not done, do it first as its own small PR." It was not done: #182 normalised the apostrophe in `unsigned_drugs_named` only.
+
+- **Fix:** `negated_drugs` maps U+2019, U+2018 and U+02BC to "'" before reading the refusal. It maps one character to one, so the offsets `scope_request` strikes by stay valid. "I don’t want ketamine", as a phone types it, now refuses ketamine for the pending-question rule (#181 fix 1).
+- **Tests:** `test_curly_apostrophe_negation.py` (6). "I don’t want ketamine, fentanyl for pain, 80 kg adult" was asked "IV or IM?" for the refused ketamine.
+- **Replay vs main efdf0e5:** served 1,738, held 308, gate 1,408, live logs 3,827, pipeline 831. 0 changed in every one. The one recorded curly refusal (live 2026-10-25 row 34) names magnesium, which A39 already holds before the model.
+- **Suite:** 3,617 passed. 1 failed: the corpus alias count, which fails the same way on main.
 
 ### Replay release count (owner, 2026-10-23; tooling, its own PR)
 
