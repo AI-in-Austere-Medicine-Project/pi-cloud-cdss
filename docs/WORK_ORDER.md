@@ -1049,6 +1049,7 @@ The first of them carried "Vial math — ketamine IV 9 mg: 0.18 mL of 50 mg/mL u
      - Served and gate (the same answers): "Admin 1:1000 epinephrine 1 mL IV" (G-MTN-01, 4 runs) and "IV epinephrine (1:1000) 1-2 mL" (G-BRN-06), the ampoule pushed IV; "Draw 0.5 mL of 5 mg/mL midazolam IV (0.5 mg)" (2.5 mg, not 0.5); "3% hypertonic saline 250 mL IV/IO over 10 minutes for hypotension" (H-SESS-009); "10 mL of 10% IV dextrose with KCL" (G-TRA-07); dextrose 50% volumes (R2 hypoglycaemia, 8 answers: "15 mL of 50%" for 15 g is wrong, "50 mL of 50%" for 25 g is right, held because no dextrose vial or preparation is signed); a Keppra bag concentration (G-ADV-10); midazolam stocking facts (G-TYP-06).
      - Held, 1: an already held dextrose answer now also holds on its 50 mL of 50%.
    - **Suite:** 3,576 passed, 5 skipped, 3 xfailed, 1 failed (`test_corpus_alias_hit_count`, the same on main).
+   - **Signed off by the owner (Andrew Azelton), 2026-10-25:** all 111 newly held rows. The four served "1:1000 epinephrine 1 mL IV" answers and the midazolam volume are INC-002 in `docs/INCIDENT_RESPONSE.md`.
 
 **Incident (owner, #181 review):** the live 2026-08-11 row below is INC-001 in `docs/INCIDENT_RESPONSE.md` (created in this PR, with the protocol). A test session (owner, 2026-10-25). A second row of the same session (07:51, the burn patient, "0.163 mL of 100mg/mL", served SAFE) is part of it; it was already held on main by its milligrams.
 
