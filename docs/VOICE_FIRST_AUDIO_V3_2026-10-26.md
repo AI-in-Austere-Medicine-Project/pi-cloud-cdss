@@ -79,9 +79,76 @@ The code needs no change for this.
 
 ## Found, not changed (owner to rule)
 
-- **The general-reference disclosure is still spoken with an abbreviation:** "From general reference, not JTS:". `/speak` adds it (`general_reference.for_speech`) before any `source=general` answer, holds included: "From general reference, not JTS: Held. …". Its wording is not the spoken brief's to change.
-- **"magnesium sulfate", not "magnesium".** The hold says the drug's name from the index. The owner's example said "magnesium".
-- **First audio is now bounded by the first sentence.** A long first sentence (the cefazolin indication question, 11.3 s) is the slowest item. Splitting a sentence at commas would cut it, but the owner's instruction was sentence boundaries.
+Ruled by the owner on 2026-10-26; see the next section.
+
+- ~~The general-reference disclosure is spoken with "JTS", and before a hold.~~ Ruling 2.
+- ~~"magnesium sulfate", not "magnesium".~~ Ruling 3: kept.
+- ~~First audio is bounded by the first sentence.~~ Ruling 5.
+
+## Owner rulings, round 2 (2026-10-26)
+
+**Owner:** "1. Pin Chroma to the CPU explicitly before installing onnxruntime-gpu==1.31.0 into the service venv, so retrieval doesn't change; then run replay to prove it (0 changed), then re-time Kokoro on the GPU. 2. Disclosure: never spoken before a hold. For a served general-reference answer the spoken form is "General reference, not guideline." No "JTS" in speech. 3. Keep "magnesium sulfate". 4. Commits without failing-test-first are accepted for V3; templates aren't gates. 5. First chunk may split at a comma, colon or semicolon if the first sentence exceeds 80 characters. And the which-indication question gets its own spoken template: "<Drug>. Which indication: <list>?" with the list of names only."
+
+### 1. Chroma on the CPU, and the GPU
+
+- **The pin** (`embeddings.CpuDefaultEmbeddingFunction`): the same all-MiniLM ONNX model, with the provider list fixed to `CPUExecutionProvider`. It is named "default", so it matches the collection's stored config.
+  - It is deliberately not a `DefaultEmbeddingFunction` subclass. Chroma ignores any instance of that class and rebuilds the stock default from the stored config. The first version of the pin was such a subclass, and it pinned nothing. A test now queries a pre-existing collection and fails if the stock embedder runs.
+- **Retrieval check** (`tools/chroma_retrieval_check.py`): the replay sets never query Chroma, so a replay cannot show retrieval is unchanged.
+  - **Method:** every unique query in the replay sets (607) runs against a copy of the live DB, with top 10 and the species filter, as the pipeline does. It saves each query's vector as Chroma embeds it, plus ids and distances.
+
+| Run (against main, CPU wheel) | Vectors differ | Ids differ |
+|---|---|---|
+| main again, CPU wheel | 0 | 8 |
+| pinned, CPU wheel | 0 | 4 |
+| pinned, `onnxruntime-gpu` 1.31.0 | 0 | 4 |
+| **main (not pinned), `onnxruntime-gpu` 1.31.0** | **every query fails** | |
+
+  - **Vectors:** bit-identical in every pinned run.
+  - **Ids:** the differences are Chroma's own. Its HNSW search is approximate and not fully repeatable: main run twice, same code, same DB, returns a different chunk from rank 4 to 10 on 8 of 607 queries. The 4 pinned differences are among those 8.
+- **Without the pin, the GPU wheel breaks retrieval.** Chroma's stock embedder takes every available provider. It starts on CUDA, and every query fails: `cudaErrorNoKernelImageForDevice` in `/embeddings/position_embeddings/Gather`.
+- **Kokoro cannot run on this GPU with that wheel.** The session opens on CUDA, and the first synthesis fails the same way (`/decoder/Slice/GatherSliceToSplitFusion`). `tts` moves to the CPU and says so in `/status`.
+  - **Cost:** the first `/speak` after a restart takes 7.2 s (GPU load, failure, CPU load). After that, timing is the CPU's: 21 items 1.5 / 4.8 s on the GPU wheel against 1.6 / 4.8 s on the CPU wheel.
+  - **Cause:** the wheel's CUDA kernels are built for sm_89, sm_90a, sm_120a and sm_121a only, with no PTX (`cuobjdump`). The Orin Nano is sm_87.
+- **Real-time factor:** CPU 0.77, as before. GPU: not measurable with the approved wheel.
+- **A wheel with sm_87 exists:** NVIDIA's Jetson AI Lab index has `onnxruntime-gpu` 1.24.0, cp312, built for CUDA 13.0 (`sbsa/cu130`); the sha256 matches the index. It was downloaded and inspected only, and is not installed. It is not the wheel the owner named, and installing third-party code is the owner's decision.
+- **The service venv was not changed.** The live `edgecdss` service runs main, without the pin, from that venv, and the watchdog can restart it at any time. With the GPU wheel installed, a restart before this PR merges would leave retrieval failing on every query (above). The measurements used a scratch overlay venv with the same 1.31.0 wheel.
+
+### 2–5. Speech
+
+- **Disclosure** (`general_reference.for_speech`): "General reference, not guideline." It is its own sentence, so it is streamed as the first chunk. A hold carries no disclosure: a text starting "Held." or the hold opener is spoken as is. No "JTS" is spoken.
+- **"magnesium sulfate"** is kept.
+- **First chunk** (`tts.speech_chunks`): a first sentence over 80 characters splits once, at the last comma, colon or semicolon within 80 characters, else the first one after. The mark must be followed by white space, so "2,000" does not split.
+- **Which indication** (`spoken.WHICH_INDICATION`): "Cefazolin. Which indication: penetrating brain or spinal injury, ventriculostomy in place or open fracture or wound infection prophylaxis?"
+  - The options are matched against `INDICATION_CLASSES` and must rebuild the question word for word, else the brief is built as before. A name drops its bracketed qualifier. Tested on the question the pipeline writes for all 9 multi-indication drugs.
+
+### Timing (same 21 saved answers, spoken briefs rebuilt with this code)
+
+The commit 3 payloads (`payloads_c3.json`), with each brief rebuilt by this branch's `spoken.build`. 19 of the 21 are unchanged; the two cefazolin questions take the new template. Each wheel ran on a fresh :8012 server.
+
+| | First audio median / p90 | Audio end median / p90 |
+|---|---|---|
+| V3 commit 3 | 3.7 / 7.2 s | 14.4 / 25.3 s |
+| **Rulings, CPU** | **1.6 / 4.8 s** | 13.5 / 20.9 s |
+| Rulings, GPU wheel (Kokoro falls back to the CPU) | 1.5 / 4.8 s | 13.3 / 20.7 s |
+
+| Item | First audio | Audio end |
+|---|---|---|
+| Cefazolin which-indication (B2-1) | 11.3 → 1.7 s | 25.3 → 21.0 s |
+| Ketamine which-vial (B2-7, split at "vial,") | 6.7 → 4.8 s | 14.6 → 13.5 s |
+| General-source cefazolin hold (B2-3, no disclosure) | 3.3 → 1.1 s | 14.0 → 12.0 s |
+| Epinephrine general-reference dose (B3-2) | 6.3 → 2.7 s | 21.0 → 18.7 s |
+| Magnesium hold | 1.2 → 1.1 s | 10.3 → 10.5 s |
+
+- **Gaps rose from 15.2 s to 52.5 s in total.** The wait moved; it did not grow: audio end fell (14.4 → 13.5 s median). A short first chunk plays before the next sentence is ready.
+  - **General-source holds** opened with "From general reference, not JTS: Held." (3.7 s of audio), which covered the next sentence's synthesis. "Held." alone is 0.9 s, followed by about 3 s of silence.
+
+### Found, not changed (owner to rule)
+
+- **Names only drops "(already intubated)".** Ketamine's question is spoken "agitation, rapid sequence intubation, sedation, seizure or pain". The screen says "sedation (already intubated)", the distinction behind the 2026-10-15 incident (post-intubation sedation served to a patient who was not intubated).
+- **"/" read as "or" inside a name runs into the list's own "or".** "ventriculostomy in place or open fracture or wound infection prophylaxis" can't be told apart by ear from four options. Atropine has the same problem: "bradycardia or nerve agent or organophosphate poisoning".
+- **The gap moved behind the first chunk.** The cefazolin question starts at 1.6 s with "Cefazolin.", then 7.2 s of silence while the 130-character list synthesises, the longest gap in the 21. The list could split at its commas if the 80-character rule applied to every sentence, not only the first.
+- **Split point:** the last mark within 80 characters gives the longer, more natural first chunk (B2-7: 4.8 s). The earliest mark would start sooner but leave a gap after it.
+- **Chroma's top-10 is not repeatable run to run** (8 of 607 queries, from rank 4). This was here before V3. Not chased.
 
 ## Every item, commit 3
 
