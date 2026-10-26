@@ -450,6 +450,19 @@ async def speak_endpoint(http_request: Request):
     # that forgot it would produce a spoken answer with no indication it did not
     # come from JTS — the one thing general reference is not allowed to do.
     text = general_reference.for_speech(spoken, body.get("source", ""))
+    if body.get("stream"):
+        # V3: sentence by sentence (tts.open_stream). The first sentence is
+        # synthesised before the response starts, so a failure here still
+        # answers with its status and reason.
+        try:
+            count, first_ms, frames = await tts.open_stream(tts.normalize_for_speech(text))
+        except tts.VoiceUnavailable as e:
+            print(f"⚠️  /speak {e.status}: {e.detail}")
+            raise HTTPException(status_code=e.status, detail=e.detail)
+        return StreamingResponse(
+            frames, media_type=tts.STREAM_MEDIA_TYPE,
+            headers={"X-Synth-Ms": str(first_ms), "X-Speak-Sentences": str(count),
+                     "Access-Control-Expose-Headers": "X-Synth-Ms, X-Speak-Sentences"})
     t0 = time.perf_counter()
     try:
         audio = await tts.synthesize(tts.normalize_for_speech(text))
