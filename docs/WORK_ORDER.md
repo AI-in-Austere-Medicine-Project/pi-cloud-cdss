@@ -1221,6 +1221,23 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - **The hold names "magnesium sulfate"** (the index's name), not "magnesium".
 - **First audio is bounded by the first sentence:** the 165-character cefazolin indication question takes 11.3 s.
 
+**Owner rulings, round 2 (2026-10-26):** "1. Pin Chroma to the CPU explicitly before installing onnxruntime-gpu==1.31.0 into the service venv, so retrieval doesn't change; then run replay to prove it (0 changed), then re-time Kokoro on the GPU. 2. Disclosure: never spoken before a hold. For a served general-reference answer the spoken form is "General reference, not guideline." No "JTS" in speech. 3. Keep "magnesium sulfate". 4. Commits without failing-test-first are accepted for V3; templates aren't gates. 5. First chunk may split at a comma, colon or semicolon if the first sentence exceeds 80 characters. And the which-indication question gets its own spoken template: "<Drug>. Which indication: <list>?" with the list of names only."
+
+**Done (one PR stacked on V3, a commit per ruling, each with its tests):**
+- **1. Chroma pinned to the CPU:** `embeddings.CpuDefaultEmbeddingFunction` (not a `DefaultEmbeddingFunction` subclass, which Chroma would ignore). `tools/chroma_retrieval_check.py`: on the replay sets' 607 queries, the vectors are bit-identical to main with the CPU wheel and with `onnxruntime-gpu` 1.31.0. Ids differ only on queries where main differs from itself (Chroma's HNSW, 8 of 607 run to run). Replay vs b33fc4c: 0 changed in all five sets, byte-identical.
+- **The GPU, re-timed:** `onnxruntime-gpu` 1.31.0 (PyPI) has CUDA kernels for sm_89/90a/120a/121a only. The Orin Nano is sm_87. Kokoro opens on CUDA, fails its first synthesis (`cudaErrorNoKernelImageForDevice`) and moves to the CPU: the first `/speak` after a restart costs 7.2 s, and after that timing is the CPU's. Without the pin, Chroma's stock embedder fails every query on this wheel.
+- **2. Disclosure:** `general_reference.SPOKEN_DISCLOSURE` "General reference, not guideline."; not spoken before "Held." or the hold opener.
+- **3.** "magnesium sulfate" kept.
+- **5. First chunk:** `tts.speech_chunks`, at most 80 characters where a mark allows. **Which indication:** `spoken.WHICH_INDICATION`, names matched against `INDICATION_CLASSES`.
+- **Timing, same 21 texts as commit 3:** first audio 3.7 / 7.2 → **1.6 / 4.8 s** (CPU); 1.5 / 4.8 s on the GPU wheel (CPU fallback). Audio end 14.4 / 25.3 → 13.5 / 20.9 s.
+
+**Not done (owner to rule):**
+- **The service venv was not changed.** The live service runs main, without the pin, from that venv, and on 1.31.0 its retrieval would fail on every query after any restart. Install the wheel only after this PR is merged and deployed, and the wheel named does not give a working GPU anyway.
+- **A wheel with sm_87:** NVIDIA's Jetson AI Lab index, `sbsa/cu130`, `onnxruntime-gpu` 1.24.0 cp312 (`cuobjdump`: sm_87, sm_110, sm_120a, sm_121). Downloaded and inspected, not installed: third-party code, the owner's decision.
+- **Names only drops "(already intubated)"** from ketamine's and midazolam's "sedation" (the 2026-10-15 incident's distinction). A "/" read as "or" runs into the list's own "or" (cefazolin, atropine).
+- **Gaps:** the cefazolin question says "Cefazolin." at 1.6 s, then 7.2 s of silence. Splitting every long sentence, not only the first, would cut it.
+- **Chroma's top 10 is not repeatable run to run** (8 of 607 queries, from rank 4). Not chased.
+
 ### V2: local voice, Kokoro-82M (owner, 2026-10-25)
 
 **Owner:** "V2: replace /speak with local Kokoro-82M (kokoro-onnx, CPU, weights and voices on disk, espeak-ng via apt; no network after install). Keep the ElevenLabs path deleted, not optional. Measure text-sent → first-audio → audio-end on the 20 harness answers and the magnesium hold; report median and p90. No change to answer text yet. PR, do not merge."

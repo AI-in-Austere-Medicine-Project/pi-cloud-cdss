@@ -63,8 +63,14 @@ GENERAL_REFERENCE_BANNER = (
 )
 
 # Voice disclosure. Short because it is heard before every general answer
-# through an earpiece during care.
-SPOKEN_DISCLOSURE = "From general reference, not JTS:"
+# through an earpiece during care. Owner, 2026-10-26: "never spoken before a
+# hold. For a served general-reference answer the spoken form is 'General
+# reference, not guideline.' No 'JTS' in speech."
+SPOKEN_DISCLOSURE = "General reference, not guideline."
+
+# A hold serves nothing, so it carries no disclosure: the spoken brief of a
+# hold (spoken.HOLD_*) starts "Held.", the full text the hold opener.
+_SPOKEN_HOLD_RE = re.compile(r"^\s*(?:⚠️\s*)?(?:Held\.|Clinical safety hold\.)")
 
 _BANNER_RE = re.compile(
     r'^\s*(?:⚠️\s*)?GENERAL MEDICAL REFERENCE\s*—\s*not from JTS protocols\s*',
@@ -98,7 +104,10 @@ def for_speech(text: str, source: str) -> str:
     """
     if source != "general":
         return text
-    return f"{SPOKEN_DISCLOSURE} {strip_banner(text)}".strip()
+    said = strip_banner(text)
+    if _SPOKEN_HOLD_RE.match(said):
+        return said
+    return f"{SPOKEN_DISCLOSURE} {said}".strip()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
