@@ -1,0 +1,235 @@
+"""V3: first audio sooner.
+
+Owner, 2026-10-26: "Sentence-chunked synthesis: split at sentence boundaries,
+synthesise and stream each chunk as it's ready, so first audio waits only for
+the first sentence."
+
+Offline, with a stand-in engine (as test_tts_contract.py): no model, no
+network.
+
+    cd server && ./run_unit_tests.sh
+"""
+import asyncio
+import io
+import json
+import os
+import pathlib
+import shutil
+import struct
+import subprocess
+import sys
+import types
+import wave
+
+import pytest
+
+pytest.importorskip("fastapi", reason="fastapi is not installed; endpoint tests cannot run")
+httpx = pytest.importorskip("httpx", reason="httpx is not installed; endpoint tests cannot run")
+
+os.environ.setdefault("OPENAI_API_KEY", "test-offline")
+os.environ.setdefault("CDSS_ACCESS_TOKEN", "test-token-not-the-demo-one")
+HERE = pathlib.Path(__file__).parent
+sys.path.insert(0, str(HERE.parent))
+
+if "embeddings" not in sys.modules:
+    _stub = types.ModuleType("embeddings")
+
+    class _StubChroma:
+        def get_collection_count(self):
+            return 0
+
+        def query(self, *a, **k):
+            return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    _stub.ChromaDBClient = _StubChroma
+    sys.modules["embeddings"] = _stub
+
+import main  # noqa: E402
+import tts  # noqa: E402
+
+TOKEN = {"X-Access-Token": main.ACCESS_TOKEN}
+
+
+class _FakeEngine:
+    """Kokoro's create(): 0.1 s of samples per character, so each sentence's
+    WAV says which sentence it was."""
+
+    def __init__(self, fail_on=None):
+        self.calls = []
+        self.fail_on = fail_on
+
+    def create(self, text, voice, speed=1.0, lang="en-us", **k):
+        import numpy as np
+        self.calls.append(text)
+        if self.fail_on and self.fail_on in text:
+            raise RuntimeError("phonemizer exploded")
+        return np.zeros(2400 * len(text), dtype=np.float32), 24000
+
+
+@pytest.fixture
+def engine(monkeypatch, tmp_path):
+    (tmp_path / tts.MODEL_FILE).write_bytes(b"x")
+    (tmp_path / tts.VOICES_FILE).write_bytes(b"x")
+    monkeypatch.setenv("CDSS_KOKORO_DIR", str(tmp_path))
+    eng = _FakeEngine()
+    monkeypatch.setattr(tts, "_load_engine", lambda: eng)
+    monkeypatch.setattr(tts, "_ENGINE", None)
+    return eng
+
+
+def call(method, path, **kw):
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app),
+                                     base_url="http://testserver") as c:
+            return await c.request(method, path, **kw)
+    return asyncio.run(go())
+
+
+def frames_of(body: bytes):
+    out, at = [], 0
+    while at < len(body):
+        kind, (n,) = body[at:at + 1], struct.unpack(">I", body[at + 1:at + 5])
+        out.append((kind, body[at + 5:at + 5 + n]))
+        at += 5 + n
+    assert at == len(body), "a frame was cut short"
+    return out
+
+
+def seconds(wav_bytes):
+    with wave.open(io.BytesIO(wav_bytes)) as w:
+        return round(w.getnframes() / w.getframerate(), 2)
+
+
+# ── Sentence boundaries ─────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("text, want", [
+    ("Held. No signed dose for magnesium. Use local protocol.",
+     ["Held.", "No signed dose for magnesium.", "Use local protocol."]),
+    # A decimal point is not a full stop.
+    ("Draw 0.18 mL of 1 mg/mL epinephrine. Reassess.",
+     ["Draw 0.18 mL of 1 mg/mL epinephrine.", "Reassess."]),
+    # A line break ends a sentence; a list number joins its line.
+    ("Issues identified:\n1. Reassess.\n2. Repeat!", ["Issues identified:", "1. Reassess.", "2. Repeat!"]),
+    ("Which ketamine do you have? 500 mg vial", ["Which ketamine do you have?", "500 mg vial"]),
+    ("e.g. this one. Then that.", ["e.g. this one.", "Then that."]),
+    ("No full stop at all", ["No full stop at all"]),
+    ("  ", []),
+])
+def test_split_sentences(text, want):
+    assert tts.split_sentences(text) == want
+
+
+# ── The stream ──────────────────────────────────────────────────────────────
+
+def test_the_stream_is_one_wav_per_sentence_in_order(engine):
+    r = call("POST", "/speak", json={"text": "Held. No signed dose. Use local protocol.",
+                                     "stream": True}, headers=TOKEN)
+    assert r.status_code == 200, r.text
+    assert r.headers["content-type"] == tts.STREAM_MEDIA_TYPE
+    assert r.headers["X-Speak-Sentences"] == "3" and float(r.headers["X-Synth-Ms"]) >= 0
+    got = frames_of(r.content)
+    assert [k for k, _ in got] == [b"A", b"A", b"A"]
+    assert [seconds(w) for _, w in got] == [0.5, 1.5, 1.9]
+    assert engine.calls == ["Held.", "No signed dose.", "Use local protocol."]
+
+
+def test_first_audio_waits_for_the_first_sentence_only(engine):
+    """The first frame is ready while later sentences are not yet synthesised."""
+    async def go():
+        count, first_ms, frames = await tts.open_stream("One. Two. Three.")
+        assert engine.calls == ["One."]
+        first = await frames.__anext__()
+        assert first[:1] == tts.FRAME_AUDIO and engine.calls == ["One."]
+        rest = [f async for f in frames]
+        return count, rest
+    count, rest = asyncio.run(go())
+    assert count == 3 and len(rest) == 2 and engine.calls == ["One.", "Two.", "Three."]
+
+
+def test_the_streamed_text_is_normalised_as_the_whole_was(engine):
+    call("POST", "/speak", json={"text": "Give 50 mcg IV. Reassess q5min.", "stream": True},
+         headers=TOKEN)
+    assert engine.calls == ["Give 50 micrograms I-V.", "Reassess every 5 minutes."]
+
+
+def test_the_brief_is_still_what_is_spoken(engine):
+    call("POST", "/speak", json={"text": "The whole card. Long.", "brief": "Brief only.",
+                                 "stream": True}, headers=TOKEN)
+    assert engine.calls == ["Brief only."]
+
+
+def test_the_general_disclosure_is_still_spoken_first(engine):
+    call("POST", "/speak", json={"text": "Rest.", "source": "general", "stream": True},
+         headers=TOKEN)
+    first = engine.calls[0]
+    assert first.endswith("Rest.") and first != "Rest.", "the disclosure leads the first sentence"
+
+
+def test_a_failure_before_audio_is_its_status_not_a_200(engine, monkeypatch):
+    engine.fail_on = "One"
+    r = call("POST", "/speak", json={"text": "One. Two.", "stream": True}, headers=TOKEN)
+    assert r.status_code == 503 and "phonemizer exploded" in r.json()["detail"]
+    assert call("POST", "/speak", json={"text": " ", "stream": True},
+                headers=TOKEN).status_code == 400
+    monkeypatch.setenv("CDSS_SPEAK_MAX_CHARS", "5")
+    assert call("POST", "/speak", json={"text": "Too long. Really.", "stream": True},
+                headers=TOKEN).status_code == 413
+
+
+def test_a_failure_after_audio_ends_the_stream_with_its_reason(engine):
+    engine.fail_on = "Two"
+    r = call("POST", "/speak", json={"text": "One. Two. Three.", "stream": True}, headers=TOKEN)
+    assert r.status_code == 200
+    got = frames_of(r.content)
+    assert [k for k, _ in got] == [b"A", b"E"]
+    assert "phonemizer exploded" in got[1][1].decode()
+    assert "Three." not in engine.calls
+
+
+def test_without_stream_speak_still_answers_one_wav(engine):
+    r = call("POST", "/speak", json={"text": "One. Two."}, headers=TOKEN)
+    assert r.headers["content-type"] == "audio/wav"
+    assert engine.calls == ["One. Two."]
+
+
+def test_the_stream_needs_the_token(engine):
+    assert call("POST", "/speak", json={"text": "One.", "stream": True}).status_code in (401, 403)
+
+
+# ── The portal ──────────────────────────────────────────────────────────────
+
+def _harness(*args):
+    proc = subprocess.run(["node", str(HERE / "tts_stream_harness.js"),
+                           str(HERE.parent / "static" / "index.html"), *args],
+                          capture_output=True, text=True, timeout=60)
+    out = json.loads(proc.stdout)
+    assert "error" not in out, out
+    return out
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_the_portal_plays_each_sentence_as_it_lands_back_to_back():
+    out = _harness()
+    speak, timing = out["calls"][0], out["calls"][1]
+    assert speak["url"] == "/speak" and speak["body"]["stream"] is True
+    s = out["started"]
+    assert [x["duration"] for x in s] == [2, 3]
+    # The second sentence is queued after the first, with the breath between.
+    assert s[1]["at"] == pytest.approx(s[0]["at"] + 2 + 0.15)
+    t = timing["body"]
+    assert timing["url"] == "/speak/timing" and t["outcome"] == "ended"
+    assert t["query_id"] == "q-7" and t["synth_ms"] == 110
+    # First audio is the first frame, not the whole stream: the stub stream
+    # takes 10 ms per 4-byte read, and the first frame is in the first 8 bytes.
+    assert t["text_sent_to_response_ms"] == 120
+    assert t["first_audio_ms"] < 160
+    assert t["audio_end_ms"] > t["first_audio_ms"]
+    assert out["button"] == "🔊 listen"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_the_portal_names_a_failure_after_audio_started():
+    out = _harness("error")
+    assert len(out["started"]) == 2, "what was spoken stands"
+    assert out["calls"][1]["body"]["outcome"] == "error"
+    assert out["button"] == "audio unavailable" and "boom" in out["title"]

@@ -26,7 +26,9 @@ import io
 import os
 import pathlib
 import re as _re
+import struct
 import threading
+import time
 import wave
 
 # One numeric-env parser for the repo: a typo'd knob degrades to the default
@@ -154,8 +156,9 @@ def _synthesize_blocking(text: str) -> bytes:
     return _wav(samples, sample_rate)
 
 
-async def synthesize(text: str) -> bytes:
-    """WAV bytes for `text`, or VoiceUnavailable carrying the status and reason."""
+def _checked(text: str) -> str:
+    """The text to speak, or VoiceUnavailable: 400 empty, 413 over the cap,
+    503 not configured. Decided before any synthesis."""
     text = (text or "").strip()
     if not text:
         raise VoiceUnavailable(400, "No text provided")
@@ -168,7 +171,10 @@ async def synthesize(text: str) -> bytes:
     problem = config_problem()
     if problem:
         raise VoiceUnavailable(503, problem)
+    return text
 
+
+async def _synthesize_off_loop(text: str) -> bytes:
     # CPU-bound for seconds: off the event loop, or /health stalls behind it
     # and the watchdog restarts the service (AE-4).
     try:
@@ -176,6 +182,82 @@ async def synthesize(text: str) -> bytes:
     except Exception as e:
         raise VoiceUnavailable(
             503, f"local voice failed ({type(e).__name__}: {str(e)[:200]})") from e
+
+
+async def synthesize(text: str) -> bytes:
+    """WAV bytes for `text`, or VoiceUnavailable carrying the status and reason."""
+    return await _synthesize_off_loop(_checked(text))
+
+
+# ── V3: sentence by sentence ─────────────────────────────────────────────────
+# Owner, 2026-10-26: "split at sentence boundaries, synthesise and stream each
+# chunk as it's ready, so first audio waits only for the first sentence."
+#
+# A sentence ends at . ! or ? followed by white space, or at a line break. A
+# decimal point is followed by a digit, so "0.18" never splits. A piece with
+# no letter in it ("1.", "-") is not a sentence: it joins the next one, and
+# so does one that ends in an abbreviation ("e.g.").
+_SENTENCE_END_RE = _re.compile(r"(?<=[.!?])\s+|\s*\n\s*")
+_HAS_LETTER_RE = _re.compile(r"[A-Za-z]")
+_ABBREV_END_RE = _re.compile(r"\b(?:e\.g|i\.e|etc|approx|vs|Dr|No)\.$", _re.IGNORECASE)
+
+
+def split_sentences(text: str) -> list:
+    out, carry = [], ""
+    for piece in _SENTENCE_END_RE.split(text or ""):
+        piece = piece.strip()
+        if not piece:
+            continue
+        piece = f"{carry} {piece}".strip() if carry else piece
+        if _HAS_LETTER_RE.search(piece) and not _ABBREV_END_RE.search(piece):
+            out.append(piece)
+            carry = ""
+        else:
+            carry = piece
+    if carry:
+        if out:
+            out[-1] = f"{out[-1]} {carry}"
+        else:
+            out.append(carry)
+    return out
+
+
+# The stream is a run of frames: one type byte, a 4-byte big-endian length,
+# then the payload. b"A" is a complete WAV of one sentence, played in order;
+# b"E" is a failure after audio has started, UTF-8 text naming it. A WAV per
+# frame lets the portal decode each with decodeAudioData as it lands.
+FRAME_AUDIO = b"A"
+FRAME_ERROR = b"E"
+STREAM_MEDIA_TYPE = "application/vnd.edgecdss.audio-frames"
+
+
+def frame(kind: bytes, payload: bytes) -> bytes:
+    return kind + struct.pack(">I", len(payload)) + payload
+
+
+async def open_stream(text: str):
+    """(sentence count, the first sentence's synthesis ms, an async iterator of
+    frames). Every failure before audio exists is raised here, with its status:
+    the first sentence is synthesised before this returns, so /speak can still
+    answer 503 rather than a 200 that carries no audio. A failure on a later
+    sentence ends the stream with an error frame; what was spoken stands."""
+    sentences = split_sentences(_checked(text))
+    t0 = time.perf_counter()
+    first = await _synthesize_off_loop(sentences[0])
+    first_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+    async def frames():
+        yield frame(FRAME_AUDIO, first)
+        for s in sentences[1:]:
+            try:
+                audio = await _synthesize_off_loop(s)
+            except VoiceUnavailable as e:
+                print(f"⚠️  /speak stream stopped: {e.detail}")
+                yield frame(FRAME_ERROR, e.detail.encode("utf-8"))
+                return
+            yield frame(FRAME_AUDIO, audio)
+
+    return len(sentences), first_ms, frames()
 
 
 def normalize_for_speech(text: str) -> str:
