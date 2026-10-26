@@ -161,8 +161,22 @@ def test_the_brief_is_still_what_is_spoken(engine):
 def test_the_general_disclosure_is_still_spoken_first(engine):
     call("POST", "/speak", json={"text": "Rest.", "source": "general", "stream": True},
          headers=TOKEN)
-    first = engine.calls[0]
-    assert first.endswith("Rest.") and first != "Rest.", "the disclosure leads the first sentence"
+    # Owner, 2026-10-26: the disclosure is its own sentence, spoken first.
+    assert engine.calls[:2] == ["General reference, not guideline.", "Rest."]
+
+
+def test_no_disclosure_before_a_general_hold(engine):
+    call("POST", "/speak", json={"text": "x", "source": "general", "stream": True,
+                                 "brief": "Held. The cefazolin dose in the answer is not the "
+                                          "signed dose. Use local protocol."}, headers=TOKEN)
+    assert engine.calls[0] == "Held."
+    assert not any("general reference" in c.lower() for c in engine.calls)
+
+
+def test_no_jts_in_any_spoken_disclosure():
+    import general_reference as gr
+    for text in ("Rest.", "Held. Use local protocol.", gr.GENERAL_REFERENCE_BANNER + "Rest."):
+        assert "JTS" not in gr.for_speech(text, "general")
 
 
 def test_a_failure_before_audio_is_its_status_not_a_200(engine, monkeypatch):
@@ -351,3 +365,4 @@ def test_the_real_model_speaks_on_whichever_device_it_got(monkeypatch):
     monkeypatch.setattr(tts, "_DEVICE", None)
     audio = asyncio.run(tts.synthesize("Reassess in five minutes."))
     assert audio.startswith(b"RIFF") and tts.device()["device"] in ("gpu", "cpu")
+
