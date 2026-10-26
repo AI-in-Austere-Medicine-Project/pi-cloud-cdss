@@ -153,6 +153,9 @@ class QueryResponse(BaseModel):
     # content, see brief.py — and the section names the client must not fold.
     brief: str = ""
     critical_sections: list = []
+    # V3: what the listen button says. Fixed templates, no model wording;
+    # see spoken.py. The screen still shows the brief and the full response.
+    spoken_brief: str = ""
     # C1: the id of this answer (on its log line too) and the pipeline's own
     # source_mode, both sent back with a feedback report about it.
     query_id: str = ""
@@ -271,6 +274,7 @@ def _query_response(result: dict, request: "QueryRequest", ms: int) -> "QueryRes
         patient_context=result.get("patient_context") or {},
         vitals_cautions=result.get("vitals_cautions", []),
         brief=result.get("brief") or "",
+        spoken_brief=result.get("spoken_brief") or "",
         critical_sections=result.get("critical_sections") or [],
         query_id=result.get("query_id") or "",
         source_mode=result.get("source_mode") or ""
