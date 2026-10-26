@@ -99,7 +99,8 @@ def time_one(speak, stream):
     return {"synth_ms": float(synth) if synth else None, "sentences": len(arrivals),
             "first_audio_ms": round(arrivals[0][0], 1),
             "audio_ms": round(sum(d for _, d in arrivals) * 1000, 1),
-            "audio_end_ms": round(end, 1), "underrun_ms": round(gaps, 1)}
+            "audio_end_ms": round(end, 1), "underrun_ms": round(gaps, 1),
+            "frames": [[round(at, 1), round(dur, 3)] for at, dur in arrivals]}
 
 
 def run(payloads, path, stream):

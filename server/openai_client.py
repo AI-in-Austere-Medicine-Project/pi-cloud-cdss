@@ -52,6 +52,7 @@ from dataclasses import dataclass, field, asdict, replace as dc_replace
 from functools import lru_cache
 from typing import Literal, Optional, List, Tuple
 import brief as brief_mod
+import spoken as spoken_mod
 import general_reference
 import latency
 import providers
@@ -7914,7 +7915,8 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
 
 
 def attach_brief(result: dict) -> dict:
-    """Add `brief` and `critical_sections`. Reads the response; changes nothing.
+    """Add `brief`, `critical_sections` and `spoken_brief`. Reads the response;
+    changes nothing.
 
     Last, after _finalise, so the brief is built from exactly the text that is
     served — stripped volumes, notices and holds included — and so no gate,
@@ -7926,6 +7928,8 @@ def attach_brief(result: dict) -> dict:
         weight_kg=pc.get("confirmed_weight_kg"), age_years=pc.get("age_years"))
     result["brief"] = out["brief"]
     result["critical_sections"] = out["critical_sections"]
+    # V3: what the listen button says, from fixed templates (spoken.py).
+    result["spoken_brief"] = spoken_mod.build(result)
     return result
 
 

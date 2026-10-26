@@ -1086,10 +1086,12 @@ async function ask(followUp, inputMode) {
     });
     decoration('listen button', function () {
       pending.querySelector('.listen').onclick = function () {
-        // The brief is what is heard; the server speaks it in preference to
-        // the full text whenever it is sent. An older server sends no brief.
+        // V3: the spoken brief is what is heard (server/spoken.py: fixed
+        // templates, no model wording); the server speaks what is sent as the
+        // brief in preference to the full text. An older server sends no
+        // spoken brief, and its on-screen brief is spoken as before.
         speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source,
-              d.brief || '', d.query_id || '');
+              d.spoken_brief || d.brief || '', d.query_id || '');
       };
     });
     decoration('section toggles', function () {

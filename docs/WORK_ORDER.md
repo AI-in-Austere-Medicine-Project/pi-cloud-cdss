@@ -90,7 +90,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B2 | Generator section headers | **done**: #129, merged and deployed |
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
-| V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **in review**; owner, 2026-10-25 |
+| V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **done**: #185, merged; owner, 2026-10-25 |
+| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **in review**; owner, 2026-10-26 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1190,6 +1191,35 @@ A changed row that neither side can judge is listed as unjudged and never counte
   The #170 and #174 rows are entries signed in batches 2 and 3 now being offered; with the generator stubbed, the replay shows what is offered, not what the model writes.
 
 **Found (2026-10-23), counted since 2026-10-24 by newly doses:** under this definition a question that becomes a served dose ("versed dose IM", #174) and a no-dose card that becomes a dose ("push dose epi, BP 70/40 shocky", #177, the E05 card signed off 2026-10-23) are serve-to-serve, so the count does not flag them. Both were found by reading the changed rows and reported at the time.
+
+### V3: voice, first audio sooner (owner, 2026-10-26)
+
+**Owner:** "V3, three commits, measure after each on the same 21 items: 1. Sentence-chunked synthesis: split at sentence boundaries, synthesise and stream each chunk as it's ready, so first audio waits only for the first sentence. 2. Run Kokoro on the GPU (onnxruntime with the CUDA provider on JetPack, or the PyTorch package with CUDA); fall back to CPU if it fails. Report real-time factor both ways. 3. A spoken brief for every answer: cards and doses speak the GIVE line and one WATCH line; a hold speaks one sentence ("Held. No signed dose for magnesium. Use local protocol."); the full text stays on screen. Numbers and units written out for speech: "zero point one eight millilitres", "micrograms", "every five minutes", never abbreviations. Fixed templates, tested, no model wording in the spoken brief. Report first-audio median and p90 after each commit. PR, do not merge."
+
+**Done (one PR, three commits, each with its tests):**
+- **1. Sentence by sentence:** `tts.split_sentences` and `tts.open_stream`. The first sentence is synthesised before `/speak` answers, so a failure is still its status. Frames are one WAV per sentence; an error frame names a failure after audio started. The portal plays each sentence as it lands (Web Audio), and falls back to the whole WAV.
+- **2. GPU, else CPU:** `tts._load_engine` asks for CUDA, then reads back what the session got. A load or synthesis failure ends on the CPU with the reason. `CDSS_KOKORO_DEVICE`; `/status voice_device`.
+- **3. Spoken brief:** `spoken.py`, `spoken_brief` on `/query`, spoken by the portal. A hold is one of three sentences. Doses come from the code-made dose line; drug names from the index. A card adds one WATCH line. A model answer is heard only through the templates.
+
+**Timing** (`docs/VOICE_FIRST_AUDIO_V3_2026-10-26.md`; same 21 texts):
+
+| | First audio median / p90 | Audio end median / p90 |
+|---|---|---|
+| Before (whole WAV) | 18.8 / 30.4 s | 44.1 / 69.9 s |
+| 1. Sentences | 4.2 / 9.5 s | 37.8 / 56.4 s |
+| 2. GPU, else CPU | 4.0 / 7.2 s | 37.0 / 55.1 s |
+| 3. Spoken brief | 3.7 / 7.2 s | 14.4 / 25.3 s |
+
+- **Real-time factor:** CPU 0.77 (whole clips; 0.81 first sentences). **GPU not measured:** `cuInit` fails with CUDA error 801 for the service user, with or without onnxruntime. The probable cause is that the user is not in the `render` group (the `ollama` user is, and its GPU works). Commit 2's fallback ran for real.
+- **Replay vs main b33fc4c:** served 1,738, held 308, gate 1,408, live logs 3,885, pipeline 831. 0 changed in every one; the outputs are byte-identical.
+- **Suite:** 3,709 passed. 1 failed: the corpus alias count, which fails the same way on main. **Harness:** 29 / 29.
+- **Commits, not test-first commits:** the owner asked for three commits measured one after another, so each commit carries its own tests rather than a separate failing-test commit.
+
+**Found, not changed (owner to rule):**
+- **GPU access:** `sudo usermod -aG render andrew`, restart, and `onnxruntime-gpu==1.31.0` in the service venv. The last step also moves Chroma's embedder (the same `onnxruntime` module): replay it first, or pin Chroma to the CPU.
+- **The general-reference disclosure** still says "JTS" aloud, and is spoken before a general-source hold.
+- **The hold names "magnesium sulfate"** (the index's name), not "magnesium".
+- **First audio is bounded by the first sentence:** the 165-character cefazolin indication question takes 11.3 s.
 
 ### V2: local voice, Kokoro-82M (owner, 2026-10-25)
 
