@@ -70,4 +70,4 @@
 
 - **Answer text** is unchanged (owner).
 - **No streaming and no quantised model.** V2 is the replacement and its measurement, so neither was tried.
-- **`client/cdss_client.py`**, the separate desktop client, still calls ElevenLabs directly with its own key. It doesn't go through `/speak` and is not touched here. Owner to rule.
+- **`client/cdss_client.py`**, the separate desktop client, still calls ElevenLabs directly with its own key. It doesn't go through `/speak` and is not touched here. Owner ruled 2026-10-26: delete; done in its own PR.
