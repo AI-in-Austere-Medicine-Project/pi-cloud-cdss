@@ -90,7 +90,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B2 | Generator section headers | **done**: #129, merged and deployed |
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
-| V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **in review**; owner, 2026-10-25 |
+| V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **done**: #185, merged; owner, 2026-10-25 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1221,7 +1221,7 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - No change to answer text.
 
 **Found, not changed (owner to rule):**
-- `client/cdss_client.py`, the separate desktop client, still calls ElevenLabs directly. It doesn't go through `/speak`.
+- `client/cdss_client.py`, the separate desktop client, still calls ElevenLabs directly. It doesn't go through `/speak`. **Ruled 2026-10-26: delete.** Done in its own PR: the client prints the answer and no longer speaks; `elevenlabs` and `pygame` are out of `client/requirements.txt`; `server/tests/test_client_no_cloud_voice.py` pins it.
 - `server/tools/latency_run.py` (V1) ran its whole run when imported. It is now guarded under `__main__`, and that is fixed in this PR. The V2 measurement imported it, so the V1 51-item run went first in the same process. It ran sequentially, before any `/speak` was timed.
 
 ### V1: voice latency baseline (owner, 2026-10-25)
