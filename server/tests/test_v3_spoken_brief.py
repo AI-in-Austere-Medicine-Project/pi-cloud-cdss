@@ -333,8 +333,8 @@ CEFAZOLIN_Q = ("Which indication for cefazolin — penetrating brain or spinal i
 
 def test_which_indication_is_drug_then_names():
     assert spoken.build({"response": CEFAZOLIN_Q}) == (
-        "Cefazolin. Which indication: penetrating brain or spinal injury, antibiotic prophylaxis, "
-        "ventriculostomy in place or open fracture or wound infection prophylaxis?")
+        "Cefazolin. Which indication: penetrating brain or spinal injury, antibiotic prophylaxis; "
+        "ventriculostomy in place; open fracture or wound infection prophylaxis?")
 
 
 # ── Owner, 2026-10-26 (round 3): spoken options keep their qualifiers ───────
@@ -367,6 +367,8 @@ def test_the_question_the_pipeline_writes_gets_the_template():
             continue
         asked += 1
         said = spoken.build({"response": q})
+        if said == spoken.MANY_INDICATIONS:
+            continue
         assert said.startswith(spoken._capitalised(spoken._say_drug(drug)) + ". Which indication: "), q
         assert said.endswith("?") and not spoken._unspeakable(said), said
     assert asked >= 3
@@ -376,3 +378,36 @@ def test_a_question_that_does_not_rebuild_is_not_templated():
     # An option not in INDICATION_CLASSES: the template is not used.
     odd = "Which indication for cefazolin — sepsis or something unlisted?"
     assert not spoken.build({"response": odd}).startswith("Cefazolin. Which indication:")
+
+
+# ── Owner, 2026-10-26 (round 3): up to four options, a pause between each ────
+
+def test_options_are_separated_by_a_pause_and_or_stays_inside_one():
+    q = ("Which indication for midazolam — agitation, pacing or cardioversion, "
+         "sedation (already intubated) or seizure?")
+    assert spoken.build({"response": q}) == (
+        "Midazolam. Which indication: agitation; pacing or cardioversion; "
+        "sedation, already intubated; seizure?")
+
+
+def test_a_slash_is_or_inside_its_option():
+    q = "Which indication for atropine — bradycardia or nerve agent / organophosphate poisoning?"
+    assert spoken.build({"response": q}) == (
+        "Atropine. Which indication: bradycardia; nerve agent or organophosphate poisoning?")
+
+
+def test_five_options_are_not_read_out():
+    q = "Which indication for ketamine — agitation, RSI, sedation (already intubated), seizure or pain?"
+    assert spoken.build({"response": q}) == "Several indications are on screen. Say one."
+    assert spoken.MANY_INDICATIONS == "Several indications are on screen. Say one."
+
+
+def test_no_spoken_question_joins_options_with_or():
+    for drug in sorted(oc.drug_contracts.servable_entries()):
+        h = f"80 kg adult, give {drug}"
+        q = oc.which_indication_question(h, oc.rebuild_patient_context_from_history(h))
+        if not q:
+            continue
+        said = spoken.build({"response": q})
+        options = said.partition("Which indication: ")[2].rstrip("?").split("; ")
+        assert said == spoken.MANY_INDICATIONS or 2 <= len(options) <= spoken.INDICATION_LIST_MAX, said
