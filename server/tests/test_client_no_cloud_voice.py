@@ -13,8 +13,9 @@ CLIENT = pathlib.Path(__file__).resolve().parents[2] / "client"
 
 
 def test_the_client_has_no_elevenlabs_path():
+    """Code, not prose: the docstring records that the path was deleted."""
     src = (CLIENT / "cdss_client.py").read_text()
-    assert not re.search(r"elevenlabs|ELEVENLABS|xi-api-key", src, re.I)
+    assert not re.search(r"(import|from)\s+elevenlabs|ELEVENLABS_API_KEY|xi-api-key|elevenlabs\.io", src)
 
 
 def test_the_client_does_not_install_elevenlabs():
