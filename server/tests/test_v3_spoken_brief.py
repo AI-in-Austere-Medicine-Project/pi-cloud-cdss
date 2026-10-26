@@ -333,8 +333,21 @@ CEFAZOLIN_Q = ("Which indication for cefazolin — penetrating brain or spinal i
 
 def test_which_indication_is_drug_then_names():
     assert spoken.build({"response": CEFAZOLIN_Q}) == (
-        "Cefazolin. Which indication: penetrating brain or spinal injury, ventriculostomy in "
-        "place or open fracture or wound infection prophylaxis?")
+        "Cefazolin. Which indication: penetrating brain or spinal injury, antibiotic prophylaxis, "
+        "ventriculostomy in place or open fracture or wound infection prophylaxis?")
+
+
+# ── Owner, 2026-10-26 (round 3): spoken options keep their qualifiers ───────
+
+def test_sedation_keeps_already_intubated():
+    assert spoken.indication_name("sedation (already intubated)") == "sedation, already intubated"
+
+
+def test_no_option_loses_its_qualifier():
+    for _name, word, _l, _c in oc.INDICATION_CLASSES:
+        said = spoken.indication_name(word)
+        for qualifier in re.findall(r"\(([^)]*)\)", word):
+            assert said.endswith(", " + qualifier), (word, said)
 
 
 def test_every_indication_option_has_a_spoken_name():

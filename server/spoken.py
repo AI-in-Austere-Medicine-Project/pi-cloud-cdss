@@ -377,11 +377,11 @@ def _indication(item: str):
 
 
 def indication_name(word: str):
-    """One option of the which-indication question, as a name for speech:
-    the bracketed qualifier dropped ("penetrating brain or spinal injury
-    (antibiotic prophylaxis)" -> "penetrating brain or spinal injury"), the
-    rest through speak_line. None if it cannot be said."""
-    said = speak_line(re.sub(r"\s*\([^)]*\)", "", word))
+    """One option of the which-indication question, as a name for speech,
+    through speak_line. The bracketed qualifier is kept after a comma: owner,
+    2026-10-26, "sedation, already intubated", never plain "sedation". None if
+    it cannot be said."""
+    said = speak_line(word)
     return said.rstrip(".") if said else None
 
 
