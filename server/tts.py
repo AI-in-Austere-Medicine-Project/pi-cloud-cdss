@@ -307,24 +307,31 @@ def split_sentences(text: str) -> list:
 # leaves the chunk within 80 characters, else the first mark after; the mark
 # must be followed by white space, so "2,000" never splits. With no mark the
 # sentence is spoken whole.
-FIRST_CHUNK_MAX = 80
+CHUNK_MAX = 80
 _CLAUSE_END_RE = _re.compile(r"[,:;](?=\s)")
 
 
+def _split_long(sentence: str) -> list:
+    """A sentence over CHUNK_MAX, cut at clause marks until each piece fits:
+    each cut at the last mark within CHUNK_MAX, else the first mark after."""
+    pieces, rest = [], sentence
+    while len(rest) > CHUNK_MAX:
+        marks = [m.end() for m in _CLAUSE_END_RE.finditer(rest)
+                 if _HAS_LETTER_RE.search(rest[:m.end()]) and rest[m.end():].strip()]
+        if not marks:
+            break
+        within = [i for i in marks if i <= CHUNK_MAX]
+        cut = within[-1] if within else marks[0]
+        pieces.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+    return pieces + [rest]
+
+
 def speech_chunks(text: str) -> list:
-    """The pieces /speak streams: split_sentences, with a long first sentence
-    split once at a clause mark."""
-    out = split_sentences(text)
-    if not out or len(out[0]) <= FIRST_CHUNK_MAX:
-        return out
-    first = out[0]
-    marks = [m.end() for m in _CLAUSE_END_RE.finditer(first)
-             if _HAS_LETTER_RE.search(first[:m.end()]) and first[m.end():].strip()]
-    if not marks:
-        return out
-    within = [i for i in marks if i <= FIRST_CHUNK_MAX]
-    cut = within[-1] if within else marks[0]
-    return [first[:cut].strip(), first[cut:].strip()] + out[1:]
+    """The pieces /speak streams: split_sentences, with every sentence over
+    CHUNK_MAX split at clause marks (owner, 2026-10-26: no long silence while
+    a long sentence is synthesised)."""
+    return [piece for s in split_sentences(text) for piece in _split_long(s)]
 
 
 # The stream is a run of frames: one type byte, a 4-byte big-endian length,
