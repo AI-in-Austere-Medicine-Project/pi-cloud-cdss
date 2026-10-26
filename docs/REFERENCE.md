@@ -243,7 +243,7 @@ Mirrors the v1.1 section of `WORK_ORDER.md` (owner, 2026-10-11: everything on th
 | The which-indication question reads "agitation, pacing or cardioversion or sedation (already intubated)". | v5.1.0 replay |
 | The age parser leaves age unset for "12 kg child, 2 years old". | v5.1.0 (A36 tests) |
 | Signing list: magnesium sulfate (owner, 2026-10-25). Until signed, every magnesium question holds before the model (A39). | A39 |
-| `negated_drugs` does not read a curly apostrophe: "I don’t want ketamine", as a phone types it, is not a refusal, so the pending-question rule keeps ketamine in scope (on main the live fixture with no history was asked "IV or IM?"). A39 reads it for its own hold only. | A39 replay |
+| `negated_drugs` does not read a curly apostrophe: "I don’t want ketamine", as a phone types it, is not a refusal, so the pending-question rule keeps ketamine in scope (on main the live fixture with no history was asked "IV or IM?"). A39 reads it for its own hold only. **Fixed** (curly-apostrophe PR, owner 2026-10-25): `negated_drugs` reads U+2019, U+2018 and U+02BC as an apostrophe. | A39 replay |
 | A drug refused in an earlier turn is asked about again: after the held magnesium turn, "75 kg" is asked "IV or IM?" for the refused ketamine (same on main). | A39 harness |
 | A follow-up that does not name the unsigned drug ("how much?") is not held by A39; it reaches the model, and the dose check reads what it writes. | A39 |
 | "rsi" is still a substring match in the route-question gate, the paralytic-without-induction check and the non-medical override list; changing them would loosen a check or move routing. | v5.1.0 (pacing match) |

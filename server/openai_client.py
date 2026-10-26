@@ -1280,9 +1280,14 @@ def _drug_spans(text: str) -> list:
                        for s2, e2, _ in spans)]
 
 
+# A phone types "don’t" (U+2019), sometimes "don‘t" or "donʼt": the same
+# word. One character for one, so every offset into the text stays valid.
+_APOSTROPHES = str.maketrans({"\u2019": "'", "\u2018": "'", "\u02bc": "'"})
+
+
 def negated_drugs(text: str) -> set:
     """Drugs the turn names only to refuse them."""
-    low = (text or "").lower()
+    low = (text or "").lower().translate(_APOSTROPHES)
     out, kept = set(), set()
     prev_end = 0
     for start, end, generic in sorted(_drug_spans(low)):
