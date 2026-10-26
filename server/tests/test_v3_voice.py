@@ -366,3 +366,40 @@ def test_the_real_model_speaks_on_whichever_device_it_got(monkeypatch):
     audio = asyncio.run(tts.synthesize("Reassess in five minutes."))
     assert audio.startswith(b"RIFF") and tts.device()["device"] in ("gpu", "cpu")
 
+
+# ── Owner, 2026-10-26: a long first sentence splits at a clause mark ─────────
+
+def test_short_first_sentence_is_not_split():
+    assert tts.speech_chunks("Held. No signed dose for magnesium sulfate.") == [
+        "Held.", "No signed dose for magnesium sulfate."]
+
+
+def test_long_first_sentence_splits_at_the_last_mark_within_80():
+    s = ("Which ketamine do you have, five hundred milligrams in ten millilitres vial, "
+         "fifty milligrams per millilitre? Then the dose.")
+    got = tts.speech_chunks(s)
+    assert got == ["Which ketamine do you have, five hundred milligrams in ten millilitres vial,",
+                   "fifty milligrams per millilitre?", "Then the dose."]
+    assert len(got[0]) <= tts.FIRST_CHUNK_MAX
+
+
+def test_only_the_first_sentence_splits():
+    long = "Watch: " + "pulse, " * 15 + "pressure."
+    assert tts.speech_chunks("Give it. " + long) == ["Give it.", long]
+
+
+def test_first_mark_after_80_when_none_within():
+    s = "A" * 90 + ", then the rest; and more."
+    assert tts.speech_chunks(s) == ["A" * 90 + ",", "then the rest; and more."]
+
+
+def test_a_number_comma_is_not_a_clause_mark():
+    s = "Give " + "x " * 40 + "2,000 units now."
+    assert tts.speech_chunks(s) == [s]
+
+
+def test_the_stream_speaks_the_chunks(engine):
+    s = "Which ketamine do you have, five hundred milligrams in ten millilitres vial, fifty milligrams per millilitre?"
+    r = call("POST", "/speak", json={"text": s, "stream": True}, headers=TOKEN)
+    assert r.headers["X-Speak-Sentences"] == "2"
+    assert engine.calls[0].endswith("vial,")

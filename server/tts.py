@@ -301,6 +301,32 @@ def split_sentences(text: str) -> list:
     return out
 
 
+# Owner, 2026-10-26: "First chunk may split at a comma, colon or semicolon if
+# the first sentence exceeds 80 characters." Only the first, and only once:
+# first audio waits for that chunk alone. The split is the last such mark that
+# leaves the chunk within 80 characters, else the first mark after; the mark
+# must be followed by white space, so "2,000" never splits. With no mark the
+# sentence is spoken whole.
+FIRST_CHUNK_MAX = 80
+_CLAUSE_END_RE = _re.compile(r"[,:;](?=\s)")
+
+
+def speech_chunks(text: str) -> list:
+    """The pieces /speak streams: split_sentences, with a long first sentence
+    split once at a clause mark."""
+    out = split_sentences(text)
+    if not out or len(out[0]) <= FIRST_CHUNK_MAX:
+        return out
+    first = out[0]
+    marks = [m.end() for m in _CLAUSE_END_RE.finditer(first)
+             if _HAS_LETTER_RE.search(first[:m.end()]) and first[m.end():].strip()]
+    if not marks:
+        return out
+    within = [i for i in marks if i <= FIRST_CHUNK_MAX]
+    cut = within[-1] if within else marks[0]
+    return [first[:cut].strip(), first[cut:].strip()] + out[1:]
+
+
 # The stream is a run of frames: one type byte, a 4-byte big-endian length,
 # then the payload. b"A" is a complete WAV of one sentence, played in order;
 # b"E" is a failure after audio has started, UTF-8 text naming it. A WAV per
@@ -320,7 +346,7 @@ async def open_stream(text: str):
     the first sentence is synthesised before this returns, so /speak can still
     answer 503 rather than a 200 that carries no audio. A failure on a later
     sentence ends the stream with an error frame; what was spoken stands."""
-    sentences = split_sentences(_checked(text))
+    sentences = speech_chunks(_checked(text))
     t0 = time.perf_counter()
     first = await _synthesize_off_loop(sentences[0])
     first_ms = round((time.perf_counter() - t0) * 1000, 1)
