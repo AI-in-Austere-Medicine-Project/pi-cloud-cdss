@@ -202,6 +202,7 @@ async def _status_payload():
     return {"message": "CDSS Cloud API", "status": "running", "version": __version__,
             "voice_support": tts.voice_available(),
             "voice_detail": tts.config_problem() or "",
+            "voice_device": tts.device(),
             "provider_detail": provider_detail,
             "models": models,
             "default_model": providers.default_model()}

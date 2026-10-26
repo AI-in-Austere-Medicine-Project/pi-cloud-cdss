@@ -1,5 +1,5 @@
 """
-EdgeCDSS — voice output: Kokoro-82M on the device (kokoro-onnx, CPU).
+EdgeCDSS — voice output: Kokoro-82M on the device (kokoro-onnx; GPU, else CPU).
 
 V2 (owner, 2026-10-25): "replace /speak with local Kokoro-82M (kokoro-onnx,
 CPU, weights and voices on disk, espeak-ng via apt; no network after install).
@@ -118,12 +118,65 @@ def voice_available() -> bool:
     return config_problem() is None
 
 
-def _load_engine():
+# V3 (owner, 2026-10-26): "Run Kokoro on the GPU ... fall back to CPU if it
+# fails." CDSS_KOKORO_DEVICE is auto (the default: the GPU when onnxruntime can
+# start its CUDA provider, else the CPU), gpu (the same, said explicitly) or
+# cpu. Voice is never lost for want of a GPU: every GPU failure, at load or in
+# synthesis, ends on the CPU with the reason logged and in /status.
+CUDA = "CUDAExecutionProvider"
+CPU = "CPUExecutionProvider"
+_DEVICE = None           # "gpu" or "cpu" once the model is loaded
+_DEVICE_NOTE = ""        # why it is on the CPU, when it is
+
+
+def _ort_providers() -> list:
+    import onnxruntime
+    return onnxruntime.get_available_providers()
+
+
+def _build_engine(providers: list):
+    """(the model on a session asking for `providers`, the providers the
+    session actually got: onnxruntime falls back to the CPU on its own when
+    the CUDA provider cannot start, and says so only in its log)."""
+    import onnxruntime as rt
     from kokoro_onnx import EspeakConfig, Kokoro
     lib, data = _espeak_paths()
     d = _model_dir()
-    return Kokoro(str(d / MODEL_FILE), str(d / VOICES_FILE),
-                  espeak_config=EspeakConfig(lib_path=lib, data_path=data))
+    opts = rt.SessionOptions()
+    opts.log_severity_level = 3
+    sess = rt.InferenceSession(str(d / MODEL_FILE), opts, providers=providers)
+    eng = Kokoro.from_session(sess, str(d / VOICES_FILE),
+                              espeak_config=EspeakConfig(lib_path=lib, data_path=data))
+    return eng, list(sess.get_providers())
+
+
+def _load_engine():
+    global _DEVICE, _DEVICE_NOTE
+    wanted = (os.getenv("CDSS_KOKORO_DEVICE") or "auto").strip().lower()
+    if wanted == "cpu":
+        note = "CDSS_KOKORO_DEVICE=cpu"
+    elif CUDA not in _ort_providers():
+        note = "onnxruntime here has no CUDA provider (onnxruntime-gpu is not installed)"
+    else:
+        try:
+            eng, got = _build_engine([CUDA, CPU])
+        except Exception as e:
+            note = f"the CUDA provider failed to load ({type(e).__name__}: {str(e)[:160]})"
+        else:
+            if got and got[0] == CUDA:
+                _DEVICE, _DEVICE_NOTE = "gpu", ""
+                print("🔊 voice: Kokoro on the GPU (CUDA)")
+                return eng
+            # onnxruntime fell back by itself: this session is already a CPU one.
+            _DEVICE = "cpu"
+            _DEVICE_NOTE = ("the CUDA provider did not start, so onnxruntime fell back to "
+                            "the CPU (no GPU access for this user?)")
+            print(f"⚠️  voice: Kokoro on the CPU: {_DEVICE_NOTE}")
+            return eng
+    eng, _ = _build_engine([CPU])
+    _DEVICE, _DEVICE_NOTE = "cpu", note
+    print(f"🔊 voice: Kokoro on the CPU: {note}")
+    return eng
 
 
 def _engine():
@@ -133,6 +186,25 @@ def _engine():
         if _ENGINE is None:
             _ENGINE = _load_engine()
         return _ENGINE
+
+
+def _fall_back_to_cpu(failed, why: str):
+    """A synthesis failed on the GPU: the model moves to the CPU for good.
+    `failed` is the engine that failed, so two threads failing together load
+    the CPU model once."""
+    global _ENGINE, _DEVICE, _DEVICE_NOTE
+    with _ENGINE_LOCK:
+        if _ENGINE is failed:
+            _ENGINE, _ = _build_engine([CPU])
+            _DEVICE, _DEVICE_NOTE = "cpu", why
+            print(f"⚠️  voice: Kokoro moved to the CPU: {why}")
+        return _ENGINE
+
+
+def device() -> dict:
+    """For /status: where the voice runs, and why the CPU when it is.
+    "not loaded" until the first synthesis."""
+    return {"device": _DEVICE or "not loaded", "note": _DEVICE_NOTE}
 
 
 def _wav(samples, sample_rate: int) -> bytes:
@@ -152,7 +224,14 @@ def _synthesize_blocking(text: str) -> bytes:
     voice = (os.getenv("CDSS_KOKORO_VOICE") or "").strip() or DEFAULT_VOICE
     lang = (os.getenv("CDSS_KOKORO_LANG") or "").strip() or DEFAULT_LANG
     speed = _env_number("CDSS_KOKORO_SPEED", DEFAULT_SPEED, float)
-    samples, sample_rate = _engine().create(text, voice=voice, speed=speed, lang=lang)
+    eng = _engine()
+    try:
+        samples, sample_rate = eng.create(text, voice=voice, speed=speed, lang=lang)
+    except Exception as e:
+        if _DEVICE != "gpu":
+            raise
+        eng = _fall_back_to_cpu(eng, f"synthesis on the GPU failed ({type(e).__name__}: {str(e)[:160]})")
+        samples, sample_rate = eng.create(text, voice=voice, speed=speed, lang=lang)
     return _wav(samples, sample_rate)
 
 

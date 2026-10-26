@@ -233,3 +233,121 @@ def test_the_portal_names_a_failure_after_audio_started():
     assert len(out["started"]) == 2, "what was spoken stands"
     assert out["calls"][1]["body"]["outcome"] == "error"
     assert out["button"] == "audio unavailable" and "boom" in out["title"]
+
+
+# ── V3.2: the GPU, else the CPU ─────────────────────────────────────────────
+# Owner, 2026-10-26: "Run Kokoro on the GPU (onnxruntime with the CUDA
+# provider on JetPack ...); fall back to CPU if it fails."
+
+class _Builds:
+    """Stands in for tts._build_engine: records what was asked for, and
+    answers with the providers a session on this machine would get."""
+
+    def __init__(self, gets=None, raises_on_cuda=False, gpu_create_fails=False):
+        self.asked = []
+        self.gets = gets
+        self.raises_on_cuda = raises_on_cuda
+        self.gpu_create_fails = gpu_create_fails
+
+    def __call__(self, providers):
+        self.asked.append(list(providers))
+        if tts.CUDA in providers and self.raises_on_cuda:
+            raise RuntimeError("CUDA failure 801: operation not supported")
+        got = self.gets if (self.gets and tts.CUDA in providers) else providers
+        eng = _FakeEngine()
+        if got[0] == tts.CUDA and self.gpu_create_fails:
+            eng.fail_on = " "          # every real sentence has a space
+        eng.on = got[0]
+        return eng, list(got)
+
+
+@pytest.fixture
+def device_env(monkeypatch, tmp_path):
+    (tmp_path / tts.MODEL_FILE).write_bytes(b"x")
+    (tmp_path / tts.VOICES_FILE).write_bytes(b"x")
+    monkeypatch.setenv("CDSS_KOKORO_DIR", str(tmp_path))
+    monkeypatch.delenv("CDSS_KOKORO_DEVICE", raising=False)
+    monkeypatch.setattr(tts, "_ENGINE", None)
+    monkeypatch.setattr(tts, "_DEVICE", None)
+    monkeypatch.setattr(tts, "_DEVICE_NOTE", "")
+
+    def setup(providers, builds):
+        monkeypatch.setattr(tts, "_ort_providers", lambda: providers)
+        monkeypatch.setattr(tts, "_build_engine", builds)
+        return builds
+    return setup
+
+
+def test_the_gpu_is_used_when_cuda_starts(device_env):
+    b = device_env([tts.CUDA, tts.CPU], _Builds())
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    assert b.asked == [[tts.CUDA, tts.CPU]]
+    assert tts.device() == {"device": "gpu", "note": ""}
+
+
+def test_no_cuda_provider_is_the_cpu_and_says_why(device_env):
+    b = device_env([tts.CPU], _Builds())
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    assert b.asked == [[tts.CPU]]
+    d = tts.device()
+    assert d["device"] == "cpu" and "onnxruntime-gpu" in d["note"]
+
+
+def test_cuda_that_onnxruntime_quietly_dropped_is_the_cpu_loaded_once(device_env):
+    """What this Jetson does today: the CUDA provider is listed, cannot open
+    the GPU, and onnxruntime retries on the CPU by itself."""
+    b = device_env([tts.CUDA, tts.CPU], _Builds(gets=[tts.CPU]))
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    assert b.asked == [[tts.CUDA, tts.CPU]], "the fallen-back session is kept, not rebuilt"
+    d = tts.device()
+    assert d["device"] == "cpu" and "CUDA provider did not start" in d["note"]
+
+
+def test_a_cuda_load_failure_is_the_cpu(device_env):
+    b = device_env([tts.CUDA, tts.CPU], _Builds(raises_on_cuda=True))
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    assert b.asked == [[tts.CUDA, tts.CPU], [tts.CPU]]
+    d = tts.device()
+    assert d["device"] == "cpu" and "801" in d["note"]
+
+
+def test_a_gpu_synthesis_failure_moves_to_the_cpu_and_still_speaks(device_env):
+    b = device_env([tts.CUDA, tts.CPU], _Builds(gpu_create_fails=True))
+    audio = asyncio.run(tts.synthesize("Give fentanyl."))
+    assert audio.startswith(b"RIFF")
+    assert b.asked == [[tts.CUDA, tts.CPU], [tts.CPU]]
+    d = tts.device()
+    assert d["device"] == "cpu" and "synthesis on the GPU failed" in d["note"]
+    asyncio.run(tts.synthesize("Again, please."))
+    assert len(b.asked) == 2, "it stays on the CPU"
+
+
+def test_cdss_kokoro_device_cpu_never_tries_the_gpu(device_env, monkeypatch):
+    monkeypatch.setenv("CDSS_KOKORO_DEVICE", "cpu")
+    b = device_env([tts.CUDA, tts.CPU], _Builds())
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    assert b.asked == [[tts.CPU]] and tts.device()["device"] == "cpu"
+
+
+def test_status_says_where_the_voice_runs(device_env, monkeypatch):
+    device_env([tts.CPU], _Builds())
+    monkeypatch.setattr(main.providers, "provider_status", lambda: {})
+    monkeypatch.setattr(main.providers, "available_models", lambda: [])
+    before = call("GET", "/status", headers=TOKEN).json()["voice_device"]
+    assert before["device"] == "not loaded"
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    after = call("GET", "/status", headers=TOKEN).json()["voice_device"]
+    assert after["device"] == "cpu" and after["note"]
+
+
+_REAL_DIR = pathlib.Path(os.getenv("CDSS_KOKORO_DIR") or tts.DEFAULT_DIR)
+
+
+@pytest.mark.skipif(not (_REAL_DIR / tts.MODEL_FILE).exists(),
+                    reason="Kokoro weights are not on disk (tools/install_kokoro.sh)")
+def test_the_real_model_speaks_on_whichever_device_it_got(monkeypatch):
+    monkeypatch.setenv("CDSS_KOKORO_DIR", str(_REAL_DIR))
+    monkeypatch.setattr(tts, "_ENGINE", None)
+    monkeypatch.setattr(tts, "_DEVICE", None)
+    audio = asyncio.run(tts.synthesize("Reassess in five minutes."))
+    assert audio.startswith(b"RIFF") and tts.device()["device"] in ("gpu", "cpu")
