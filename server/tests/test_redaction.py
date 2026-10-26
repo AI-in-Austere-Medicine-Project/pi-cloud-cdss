@@ -92,7 +92,8 @@ def test_every_declared_provider_key_env_is_covered(monkeypatch):
 
 
 def test_the_secrets_no_provider_owns_are_covered(monkeypatch):
-    """ELEVENLABS_API_KEY lives in tts.py and the access token in main.py.
+    """ELEVENLABS_API_KEY (no longer read since V2, but possibly still in a
+    deployed .env) and the access token in main.py.
 
     Neither is a provider in providers.json, and both would otherwise reach
     /status through an error string like any other value.

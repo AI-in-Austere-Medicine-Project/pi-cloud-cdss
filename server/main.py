@@ -454,14 +454,14 @@ async def speak_endpoint(http_request: Request):
     try:
         audio = await tts.synthesize(tts.normalize_for_speech(text))
     except tts.VoiceUnavailable as e:
-        # Say why, in the log and to the caller. The generic 500 this replaces
-        # is what let a pasted key ID sit unnoticed behind a dead button.
+        # Say why, in the log and to the caller: a generic 500 once hid a dead
+        # voice path for a release cycle.
         print(f"⚠️  /speak {e.status}: {e.detail}")
         raise HTTPException(status_code=e.status, detail=e.detail)
     # V1: the synthesis time, so the portal's timing record can split the
     # wait into synthesis and transfer.
     synth_ms = round((time.perf_counter() - t0) * 1000, 1)
-    return Response(content=audio, media_type="audio/mpeg",
+    return Response(content=audio, media_type="audio/wav",
                     headers={"X-Synth-Ms": str(synth_ms),
                              "Access-Control-Expose-Headers": "X-Synth-Ms"})
 

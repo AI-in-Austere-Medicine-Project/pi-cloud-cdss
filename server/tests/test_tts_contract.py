@@ -1,22 +1,33 @@
 """
-EdgeCDSS — the voice path must fail loudly, locally, and never silently.
+EdgeCDSS — the voice path: local Kokoro-82M, failing loudly and never silently.
 
-The v4.1 voice outage was a config error with no signal: ELEVENLABS_API_KEY held
-the 64-character hex key *ID* from the dashboard instead of the `sk_` key, the
-API answered 400 api_key_id_used_as_api_key on every request, /speak reported
-`500 ElevenLabs error` for it, /status reported `voice_support: true` regardless,
-and the web client printed "audio unavailable" with no reason. Four layers, none
-of which named the cause.
+V2 (owner, 2026-10-25): "replace /speak with local Kokoro-82M (kokoro-onnx,
+CPU, weights and voices on disk, espeak-ng via apt; no network after install).
+Keep the ElevenLabs path deleted, not optional."
 
-These tests are offline: no key, no network, no httpx, no ChromaDB.
+What the v4.1 outage taught still holds: a voice failure names its cause (a
+missing file, a missing library), /status never claims voice it cannot
+produce, and the clinical path cannot fail because voice is misconfigured.
+
+The contract tests are offline and use a stand-in engine: no model, no
+network. One test runs the real model when its files are on disk, with every
+outbound connection refused.
 
     cd server && ./run_unit_tests.sh
 """
 
 import asyncio
+import io
 import os
+import pathlib
 import re
+import socket
+import subprocess
 import sys
+import threading
+import wave
+
+import pytest
 
 os.environ.setdefault("OPENAI_API_KEY", "test-offline")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,141 +36,137 @@ import tts  # noqa: E402
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-KEY_ID = "4a" + "0" * 62          # shape of the value that caused the outage
-GOOD_KEY = "sk_" + "0" * 48
+
+class _FakeEngine:
+    """Kokoro's create(): float32 samples at 24 kHz. Records what it was asked."""
+
+    def __init__(self):
+        self.calls = []
+
+    def create(self, text, voice, speed=1.0, lang="en-us", **k):
+        import numpy as np
+        self.calls.append({"text": text, "voice": voice, "speed": speed, "lang": lang,
+                           "thread": threading.get_ident()})
+        return np.zeros(12000, dtype=np.float32) + 0.25, 24000
 
 
-class _NoNetwork:
-    """Any attempt to reach the network during these tests is a test failure."""
-
-    def __init__(self, *a, **kw):
-        raise AssertionError("network call attempted")
-
-
-def with_key(value):
-    if value is None:
-        os.environ.pop("ELEVENLABS_API_KEY", None)
-    else:
-        os.environ["ELEVENLABS_API_KEY"] = value
+@pytest.fixture
+def fake_engine(monkeypatch, tmp_path):
+    (tmp_path / tts.MODEL_FILE).write_bytes(b"x")
+    (tmp_path / tts.VOICES_FILE).write_bytes(b"x")
+    monkeypatch.setenv("CDSS_KOKORO_DIR", str(tmp_path))
+    eng = _FakeEngine()
+    monkeypatch.setattr(tts, "_load_engine", lambda: eng)
+    monkeypatch.setattr(tts, "_ENGINE", None)
+    return eng
 
 
-def speak(text, key):
-    """synthesize() outcome as (status, detail), never reaching the network."""
-    with_key(key)
-    try:
-        import httpx
-        original, httpx.AsyncClient = httpx.AsyncClient, _NoNetwork
-    except ImportError:
-        original = None
+def status_of(text):
     try:
         asyncio.run(tts.synthesize(text))
-        raise AssertionError("expected VoiceUnavailable")
+        return None
     except tts.VoiceUnavailable as e:
         return e.status, e.detail
-    finally:
-        if original is not None:
-            import httpx
-            httpx.AsyncClient = original
-        with_key(None)
 
 
-# --- the outage itself -------------------------------------------------------
+# --- ElevenLabs is gone --------------------------------------------------------
 
-def test_a_key_id_is_rejected_before_the_network():
-    """THE ONE THAT MATTERS. A pasted key ID cost every request a 400 upstream."""
-    with_key(KEY_ID)
-    try:
-        problem = tts.config_problem()
-    finally:
-        with_key(None)
-    assert problem, "a 64-char hex key ID was accepted as an API key"
-    assert "sk_" in problem, problem
+def test_no_elevenlabs_path_remains():
+    for f in ("tts.py", "main.py"):
+        src = open(os.path.join(HERE, f)).read()
+        assert not re.search(r"elevenlabs|ELEVENLABS|xi-api-key", src), f
+        assert "https://" not in open(os.path.join(HERE, "tts.py")).read()
 
 
-def test_the_key_id_message_says_what_to_do():
-    """A reason the operator cannot act on is barely better than the old 500."""
-    with_key(KEY_ID)
-    try:
-        problem = tts.config_problem()
-    finally:
-        with_key(None)
-    assert "ELEVENLABS_API_KEY" in problem
-    assert "key ID" in problem
+def test_voice_makes_no_network_call(fake_engine, monkeypatch):
+    def refuse(*a, **k):
+        raise AssertionError("network call attempted")
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+    assert asyncio.run(tts.synthesize("Give fentanyl 50 mcg IV.")).startswith(b"RIFF")
 
 
-def test_a_wellformed_key_is_not_rejected_locally():
-    """The guard must not become a second outage: only impossible values fail here."""
-    with_key(GOOD_KEY)
-    try:
-        assert tts.config_problem() is None
-        assert tts.voice_available() is True
-    finally:
-        with_key(None)
+# --- the audio ---------------------------------------------------------------
+
+def test_synthesize_returns_wav_16bit_mono_24k(fake_engine):
+    audio = asyncio.run(tts.synthesize("Reassess in five minutes."))
+    with wave.open(io.BytesIO(audio)) as w:
+        assert (w.getnchannels(), w.getsampwidth(), w.getframerate()) == (1, 2, 24000)
+        assert w.getnframes() == 12000
 
 
-# --- every failure names itself ---------------------------------------------
-
-def test_missing_key_is_503_and_says_so():
-    status, detail = speak("give TXA", None)
-    assert status == 503, status
-    assert "ELEVENLABS_API_KEY" in detail
-
-
-def test_key_id_through_synthesize_is_503_not_500():
-    status, detail = speak("give TXA", KEY_ID)
-    assert status == 503, status
-    assert "sk_" in detail
-
-
-def test_empty_text_is_400():
-    status, _ = speak("   ", GOOD_KEY)
-    assert status == 400, status
+def test_the_voice_speed_and_language_are_the_configured_ones(fake_engine, monkeypatch):
+    asyncio.run(tts.synthesize("hello"))
+    call = fake_engine.calls[-1]
+    assert (call["voice"], call["speed"], call["lang"]) == (
+        tts.DEFAULT_VOICE, tts.DEFAULT_SPEED, tts.DEFAULT_LANG)
+    monkeypatch.setenv("CDSS_KOKORO_VOICE", "am_michael")
+    monkeypatch.setenv("CDSS_KOKORO_LANG", "en-us")
+    monkeypatch.setenv("CDSS_KOKORO_SPEED", "fast")       # a typo keeps the default
+    asyncio.run(tts.synthesize("hello"))
+    call = fake_engine.calls[-1]
+    assert (call["voice"], call["speed"], call["lang"]) == ("am_michael", tts.DEFAULT_SPEED, "en-us")
 
 
-def test_overlong_text_is_capped_locally():
-    status, detail = speak("x" * (tts.DEFAULT_MAX_CHARS + 1), GOOD_KEY)
-    assert status == 413, status
-    assert str(tts.DEFAULT_MAX_CHARS) in detail
+def test_synthesis_runs_off_the_event_loop(fake_engine):
+    """CPU-bound: on the event loop it would stall /health, and the watchdog
+    restarts the service at three misses (AE-4)."""
+    asyncio.run(tts.synthesize("hello"))
+    assert fake_engine.calls[-1]["thread"] != threading.get_ident()
 
 
-def test_the_cap_stays_tunable_and_survives_a_typo():
-    os.environ["CDSS_SPEAK_MAX_CHARS"] = "10"
-    try:
-        assert speak("x" * 11, GOOD_KEY)[0] == 413
-    finally:
-        del os.environ["CDSS_SPEAK_MAX_CHARS"]
-    os.environ["CDSS_SPEAK_MAX_CHARS"] = "ten thousand"
-    try:
-        assert speak("x" * 11, GOOD_KEY)[0] != 413, "a typo'd cap must not start rejecting text"
-    finally:
-        del os.environ["CDSS_SPEAK_MAX_CHARS"]
+def test_an_engine_failure_is_503_and_says_why(fake_engine, monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("phonemizer exploded")
+    monkeypatch.setattr(fake_engine, "create", boom)
+    status, detail = status_of("hello")
+    assert status == 503 and "phonemizer exploded" in detail
 
 
-def test_upstream_reason_is_extracted_not_swallowed():
-    class Resp:
-        def json(self):
-            return {"detail": {"status": "api_key_id_used_as_api_key",
-                               "message": "API key ID used as API key"}}
-        text = ""
-    assert "API key ID used as API key" in tts._upstream_reason(Resp())
-
-    class Plain:
-        def json(self):
-            raise ValueError
-        text = "quota_exceeded"
-    assert "quota_exceeded" in tts._upstream_reason(Plain())
+def test_empty_text_is_400(fake_engine):
+    assert status_of("   ")[0] == 400
 
 
-# --- isolation from the clinical core ---------------------------------------
+def test_overlong_text_is_capped_locally(fake_engine):
+    status, detail = status_of("x" * (tts.DEFAULT_MAX_CHARS + 1))
+    assert status == 413 and str(tts.DEFAULT_MAX_CHARS) in detail
 
-def test_module_imports_without_httpx_or_a_key():
-    """/speak is optional; the clinical path must not depend on voice config."""
-    import subprocess
+
+def test_the_cap_stays_tunable_and_survives_a_typo(fake_engine, monkeypatch):
+    monkeypatch.setenv("CDSS_SPEAK_MAX_CHARS", "10")
+    assert status_of("x" * 11)[0] == 413
+    monkeypatch.setenv("CDSS_SPEAK_MAX_CHARS", "ten thousand")
+    assert status_of("x" * 11) is None, "a typo'd cap must not start rejecting text"
+
+
+# --- configuration: decided before any synthesis -----------------------------
+
+def test_missing_weights_are_named(monkeypatch, tmp_path):
+    monkeypatch.setenv("CDSS_KOKORO_DIR", str(tmp_path))
+    problem = tts.config_problem()
+    assert problem and tts.MODEL_FILE in problem and str(tmp_path) in problem
+    assert tts.voice_available() is False
+    assert status_of("hello")[0] == 503
+
+
+def test_missing_espeak_is_named(fake_engine, monkeypatch):
+    monkeypatch.setattr(tts, "_espeak_paths", lambda: (None, None))
+    problem = tts.config_problem()
+    assert problem and "espeak-ng" in problem and "apt" in problem
+
+
+def test_local_mode_does_not_turn_voice_off(fake_engine, monkeypatch):
+    """Voice is on the device now: CDSS_LLM_PROVIDER=local keeps it."""
+    monkeypatch.setenv("CDSS_LLM_PROVIDER", "local")
+    assert tts.config_problem() is None
+
+
+def test_module_imports_without_kokoro_onnx():
+    """/speak is optional; the clinical path must not depend on the voice package."""
     proc = subprocess.run(
         [sys.executable, "-c",
          "import sys; sys.path.insert(0, %r); "
-         "sys.modules['httpx'] = None; import tts; print(tts.voice_available())" % HERE],
-        env={k: v for k, v in os.environ.items() if k != "ELEVENLABS_API_KEY"},
+         "sys.modules['kokoro_onnx'] = None; import tts; print(tts.voice_available())" % HERE],
         capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip().endswith("False"), proc.stdout
@@ -175,16 +182,32 @@ def test_speech_normalisation_survived_the_move():
     assert "**" not in spoken
 
 
-# --- meta-tests: the shapes that hid this ------------------------------------
-
-def test_speak_does_not_inline_the_elevenlabs_call_again():
-    source = open(os.path.join(HERE, "main.py")).read()
-    assert "api.elevenlabs.io" not in source, "the TTS call belongs in tts.py"
-    assert "ElevenLabs error" not in source, "a generic upstream error hides the cause"
-
-
 def test_voice_support_is_never_hardcoded_true():
     """/status claiming voice_support: true while voice was dead is why nobody
     noticed for a release cycle."""
     source = open(os.path.join(HERE, "main.py")).read()
     assert not re.search(r'"voice_support"\s*:\s*True', source)
+
+
+def test_speak_answers_wav():
+    source = open(os.path.join(HERE, "main.py")).read()
+    assert 'media_type="audio/wav"' in source and "audio/mpeg" not in source
+
+
+# --- the real model, when it is on disk --------------------------------------
+
+_REAL_DIR = pathlib.Path(os.getenv("CDSS_KOKORO_DIR") or tts.DEFAULT_DIR)
+
+
+@pytest.mark.skipif(not (_REAL_DIR / tts.MODEL_FILE).exists(),
+                    reason="Kokoro weights are not on disk (tools/install_kokoro.sh)")
+def test_the_real_model_speaks_with_the_network_refused(monkeypatch):
+    def refuse(*a, **k):
+        raise AssertionError("network call attempted")
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+    monkeypatch.setenv("CDSS_KOKORO_DIR", str(_REAL_DIR))
+    monkeypatch.setattr(tts, "_ENGINE", None)
+    audio = asyncio.run(tts.synthesize("Give fentanyl 50 micrograms I-V."))
+    with wave.open(io.BytesIO(audio)) as w:
+        assert w.getframerate() == 24000 and w.getnframes() / 24000 > 0.5
