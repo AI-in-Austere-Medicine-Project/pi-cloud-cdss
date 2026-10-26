@@ -60,6 +60,9 @@ MORE_DOSES = "More doses are on the screen."
 SAME_DRUG_TWICE = "There are two doses of {drug}. Read them on the screen."
 MODEL_NO_DOSE = "No dose in this answer. The answer is on the screen."
 CARD_ON_SCREEN = "The card is on the screen."
+# Owner, 2026-10-26: "the which-indication question gets its own spoken
+# template: '<Drug>. Which indication: <list>?' with the list of names only."
+WHICH_INDICATION = "{drug}. Which indication: {names}?"
 
 MAX_DOSES = 3
 DOSE_SECTIONS = ("GIVE", "POST-INTUBATION SEDATION", "DRIP", "RATE")
@@ -373,11 +376,52 @@ def _indication(item: str):
     return said.rstrip(".") if said else None
 
 
+def indication_name(word: str):
+    """One option of the which-indication question, as a name for speech:
+    the bracketed qualifier dropped ("penetrating brain or spinal injury
+    (antibiotic prophylaxis)" -> "penetrating brain or spinal injury"), the
+    rest through speak_line. None if it cannot be said."""
+    said = speak_line(re.sub(r"\s*\([^)]*\)", "", word))
+    return said.rstrip(".") if said else None
+
+
+def _which_indication(response: str):
+    """WHICH_INDICATION for a which-indication question, or None when the
+    question is not exactly the one openai_client.which_indication_question
+    writes from INDICATION_CLASSES: the options are matched against that fixed
+    list and the question must rebuild from them word for word."""
+    from openai_client import INDICATION_CLASSES, INDICATION_QUESTION_PREFIX
+    text = response.strip()
+    if not text.startswith(INDICATION_QUESTION_PREFIX) or not text.endswith("?"):
+        return None
+    drug, sep, tail = text[len(INDICATION_QUESTION_PREFIX):-1].partition(" — ")
+    if not sep:
+        return None
+    words, taken = [], []
+    for w in sorted({w for _n, w, _l, _c in INDICATION_CLASSES}, key=len, reverse=True):
+        for m in re.finditer(re.escape(w), tail):
+            if not any(m.start() < b and a < m.end() for a, b in taken):
+                taken.append((m.start(), m.end()))
+                words.append((m.start(), w))
+    words = [w for _, w in sorted(words)]
+    if len(words) < 2 or f"{', '.join(words[:-1])} or {words[-1]}" != tail:
+        return None
+    said_drug = _say_drug(drug.strip())
+    names = [indication_name(w) for w in words]
+    if not said_drug or not all(names):
+        return None
+    return WHICH_INDICATION.format(drug=_capitalised(said_drug),
+                                   names=f"{', '.join(names[:-1])} or {names[-1]}")
+
+
 def _build(result: dict) -> str:
     response = result.get("response") or ""
     index = _drug_index()
     if response.lstrip().startswith(HOLD_OPENER):
         return _hold(response, index)
+    which = _which_indication(response)
+    if which:
+        return which
     deterministic = not result.get("model")
     secs = sections(response)
 

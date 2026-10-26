@@ -323,3 +323,43 @@ def test_real_cards_are_spoken_with_no_abbreviation(query):
     said = r["spoken_brief"]
     assert said and not ABBREVIATED.search(said), said
     assert said not in (spoken.CARD_ON_SCREEN,), said
+
+
+# ── Owner, 2026-10-26: the which-indication question's own template ──────────
+
+CEFAZOLIN_Q = ("Which indication for cefazolin — penetrating brain or spinal injury (antibiotic "
+               "prophylaxis), ventriculostomy in place or open fracture / wound infection prophylaxis?")
+
+
+def test_which_indication_is_drug_then_names():
+    assert spoken.build({"response": CEFAZOLIN_Q}) == (
+        "Cefazolin. Which indication: penetrating brain or spinal injury, ventriculostomy in "
+        "place or open fracture or wound infection prophylaxis?")
+
+
+def test_every_indication_option_has_a_spoken_name():
+    for _name, word, _l, _c in oc.INDICATION_CLASSES:
+        said = spoken.indication_name(word)
+        assert said and "(" not in said and not spoken._unspeakable(said), word
+
+
+def test_the_question_the_pipeline_writes_gets_the_template():
+    # Every drug the bank offers in more than one class, asked about with no
+    # indication: the question openai_client writes is the one spoken.
+    asked = 0
+    for drug in sorted(oc.drug_contracts.servable_entries()):
+        h = f"80 kg adult, give {drug}"
+        q = oc.which_indication_question(h, oc.rebuild_patient_context_from_history(h))
+        if not q:
+            continue
+        asked += 1
+        said = spoken.build({"response": q})
+        assert said.startswith(spoken._capitalised(spoken._say_drug(drug)) + ". Which indication: "), q
+        assert said.endswith("?") and not spoken._unspeakable(said), said
+    assert asked >= 3
+
+
+def test_a_question_that_does_not_rebuild_is_not_templated():
+    # An option not in INDICATION_CLASSES: the template is not used.
+    odd = "Which indication for cefazolin — sepsis or something unlisted?"
+    assert not spoken.build({"response": odd}).startswith("Cefazolin. Which indication:")
