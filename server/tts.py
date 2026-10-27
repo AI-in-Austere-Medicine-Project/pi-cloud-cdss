@@ -1,5 +1,5 @@
 """
-EdgeCDSS — voice output: Kokoro-82M on the device (kokoro-onnx, CPU).
+EdgeCDSS — voice output: Kokoro-82M on the device (kokoro-onnx; GPU, else CPU).
 
 V2 (owner, 2026-10-25): "replace /speak with local Kokoro-82M (kokoro-onnx,
 CPU, weights and voices on disk, espeak-ng via apt; no network after install).
@@ -26,7 +26,9 @@ import io
 import os
 import pathlib
 import re as _re
+import struct
 import threading
+import time
 import wave
 
 # One numeric-env parser for the repo: a typo'd knob degrades to the default
@@ -116,12 +118,65 @@ def voice_available() -> bool:
     return config_problem() is None
 
 
-def _load_engine():
+# V3 (owner, 2026-10-26): "Run Kokoro on the GPU ... fall back to CPU if it
+# fails." CDSS_KOKORO_DEVICE is auto (the default: the GPU when onnxruntime can
+# start its CUDA provider, else the CPU), gpu (the same, said explicitly) or
+# cpu. Voice is never lost for want of a GPU: every GPU failure, at load or in
+# synthesis, ends on the CPU with the reason logged and in /status.
+CUDA = "CUDAExecutionProvider"
+CPU = "CPUExecutionProvider"
+_DEVICE = None           # "gpu" or "cpu" once the model is loaded
+_DEVICE_NOTE = ""        # why it is on the CPU, when it is
+
+
+def _ort_providers() -> list:
+    import onnxruntime
+    return onnxruntime.get_available_providers()
+
+
+def _build_engine(providers: list):
+    """(the model on a session asking for `providers`, the providers the
+    session actually got: onnxruntime falls back to the CPU on its own when
+    the CUDA provider cannot start, and says so only in its log)."""
+    import onnxruntime as rt
     from kokoro_onnx import EspeakConfig, Kokoro
     lib, data = _espeak_paths()
     d = _model_dir()
-    return Kokoro(str(d / MODEL_FILE), str(d / VOICES_FILE),
-                  espeak_config=EspeakConfig(lib_path=lib, data_path=data))
+    opts = rt.SessionOptions()
+    opts.log_severity_level = 3
+    sess = rt.InferenceSession(str(d / MODEL_FILE), opts, providers=providers)
+    eng = Kokoro.from_session(sess, str(d / VOICES_FILE),
+                              espeak_config=EspeakConfig(lib_path=lib, data_path=data))
+    return eng, list(sess.get_providers())
+
+
+def _load_engine():
+    global _DEVICE, _DEVICE_NOTE
+    wanted = (os.getenv("CDSS_KOKORO_DEVICE") or "auto").strip().lower()
+    if wanted == "cpu":
+        note = "CDSS_KOKORO_DEVICE=cpu"
+    elif CUDA not in _ort_providers():
+        note = "onnxruntime here has no CUDA provider (onnxruntime-gpu is not installed)"
+    else:
+        try:
+            eng, got = _build_engine([CUDA, CPU])
+        except Exception as e:
+            note = f"the CUDA provider failed to load ({type(e).__name__}: {str(e)[:160]})"
+        else:
+            if got and got[0] == CUDA:
+                _DEVICE, _DEVICE_NOTE = "gpu", ""
+                print("🔊 voice: Kokoro on the GPU (CUDA)")
+                return eng
+            # onnxruntime fell back by itself: this session is already a CPU one.
+            _DEVICE = "cpu"
+            _DEVICE_NOTE = ("the CUDA provider did not start, so onnxruntime fell back to "
+                            "the CPU (no GPU access for this user?)")
+            print(f"⚠️  voice: Kokoro on the CPU: {_DEVICE_NOTE}")
+            return eng
+    eng, _ = _build_engine([CPU])
+    _DEVICE, _DEVICE_NOTE = "cpu", note
+    print(f"🔊 voice: Kokoro on the CPU: {note}")
+    return eng
 
 
 def _engine():
@@ -131,6 +186,25 @@ def _engine():
         if _ENGINE is None:
             _ENGINE = _load_engine()
         return _ENGINE
+
+
+def _fall_back_to_cpu(failed, why: str):
+    """A synthesis failed on the GPU: the model moves to the CPU for good.
+    `failed` is the engine that failed, so two threads failing together load
+    the CPU model once."""
+    global _ENGINE, _DEVICE, _DEVICE_NOTE
+    with _ENGINE_LOCK:
+        if _ENGINE is failed:
+            _ENGINE, _ = _build_engine([CPU])
+            _DEVICE, _DEVICE_NOTE = "cpu", why
+            print(f"⚠️  voice: Kokoro moved to the CPU: {why}")
+        return _ENGINE
+
+
+def device() -> dict:
+    """For /status: where the voice runs, and why the CPU when it is.
+    "not loaded" until the first synthesis."""
+    return {"device": _DEVICE or "not loaded", "note": _DEVICE_NOTE}
 
 
 def _wav(samples, sample_rate: int) -> bytes:
@@ -150,12 +224,20 @@ def _synthesize_blocking(text: str) -> bytes:
     voice = (os.getenv("CDSS_KOKORO_VOICE") or "").strip() or DEFAULT_VOICE
     lang = (os.getenv("CDSS_KOKORO_LANG") or "").strip() or DEFAULT_LANG
     speed = _env_number("CDSS_KOKORO_SPEED", DEFAULT_SPEED, float)
-    samples, sample_rate = _engine().create(text, voice=voice, speed=speed, lang=lang)
+    eng = _engine()
+    try:
+        samples, sample_rate = eng.create(text, voice=voice, speed=speed, lang=lang)
+    except Exception as e:
+        if _DEVICE != "gpu":
+            raise
+        eng = _fall_back_to_cpu(eng, f"synthesis on the GPU failed ({type(e).__name__}: {str(e)[:160]})")
+        samples, sample_rate = eng.create(text, voice=voice, speed=speed, lang=lang)
     return _wav(samples, sample_rate)
 
 
-async def synthesize(text: str) -> bytes:
-    """WAV bytes for `text`, or VoiceUnavailable carrying the status and reason."""
+def _checked(text: str) -> str:
+    """The text to speak, or VoiceUnavailable: 400 empty, 413 over the cap,
+    503 not configured. Decided before any synthesis."""
     text = (text or "").strip()
     if not text:
         raise VoiceUnavailable(400, "No text provided")
@@ -168,7 +250,10 @@ async def synthesize(text: str) -> bytes:
     problem = config_problem()
     if problem:
         raise VoiceUnavailable(503, problem)
+    return text
 
+
+async def _synthesize_off_loop(text: str) -> bytes:
     # CPU-bound for seconds: off the event loop, or /health stalls behind it
     # and the watchdog restarts the service (AE-4).
     try:
@@ -176,6 +261,115 @@ async def synthesize(text: str) -> bytes:
     except Exception as e:
         raise VoiceUnavailable(
             503, f"local voice failed ({type(e).__name__}: {str(e)[:200]})") from e
+
+
+async def synthesize(text: str) -> bytes:
+    """WAV bytes for `text`, or VoiceUnavailable carrying the status and reason."""
+    return await _synthesize_off_loop(_checked(text))
+
+
+# ── V3: sentence by sentence ─────────────────────────────────────────────────
+# Owner, 2026-10-26: "split at sentence boundaries, synthesise and stream each
+# chunk as it's ready, so first audio waits only for the first sentence."
+#
+# A sentence ends at . ! or ? followed by white space, or at a line break. A
+# decimal point is followed by a digit, so "0.18" never splits. A piece with
+# no letter in it ("1.", "-") is not a sentence: it joins the next one, and
+# so does one that ends in an abbreviation ("e.g.").
+_SENTENCE_END_RE = _re.compile(r"(?<=[.!?])\s+|\s*\n\s*")
+_HAS_LETTER_RE = _re.compile(r"[A-Za-z]")
+_ABBREV_END_RE = _re.compile(r"\b(?:e\.g|i\.e|etc|approx|vs|Dr|No)\.$", _re.IGNORECASE)
+
+
+def split_sentences(text: str) -> list:
+    out, carry = [], ""
+    for piece in _SENTENCE_END_RE.split(text or ""):
+        piece = piece.strip()
+        if not piece:
+            continue
+        piece = f"{carry} {piece}".strip() if carry else piece
+        if _HAS_LETTER_RE.search(piece) and not _ABBREV_END_RE.search(piece):
+            out.append(piece)
+            carry = ""
+        else:
+            carry = piece
+    if carry:
+        if out:
+            out[-1] = f"{out[-1]} {carry}"
+        else:
+            out.append(carry)
+    return out
+
+
+# Owner, 2026-10-26: "First chunk may split at a comma, colon or semicolon if
+# the first sentence exceeds 80 characters." Only the first, and only once:
+# first audio waits for that chunk alone. The split is the last such mark that
+# leaves the chunk within 80 characters, else the first mark after; the mark
+# must be followed by white space, so "2,000" never splits. With no mark the
+# sentence is spoken whole.
+CHUNK_MAX = 80
+_CLAUSE_END_RE = _re.compile(r"[,:;](?=\s)")
+
+
+def _split_long(sentence: str) -> list:
+    """A sentence over CHUNK_MAX, cut at clause marks until each piece fits:
+    each cut at the last mark within CHUNK_MAX, else the first mark after."""
+    pieces, rest = [], sentence
+    while len(rest) > CHUNK_MAX:
+        marks = [m.end() for m in _CLAUSE_END_RE.finditer(rest)
+                 if _HAS_LETTER_RE.search(rest[:m.end()]) and rest[m.end():].strip()]
+        if not marks:
+            break
+        within = [i for i in marks if i <= CHUNK_MAX]
+        cut = within[-1] if within else marks[0]
+        pieces.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+    return pieces + [rest]
+
+
+def speech_chunks(text: str) -> list:
+    """The pieces /speak streams: split_sentences, with every sentence over
+    CHUNK_MAX split at clause marks (owner, 2026-10-26: no long silence while
+    a long sentence is synthesised)."""
+    return [piece for s in split_sentences(text) for piece in _split_long(s)]
+
+
+# The stream is a run of frames: one type byte, a 4-byte big-endian length,
+# then the payload. b"A" is a complete WAV of one sentence, played in order;
+# b"E" is a failure after audio has started, UTF-8 text naming it. A WAV per
+# frame lets the portal decode each with decodeAudioData as it lands.
+FRAME_AUDIO = b"A"
+FRAME_ERROR = b"E"
+STREAM_MEDIA_TYPE = "application/vnd.edgecdss.audio-frames"
+
+
+def frame(kind: bytes, payload: bytes) -> bytes:
+    return kind + struct.pack(">I", len(payload)) + payload
+
+
+async def open_stream(text: str):
+    """(sentence count, the first sentence's synthesis ms, an async iterator of
+    frames). Every failure before audio exists is raised here, with its status:
+    the first sentence is synthesised before this returns, so /speak can still
+    answer 503 rather than a 200 that carries no audio. A failure on a later
+    sentence ends the stream with an error frame; what was spoken stands."""
+    sentences = speech_chunks(_checked(text))
+    t0 = time.perf_counter()
+    first = await _synthesize_off_loop(sentences[0])
+    first_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+    async def frames():
+        yield frame(FRAME_AUDIO, first)
+        for s in sentences[1:]:
+            try:
+                audio = await _synthesize_off_loop(s)
+            except VoiceUnavailable as e:
+                print(f"⚠️  /speak stream stopped: {e.detail}")
+                yield frame(FRAME_ERROR, e.detail.encode("utf-8"))
+                return
+            yield frame(FRAME_AUDIO, audio)
+
+    return len(sentences), first_ms, frames()
 
 
 def normalize_for_speech(text: str) -> str:

@@ -91,6 +91,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
 | V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **done**: #185, merged; owner, 2026-10-25 |
+| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **in review** (round 3); owner, 2026-10-26 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1190,6 +1191,71 @@ A changed row that neither side can judge is listed as unjudged and never counte
   The #170 and #174 rows are entries signed in batches 2 and 3 now being offered; with the generator stubbed, the replay shows what is offered, not what the model writes.
 
 **Found (2026-10-23), counted since 2026-10-24 by newly doses:** under this definition a question that becomes a served dose ("versed dose IM", #174) and a no-dose card that becomes a dose ("push dose epi, BP 70/40 shocky", #177, the E05 card signed off 2026-10-23) are serve-to-serve, so the count does not flag them. Both were found by reading the changed rows and reported at the time.
+
+### V3: voice, first audio sooner (owner, 2026-10-26)
+
+**Owner:** "V3, three commits, measure after each on the same 21 items: 1. Sentence-chunked synthesis: split at sentence boundaries, synthesise and stream each chunk as it's ready, so first audio waits only for the first sentence. 2. Run Kokoro on the GPU (onnxruntime with the CUDA provider on JetPack, or the PyTorch package with CUDA); fall back to CPU if it fails. Report real-time factor both ways. 3. A spoken brief for every answer: cards and doses speak the GIVE line and one WATCH line; a hold speaks one sentence ("Held. No signed dose for magnesium. Use local protocol."); the full text stays on screen. Numbers and units written out for speech: "zero point one eight millilitres", "micrograms", "every five minutes", never abbreviations. Fixed templates, tested, no model wording in the spoken brief. Report first-audio median and p90 after each commit. PR, do not merge."
+
+**Done (one PR, three commits, each with its tests):**
+- **1. Sentence by sentence:** `tts.split_sentences` and `tts.open_stream`. The first sentence is synthesised before `/speak` answers, so a failure is still its status. Frames are one WAV per sentence; an error frame names a failure after audio started. The portal plays each sentence as it lands (Web Audio), and falls back to the whole WAV.
+- **2. GPU, else CPU:** `tts._load_engine` asks for CUDA, then reads back what the session got. A load or synthesis failure ends on the CPU with the reason. `CDSS_KOKORO_DEVICE`; `/status voice_device`.
+- **3. Spoken brief:** `spoken.py`, `spoken_brief` on `/query`, spoken by the portal. A hold is one of three sentences. Doses come from the code-made dose line; drug names from the index. A card adds one WATCH line. A model answer is heard only through the templates.
+
+**Timing** (`docs/VOICE_FIRST_AUDIO_V3_2026-10-26.md`; same 21 texts):
+
+| | First audio median / p90 | Audio end median / p90 |
+|---|---|---|
+| Before (whole WAV) | 18.8 / 30.4 s | 44.1 / 69.9 s |
+| 1. Sentences | 4.2 / 9.5 s | 37.8 / 56.4 s |
+| 2. GPU, else CPU | 4.0 / 7.2 s | 37.0 / 55.1 s |
+| 3. Spoken brief | 3.7 / 7.2 s | 14.4 / 25.3 s |
+
+- **Real-time factor:** CPU 0.77 (whole clips; 0.81 first sentences). **GPU not measured:** `cuInit` fails with CUDA error 801 for the service user, with or without onnxruntime. The probable cause is that the user is not in the `render` group (the `ollama` user is, and its GPU works). Commit 2's fallback ran for real.
+- **Replay vs main b33fc4c:** served 1,738, held 308, gate 1,408, live logs 3,885, pipeline 831. 0 changed in every one; the outputs are byte-identical.
+- **Suite:** 3,709 passed. 1 failed: the corpus alias count, which fails the same way on main. **Harness:** 29 / 29.
+- **Commits, not test-first commits:** the owner asked for three commits measured one after another, so each commit carries its own tests rather than a separate failing-test commit.
+
+**Found, not changed (owner to rule):**
+- **GPU access:** `sudo usermod -aG render andrew`, restart, and `onnxruntime-gpu==1.31.0` in the service venv. The last step also moves Chroma's embedder (the same `onnxruntime` module): replay it first, or pin Chroma to the CPU.
+- **The general-reference disclosure** still says "JTS" aloud, and is spoken before a general-source hold.
+- **The hold names "magnesium sulfate"** (the index's name), not "magnesium".
+- **First audio is bounded by the first sentence:** the 165-character cefazolin indication question takes 11.3 s.
+
+**Owner rulings, round 2 (2026-10-26):** "1. Pin Chroma to the CPU explicitly before installing onnxruntime-gpu==1.31.0 into the service venv, so retrieval doesn't change; then run replay to prove it (0 changed), then re-time Kokoro on the GPU. 2. Disclosure: never spoken before a hold. For a served general-reference answer the spoken form is "General reference, not guideline." No "JTS" in speech. 3. Keep "magnesium sulfate". 4. Commits without failing-test-first are accepted for V3; templates aren't gates. 5. First chunk may split at a comma, colon or semicolon if the first sentence exceeds 80 characters. And the which-indication question gets its own spoken template: "<Drug>. Which indication: <list>?" with the list of names only."
+
+**Done (one PR stacked on V3, a commit per ruling, each with its tests):**
+- **1. Chroma pinned to the CPU:** `embeddings.CpuDefaultEmbeddingFunction` (not a `DefaultEmbeddingFunction` subclass, which Chroma would ignore). `tools/chroma_retrieval_check.py`: on the replay sets' 607 queries, the vectors are bit-identical to main with the CPU wheel and with `onnxruntime-gpu` 1.31.0. Ids differ only on queries where main differs from itself (Chroma's HNSW, 8 of 607 run to run). Replay vs b33fc4c: 0 changed in all five sets, byte-identical.
+- **The GPU, re-timed:** `onnxruntime-gpu` 1.31.0 (PyPI) has CUDA kernels for sm_89/90a/120a/121a only. The Orin Nano is sm_87. Kokoro opens on CUDA, fails its first synthesis (`cudaErrorNoKernelImageForDevice`) and moves to the CPU: the first `/speak` after a restart costs 7.2 s, and after that timing is the CPU's. Without the pin, Chroma's stock embedder fails every query on this wheel.
+- **2. Disclosure:** `general_reference.SPOKEN_DISCLOSURE` "General reference, not guideline."; not spoken before "Held." or the hold opener.
+- **3.** "magnesium sulfate" kept.
+- **5. First chunk:** `tts.speech_chunks`, at most 80 characters where a mark allows. **Which indication:** `spoken.WHICH_INDICATION`, names matched against `INDICATION_CLASSES`.
+- **Timing, same 21 texts as commit 3:** first audio 3.7 / 7.2 → **1.6 / 4.8 s** (CPU); 1.5 / 4.8 s on the GPU wheel (CPU fallback). Audio end 14.4 / 25.3 → 13.5 / 20.9 s.
+
+**Not done (owner to rule):**
+- **The service venv was not changed.** The live service runs main, without the pin, from that venv, and on 1.31.0 its retrieval would fail on every query after any restart. Install the wheel only after this PR is merged and deployed, and the wheel named does not give a working GPU anyway.
+- **A wheel with sm_87:** NVIDIA's Jetson AI Lab index, `sbsa/cu130`, `onnxruntime-gpu` 1.24.0 cp312 (`cuobjdump`: sm_87, sm_110, sm_120a, sm_121). Downloaded and inspected, not installed: third-party code, the owner's decision.
+- **Names only drops "(already intubated)"** from ketamine's and midazolam's "sedation" (the 2026-10-15 incident's distinction). A "/" read as "or" runs into the list's own "or" (cefazolin, atropine).
+- **Gaps:** the cefazolin question says "Cefazolin." at 1.6 s, then 7.2 s of silence. Splitting every long sentence, not only the first, would cut it.
+- **Chroma's top 10 is not repeatable run to run** (8 of 607 queries, from rank 4). Not chased.
+
+**Owner rulings, round 3 (2026-10-26):** "1. GPU wheel: yes, try NVIDIA's Jetson AI Lab onnxruntime-gpu 1.24.0 in the scratch venv first and time Kokoro. If it works, pin Chroma to CPU, install it in the service venv, replay (0 changed), re-time. If it doesn't work, stay on CPU and close the item; 1.6 s is acceptable. 2. Spoken options keep their qualifiers: "sedation, already intubated", never plain "sedation". 3. Lists: up to four options are spoken, each separated by a pause (semicolon), with "/" spoken as "or" only inside an option. Five or more: "Several indications are on screen. Say one." 4. Every sentence over 80 characters splits at commas, not only the first, so no silence over 2 s. Report first-audio and longest-silence after. PR, do not merge."
+
+**Done (one PR on the V3 branch, a commit per ruling, failing tests first):**
+- **1. The Jetson wheel works.** Kokoro on CUDA, real-time factor 0.09–0.12 (CPU 0.80–0.88). The audio is the same length; envelope correlation 0.9997 with the CPU's, not bit-identical. Memory: about 1 GB more.
+- **Retrieval on that wheel, pinned:** vectors differ by at most 3.3e-7 (1.24.0's CPU kernels, not 1.27.0's). Ids differ only on queries where main differs from itself. **Not pinned:** TensorRT, about 20 s per query, 17 of 607 queries changed.
+- **Replay** (round-3 tree, CPU wheel and Jetson wheel): 0 changed in all five sets, byte-identical to main.
+- **2.** `spoken.indication_name` keeps the bracketed qualifier after a comma.
+- **3.** `spoken.INDICATION_LIST_MAX` 4, options joined by "; "; `spoken.MANY_INDICATIONS` past it (ketamine today).
+- **4.** `tts.speech_chunks` splits every sentence over `CHUNK_MAX` (80) at clause marks, repeatedly. `tts_latency_run.py` records `longest_silence_ms`.
+- **Timing, same 21 texts:** first audio median / p90 **0.30 / 0.64 s** on the GPU, with the longest silence 0.15 s (the breath) on every item. CPU wheel: 1.5 / 4.6 s, with the longest silence 3.8 s (round 2: 7.3 s).
+
+**Not done (owner to rule):**
+- **The service venv is unchanged.** #188 merged into the V3 branch (#187), not main, so the live service runs main without the Chroma pin. With the Jetson wheel installed, a restart would put live retrieval on TensorRT (above). Install it after #187 is deployed: `pip uninstall -y onnxruntime`, `pip install --no-deps` the wheel, restart.
+- **The CPU fallback still has silences of about 3 s after "Held."**; comma splits do not reach them.
+
+**Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
+
+**Done:** the PR records the criterion: Jetson-wheel retrieval is unchanged within Chroma's own noise, with 0 changed on all five replays. `spoken.MANY_INDICATIONS` is "{drug}. Several indications are on screen. Say one." The CPU fallback's silence is documented as accepted, with the GPU primary. The service venv is the owner's step: the owner merges, then installs the wheel.
 
 ### V2: local voice, Kokoro-82M (owner, 2026-10-25)
 

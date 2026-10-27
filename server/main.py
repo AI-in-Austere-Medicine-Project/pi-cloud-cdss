@@ -153,6 +153,9 @@ class QueryResponse(BaseModel):
     # content, see brief.py — and the section names the client must not fold.
     brief: str = ""
     critical_sections: list = []
+    # V3: what the listen button says. Fixed templates, no model wording;
+    # see spoken.py. The screen still shows the brief and the full response.
+    spoken_brief: str = ""
     # C1: the id of this answer (on its log line too) and the pipeline's own
     # source_mode, both sent back with a feedback report about it.
     query_id: str = ""
@@ -202,6 +205,7 @@ async def _status_payload():
     return {"message": "CDSS Cloud API", "status": "running", "version": __version__,
             "voice_support": tts.voice_available(),
             "voice_detail": tts.config_problem() or "",
+            "voice_device": tts.device(),
             "provider_detail": provider_detail,
             "models": models,
             "default_model": providers.default_model()}
@@ -270,6 +274,7 @@ def _query_response(result: dict, request: "QueryRequest", ms: int) -> "QueryRes
         patient_context=result.get("patient_context") or {},
         vitals_cautions=result.get("vitals_cautions", []),
         brief=result.get("brief") or "",
+        spoken_brief=result.get("spoken_brief") or "",
         critical_sections=result.get("critical_sections") or [],
         query_id=result.get("query_id") or "",
         source_mode=result.get("source_mode") or ""
@@ -450,6 +455,19 @@ async def speak_endpoint(http_request: Request):
     # that forgot it would produce a spoken answer with no indication it did not
     # come from JTS — the one thing general reference is not allowed to do.
     text = general_reference.for_speech(spoken, body.get("source", ""))
+    if body.get("stream"):
+        # V3: sentence by sentence (tts.open_stream). The first sentence is
+        # synthesised before the response starts, so a failure here still
+        # answers with its status and reason.
+        try:
+            count, first_ms, frames = await tts.open_stream(tts.normalize_for_speech(text))
+        except tts.VoiceUnavailable as e:
+            print(f"⚠️  /speak {e.status}: {e.detail}")
+            raise HTTPException(status_code=e.status, detail=e.detail)
+        return StreamingResponse(
+            frames, media_type=tts.STREAM_MEDIA_TYPE,
+            headers={"X-Synth-Ms": str(first_ms), "X-Speak-Sentences": str(count),
+                     "Access-Control-Expose-Headers": "X-Synth-Ms, X-Speak-Sentences"})
     t0 = time.perf_counter()
     try:
         audio = await tts.synthesize(tts.normalize_for_speech(text))

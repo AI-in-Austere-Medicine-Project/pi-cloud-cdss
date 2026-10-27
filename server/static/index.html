@@ -546,10 +546,99 @@ function speakTimer(queryId, chars) {
   };
 }
 
+// V3: the stream /speak sends when asked (server/tts.py open_stream): frames
+// of one type byte, a 4-byte big-endian length and the payload. 'A' is one
+// sentence's WAV, played in order; 'E' is a failure after audio started.
+// Returns {frames, rest}: the whole frames in `buf`, and the bytes left over.
+function readFrames(buf) {
+  const frames = [];
+  let at = 0;
+  while (buf.length - at >= 5) {
+    const len = ((buf[at + 1] << 24) >>> 0) + (buf[at + 2] << 16) + (buf[at + 3] << 8) + buf[at + 4];
+    if (buf.length - at - 5 < len) break;
+    frames.push({ kind: String.fromCharCode(buf[at]), body: buf.slice(at + 5, at + 5 + len) });
+    at += 5 + len;
+  }
+  return { frames: frames, rest: buf.slice(at) };
+}
+
+// A breath between sentences: Kokoro trims each one's silence.
+const SENTENCE_GAP_S = 0.15;
+
+function canStreamVoice() {
+  return typeof window !== 'undefined' && !!(window.AudioContext || window.webkitAudioContext) &&
+         typeof ReadableStream !== 'undefined';
+}
+
+// Each sentence plays as soon as it lands, queued after the one before; first
+// audio waits for the first sentence only. Resolves when the last one ends.
+async function speakStream(r, timer) {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new Ctx();
+  if (ctx.resume) await ctx.resume();
+  const reader = r.body.getReader();
+  let buf = new Uint8Array(0), next = 0, started = false, last = null, failure = null;
+  for (;;) {
+    const step = await reader.read();
+    if (step.value) {
+      const joined = new Uint8Array(buf.length + step.value.length);
+      joined.set(buf); joined.set(step.value, buf.length);
+      const got = readFrames(joined);
+      buf = got.rest;
+      for (const f of got.frames) {
+        if (f.kind === 'E') { failure = new TextDecoder().decode(f.body); continue; }
+        const audio = await ctx.decodeAudioData(f.body.buffer.slice(f.body.byteOffset, f.body.byteOffset + f.body.length));
+        const src = ctx.createBufferSource();
+        src.buffer = audio;
+        src.connect(ctx.destination);
+        const at = Math.max(ctx.currentTime, next);
+        src.start(at);
+        if (!started) { started = true; timer.at('first_audio_ms'); }
+        next = at + audio.duration + SENTENCE_GAP_S;
+        last = src;
+      }
+    }
+    if (step.done) break;
+  }
+  if (last) await new Promise(function (res) { last.onended = res; });
+  timer.at('audio_end_ms');
+  if (ctx.close) ctx.close();
+  if (failure) throw new Error(failure);
+}
+
 async function speak(text, btn, source, brief, queryId) {
   btn.textContent = '…';
   let url = null;
   const timer = speakTimer(queryId, String(brief || text || '').length);
+  if (canStreamVoice()) {
+    try {
+      const r = await fetch('/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json',
+                   'X-Access-Token': document.getElementById('token').value },
+        body: JSON.stringify({ text, source, brief: brief || '', stream: true })
+      });
+      timer.at('text_sent_to_response_ms');
+      const synth = r.headers && r.headers.get ? parseFloat(r.headers.get('X-Synth-Ms')) : NaN;
+      if (!isNaN(synth)) timer.set('synth_ms', synth);
+      if (!r.ok) {
+        let why = 'HTTP ' + r.status;
+        try { const j = await r.json(); if (j && j.detail) why = j.detail; } catch (e) {}
+        throw new Error(why);
+      }
+      await speakStream(r, timer);
+      timer.send('ended');
+      btn.textContent = '🔊 listen';
+      btn.title = '';
+    } catch (e) {
+      timer.send('error');
+      btn.textContent = 'audio unavailable';
+      btn.title = e.message || 'audio unavailable';
+      voiceNote(e.message);
+    }
+    return;
+  }
+  // No Web Audio or no streams: the whole WAV, played once it has arrived.
   try {
     const r = await fetch('/speak', {
       method: 'POST',
@@ -997,10 +1086,12 @@ async function ask(followUp, inputMode) {
     });
     decoration('listen button', function () {
       pending.querySelector('.listen').onclick = function () {
-        // The brief is what is heard; the server speaks it in preference to
-        // the full text whenever it is sent. An older server sends no brief.
+        // V3: the spoken brief is what is heard (server/spoken.py: fixed
+        // templates, no model wording); the server speaks what is sent as the
+        // brief in preference to the full text. An older server sends no
+        // spoken brief, and its on-screen brief is spoken as before.
         speak(String(d.response || '').replace(/\*\*/g, '').replace(/\|/g, '. '), this, d.source,
-              d.brief || '', d.query_id || '');
+              d.spoken_brief || d.brief || '', d.query_id || '');
       };
     });
     decoration('section toggles', function () {
