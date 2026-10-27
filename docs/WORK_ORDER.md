@@ -1251,8 +1251,11 @@ A changed row that neither side can judge is listed as unjudged and never counte
 
 **Not done (owner to rule):**
 - **The service venv is unchanged.** #188 merged into the V3 branch (#187), not main, so the live service runs main without the Chroma pin. With the Jetson wheel installed, a restart would put live retrieval on TensorRT (above). Install it after #187 is deployed: `pip uninstall -y onnxruntime`, `pip install --no-deps` the wheel, restart.
-- **"Several indications are on screen. Say one."** carries no drug name, as ruled.
 - **The CPU fallback still has silences of about 3 s after "Held."**; comma splits do not reach them.
+
+**Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
+
+**Done:** the PR records the criterion: Jetson-wheel retrieval is unchanged within Chroma's own noise, with 0 changed on all five replays. `spoken.MANY_INDICATIONS` is "{drug}. Several indications are on screen. Say one." The CPU fallback's silence is documented as accepted, with the GPU primary. The service venv is the owner's step: the owner merges, then installs the wheel.
 
 ### V2: local voice, Kokoro-82M (owner, 2026-10-25)
 

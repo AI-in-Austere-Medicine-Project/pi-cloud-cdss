@@ -205,7 +205,7 @@ The commit 3 payloads (`payloads_c3.json`), with each brief rebuilt by this bran
   - "Cefazolin. Which indication: penetrating brain or spinal injury, antibiotic prophylaxis; ventriculostomy in place; open fracture or wound infection prophylaxis?"
   - "Midazolam. Which indication: agitation; pacing or cardioversion; sedation, already intubated; seizure?"
   - "Atropine. Which indication: bradycardia; nerve agent or organophosphate poisoning?"
-  - Ketamine has five options (agitation, RSI, sedation (already intubated), seizure, pain): "Several indications are on screen. Say one." It is the only drug today past four. The ruled sentence carries no drug name, and none was added.
+  - Ketamine has five options (agitation, RSI, sedation (already intubated), seizure, pain): "Ketamine. Several indications are on screen. Say one." (`spoken.MANY_INDICATIONS`; the drug name added on the owner's 2026-10-27 ruling). It is the only drug today past four.
 - **Every long sentence splits** (`tts.speech_chunks`, `CHUNK_MAX = 80`): each sentence over 80 characters is cut repeatedly, at the last comma, colon or semicolon within 80, else the first after, until every piece fits or no mark is left. A semicolon between options is a mark, so the cefazolin list streams as "Which indication: penetrating brain or spinal injury, antibiotic prophylaxis;" then "ventriculostomy in place; open fracture or wound infection prophylaxis?".
 - `tools/tts_latency_run.py` now records `longest_silence_ms` per item: the wait from one chunk ending to the next starting, the portal's 0.15 s breath included.
 
@@ -231,13 +231,19 @@ Each run used a fresh :8012 server.
 | Ketamine drip (B2-6, longest audio) | 2.1 s, audio end 25.1 s | 0.36 s, audio end 19.8 s |
 | Magnesium hold | 1.1 s | 0.26 s |
 
-### Found, not changed (owner to rule)
+### Found, not changed (ruled 2026-10-27, below)
 
-- **Install the Jetson wheel in the service venv only after #187 is deployed** (above). The ruling's sequence, pin first, then wheel, protects retrieval only once the pin is live.
-- **Pinned retrieval is "unchanged within noise", not "bit-identical".** 1.24.0's CPU kernels differ from 1.27.0's in the seventh digit. A process loads one onnxruntime, so Chroma cannot keep 1.27.0 while Kokoro runs 1.24.0 in the same server.
-- **The many-options sentence has no drug name.** "Several indications are on screen. Say one." is spoken as ruled. "Ketamine. Several indications…" would say which drug the question is about.
-- **The CPU fallback still has silences of about 3 s after "Held."** If the GPU fails, the 2 s target needs something other than comma splits, for example synthesising the second chunk with the first.
+- **Install the Jetson wheel in the service venv only after #187 is deployed** (above). The owner installs it.
 - **About 1 GB more memory with Kokoro on the GPU**, shared with Ollama's model.
+
+### Owner rulings on #189 (2026-10-27)
+
+**Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
+
+- **The retrieval criterion for the Jetson wheel** is "unchanged within Chroma's own noise, 0 changed on all five replays", not bit-identical vectors. Pinned on 1.24.0: vectors within 3.3e-7, ids differing only on queries where main differs from itself, and 0 changed on all five replays. It meets the criterion.
+- **The five-option sentence names the drug:** "Ketamine. Several indications are on screen. Say one."
+- **The CPU fallback's silences of about 3 s are accepted.** The GPU is primary; on the CPU the longest silence is 3.8 s (after "Cefazolin.") and about 2.9 s after "Held.".
+- **The owner merges #189 and installs the wheel.** This branch does not change the service venv.
 
 ## Every item, commit 3
 

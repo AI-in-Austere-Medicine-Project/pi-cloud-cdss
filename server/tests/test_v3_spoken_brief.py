@@ -367,7 +367,9 @@ def test_the_question_the_pipeline_writes_gets_the_template():
             continue
         asked += 1
         said = spoken.build({"response": q})
-        if said == spoken.MANY_INDICATIONS:
+        if said.endswith(". Several indications are on screen. Say one."):
+            assert said == spoken.MANY_INDICATIONS.format(
+                drug=spoken._capitalised(spoken._say_drug(drug))), q
             continue
         assert said.startswith(spoken._capitalised(spoken._say_drug(drug)) + ". Which indication: "), q
         assert said.endswith("?") and not spoken._unspeakable(said), said
@@ -396,10 +398,10 @@ def test_a_slash_is_or_inside_its_option():
         "Atropine. Which indication: bradycardia; nerve agent or organophosphate poisoning?")
 
 
-def test_five_options_are_not_read_out():
+def test_five_options_are_not_read_out_and_the_drug_is_named():
+    # Owner, 2026-10-27: "Ketamine. Several indications are on screen. Say one."
     q = "Which indication for ketamine — agitation, RSI, sedation (already intubated), seizure or pain?"
-    assert spoken.build({"response": q}) == "Several indications are on screen. Say one."
-    assert spoken.MANY_INDICATIONS == "Several indications are on screen. Say one."
+    assert spoken.build({"response": q}) == "Ketamine. Several indications are on screen. Say one."
 
 
 def test_no_spoken_question_joins_options_with_or():
@@ -410,4 +412,4 @@ def test_no_spoken_question_joins_options_with_or():
             continue
         said = spoken.build({"response": q})
         options = said.partition("Which indication: ")[2].rstrip("?").split("; ")
-        assert said == spoken.MANY_INDICATIONS or 2 <= len(options) <= spoken.INDICATION_LIST_MAX, said
+        assert said.endswith("Say one.") or 2 <= len(options) <= spoken.INDICATION_LIST_MAX, said

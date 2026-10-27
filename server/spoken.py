@@ -64,9 +64,10 @@ CARD_ON_SCREEN = "The card is on the screen."
 # template: '<Drug>. Which indication: <list>?' with the list of names only."
 WHICH_INDICATION = "{drug}. Which indication: {names}?"
 # Owner, 2026-10-26: up to four options are spoken, a pause (semicolon)
-# between each, "or" only inside an option; five or more are not read out.
+# between each, "or" only inside an option; five or more are not read out,
+# and the drug is named (owner, 2026-10-27).
 INDICATION_LIST_MAX = 4
-MANY_INDICATIONS = "Several indications are on screen. Say one."
+MANY_INDICATIONS = "{drug}. Several indications are on screen. Say one."
 
 MAX_DOSES = 3
 DOSE_SECTIONS = ("GIVE", "POST-INTUBATION SEDATION", "DRIP", "RATE")
@@ -411,11 +412,13 @@ def _which_indication(response: str):
     words = [w for _, w in sorted(words)]
     if len(words) < 2 or f"{', '.join(words[:-1])} or {words[-1]}" != tail:
         return None
-    if len(words) > INDICATION_LIST_MAX:
-        return MANY_INDICATIONS
     said_drug = _say_drug(drug.strip())
+    if not said_drug:
+        return None
+    if len(words) > INDICATION_LIST_MAX:
+        return MANY_INDICATIONS.format(drug=_capitalised(said_drug))
     names = [indication_name(w) for w in words]
-    if not said_drug or not all(names):
+    if not all(names):
         return None
     return WHICH_INDICATION.format(drug=_capitalised(said_drug), names="; ".join(names))
 
