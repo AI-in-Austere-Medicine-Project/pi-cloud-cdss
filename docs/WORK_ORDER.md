@@ -91,7 +91,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
 | V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **done**: #185, merged; owner, 2026-10-25 |
-| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **in review** (round 3); owner, 2026-10-26 |
+| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **done**: #190, merged and deployed; follow-up (warm-up, GPU retry, V1 on live) **in review**; owner, 2026-10-26 / 2026-10-27 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1256,6 +1256,21 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
 
 **Done:** the PR records the criterion: Jetson-wheel retrieval is unchanged within Chroma's own noise, with 0 changed on all five replays. `spoken.MANY_INDICATIONS` is "{drug}. Several indications are on screen. Say one." The CPU fallback's silence is documented as accepted, with the GPU primary. The service venv is the owner's step: the owner merges, then installs the wheel.
+
+### V3 follow-up: voice warm-up, GPU retry, V1 on live (owner, 2026-10-27)
+
+**Owner:** "Live: GPU confirmed, voice works on both models. One PR, two items: 1. Warm-up: load Kokoro and synthesise a short sentence at service start, so first listen after a restart isn't 6 s. Test pins voice_device gpu within 30 s of start. 2. Re-run the V1 latency table on the live service with Kokoro resident on the GPU and compare model-answer median to 12.5 s; report any slowdown." Added: "(a) after a GPU fallback, Kokoro retries the GPU on the next call rather than staying on CPU until restart; (b) /status reports the fallback with its reason and time. Record the memory budget in the PR: qwen + Kokoro fits; qwen + edgecdss-v3 + Kokoro is the case that spills."
+
+**Done (one PR, failing tests first for each change):**
+- **Warm-up:** `tts.warm_up()` runs from a startup thread; `CDSS_KOKORO_WARMUP=0` turns it off.
+  - A real server on the Jetson reports `voice_device: gpu` within 30 s (7.4 s).
+  - First listen after start: 3.5 → 0.69 s. `/health` first answers at 5.1 s instead of 2.7 s.
+- **GPU retry:** a GPU synthesis failure finishes that sentence on a CPU model, loaded once and kept, and the next call tries the GPU again.
+- **Fallback report:** `/status voice_device` has `last_fallback` {reason, at} and `gpu_fallbacks`.
+- **V1 on live** (main `25b7233`, Kokoro resident on the GPU, no other traffic): model answers **10.52 s median**, 15.16 s p90, against V1's 12.54 / 16.19 s. **No slowdown.** Retrieval 0.46 → 0.17 s.
+- **Memory budget** (`docs/VOICE_WARMUP_GPU_2026-10-27.md`): qwen + Kokoro on the GPU is about 5.7 GB of 7.5, and fits. qwen + edgecdss-v3 + Kokoro is about 8.1–8.8 GB, and spills: the 17:31 UTC live GPU failure.
+
+**Not measured:** a listen synthesising on the GPU while qwen generates. Under steady memory pressure, each sentence now pays the failed GPU attempt.
 
 ### V2: local voice, Kokoro-82M (owner, 2026-10-25)
 
