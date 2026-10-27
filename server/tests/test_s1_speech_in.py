@@ -138,6 +138,24 @@ def test_silence_is_an_empty_transcript_not_an_error(whisper):
     assert r.status_code == 200 and r.json()["text"] == ""
 
 
+def test_whispers_silence_marker_is_not_a_transcript(whisper):
+    # Real whisper.cpp base.en, on 1 s of zeros, wrote "[BLANK_AUDIO]". That is
+    # whisper saying it heard nothing, not words; it must not land in the box.
+    whisper.segments = [" [BLANK_AUDIO]"]
+    r = post(wav())
+    assert r.status_code == 200 and r.json()["text"] == ""
+
+
+def test_a_non_speech_segment_is_dropped_and_the_words_kept_verbatim(whisper):
+    whisper.segments = [" [MUSIC]", " 80 kg adult,", " cefazolin dose?"]
+    assert post(wav()).json()["text"] == "80 kg adult, cefazolin dose?"
+
+
+def test_brackets_inside_spoken_words_are_left_alone(whisper):
+    whisper.segments = [" Cefazolin [two grams] dose?"]
+    assert post(wav()).json()["text"] == "Cefazolin [two grams] dose?"
+
+
 # ── what it takes, and what it refuses ──────────────────────────────────────
 
 def test_a_token_is_required(whisper):
@@ -322,3 +340,26 @@ def test_a_failed_transcription_says_why_and_leaves_the_box_alone():
     out = _ptt("error")
     assert out["box"] == "" and "out of memory" in out["note"]
     assert [c["url"] for c in out["calls"]] == ["/transcribe"]
+
+
+# ── On the Jetson: the real whisper.cpp, the real GPU ───────────────────────
+
+@pytest.mark.skipif(os.getenv("CDSS_TEST_WHISPER_GPU") != "1",
+                    reason="set CDSS_TEST_WHISPER_GPU=1 on the Jetson (pywhispercpp installed, "
+                           "weights in CDSS_WHISPER_DIR, render group)")
+def test_the_real_whisper_loads_from_its_own_directory_and_runs_on_the_gpu(monkeypatch):
+    import importlib.util
+    import subprocess
+    site = pathlib.Path(importlib.util.find_spec("_pywhispercpp").origin).parent
+    libs = sorted(site.glob("_pywhispercpp*.so")) + sorted(site.glob("libwhisper.so*")) + sorted(site.glob("libggml*.so*"))
+    assert libs
+    for lib in libs:
+        dyn = subprocess.run(["readelf", "-d", str(lib)], capture_output=True, text=True).stdout
+        paths = [l.split("[", 1)[1].rstrip("]") for l in dyn.splitlines() if "RUNPATH" in l or "RPATH" in l]
+        assert paths == ["$ORIGIN"], f"{lib.name} looks for libraries in {paths} (install_whisper.sh sets $ORIGIN)"
+    import numpy as np
+    monkeypatch.setattr(stt, "_MODEL", None)
+    monkeypatch.setattr(stt, "_DEVICE", None)
+    assert stt.config_problem() is None
+    assert stt._transcribe_blocking(np.zeros(stt.SAMPLE_RATE, dtype=np.float32)) == ""
+    assert stt._DEVICE == "gpu"
