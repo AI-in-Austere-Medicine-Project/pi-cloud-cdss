@@ -384,7 +384,7 @@ def test_status_reports_the_fallback_with_its_reason_and_time(device_env, monkey
     device_env([tts.CUDA, tts.CPU], _Builds(gpu_fails_times=1))
     monkeypatch.setattr(main.providers, "provider_status", lambda: {})
     monkeypatch.setattr(main.providers, "available_models", lambda: [])
-    before = datetime.datetime.now(datetime.timezone.utc)
+    before = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
     asyncio.run(tts.synthesize("Give fentanyl."))
     asyncio.run(tts.synthesize("Again, please."))       # back on the GPU
     v = call("GET", "/status", headers=TOKEN).json()["voice_device"]

@@ -58,6 +58,7 @@ def fake_engine(monkeypatch, tmp_path):
     eng = _FakeEngine()
     monkeypatch.setattr(tts, "_load_engine", lambda: eng)
     monkeypatch.setattr(tts, "_ENGINE", None)
+    monkeypatch.setattr(tts, "_ON", None)
     return eng
 
 
@@ -208,6 +209,7 @@ def test_the_real_model_speaks_with_the_network_refused(monkeypatch):
     monkeypatch.setattr(socket, "create_connection", refuse)
     monkeypatch.setenv("CDSS_KOKORO_DIR", str(_REAL_DIR))
     monkeypatch.setattr(tts, "_ENGINE", None)
+    monkeypatch.setattr(tts, "_ON", None)
     audio = asyncio.run(tts.synthesize("Give fentanyl 50 micrograms I-V."))
     with wave.open(io.BytesIO(audio)) as w:
         assert w.getframerate() == 24000 and w.getnframes() / 24000 > 0.5

@@ -145,6 +145,7 @@ def test_no_warm_up_when_voice_is_not_configured(monkeypatch, tmp_path):
     monkeypatch.setenv("CDSS_KOKORO_DIR", str(tmp_path))      # no model files
     monkeypatch.setattr(tts, "_ENGINE", None)
     monkeypatch.setattr(tts, "_DEVICE", None)
+    monkeypatch.setattr(tts, "_ON", None)
     monkeypatch.setattr(tts, "_load_engine", lambda: pytest.fail("loaded a voice that is not configured"))
     with TestClient(main.app) as client:
         time.sleep(0.3)
