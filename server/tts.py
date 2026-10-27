@@ -22,6 +22,7 @@ file, which library) and /status reports voice only when it can be produced.
 
 import asyncio
 import ctypes.util
+import datetime
 import io
 import os
 import pathlib
@@ -125,8 +126,16 @@ def voice_available() -> bool:
 # synthesis, ends on the CPU with the reason logged and in /status.
 CUDA = "CUDAExecutionProvider"
 CPU = "CPUExecutionProvider"
-_DEVICE = None           # "gpu" or "cpu" once the model is loaded
+_DEVICE = None           # "gpu" or "cpu": what the model loaded on
 _DEVICE_NOTE = ""        # why it is on the CPU, when it is
+# Owner, 2026-10-27: "after a GPU fallback, Kokoro retries the GPU on the next
+# call rather than staying on CPU until restart; /status reports the fallback
+# with its reason and time." A GPU synthesis failure finishes that call on a
+# CPU model (loaded once, then kept); the next call tries the GPU model again.
+_CPU_ENGINE = None       # the CPU model a GPU failure finishes on
+_ON = None               # "gpu" or "cpu": where the last synthesis ran
+_LAST_FALLBACK = None    # {"reason", "at"} of the last GPU synthesis failure
+_GPU_FALLBACKS = 0       # GPU synthesis failures since start
 
 
 def _ort_providers() -> list:
@@ -188,23 +197,36 @@ def _engine():
         return _ENGINE
 
 
-def _fall_back_to_cpu(failed, why: str):
-    """A synthesis failed on the GPU: the model moves to the CPU for good.
-    `failed` is the engine that failed, so two threads failing together load
-    the CPU model once."""
-    global _ENGINE, _DEVICE, _DEVICE_NOTE
+def _cpu_engine():
+    global _CPU_ENGINE
     with _ENGINE_LOCK:
-        if _ENGINE is failed:
-            _ENGINE, _ = _build_engine([CPU])
-            _DEVICE, _DEVICE_NOTE = "cpu", why
-            print(f"⚠️  voice: Kokoro moved to the CPU: {why}")
-        return _ENGINE
+        if _CPU_ENGINE is None:
+            _CPU_ENGINE, _ = _build_engine([CPU])
+        return _CPU_ENGINE
+
+
+def _gpu_failed(why: str):
+    global _ON, _LAST_FALLBACK, _GPU_FALLBACKS
+    with _ENGINE_LOCK:
+        _ON = "cpu"
+        _GPU_FALLBACKS += 1
+        _LAST_FALLBACK = {"reason": why,
+                          "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}
+    print(f"⚠️  voice: this sentence on the CPU, the GPU is tried again next time: {why}")
 
 
 def device() -> dict:
-    """For /status: where the voice runs, and why the CPU when it is.
-    "not loaded" until the first synthesis."""
-    return {"device": _DEVICE or "not loaded", "note": _DEVICE_NOTE}
+    """For /status: where the voice ran last ("not loaded" until the first
+    synthesis), why the CPU when it is, and the last GPU fallback, if any,
+    with its reason and time."""
+    on = _ON or _DEVICE
+    note = _DEVICE_NOTE
+    if on == "cpu" and _DEVICE == "gpu" and _LAST_FALLBACK:
+        note = _LAST_FALLBACK["reason"]
+    elif on == "gpu":
+        note = ""
+    return {"device": on or "not loaded", "note": note,
+            "last_fallback": _LAST_FALLBACK, "gpu_fallbacks": _GPU_FALLBACKS}
 
 
 def _wav(samples, sample_rate: int) -> bytes:
@@ -224,15 +246,41 @@ def _synthesize_blocking(text: str) -> bytes:
     voice = (os.getenv("CDSS_KOKORO_VOICE") or "").strip() or DEFAULT_VOICE
     lang = (os.getenv("CDSS_KOKORO_LANG") or "").strip() or DEFAULT_LANG
     speed = _env_number("CDSS_KOKORO_SPEED", DEFAULT_SPEED, float)
+    global _ON
     eng = _engine()
     try:
         samples, sample_rate = eng.create(text, voice=voice, speed=speed, lang=lang)
     except Exception as e:
         if _DEVICE != "gpu":
             raise
-        eng = _fall_back_to_cpu(eng, f"synthesis on the GPU failed ({type(e).__name__}: {str(e)[:160]})")
-        samples, sample_rate = eng.create(text, voice=voice, speed=speed, lang=lang)
+        _gpu_failed(f"synthesis on the GPU failed ({type(e).__name__}: {str(e)[:160]})")
+        samples, sample_rate = _cpu_engine().create(text, voice=voice, speed=speed, lang=lang)
+    else:
+        _ON = _DEVICE
     return _wav(samples, sample_rate)
+
+
+# Owner, 2026-10-27: "load Kokoro and synthesise a short sentence at service
+# start, so first listen after a restart isn't 6 s." CDSS_KOKORO_WARMUP=0
+# turns it off (the model then loads on the first listen, as before).
+WARM_UP_TEXT = "Reassess in five minutes."
+
+
+def warm_up():
+    """Load the model and synthesise WARM_UP_TEXT, off the request path. Run
+    in a thread at start. Never raises: a failure leaves the voice to load on
+    the first listen, and a GPU synthesis failure moves it to the CPU as in
+    any listen."""
+    if (os.getenv("CDSS_KOKORO_WARMUP") or "1").strip() == "0" or config_problem():
+        return
+    t0 = time.perf_counter()
+    try:
+        _synthesize_blocking(WARM_UP_TEXT)
+    except Exception as e:
+        print(f"⚠️  voice warm-up failed ({type(e).__name__}: {str(e)[:200]}); "
+              "the voice loads on the first listen")
+        return
+    print(f"🔊 voice warmed on the {_DEVICE} in {time.perf_counter() - t0:.1f} s")
 
 
 def _checked(text: str) -> str:

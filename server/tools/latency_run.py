@@ -1,8 +1,11 @@
 """V1 latency baseline (docs/VOICE_LATENCY_BASELINE_2026-10-25.md): post every item to the :8012 worktree server (offline,
 qwen2.5:3b) and save each response's query_id, so the session log's timings
-can be joined. Usage: latency_run.py <out.json>  (a server on :8012, CDSS_LLM_PROVIDER=local)"""
-import json, sys, time, urllib.request
-API = "http://127.0.0.1:8012/query"
+can be joined. Usage: latency_run.py <out.json>  (a server on :8012, CDSS_LLM_PROVIDER=local)
+CDSS_LATENCY_BASE (default http://127.0.0.1:8012) and CDSS_ACCESS_TOKEN point it
+at another server, e.g. the live service on :8000."""
+import json, os, sys, time, urllib.request
+API = os.getenv("CDSS_LATENCY_BASE", "http://127.0.0.1:8012").rstrip("/") + "/query"
+TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
 B2 = ["80 kg adult, open femur fracture, IV access, cefazolin dose",
       "80 kg adult, open tib-fib fracture, IV access, what antibiotic do I give",
       "20 kg child, 6 years old, open forearm fracture, IV access, cefazolin dose",
@@ -38,7 +41,7 @@ def main(out_path):
                            "voice_mode": "brief", "conversation_history": it["history"],
                            "session_id": "v1-latency"}).encode()
         req = urllib.request.Request(API, body, {"Content-Type": "application/json",
-                                                 "X-Access-Token": "edgecdss-demo-2026", "X-Test-Run": "1"})
+                                                 "X-Access-Token": TOKEN, "X-Test-Run": "1"})
         t = time.perf_counter()
         with urllib.request.urlopen(req, timeout=900) as r:
             d = json.load(r)
