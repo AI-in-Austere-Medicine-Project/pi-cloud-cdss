@@ -20,6 +20,7 @@ weights, and every failure here degrades to "no transcript" with its reason.
 import io
 import os
 import pathlib
+import re
 import tempfile
 import threading
 import time
@@ -37,6 +38,9 @@ _MODEL = None
 _DEVICE = None                      # "gpu" or "cpu" once loaded
 _DEVICE_NOTE = ""
 _LOCK = threading.Lock()            # one whisper context: one transcription at a time
+# A segment that is nothing but a bracketed tag is whisper saying what it heard
+# instead of words: "[BLANK_AUDIO]" for silence (seen on base.en), "[MUSIC]".
+_NON_SPEECH = re.compile(r"\s*\[[^\]]*\]\s*")
 
 
 class SpeechInUnavailable(Exception):
@@ -80,15 +84,23 @@ def status() -> dict:
 
 def _build_model():
     """(the model, "gpu" or "cpu"). whisper.cpp says which backend it took only
-    in its own log, so the load's log is read back for it."""
+    in its own log, so the load's log is read back for it. The log is caught at
+    file descriptor 2 here, not by pywhispercpp's redirect, which falls back to
+    a Python-level one (that C never writes to) when sys.stderr has no fd."""
     from pywhispercpp.model import Model
     use_gpu = (os.getenv("CDSS_WHISPER_DEVICE") or "auto").strip().lower() != "cpu"
     threads = _env_number("CDSS_WHISPER_THREADS", DEFAULT_THREADS, int)
-    with tempfile.NamedTemporaryFile("w+", suffix=".log") as log:
-        model = Model(str(_model_dir() / MODEL_FILE), redirect_whispercpp_logs_to=log.name,
-                      context_params={"use_gpu": use_gpu},
-                      n_threads=threads, language="en", no_context=True,
-                      print_progress=False, print_realtime=False, print_timestamps=False)
+    with tempfile.TemporaryFile("w+") as log:
+        saved = os.dup(2)
+        try:
+            os.dup2(log.fileno(), 2)
+            model = Model(str(_model_dir() / MODEL_FILE), redirect_whispercpp_logs_to=False,
+                          context_params={"use_gpu": use_gpu},
+                          n_threads=threads, language="en", no_context=True,
+                          print_progress=False, print_realtime=False, print_timestamps=False)
+        finally:
+            os.dup2(saved, 2)
+            os.close(saved)
         log.seek(0)
         text = log.read()
     return model, ("gpu" if use_gpu and "using CUDA" in text else "cpu")
@@ -135,7 +147,8 @@ def _transcribe_blocking(samples) -> str:
         segments = model.transcribe(samples)
     # Verbatim: whisper's segments joined as it wrote them. No rewriting of
     # numbers, units or words; the medic reads and edits it before sending.
-    return "".join(s.text for s in segments).strip()
+    # Only whole-segment non-speech tags are dropped (silence comes back "").
+    return "".join(s.text for s in segments if not _NON_SPEECH.fullmatch(s.text)).strip()
 
 
 async def transcribe(body: bytes) -> dict:

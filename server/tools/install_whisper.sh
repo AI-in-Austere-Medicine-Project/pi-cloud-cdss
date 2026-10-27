@@ -36,5 +36,20 @@ env -i PATH=/usr/local/cuda/bin:/usr/bin:/bin HOME="$HOME" \
   "$PY" -m pip install --no-deps --no-cache-dir --no-binary pywhispercpp \
   "pywhispercpp==$PYWHISPERCPP" "platformdirs==$PLATFORMDIRS"
 
+# The build leaves each library's RUNPATH at pip's deleted build directory in
+# /tmp, so the extension cannot find libwhisper.so.1 beside it (ImportError),
+# and anyone who recreated that directory could plant a library the service
+# loads. Point them at $ORIGIN (their own directory, site-packages) instead,
+# with patchelf from a throwaway venv. Idempotent: rerunning the script on an
+# installed package only redoes this.
+SITE="$("$PY" -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")"
+PE="$(mktemp -d)"
+trap 'rm -rf "$PE"' EXIT
+python3 -m venv "$PE/venv"
+"$PE/venv/bin/pip" install -q --only-binary :all: patchelf==0.17.2.1
+for f in "$SITE"/_pywhispercpp*.so "$SITE"/libwhisper.so* "$SITE"/libggml*.so*; do
+  "$PE/venv/bin/patchelf" --set-rpath '$ORIGIN' "$f"
+done
+
 "$PY" -c "import pywhispercpp.model, sys; print('pywhispercpp', pywhispercpp.model.__version__, 'importable')"
 echo "whisper weights verified in $DIR"
