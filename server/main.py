@@ -8,6 +8,7 @@ from collections import deque
 import asyncio
 import json
 import os
+import threading
 import time
 from dotenv import load_dotenv
 from embeddings import ChromaDBClient
@@ -51,6 +52,14 @@ try:
 except Exception as e:
     print(f"❌ Error: {e}")
     raise
+
+
+@app.on_event("startup")
+async def _warm_voice():
+    # In a thread, not awaited: /health answers while the model loads, so
+    # the watchdog never sees a start that hangs on the voice.
+    threading.Thread(target=tts.warm_up, name="voice-warm-up", daemon=True).start()
+
 
 ACCESS_TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
 FEEDBACK_LOG = os.getenv("FEEDBACK_LOG", "feedback.log")

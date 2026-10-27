@@ -235,6 +235,29 @@ def _synthesize_blocking(text: str) -> bytes:
     return _wav(samples, sample_rate)
 
 
+# Owner, 2026-10-27: "load Kokoro and synthesise a short sentence at service
+# start, so first listen after a restart isn't 6 s." CDSS_KOKORO_WARMUP=0
+# turns it off (the model then loads on the first listen, as before).
+WARM_UP_TEXT = "Reassess in five minutes."
+
+
+def warm_up():
+    """Load the model and synthesise WARM_UP_TEXT, off the request path. Run
+    in a thread at start. Never raises: a failure leaves the voice to load on
+    the first listen, and a GPU synthesis failure moves it to the CPU as in
+    any listen."""
+    if (os.getenv("CDSS_KOKORO_WARMUP") or "1").strip() == "0" or config_problem():
+        return
+    t0 = time.perf_counter()
+    try:
+        _synthesize_blocking(WARM_UP_TEXT)
+    except Exception as e:
+        print(f"⚠️  voice warm-up failed ({type(e).__name__}: {str(e)[:200]}); "
+              "the voice loads on the first listen")
+        return
+    print(f"🔊 voice warmed on the {_DEVICE} in {time.perf_counter() - t0:.1f} s")
+
+
 def _checked(text: str) -> str:
     """The text to speak, or VoiceUnavailable: 400 empty, 413 over the cap,
     503 not configured. Decided before any synthesis."""
