@@ -367,7 +367,7 @@ def test_the_real_model_speaks_on_whichever_device_it_got(monkeypatch):
     assert audio.startswith(b"RIFF") and tts.device()["device"] in ("gpu", "cpu")
 
 
-# ── Owner, 2026-10-26: a long first sentence splits at a clause mark ─────────
+# ── Owner, 2026-10-26: a long sentence splits at a clause mark ───────────────
 
 def test_short_first_sentence_is_not_split():
     assert tts.speech_chunks("Held. No signed dose for magnesium sulfate.") == [
@@ -380,12 +380,26 @@ def test_long_first_sentence_splits_at_the_last_mark_within_80():
     got = tts.speech_chunks(s)
     assert got == ["Which ketamine do you have, five hundred milligrams in ten millilitres vial,",
                    "fifty milligrams per millilitre?", "Then the dose."]
-    assert len(got[0]) <= tts.FIRST_CHUNK_MAX
+    assert len(got[0]) <= tts.CHUNK_MAX
 
 
-def test_only_the_first_sentence_splits():
+# ── Owner, 2026-10-26 (round 3): every sentence over 80 characters splits ────
+
+def test_a_later_long_sentence_splits_too():
     long = "Watch: " + "pulse, " * 15 + "pressure."
-    assert tts.speech_chunks("Give it. " + long) == ["Give it.", long]
+    got = tts.speech_chunks("Give it. " + long)
+    assert got[0] == "Give it." and len(got) > 2
+    assert all(len(c) <= tts.CHUNK_MAX for c in got)
+    assert " ".join(got[1:]) == long
+
+
+def test_a_long_sentence_splits_as_often_as_it_needs():
+    s = ("Cefazolin. Which indication: penetrating brain or spinal injury, antibiotic "
+         "prophylaxis; ventriculostomy in place; open fracture or wound infection prophylaxis?")
+    assert tts.speech_chunks(s) == [
+        "Cefazolin.",
+        "Which indication: penetrating brain or spinal injury, antibiotic prophylaxis;",
+        "ventriculostomy in place; open fracture or wound infection prophylaxis?"]
 
 
 def test_first_mark_after_80_when_none_within():

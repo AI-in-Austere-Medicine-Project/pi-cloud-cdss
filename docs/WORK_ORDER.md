@@ -91,7 +91,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
 | V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **done**: #185, merged; owner, 2026-10-25 |
-| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **in review**; owner, 2026-10-26 |
+| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **in review** (round 3); owner, 2026-10-26 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1237,6 +1237,25 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - **Names only drops "(already intubated)"** from ketamine's and midazolam's "sedation" (the 2026-10-15 incident's distinction). A "/" read as "or" runs into the list's own "or" (cefazolin, atropine).
 - **Gaps:** the cefazolin question says "Cefazolin." at 1.6 s, then 7.2 s of silence. Splitting every long sentence, not only the first, would cut it.
 - **Chroma's top 10 is not repeatable run to run** (8 of 607 queries, from rank 4). Not chased.
+
+**Owner rulings, round 3 (2026-10-26):** "1. GPU wheel: yes, try NVIDIA's Jetson AI Lab onnxruntime-gpu 1.24.0 in the scratch venv first and time Kokoro. If it works, pin Chroma to CPU, install it in the service venv, replay (0 changed), re-time. If it doesn't work, stay on CPU and close the item; 1.6 s is acceptable. 2. Spoken options keep their qualifiers: "sedation, already intubated", never plain "sedation". 3. Lists: up to four options are spoken, each separated by a pause (semicolon), with "/" spoken as "or" only inside an option. Five or more: "Several indications are on screen. Say one." 4. Every sentence over 80 characters splits at commas, not only the first, so no silence over 2 s. Report first-audio and longest-silence after. PR, do not merge."
+
+**Done (one PR on the V3 branch, a commit per ruling, failing tests first):**
+- **1. The Jetson wheel works.** Kokoro on CUDA, real-time factor 0.09–0.12 (CPU 0.80–0.88). The audio is the same length; envelope correlation 0.9997 with the CPU's, not bit-identical. Memory: about 1 GB more.
+- **Retrieval on that wheel, pinned:** vectors differ by at most 3.3e-7 (1.24.0's CPU kernels, not 1.27.0's). Ids differ only on queries where main differs from itself. **Not pinned:** TensorRT, about 20 s per query, 17 of 607 queries changed.
+- **Replay** (round-3 tree, CPU wheel and Jetson wheel): 0 changed in all five sets, byte-identical to main.
+- **2.** `spoken.indication_name` keeps the bracketed qualifier after a comma.
+- **3.** `spoken.INDICATION_LIST_MAX` 4, options joined by "; "; `spoken.MANY_INDICATIONS` past it (ketamine today).
+- **4.** `tts.speech_chunks` splits every sentence over `CHUNK_MAX` (80) at clause marks, repeatedly. `tts_latency_run.py` records `longest_silence_ms`.
+- **Timing, same 21 texts:** first audio median / p90 **0.30 / 0.64 s** on the GPU, with the longest silence 0.15 s (the breath) on every item. CPU wheel: 1.5 / 4.6 s, with the longest silence 3.8 s (round 2: 7.3 s).
+
+**Not done (owner to rule):**
+- **The service venv is unchanged.** #188 merged into the V3 branch (#187), not main, so the live service runs main without the Chroma pin. With the Jetson wheel installed, a restart would put live retrieval on TensorRT (above). Install it after #187 is deployed: `pip uninstall -y onnxruntime`, `pip install --no-deps` the wheel, restart.
+- **The CPU fallback still has silences of about 3 s after "Held."**; comma splits do not reach them.
+
+**Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
+
+**Done:** the PR records the criterion: Jetson-wheel retrieval is unchanged within Chroma's own noise, with 0 changed on all five replays. `spoken.MANY_INDICATIONS` is "{drug}. Several indications are on screen. Say one." The CPU fallback's silence is documented as accepted, with the GPU primary. The service venv is the owner's step: the owner merges, then installs the wheel.
 
 ### V2: local voice, Kokoro-82M (owner, 2026-10-25)
 

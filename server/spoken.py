@@ -63,6 +63,11 @@ CARD_ON_SCREEN = "The card is on the screen."
 # Owner, 2026-10-26: "the which-indication question gets its own spoken
 # template: '<Drug>. Which indication: <list>?' with the list of names only."
 WHICH_INDICATION = "{drug}. Which indication: {names}?"
+# Owner, 2026-10-26: up to four options are spoken, a pause (semicolon)
+# between each, "or" only inside an option; five or more are not read out,
+# and the drug is named (owner, 2026-10-27).
+INDICATION_LIST_MAX = 4
+MANY_INDICATIONS = "{drug}. Several indications are on screen. Say one."
 
 MAX_DOSES = 3
 DOSE_SECTIONS = ("GIVE", "POST-INTUBATION SEDATION", "DRIP", "RATE")
@@ -377,19 +382,20 @@ def _indication(item: str):
 
 
 def indication_name(word: str):
-    """One option of the which-indication question, as a name for speech:
-    the bracketed qualifier dropped ("penetrating brain or spinal injury
-    (antibiotic prophylaxis)" -> "penetrating brain or spinal injury"), the
-    rest through speak_line. None if it cannot be said."""
-    said = speak_line(re.sub(r"\s*\([^)]*\)", "", word))
+    """One option of the which-indication question, as a name for speech,
+    through speak_line. The bracketed qualifier is kept after a comma: owner,
+    2026-10-26, "sedation, already intubated", never plain "sedation". None if
+    it cannot be said."""
+    said = speak_line(word)
     return said.rstrip(".") if said else None
 
 
 def _which_indication(response: str):
-    """WHICH_INDICATION for a which-indication question, or None when the
-    question is not exactly the one openai_client.which_indication_question
-    writes from INDICATION_CLASSES: the options are matched against that fixed
-    list and the question must rebuild from them word for word."""
+    """WHICH_INDICATION for a which-indication question (MANY_INDICATIONS past
+    INDICATION_LIST_MAX options), or None when the question is not exactly the
+    one openai_client.which_indication_question writes from INDICATION_CLASSES:
+    the options are matched against that fixed list and the question must
+    rebuild from them word for word."""
     from openai_client import INDICATION_CLASSES, INDICATION_QUESTION_PREFIX
     text = response.strip()
     if not text.startswith(INDICATION_QUESTION_PREFIX) or not text.endswith("?"):
@@ -407,11 +413,14 @@ def _which_indication(response: str):
     if len(words) < 2 or f"{', '.join(words[:-1])} or {words[-1]}" != tail:
         return None
     said_drug = _say_drug(drug.strip())
-    names = [indication_name(w) for w in words]
-    if not said_drug or not all(names):
+    if not said_drug:
         return None
-    return WHICH_INDICATION.format(drug=_capitalised(said_drug),
-                                   names=f"{', '.join(names[:-1])} or {names[-1]}")
+    if len(words) > INDICATION_LIST_MAX:
+        return MANY_INDICATIONS.format(drug=_capitalised(said_drug))
+    names = [indication_name(w) for w in words]
+    if not all(names):
+        return None
+    return WHICH_INDICATION.format(drug=_capitalised(said_drug), names="; ".join(names))
 
 
 def _build(result: dict) -> str:

@@ -17,8 +17,9 @@ Two steps, so every V3 commit is timed on the same text:
                      received; each later sentence plays when it has arrived
                      and the one before has ended (plus the portal's 0.15 s
                      breath), so a sentence that arrives late is a gap.
-      audio end = when the last sentence ends. The browser's own decode is not
-      measured.
+      audio end = when the last sentence ends; longest silence = the longest
+      wait between one sentence ending and the next starting, the 0.15 s
+      breath included. The browser's own decode is not measured.
 
   tts_latency_run.py report <out.json> [<out.json> ...]
       Median and p90 per run, over the 21 items.
@@ -90,16 +91,18 @@ def time_one(speak, stream):
                     if kind != b"A":
                         raise RuntimeError(payload.decode())
                     arrivals.append(((time.perf_counter() - t0) * 1000, wav_seconds(payload)))
-    end, gaps = None, 0.0
+    end, gaps, longest = None, 0.0, 0.0
     for at, dur in arrivals:
         start = at if end is None else max(at, end + GAP_S * 1000)
         if end is not None:
             gaps += max(0.0, at - (end + GAP_S * 1000))
+            longest = max(longest, start - end)
         end = start + dur * 1000
     return {"synth_ms": float(synth) if synth else None, "sentences": len(arrivals),
             "first_audio_ms": round(arrivals[0][0], 1),
             "audio_ms": round(sum(d for _, d in arrivals) * 1000, 1),
             "audio_end_ms": round(end, 1), "underrun_ms": round(gaps, 1),
+            "longest_silence_ms": round(longest, 1),
             "frames": [[round(at, 1), round(dur, 3)] for at, dur in arrivals]}
 
 
@@ -129,8 +132,10 @@ def report(paths):
     for p in paths:
         rows = json.load(open(p))
         line = [p.rsplit("/", 1)[-1], f"n={len(rows)}"]
-        for f in ("first_audio_ms", "audio_ms", "audio_end_ms", "chars_sent"):
-            xs = [r[f] for r in rows]
+        for f in ("first_audio_ms", "audio_ms", "audio_end_ms", "longest_silence_ms", "chars_sent"):
+            xs = [r[f] for r in rows if f in r]
+            if not xs:
+                continue
             line.append(f"{f} {statistics.median(xs):.0f}/{pct(xs, 0.9):.0f}")
         print("  ".join(line))
 
