@@ -257,11 +257,13 @@ class _Builds:
     """Stands in for tts._build_engine: records what was asked for, and
     answers with the providers a session on this machine would get."""
 
-    def __init__(self, gets=None, raises_on_cuda=False, gpu_create_fails=False):
+    def __init__(self, gets=None, raises_on_cuda=False, gpu_create_fails=False, gpu_fails_times=None):
         self.asked = []
         self.gets = gets
         self.raises_on_cuda = raises_on_cuda
         self.gpu_create_fails = gpu_create_fails
+        self.gpu_fails_times = gpu_fails_times   # fail this many GPU calls, then work
+        self.gpu = None
 
     def __call__(self, providers):
         self.asked.append(list(providers))
@@ -271,8 +273,28 @@ class _Builds:
         eng = _FakeEngine()
         if got[0] == tts.CUDA and self.gpu_create_fails:
             eng.fail_on = " "          # every real sentence has a space
+        if got[0] == tts.CUDA and self.gpu_fails_times:
+            eng = _FlakyEngine(self.gpu_fails_times)
+        if got[0] == tts.CUDA:
+            self.gpu = eng
         eng.on = got[0]
         return eng, list(got)
+
+
+class _FlakyEngine(_FakeEngine):
+    """Fails its first `times` calls (a GPU out of memory while another
+    model is loaded), then works."""
+
+    def __init__(self, times):
+        super().__init__()
+        self.left = times
+
+    def create(self, text, voice, speed=1.0, lang="en-us", **k):
+        if self.left:
+            self.left -= 1
+            self.calls.append(text)
+            raise RuntimeError("Non-zero status code returned while running Conv node")
+        return super().create(text, voice, speed, lang, **k)
 
 
 @pytest.fixture
@@ -284,6 +306,10 @@ def device_env(monkeypatch, tmp_path):
     monkeypatch.setattr(tts, "_ENGINE", None)
     monkeypatch.setattr(tts, "_DEVICE", None)
     monkeypatch.setattr(tts, "_DEVICE_NOTE", "")
+    monkeypatch.setattr(tts, "_CPU_ENGINE", None, raising=False)
+    monkeypatch.setattr(tts, "_ON", None, raising=False)
+    monkeypatch.setattr(tts, "_LAST_FALLBACK", None, raising=False)
+    monkeypatch.setattr(tts, "_GPU_FALLBACKS", 0, raising=False)
 
     def setup(providers, builds):
         monkeypatch.setattr(tts, "_ort_providers", lambda: providers)
@@ -296,7 +322,8 @@ def test_the_gpu_is_used_when_cuda_starts(device_env):
     b = device_env([tts.CUDA, tts.CPU], _Builds())
     asyncio.run(tts.synthesize("Give fentanyl."))
     assert b.asked == [[tts.CUDA, tts.CPU]]
-    assert tts.device() == {"device": "gpu", "note": ""}
+    d = tts.device()
+    assert (d["device"], d["note"], d["last_fallback"], d["gpu_fallbacks"]) == ("gpu", "", None, 0)
 
 
 def test_no_cuda_provider_is_the_cpu_and_says_why(device_env):
@@ -332,8 +359,47 @@ def test_a_gpu_synthesis_failure_moves_to_the_cpu_and_still_speaks(device_env):
     assert b.asked == [[tts.CUDA, tts.CPU], [tts.CPU]]
     d = tts.device()
     assert d["device"] == "cpu" and "synthesis on the GPU failed" in d["note"]
+    assert d["last_fallback"]["reason"] == d["note"] and d["gpu_fallbacks"] == 1
     asyncio.run(tts.synthesize("Again, please."))
-    assert len(b.asked) == 2, "it stays on the CPU"
+    assert len(b.asked) == 2, "the CPU model is loaded once and kept"
+    assert b.gpu.calls == ["Give fentanyl.", "Again, please."], "the next call tried the GPU again"
+    assert tts.device()["gpu_fallbacks"] == 2
+
+
+# ── Owner, 2026-10-27: after a GPU fallback, the next call retries the GPU ──
+
+def test_the_gpu_is_retried_and_used_again_once_it_works(device_env):
+    b = device_env([tts.CUDA, tts.CPU], _Builds(gpu_fails_times=1))
+    assert asyncio.run(tts.synthesize("Give fentanyl.")).startswith(b"RIFF")
+    assert tts.device()["device"] == "cpu"
+    asyncio.run(tts.synthesize("Again, please."))
+    d = tts.device()
+    assert d["device"] == "gpu" and d["note"] == ""
+    assert b.gpu.calls == ["Give fentanyl.", "Again, please."]
+    assert b.asked == [[tts.CUDA, tts.CPU], [tts.CPU]], "the GPU model is not reloaded"
+
+
+def test_status_reports_the_fallback_with_its_reason_and_time(device_env, monkeypatch):
+    import datetime
+    device_env([tts.CUDA, tts.CPU], _Builds(gpu_fails_times=1))
+    monkeypatch.setattr(main.providers, "provider_status", lambda: {})
+    monkeypatch.setattr(main.providers, "available_models", lambda: [])
+    before = datetime.datetime.now(datetime.timezone.utc)
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    asyncio.run(tts.synthesize("Again, please."))       # back on the GPU
+    v = call("GET", "/status", headers=TOKEN).json()["voice_device"]
+    assert v["device"] == "gpu" and v["gpu_fallbacks"] == 1
+    fb = v["last_fallback"]
+    assert "synthesis on the GPU failed" in fb["reason"] and "Conv node" in fb["reason"]
+    at = datetime.datetime.fromisoformat(fb["at"].replace("Z", "+00:00"))
+    assert before <= at <= datetime.datetime.now(datetime.timezone.utc)
+
+
+def test_a_cpu_only_voice_has_no_fallback_to_report(device_env):
+    device_env([tts.CPU], _Builds())
+    asyncio.run(tts.synthesize("Give fentanyl."))
+    d = tts.device()
+    assert d["device"] == "cpu" and d["last_fallback"] is None and d["gpu_fallbacks"] == 0
 
 
 def test_cdss_kokoro_device_cpu_never_tries_the_gpu(device_env, monkeypatch):
@@ -363,6 +429,7 @@ def test_the_real_model_speaks_on_whichever_device_it_got(monkeypatch):
     monkeypatch.setenv("CDSS_KOKORO_DIR", str(_REAL_DIR))
     monkeypatch.setattr(tts, "_ENGINE", None)
     monkeypatch.setattr(tts, "_DEVICE", None)
+    monkeypatch.setattr(tts, "_ON", None, raising=False)
     audio = asyncio.run(tts.synthesize("Reassess in five minutes."))
     assert audio.startswith(b"RIFF") and tts.device()["device"] in ("gpu", "cpu")
 

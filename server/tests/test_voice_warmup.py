@@ -71,6 +71,10 @@ def model_files(monkeypatch, tmp_path):
     monkeypatch.setattr(tts, "_ENGINE", None)
     monkeypatch.setattr(tts, "_DEVICE", None)
     monkeypatch.setattr(tts, "_DEVICE_NOTE", "")
+    monkeypatch.setattr(tts, "_CPU_ENGINE", None, raising=False)
+    monkeypatch.setattr(tts, "_ON", None, raising=False)
+    monkeypatch.setattr(tts, "_LAST_FALLBACK", None, raising=False)
+    monkeypatch.setattr(tts, "_GPU_FALLBACKS", 0, raising=False)
     monkeypatch.delenv("CDSS_KOKORO_WARMUP", raising=False)
 
 
