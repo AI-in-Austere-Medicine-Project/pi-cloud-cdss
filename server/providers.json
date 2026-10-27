@@ -217,7 +217,8 @@
     },
     {
       "id": "edgecdss-v3",
-      "label": "EdgeCDSS v3 (on device)"
+      "label": "EdgeCDSS v3 (on device)",
+      "bench_only": true
     }
   ]
 }

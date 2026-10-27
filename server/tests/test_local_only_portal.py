@@ -4,7 +4,8 @@ The live service was switched to local with the API keys removed, and the
 portal said "MODEL: no model available": in local mode /models listed nothing,
 because the on-device model is registered only on first use and the menu
 listed only providers that authenticate. The owner's spec:
-- the picker offers exactly qwen2.5:3b and edgecdss-v3 (on device, via Ollama),
+- the picker offers exactly qwen2.5:3b (on device, via Ollama; edgecdss-v3 was
+  listed too until the owner made it bench only, 2026-10-27),
   default from CDSS_LLM_MODEL, no cloud entries;
 - the validator is CDSS_VALIDATOR_MODEL for both (D7's rule);
 - served answers name their model;
@@ -31,7 +32,8 @@ from test_local_llm import (GENERATED_QUERY, NATIVE_CALLS, FakeOpenAI,  # noqa: 
                             _JtsHit, fake_sdk)
 
 SERVER = pathlib.Path(oc.__file__).parent
-ON_DEVICE = {"qwen2.5:3b", "edgecdss-v3"}
+ON_DEVICE = {"qwen2.5:3b", "edgecdss-v3"}     # configured on-device entries Ollama has
+PICKER = {"qwen2.5:3b"}                       # edgecdss-v3 is bench only (2026-10-27)
 
 
 @pytest.fixture
@@ -56,9 +58,10 @@ def no_network(monkeypatch):
 
 # ── the picker ───────────────────────────────────────────────────────────────
 
-def test_the_picker_offers_exactly_the_two_on_device_models(local):
+def test_the_picker_offers_exactly_the_live_on_device_models(local):
     menu = providers.available_models(force=True)
-    assert {m["id"] for m in menu} == ON_DEVICE, "exactly the two: no cloud entry, and not every Ollama tag (edgecdss-v1 is installed)"
+    assert {m["id"] for m in menu} == PICKER, ("no cloud entry, no bench-only entry (edgecdss-v3), "
+                                               "and not every Ollama tag (edgecdss-v1 is installed)")
     assert all(m["provider"] == "local" and m["label"].endswith("(on device)") for m in menu)
 
 
@@ -97,7 +100,9 @@ def test_voice_is_on_the_device_in_local_mode(local, monkeypatch, tmp_path):
 
 # ── a request ────────────────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("pick, writer", [("", "qwen2.5:3b"), ("edgecdss-v3", "edgecdss-v3")])
+# A stale menu's edgecdss-v3 pick is answered by the default (bench only, 2026-10-27).
+@pytest.mark.parametrize("pick, writer", [("", "qwen2.5:3b"), ("qwen2.5:3b", "qwen2.5:3b"),
+                                          ("edgecdss-v3", "qwen2.5:3b")])
 def test_a_request_serves_on_the_device_with_no_outbound_call(local, monkeypatch, no_network, pick, writer):
     for k in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "XAI_API_KEY"):
         monkeypatch.delenv(k, raising=False)
@@ -140,9 +145,9 @@ def test_the_portal_path_serves_with_no_outbound_call(local, monkeypatch, no_net
     token = main.ACCESS_TOKEN          # read once, at import
     client = TestClient(main.app)
     models = client.get("/models").json()
-    assert {m["id"] for m in models["models"]} == ON_DEVICE and models["default_model"] == "qwen2.5:3b"
+    assert {m["id"] for m in models["models"]} == PICKER and models["default_model"] == "qwen2.5:3b"
     assert client.get("/status").status_code == 200
     body = {"query": GENERATED_QUERY, "device_id": "t", "timestamp": "2026-10-12T00:00:00", "model": "edgecdss-v3"}
     d = client.post("/query", json=body, headers={"X-Access-Token": token}).json()
-    assert d["validator_result"] != "ERROR" and d["model"] == "local/edgecdss-v3", d
+    assert d["validator_result"] != "ERROR" and d["model"] == "local/qwen2.5:3b", d
     assert no_network == [], f"outbound connection attempted: {no_network}"

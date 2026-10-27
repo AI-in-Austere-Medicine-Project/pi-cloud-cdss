@@ -230,7 +230,10 @@ def test_menu_contains_only_available_providers(monkeypatch):
 # ── model resolution ─────────────────────────────────────────────────────────
 
 def test_resolve_known_model_is_identity():
-    for model_id in providers.MODELS:
+    for model_id, spec in providers.MODELS.items():
+        if spec.bench_only:      # never honoured from a request (2026-10-27)
+            assert providers.resolve_model(model_id) == providers.default_model()
+            continue
         assert providers.resolve_model(model_id) == model_id
 
 
