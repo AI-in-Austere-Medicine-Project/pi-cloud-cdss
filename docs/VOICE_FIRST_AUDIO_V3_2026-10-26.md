@@ -150,6 +150,95 @@ The commit 3 payloads (`payloads_c3.json`), with each brief rebuilt by this bran
 - **Split point:** the last mark within 80 characters gives the longer, more natural first chunk (B2-7: 4.8 s). The earliest mark would start sooner but leave a gap after it.
 - **Chroma's top-10 is not repeatable run to run** (8 of 607 queries, from rank 4). This was here before V3. Not chased.
 
+## Owner rulings, round 3 (2026-10-26)
+
+**Owner:** "1. GPU wheel: yes, try NVIDIA's Jetson AI Lab onnxruntime-gpu 1.24.0 in the scratch venv first and time Kokoro. If it works, pin Chroma to CPU, install it in the service venv, replay (0 changed), re-time. If it doesn't work, stay on CPU and close the item; 1.6 s is acceptable. 2. Spoken options keep their qualifiers: "sedation, already intubated", never plain "sedation". 3. Lists: up to four options are spoken, each separated by a pause (semicolon), with "/" spoken as "or" only inside an option. Five or more: "Several indications are on screen. Say one." 4. Every sentence over 80 characters splits at commas, not only the first, so no silence over 2 s. Report first-audio and longest-silence after. PR, do not merge."
+
+### 1. The Jetson wheel: Kokoro runs on the GPU
+
+- **Wheel:** `onnxruntime_gpu-1.24.0-cp312-cp312-linux_aarch64.whl` from the Jetson AI Lab index (`sbsa/cu130`), sha256 `012c10be…22f6`, matching the index. Installed with `--no-deps` into a scratch overlay venv over the service venv's packages, so everything else is the same. Providers: TensorRT, CUDA, CPU.
+- **Kokoro on CUDA works.** Same three texts as round 2, warm session:
+
+| | 55 chars | 80 chars | 213 chars | Real-time factor |
+|---|---|---|---|---|
+| CUDA | 0.58 s | 0.72 s | 1.45 s | **0.09–0.12** |
+| CPU | 4.32 s | 5.70 s | 13.02 s | 0.80–0.88 |
+
+- **Audio:** the same length to the sample. The envelope correlates 0.9997 with the CPU's, and the log spectrogram 0.986. It is not bit-identical (CPU against CPU is exactly 1): GPU float arithmetic in the vocoder. Samples: `replay-out/v3tts/sample_CUDA0.wav`, `sample_CPUE1.wav`, for the owner to listen to.
+- **Memory:** the server with Kokoro on CUDA uses about 1 GB more than on the CPU (RSS 1,658 MB against 620 MB; system used +860 MB). This is unified memory, shared with Ollama when a local model is loaded.
+- **The first `/speak` after a start:** 3.3 s on CUDA (4.4 s on the CPU), for the warm-up sentence.
+- `tts` needed no change: it already asks for `[CUDA, CPU]` and reports the device in `/status` (`voice_device: gpu`).
+
+### Retrieval on the Jetson wheel
+
+`tools/chroma_retrieval_check.py`, the same 607 queries against main on the CPU wheel (1.27.0):
+
+| Run | Vectors differ | Ids differ |
+|---|---|---|
+| main again, CPU wheel 1.27.0 | 0 | 8 |
+| **pinned, Jetson wheel 1.24.0** (run 1 / run 2) | **607, max 3.3e-7** | 3 / 4 |
+| pinned, Jetson wheel, run 1 against run 2 | 0 | 3 |
+| **main (not pinned), Jetson wheel 1.24.0** | **607, max 1.8e-4** | **17** |
+
+- **Pinned, retrieval is the same within Chroma's own noise, but not bit-identical.** The pin keeps the embedder on the CPU, but it is 1.24.0's CPU code, not 1.27.0's. Every vector differs in the seventh significant digit (max 3.3e-7), and distances differ by at most 1.2e-6.
+  - Every changed id in run 2 is on a query where main also differs from itself.
+  - Run 1 had one more ("he's tanking, BP is 78/44 now and he's grey", a chunk missing from rank 4, with no near tie). It came back in run 2, so it was the HNSW search, not the vectors.
+- **Not pinned, the Jetson wheel changes retrieval and slows it about 20-fold.** Chroma's stock embedder takes every provider and starts on TensorRT, building an engine on each query. The run took 12,493 s for 607 queries, about 20 s per query, against about 1.7 s per query in main's own run (1,013.7 s). 17 queries return different chunks, one from rank 1 ("leishmaniasis skin lesion, what treatment").
+
+### The service venv: not changed
+
+- **The ruling's condition is not met on the live service.** #188 merged into the V3 branch (#187), not main, and #187 is still open. So the live `edgecdss` service runs main without the pin, from `/home/andrew/pi-cloud-cdss/.venv`, and the watchdog can restart it at any time.
+- With the Jetson wheel in that venv, the next restart would put live retrieval on TensorRT: about 20 s per query, and 17 of 607 queries changed (above).
+- The service process is already in the render group (993), so the GPU is reachable once the wheel is in.
+- **To install, once #187 is merged and deployed:** `pip uninstall -y onnxruntime`, then `pip install --no-deps` the wheel, then restart. Both packages provide the `onnxruntime` module, so the CPU one must go first.
+
+### Replay (round-3 tree, both wheels)
+
+0 changed in all five sets, against main, on the CPU wheel and on the Jetson wheel. Served 1,738, held 308, gate 1,408, log 3,945, pipe 831. Every output is byte-identical to main's.
+- The log set is 58 rows larger than round 2's because the live session logs have grown, so main was replayed again on the same logs.
+- The replays do not query Chroma or synthesise speech, so they show the answers unchanged and nothing more.
+
+### 2–4. Speech
+
+- **Qualifiers kept** (`spoken.indication_name`): "sedation, already intubated"; "penetrating brain or spinal injury, antibiotic prophylaxis".
+- **Lists** (`spoken.WHICH_INDICATION`, `INDICATION_LIST_MAX = 4`, `MANY_INDICATIONS`): options are joined by "; ", with no list "or". A "/" inside an option is "or".
+  - "Cefazolin. Which indication: penetrating brain or spinal injury, antibiotic prophylaxis; ventriculostomy in place; open fracture or wound infection prophylaxis?"
+  - "Midazolam. Which indication: agitation; pacing or cardioversion; sedation, already intubated; seizure?"
+  - "Atropine. Which indication: bradycardia; nerve agent or organophosphate poisoning?"
+  - Ketamine has five options (agitation, RSI, sedation (already intubated), seizure, pain): "Several indications are on screen. Say one." It is the only drug today past four. The ruled sentence carries no drug name, and none was added.
+- **Every long sentence splits** (`tts.speech_chunks`, `CHUNK_MAX = 80`): each sentence over 80 characters is cut repeatedly, at the last comma, colon or semicolon within 80, else the first after, until every piece fits or no mark is left. A semicolon between options is a mark, so the cefazolin list streams as "Which indication: penetrating brain or spinal injury, antibiotic prophylaxis;" then "ventriculostomy in place; open fracture or wound infection prophylaxis?".
+- `tools/tts_latency_run.py` now records `longest_silence_ms` per item: the wait from one chunk ending to the next starting, the portal's 0.15 s breath included.
+
+### Timing (same 21 saved answers; briefs rebuilt with this code, only the two cefazolin questions change)
+
+Each run used a fresh :8012 server.
+
+| | First audio median / p90 | Audio end median / p90 | Longest silence median / p90 / max | Items with a silence over 2 s |
+|---|---|---|---|---|
+| Round 2 (#188), CPU wheel | 1.6 / 4.8 s | 13.5 / 20.9 s | (not recorded) / max 7.3 s | 13 |
+| #188, Jetson wheel, GPU | 0.31 / 0.64 s | 9.1 / 14.2 s | 0.15 / 0.15 / 0.15 s | 0 |
+| **Round 3, Jetson wheel, GPU** | **0.30 / 0.64 s** | **9.1 / 14.9 s** | **0.15 / 0.15 / 0.15 s** | **0** |
+| Round 3, CPU wheel (if the GPU fails) | 1.5 / 4.6 s | 13.2 / 19.7 s | 2.1 / 3.8 / 3.8 s | 11 |
+
+- **On the GPU, no item has a gap beyond the 0.15 s breath.** Every chunk is ready before the one before it ends.
+- **On the CPU, ruling 4 cannot hold the 2 s.** The silences left come after "Held." (0.9 s of audio, then about 2.9 s while a sentence under 80 characters synthesises) and after "Cefazolin." (3.8 s). Splitting at commas does not reach them: the sentence after is already under 80 characters, or splits only once. The longest silence on the CPU fell from 7.3 to 3.8 s.
+
+| Item | Round 2, CPU | Round 3, GPU |
+|---|---|---|
+| Cefazolin which-indication (B2-1) | 1.7 s first audio, 7.2 s silence | 0.35 s, no silence |
+| Ketamine which-vial (B2-7) | 4.8 s | 0.66 s |
+| Cefazolin hold (B2-3) | 1.1 s, 2.9 s silence after "Held." | 0.27 s, no silence |
+| Ketamine drip (B2-6, longest audio) | 2.1 s, audio end 25.1 s | 0.36 s, audio end 19.8 s |
+| Magnesium hold | 1.1 s | 0.26 s |
+
+### Found, not changed (owner to rule)
+
+- **Install the Jetson wheel in the service venv only after #187 is deployed** (above). The ruling's sequence, pin first, then wheel, protects retrieval only once the pin is live.
+- **Pinned retrieval is "unchanged within noise", not "bit-identical".** 1.24.0's CPU kernels differ from 1.27.0's in the seventh digit. A process loads one onnxruntime, so Chroma cannot keep 1.27.0 while Kokoro runs 1.24.0 in the same server.
+- **The many-options sentence has no drug name.** "Several indications are on screen. Say one." is spoken as ruled. "Ketamine. Several indications…" would say which drug the question is about.
+- **The CPU fallback still has silences of about 3 s after "Held."** If the GPU fails, the 2 s target needs something other than comma splits, for example synthesising the second chunk with the first.
+- **About 1 GB more memory with Kokoro on the GPU**, shared with Ollama's model.
+
 ## Every item, commit 3
 
 | Id | Source mode | Chars | First audio | Audio end | Spoken |
