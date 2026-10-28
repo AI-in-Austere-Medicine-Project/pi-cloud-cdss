@@ -235,7 +235,7 @@ def test_every_single_vial_kit_drug_is_labelled(gen):
 
 def test_the_brief_still_reads_a_labelled_draw_line():
     import brief
-    item = "- Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial). Indication: moderate to severe pain / analgesia."
+    item = "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial). Indication: moderate to severe pain / analgesia."
     line = brief.dose_line(item, weight_kg=75)
     assert "(kit vial)" in line and "0.25 mg/kg × 75 kg" in line, line
 
@@ -245,3 +245,77 @@ def test_the_dose_check_reads_a_labelled_draw_line(single_vial):
     text = "**GIVE**\n" + "- " + KIT_DRAW + " Indication: moderate to severe pain / analgesia."
     out, issues = oc.audit_volume_lines(text, ctx)
     assert issues == [] and out == text, issues
+
+
+# ── owner review of #193: docs/authoring/KIT_DECLARATIONS.md ────────────────
+# "recording each declaration (drug, strength, signer, date) and append
+# ketamine 50 mg/mL; the set_concentration tool appends to it too."
+
+def _tool():
+    sys.path.insert(0, str(dcn._DIR / "tools"))
+    import set_concentration
+    return set_concentration
+
+
+@pytest.fixture
+def record(tmp_path, monkeypatch):
+    path = tmp_path / "KIT_DECLARATIONS.md"
+    path.write_text((dcn._DIR.parent / "docs/authoring/KIT_DECLARATIONS.md").read_text())
+    monkeypatch.setattr(_tool(), "DECLARATIONS", path)
+    return path
+
+
+def _rows(path):
+    text = path.read_text().split("## Declarations", 1)[1]
+    return [l for l in text.splitlines() if l.startswith("| 20")]
+
+
+def test_the_record_holds_the_ketamine_declaration():
+    path = dcn._DIR.parent / "docs/authoring/KIT_DECLARATIONS.md"
+    rows = _rows(path)
+    assert any("| ketamine | 50 mg/mL | 500 mg / 10 mL vial |" in r and "Andrew Azelton" in r
+               and r.startswith("| 2026-10-28 |") for r in rows), rows
+
+
+def test_single_appends_a_row_with_drug_strength_signer_and_date(kit_file, record, monkeypatch):
+    before = _rows(record)
+    argv = list(DECLARE)
+    argv[argv.index("--date") + 1] = "2026-10-29"
+    assert run_tool(monkeypatch, *argv, "--name", "Andrew Azelton") == 0
+    rows = _rows(record)
+    assert rows[:len(before)] == before and len(rows) == len(before) + 1
+    new = rows[-1]
+    assert new.startswith("| 2026-10-29 | ketamine | 50 mg/mL | 500 mg / 10 mL vial | single vial")
+    assert "Andrew Azelton (clinician)" in new
+
+
+def test_sign_appends_a_row_too(kit_file, record, monkeypatch):
+    n = len(_rows(record))
+    assert run_tool(monkeypatch, "--drug", "ketamine", "--sign", "200 mg / 20 mL vial", "--by", "clinician",
+                    "--date", "2026-10-29", "--name", "A Signer", "--reason", "read off the vial") == 0
+    rows = _rows(record)
+    assert len(rows) == n + 1
+    assert rows[-1].startswith("| 2026-10-29 | ketamine | 10 mg/mL | 200 mg / 20 mL vial | signed |")
+    assert "A Signer (clinician)" in rows[-1]
+
+
+def test_the_same_declaration_is_not_recorded_twice(kit_file, record, monkeypatch):
+    # The owner's command after merging repeats the ketamine row this PR records.
+    n = len(_rows(record))
+    assert run_tool(monkeypatch, *DECLARE, "--name", "Andrew Azelton") == 0
+    assert len(_rows(record)) == n
+
+
+def test_without_a_name_the_signer_is_the_role(kit_file, record, monkeypatch):
+    argv = list(DECLARE)
+    argv[argv.index("--date") + 1] = "2026-10-30"
+    run_tool(monkeypatch, *argv)
+    assert "| clinician |" in _rows(record)[-1]
+
+
+def test_a_refused_declaration_is_not_recorded(kit_file, record, monkeypatch):
+    n = len(_rows(record))
+    argv = list(DECLARE)
+    argv[argv.index("--by") + 1] = "someone"
+    assert run_tool(monkeypatch, *argv) == 1
+    assert len(_rows(record)) == n
