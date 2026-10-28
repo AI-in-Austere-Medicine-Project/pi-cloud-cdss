@@ -200,3 +200,48 @@ def test_single_refuses_a_vial_the_kit_does_not_declare(kit_file, monkeypatch):
     before = kit_file.read_text()
     assert run_tool(monkeypatch, *argv) == 1
     assert kit_file.read_text() == before
+
+
+# ── owner review of #193 (2026-10-28): "label every kit-vial volume line (kit vial)" ──
+# A volume from the kit's single vial, not a vial the medic stated, says so on
+# the GIVE line and the TLDR. A vial the medic states drops the label.
+
+KIT_DRAW = "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial)."
+KIT_TLDR = "= 18.75mg = 0.375mL of 50mg/mL (kit vial)."
+
+
+def test_a_kit_vial_volume_is_labelled_on_the_give_line_and_the_tldr(single_vial, gen):
+    r = ask(ASK)
+    assert KIT_DRAW in r, r
+    assert KIT_TLDR in r, r
+
+
+def test_a_vial_the_medic_states_is_not_labelled_kit(single_vial, gen):
+    r = ask(f"{ASK}, I have 500 mg / 10 mL")
+    assert DRAW + "." in r or DRAW + ". " in r, r
+    assert "(kit vial)" not in r, r
+
+
+def test_every_single_vial_kit_drug_is_labelled(gen):
+    # The conftest kit: rocuronium 100 mg / 10 mL and succinylcholine 100 mg / 2 mL,
+    # one signed vial each, no vial question.
+    r = ask("80kg RSI, succinylcholine and rocuronium IV")
+    draws = [l for l in r.split("\n") if l.strip().startswith("- Draw")]
+    assert draws, r
+    for line in draws:
+        if "rocuronium" in line or "succinylcholine" in line:
+            assert "(kit vial)" in line, line
+
+
+def test_the_brief_still_reads_a_labelled_draw_line():
+    import brief
+    item = "- Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial). Indication: moderate to severe pain / analgesia."
+    line = brief.dose_line(item, weight_kg=75)
+    assert "(kit vial)" in line and "0.25 mg/kg × 75 kg" in line, line
+
+
+def test_the_dose_check_reads_a_labelled_draw_line(single_vial):
+    ctx = oc.extract_patient_context(ASK)
+    text = "**GIVE**\n" + "- " + KIT_DRAW + " Indication: moderate to severe pain / analgesia."
+    out, issues = oc.audit_volume_lines(text, ctx)
+    assert issues == [] and out == text, issues
