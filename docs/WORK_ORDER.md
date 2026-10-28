@@ -91,7 +91,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | B3 | Vitals caution on an answer that already refuses oral intake | **done**: #130, merged and deployed |
 | V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
 | V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **done**: #185, merged; owner, 2026-10-25 |
-| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **done**: #190, merged and deployed; follow-up (warm-up, GPU retry, V1 on live) **in review**; owner, 2026-10-26 / 2026-10-27 |
+| V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **done**: #190, merged and deployed; follow-up (warm-up, GPU retry, V1 on live) **done**: #191, merged; owner, 2026-10-26 / 2026-10-27 |
+| S1 | Speech in: whisper.cpp base.en on the Jetson, `/transcribe`, push to talk into the question box; the medic presses send. With it, `edgecdss-v3` bench only | **in review**; owner, 2026-10-27 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
@@ -1256,6 +1257,20 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
 
 **Done:** the PR records the criterion: Jetson-wheel retrieval is unchanged within Chroma's own noise, with 0 changed on all five replays. `spoken.MANY_INDICATIONS` is "{drug}. Several indications are on screen. Say one." The CPU fallback's silence is documented as accepted, with the GPU primary. The service venv is the owner's step: the owner merges, then installs the wheel.
+
+### S1: speech in (owner, 2026-10-27)
+
+**Owner:** "#191 merged, voice-out closed. Take edgecdss-v3 off the live picker (bench only; config, with a test) so qwen + Kokoro + whisper share the GPU. Then S1, speech-in: whisper.cpp on the Jetson (base.en to start, weights on disk, no network), a push-to-talk button in the portal that records while held and sends audio to a new /transcribe endpoint; transcript shown verbatim in the question box before anything acts on it; the medic presses send. Measure release-to-transcript median and p90 on 20 spoken questions, and report memory with all three resident. PR, do not merge."
+
+**Done (one PR, failing tests first for each change):**
+- **edgecdss-v3 bench only:** `"bench_only": true` in `providers.json`. Off the live picker in both modes; a request naming it is answered by qwen2.5:3b; a bench server still runs it via `CDSS_LLM_MODEL`. Replay against main `842d765`: 0 changed in all five sets, byte-identical.
+- **`POST /transcribe`:** 16 kHz mono 16-bit WAV, up to 30 s, token required. whisper.cpp base.en on the GPU (pywhispercpp 1.5.1), weights on disk, no network. Transcript verbatim; whole-segment tags such as `[BLANK_AUDIO]` dropped. No query, no log turn, no audio kept. Loaded at start; `/status speech_in`.
+- **Portal:** HOLD TO TALK beside SEND. The transcript goes in the question box after any typed text; nothing is sent until the medic presses SEND (`input_mode: "voice"`).
+- **Install:** `tools/install_whisper.sh`. Found on the owner's install: the build left the libraries' RUNPATH at pip's deleted /tmp build directory (ImportError: libwhisper.so.1). Fixed with no rebuild: RUNPATH `$ORIGIN` via patchelf; the script now does it.
+- **Release to transcript** (20 harness questions spoken by Kokoro, qwen and Kokoro resident): **293 ms median, 331 ms p90**, max 412 ms, all on the GPU. Word error rate 0.22 median; drug names misheard in 11 of 20 ("Cephasolin", "artisanite", "propofil").
+- **Memory, all three resident:** whisper adds about 0.26 GB. 5.5 GB used of 7.5 at rest, 6.0 GB during a model answer; no spill, no fallback, swap unchanged.
+
+**Owner to decide:** the misheard drug names (a vocabulary prompt or small.en). **Not measured:** a human voice, a field microphone. Detail: `docs/SPEECH_IN_S1_2026-10-27.md`.
 
 ### V3 follow-up: voice warm-up, GPU retry, V1 on live (owner, 2026-10-27)
 

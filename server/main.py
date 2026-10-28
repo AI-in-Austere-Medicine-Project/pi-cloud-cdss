@@ -18,6 +18,7 @@ import openai_client
 import general_reference
 import latency
 import providers
+import stt
 import tts
 
 load_dotenv()
@@ -59,6 +60,8 @@ async def _warm_voice():
     # In a thread, not awaited: /health answers while the model loads, so
     # the watchdog never sees a start that hangs on the voice.
     threading.Thread(target=tts.warm_up, name="voice-warm-up", daemon=True).start()
+    # S1: whisper too, so the first recording after a restart is not a load.
+    threading.Thread(target=stt.warm_up, name="speech-in-warm-up", daemon=True).start()
 
 
 ACCESS_TOKEN = os.getenv("CDSS_ACCESS_TOKEN", "edgecdss-demo-2026")
@@ -215,6 +218,7 @@ async def _status_payload():
             "voice_support": tts.voice_available(),
             "voice_detail": tts.config_problem() or "",
             "voice_device": tts.device(),
+            "speech_in": stt.status(),
             "provider_detail": provider_detail,
             "models": models,
             "default_model": providers.default_model()}
@@ -491,6 +495,29 @@ async def speak_endpoint(http_request: Request):
     return Response(content=audio, media_type="audio/wav",
                     headers={"X-Synth-Ms": str(synth_ms),
                              "Access-Control-Expose-Headers": "X-Synth-Ms"})
+
+
+@app.post("/transcribe", dependencies=[Depends(require_token)])
+async def transcribe_endpoint(http_request: Request):
+    """S1: 16-bit mono 16 kHz WAV in, {"text", "audio_ms", "transcribe_ms",
+    "device"} out. Only transcribes: the text goes back to the portal's
+    question box, and nothing is queried or logged as a turn until the medic
+    presses send. The audio is not kept."""
+    max_s = openai_client._env_number("CDSS_TRANSCRIBE_MAX_S", stt.DEFAULT_MAX_S, float)
+    limit = 44 + int(max_s * stt.SAMPLE_RATE * 2) + 4096        # header and slack
+    declared = http_request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > limit:
+        raise HTTPException(status_code=413,
+                            detail=f"the recording is over {max_s:g} s; speech in takes up to {max_s:g} s")
+    body = await http_request.body()
+    if len(body) > limit:
+        raise HTTPException(status_code=413,
+                            detail=f"the recording is over {max_s:g} s; speech in takes up to {max_s:g} s")
+    try:
+        return await stt.transcribe(body)
+    except stt.SpeechInUnavailable as e:
+        print(f"⚠️  /transcribe {e.status}: {e.detail}")
+        raise HTTPException(status_code=e.status, detail=e.detail)
 
 
 class SpeakTiming(BaseModel):

@@ -87,6 +87,18 @@ header h1 span { color: var(--blue); }
   font-size: 17px; letter-spacing: 0.1em; padding: 0 26px; cursor: pointer;
 }
 #send:disabled { opacity: 0.4; cursor: default; }
+/* S1: push to talk. Held, not clicked: touch-action and user-select keep a
+   long press on a phone from scrolling or selecting instead of recording. */
+#talk {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+  font-size: 15px; letter-spacing: 0.08em; padding: 0 16px; cursor: pointer;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+#talk.rec { background: var(--red); color: #fff; border-color: var(--red); }
+#talk:disabled { opacity: 0.4; cursor: default; }
+#talknote { font-family: var(--mono); font-size: 11px; color: var(--dim); min-height: 0; margin-top: 4px; }
+#talknote:empty { display: none; }
 #opts {
   display: flex; gap: 16px; align-items: center; margin-top: 8px;
   font-family: var(--mono); font-size: 11px; color: var(--dim); flex-wrap: wrap;
@@ -248,8 +260,10 @@ details.sect > .sect-body { padding: 0 2px 10px 2px; }
 <div id="composer"><div class="inner">
   <div id="inputrow">
     <textarea id="q" placeholder="e.g. 80kg male, blast injury, severe pain, IV access — analgesia options?" rows="1"></textarea>
+    <button id="talk" type="button" title="Hold to talk. The words appear in the box; read them, then press SEND.">HOLD TO TALK</button>
     <button id="send">SEND</button>
   </div>
+  <div id="talknote" role="status"></div>
   <div id="opts">
     <span>MODE:</span>
     <label><input type="radio" name="mode" value="brief" checked> brief</label>
@@ -480,6 +494,16 @@ async function refreshStatus() {
     stat.textContent = 'v' + s.version + ' · ' + h.documents.toLocaleString() +
       ' protocol chunks · online' + (s.voice_support === false ? ' · voice off' : '');
     voiceNote(s.voice_support === false ? (s.voice_detail || 'unavailable') : '');
+    // S1: the talk button is off, with the reason, when speech in cannot work.
+    // Not re-enabled mid-recording or mid-transcription.
+    const tb = document.getElementById('talk'), si = s.speech_in;
+    if (tb && si) {
+      if (!si.available) { tb.disabled = true; tb.title = 'Speech in unavailable: ' + (si.detail || ''); }
+      else if (tb.textContent === 'HOLD TO TALK') {
+        tb.disabled = false;
+        tb.title = 'Hold to talk. The words appear in the box; read them, then press SEND.';
+      }
+    }
   } catch (e) {
     dot.className = 'dot err';
     stat.innerHTML = '<b style="color:var(--red)">v4.0 SERVER OFFLINE</b> — check back soon · ' +
@@ -1033,7 +1057,8 @@ async function ask(followUp, inputMode) {
   if (fromChip && send.disabled) return;           // one request at a time
   const text = (fromChip ? followUp : q.value).trim();
   if (!text) return;
-  if (!fromChip) q.value = '';
+  const spokenInput = !fromChip && heardInBox;
+  if (!fromChip) { q.value = ''; heardInBox = false; }
   send.disabled = true;
   addMsg('Medic', esc(text), 'user');
   const pending = addMsg('EdgeCDSS', '<span class="thinking">consulting guidelines</span>');
@@ -1052,7 +1077,7 @@ async function ask(followUp, inputMode) {
         voice_mode: mode, conversation_history: historyUsed,
         session_id: sessionId,
         model: document.getElementById('model').value,
-        input_mode: (fromChip && inputMode) || 'typed'
+        input_mode: (fromChip && inputMode) || (spokenInput ? 'voice' : 'typed')
       })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1116,12 +1141,156 @@ async function ask(followUp, inputMode) {
   chat.scrollTop = chat.scrollHeight;
 }
 send.onclick = () => ask();
+
+// ── S1: push to talk ────────────────────────────────────────────────────────
+// Owner, 2026-10-27: "a push-to-talk button in the portal that records while
+// held and sends audio to a new /transcribe endpoint; transcript shown
+// verbatim in the question box before anything acts on it; the medic presses
+// send." The microphone is open only while the button is held. On release the
+// recording goes to /transcribe as 16-bit mono 16 kHz WAV (made here, so the
+// server needs no decoder), and the words go into the box after anything
+// already typed. Nothing is sent: the medic reads, edits, and presses SEND.
+const talk = document.getElementById('talk');
+const talkNote = document.getElementById('talknote');
+const TALK_LABEL = 'HOLD TO TALK';
+const TALK_RATE = 16000;
+const TALK_MIN_S = 0.3;
+let heardInBox = false;     // the box holds a transcript: the query is input_mode "voice"
+let rec = null;             // the recording in progress, while the button is held
+
+function talkSay(text) { talkNote.textContent = text || ''; }
+
+// Averages each 16 kHz sample's window of input samples: enough of a low-pass
+// for speech, and exact in length (floor(n * 16000 / rate)).
+function downsampleTo16k(chunks, rate) {
+  let n = 0;
+  chunks.forEach(c => { n += c.length; });
+  const all = new Float32Array(n);
+  let at = 0;
+  chunks.forEach(c => { all.set(c, at); at += c.length; });
+  if (rate === TALK_RATE) return all;
+  const ratio = rate / TALK_RATE;
+  const out = new Float32Array(Math.floor(n / ratio));
+  for (let i = 0; i < out.length; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(n, Math.floor((i + 1) * ratio));
+    let sum = 0;
+    for (let j = a; j < b; j++) sum += all[j];
+    out[i] = b > a ? sum / (b - a) : 0;
+  }
+  return out;
+}
+
+function wav16k(samples) {
+  const bytes = new Uint8Array(44 + samples.length * 2);
+  const v = new DataView(bytes.buffer);
+  const tag = (o, t) => { for (let i = 0; i < 4; i++) bytes[o + i] = t.charCodeAt(i); };
+  tag(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); tag(8, 'WAVE');
+  tag(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, TALK_RATE, true); v.setUint32(28, TALK_RATE * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  tag(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    const x = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
+  }
+  return bytes;
+}
+
+function talkReset() {
+  talk.classList.remove('rec');
+  talk.textContent = TALK_LABEL;
+}
+
+function talkRelease(r) {
+  try { if (r.node) { r.node.onaudioprocess = null; r.node.disconnect(); } } catch (e) { /* gone */ }
+  try { if (r.src) r.src.disconnect(); } catch (e) { /* gone */ }
+  try { if (r.stream) r.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* gone */ }
+  try { if (r.ctx) r.ctx.close(); } catch (e) { /* gone */ }
+}
+
+async function talkStart(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (rec || talk.disabled) return;
+  const r = { chunks: [], rate: 0, released: false };
+  rec = r;
+  talk.classList.add('rec');
+  talk.textContent = '● RECORDING';
+  talkSay('');
+  try {
+    r.stream = await navigator.mediaDevices.getUserMedia(
+      { audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  } catch (err) {
+    rec = null;
+    talkReset();
+    talkSay('No microphone: ' + (err && err.message || err) + '. Type the question instead.');
+    return;
+  }
+  if (r.released) { talkRelease(r); return; }        // let go before the microphone opened
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  r.ctx = new Ctx();
+  r.rate = r.ctx.sampleRate;
+  r.src = r.ctx.createMediaStreamSource(r.stream);
+  r.node = r.ctx.createScriptProcessor(4096, 1, 1);
+  r.node.onaudioprocess = ev => { r.chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0))); };
+  r.src.connect(r.node);
+  r.node.connect(r.ctx.destination);
+}
+
+async function talkStop(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const r = rec;
+  if (!r) return;
+  rec = null;
+  r.released = true;
+  talkRelease(r);
+  talkReset();
+  const samples = downsampleTo16k(r.chunks, r.rate || TALK_RATE);
+  if (samples.length < TALK_MIN_S * TALK_RATE) {
+    talkSay('Hold the button while you speak.');
+    return;
+  }
+  talk.disabled = true;
+  talk.textContent = 'TRANSCRIBING…';
+  try {
+    const res = await fetch('/transcribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'audio/wav', 'X-Access-Token': document.getElementById('token').value },
+      body: wav16k(samples),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.detail || ('HTTP ' + res.status));
+    const heard = String(d.text || '');
+    if (!heard.trim()) {
+      talkSay('Nothing was heard. Hold the button and speak, or type.');
+    } else {
+      // Verbatim, after anything already typed. Nothing is sent.
+      q.value = q.value.trim() ? q.value.replace(/\s*$/, ' ') + heard : heard;
+      heardInBox = true;
+      q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 140) + 'px';
+      talkSay('Check the words, then press SEND.');
+    }
+  } catch (err) {
+    talkSay('Speech in failed: ' + (err && err.message || err) + '. Type the question instead.');
+  }
+  talk.disabled = false;
+  talkReset();
+  q.focus();
+}
+
+talk.addEventListener('pointerdown', talkStart);
+['pointerup', 'pointerleave', 'pointercancel'].forEach(t => talk.addEventListener(t, talkStop));
+talk.addEventListener('keydown', e => {
+  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) talkStart(e);
+});
+talk.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') talkStop(e); });
+talk.addEventListener('contextmenu', e => e.preventDefault());
 document.getElementById('newpatient').onclick = newPatient;
 q.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
 });
 q.addEventListener('input', () => {
   q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 140) + 'px';
+  if (!q.value.trim()) heardInBox = false;
 });
 </script>
 </body>

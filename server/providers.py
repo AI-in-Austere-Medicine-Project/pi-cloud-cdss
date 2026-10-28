@@ -97,6 +97,11 @@ class ModelSpec:
     reserve_tokens: int = 0
     # C2: an Ollama model offered in the picker; listed only when Ollama has it.
     on_device: bool = False
+    # Owner, 2026-10-27: a bench model is never on the live picker and never
+    # answers a request that names it; a bench server runs it by naming it in
+    # CDSS_LLM_MODEL. edgecdss-v3 is one, so qwen2.5:3b, Kokoro and whisper
+    # share the GPU.
+    bench_only: bool = False
 
 
 def _load_config() -> dict:
@@ -141,7 +146,7 @@ for _m in _CONFIG["models"]:
 for _m in _CONFIG.get("on_device_models") or []:
     MODELS[_m["id"]] = ModelSpec(id=_m["id"], provider="local",
                                  label=_m.get("label", f"{_m['id']} (on device)"),
-                                 on_device=True)
+                                 on_device=True, bench_only=bool(_m.get("bench_only")))
 
 _CONFIGURED_MODELS = frozenset(MODELS)
 DEFAULT_MODEL = _CONFIG.get("default_model") or next(iter(MODELS), "")
@@ -594,7 +599,8 @@ def available_models(force: bool = False) -> list:
         tags = _ollama_tags(force=force) or set()
         return [{"id": spec.id, "label": spec.label, "provider": spec.provider,
                  "provider_label": PROVIDERS.get(spec.provider, {}).get("label", spec.provider)}
-                for spec in MODELS.values() if spec.on_device and spec.id in tags]
+                for spec in MODELS.values()
+                if spec.on_device and not spec.bench_only and spec.id in tags]
     status = provider_status(force=force)
     on_device = [s for s in MODELS.values() if s.on_device]
     tags = (_ollama_tags(force=force) or set()) if on_device else set()
@@ -603,7 +609,8 @@ def available_models(force: bool = False) -> list:
          "provider": spec.provider,
          "provider_label": status.get(spec.provider, {}).get("label", spec.provider)}
         for spec in MODELS.values()
-        if (spec.id in tags if spec.on_device else status.get(spec.provider, {}).get("available"))
+        if not spec.bench_only
+        and (spec.id in tags if spec.on_device else status.get(spec.provider, {}).get("available"))
     ]
 
 
@@ -617,13 +624,17 @@ def resolve_model(requested: Optional[str]) -> str:
     With CDSS_LLM_PROVIDER=local the on-device model answers whatever was
     requested: the operator chose local, and a cloud model picked from a menu
     cached before the link dropped would fail every query.
+
+    A bench-only model named in a request is not honoured either: the default
+    answers, and the answer is labelled with it.
     """
     if llm_provider() == "local":
         # C2: an on-device model picked from the menu is honoured offline too.
-        if requested and requested in MODELS and MODELS[requested].on_device:
+        if requested and requested in MODELS and MODELS[requested].on_device \
+                and not MODELS[requested].bench_only:
             return requested
         return local_model_spec().id
-    if requested and requested in MODELS:
+    if requested and requested in MODELS and not MODELS[requested].bench_only:
         return requested
     return default_model()
 

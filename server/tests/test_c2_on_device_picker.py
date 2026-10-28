@@ -5,9 +5,10 @@ that request to the local provider, validated on the device by D7's rule
 cloud call. The served answer names the model that wrote it. The default is
 unchanged.
 
-The listed models are providers.json's on-device entries: qwen2.5:3b and
-edgecdss-v3 (owner ruling: the v3 verdict does not bar it from the picker). An
-entry is on the menu only when Ollama reports that tag installed, so a host
+The listed models are providers.json's on-device entries that are not bench
+only: qwen2.5:3b. edgecdss-v3 was on the picker until the owner made it bench
+only on 2026-10-27 (test_bench_only_models.py). An entry is on the menu only
+when Ollama reports that tag installed, so a host
 without Ollama, or without the tag, lists nothing it cannot serve. This
 un-defers "the local-model portal toggle" (work order, Deferred).
 """
@@ -20,13 +21,14 @@ import providers
 from test_local_llm import (GENERATED_QUERY, NATIVE_CALLS, FakeOpenAI,  # noqa: F401
                             _JtsHit, fake_sdk)
 
-ON_DEVICE = {"qwen2.5:3b", "edgecdss-v3"}
+ON_DEVICE = {"qwen2.5:3b"}
+OLLAMA_HAS = {"qwen2.5:3b", "edgecdss-v3"}
 
 
 @pytest.fixture
 def ollama(monkeypatch):
     """Ollama's installed tags, as /api/tags would report them."""
-    tags = set(ON_DEVICE)
+    tags = set(OLLAMA_HAS)
     monkeypatch.setattr(providers, "_ollama_tags", lambda force=False: set(tags))
     return tags
 
@@ -55,9 +57,9 @@ def test_the_menu_lists_the_on_device_models_labelled(ollama, monkeypatch):
 
 def test_a_tag_ollama_does_not_have_is_not_listed(ollama, monkeypatch):
     monkeypatch.setattr(providers, "_auth_problem", lambda pid: None)
-    ollama.discard("edgecdss-v3")
+    ollama.discard("qwen2.5:3b")
     menu = _menu()
-    assert "qwen2.5:3b" in menu and "edgecdss-v3" not in menu
+    assert "qwen2.5:3b" not in menu and "gpt-4o-mini" in menu
 
 
 def test_without_ollama_the_menu_is_what_it_was(monkeypatch):
@@ -69,7 +71,7 @@ def test_without_ollama_the_menu_is_what_it_was(monkeypatch):
 # ── routing and the validator ────────────────────────────────────────────────
 
 def test_selecting_an_on_device_model_resolves_to_it(ollama):
-    assert providers.resolve_model("edgecdss-v3") == "edgecdss-v3"
+    assert providers.resolve_model("qwen2.5:3b") == "qwen2.5:3b"
     assert providers.resolve_model(None) == providers.DEFAULT_MODEL == "gpt-4o-mini"
 
 
@@ -81,7 +83,7 @@ def test_selecting_an_on_device_model_resolves_to_it(ollama):
 def test_an_on_device_generator_gets_an_on_device_validator(ollama, monkeypatch, setting, expected):
     if setting:
         monkeypatch.setenv("CDSS_VALIDATOR_MODEL", setting)
-    assert providers.validator_model("edgecdss-v3") == expected
+    assert providers.validator_model("qwen2.5:3b") == expected
 
 
 def test_the_cloud_validator_is_unchanged(ollama):
@@ -89,11 +91,11 @@ def test_the_cloud_validator_is_unchanged(ollama):
 
 
 def test_an_on_device_request_makes_no_cloud_call(ollama):
-    r = oc._query_with_rag_internal(GENERATED_QUERY, _JtsHit(), model="edgecdss-v3")
+    r = oc._query_with_rag_internal(GENERATED_QUERY, _JtsHit(), model="qwen2.5:3b")
     gen, val = _calls()
-    assert gen == ["edgecdss-v3"] and val == ["qwen2.5:3b"]
+    assert gen == ["qwen2.5:3b"] and val == ["qwen2.5:3b"]
     assert FakeOpenAI.instances == [], "an on-device request reached the cloud"
-    assert r["model"] == "local/edgecdss-v3" and r["provider"] == "local"
+    assert r["model"] == "local/qwen2.5:3b" and r["provider"] == "local"
 
 
 def test_the_default_request_is_unchanged(ollama):
@@ -105,7 +107,7 @@ def test_the_default_request_is_unchanged(ollama):
 
 def test_offline_an_on_device_selection_is_honoured(ollama, monkeypatch):
     monkeypatch.setenv("CDSS_LLM_PROVIDER", "local")
-    assert providers.resolve_model("edgecdss-v3") == "edgecdss-v3"
+    assert providers.resolve_model("qwen2.5:3b") == "qwen2.5:3b"
     assert providers.resolve_model("gpt-4o") == "qwen2.5:3b", "a cloud pick still answers on the device"
     assert providers.resolve_model(None) == "qwen2.5:3b"
 
