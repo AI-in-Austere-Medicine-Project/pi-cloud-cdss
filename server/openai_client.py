@@ -512,7 +512,7 @@ class DoseCandidate:
     # of "a dilution the kit has not declared".
     dilution: Optional[dict] = None
     # K3 (owner, 2026-10-28): set when the volume is drawn from `dilution`,
-    # made from the kit's vial, because the vial volume was under
+    # made from the resolved vial (kit or stated), because the vial volume was under
     # DILUTE_BELOW_ML. volume_ml and concentration_mg_ml are then the
     # dilution's.
     dilute_from: Optional[dict] = None
@@ -2709,13 +2709,13 @@ def resolve_dose_volume(d: DoseCandidate,
         return dc_replace(d, volume_refusal=why) if why else d
     kit_vial = d.drug not in confirmed
     dil = drug_concentrations._dilution_for(d.dilution, conc)
-    if kit_vial and dil and vol < DILUTE_BELOW_ML:
+    if dil and vol < DILUTE_BELOW_ML:
         dil_conc = float(dil["concentration_mg_ml"])
         true_vol = d.dose_mg / dil_conc
         if drug_concentrations.drawable(true_vol)[0]:
             return dc_replace(
                 d, volume_ml=round(true_vol, drug_concentrations.draw_precision(true_vol)),
-                concentration_mg_ml=dil_conc, kit_vial=True, dilute_from=dil)
+                concentration_mg_ml=dil_conc, kit_vial=kit_vial, dilute_from=dil)
     return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc, kit_vial=kit_vial)
 
 
@@ -2723,17 +2723,21 @@ def resolve_dose_volume(d: DoseCandidate,
 # gives the signed dilution (ketamine 5 mg/mL: 1 mL of 50 mg/mL in 9 mL NS)
 # and the volume from the diluted strength." Only where the dose entry
 # declares a push_dilution made from that vial; a dose with none keeps its
-# vial volume.
+# vial volume. #195 rulings (owner, 2026-10-28): the adult IV analgesia
+# entries declare the same 5 mg/mL dilution, and a vial the medic states
+# is diluted too when it is the one the recipe is made from.
 DILUTE_BELOW_ML = 0.5
 KIT_VIAL_LABEL = " (kit vial)"
 DILUTION_WORD = " dilution"
 
 
 def dilution_sentence(d: DoseCandidate) -> str:
-    """"Dilute first: 1 mL of 50mg/mL ketamine (kit vial) in 9 mL normal saline."""
+    """"Dilute first: 1 mL of 50mg/mL ketamine (kit vial) in 9 mL normal saline."
+    The label only when the vial is the kit's, not one the medic stated."""
     dil = d.dilute_from
+    kit = KIT_VIAL_LABEL if d.kit_vial else ""
     return (f"Dilute first: {dil['drug_ml']:g} mL of {dil['from_concentration_mg_ml']:g}mg/mL "
-            f"{d.drug}{KIT_VIAL_LABEL} in {dil['diluent_ml']:g} mL {dil['diluent']}.")
+            f"{d.drug}{kit} in {dil['diluent_ml']:g} mL {dil['diluent']}.")
 
 
 def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
@@ -2755,7 +2759,7 @@ def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
     # The label follows the dose, so "Draw X mL of Ymg/mL drug route (Z mg)"
     # still reads as it always has (the audit, the brief, the spoken brief).
     if d.dilute_from:
-        # The kit-vial label moves to the recipe: the vial is what it dilutes.
+        # A kit-vial label moves to the recipe: the vial is what it dilutes.
         return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
                 f"{d.drug}{DILUTION_WORD} {d.route} ({dose_txt}). {dilution_sentence(d)} "
                 f"Indication: {d.indication}.")
@@ -4775,14 +4779,17 @@ def audit_volume_lines(response_text: str,
             problem = "the concentration master list is unavailable"
         else:
             signed = drug_concentrations.all_signed_strengths(generic)
+            # K3: the signed dilution made from the resolved vial (kit or
+            # confirmed) is checked at its own strength.
+            diluted = bool(signed) and _signed_dilution_line(m.group(0), generic, conc, confirmed)
             if not signed:
                 problem = (f"no signed concentration is declared for "
                            f"{generic} in the kit")
-            elif generic in confirmed and abs(conc - confirmed[generic]) > 1e-9:
+            elif (not diluted and generic in confirmed
+                  and abs(conc - confirmed[generic]) > 1e-9):
                 problem = (f"states {conc:g}mg/mL but the confirmed vial for "
                            f"this patient is {confirmed[generic]:g}mg/mL")
-            elif (not any(abs(conc - c) < 1e-9 for c in signed)
-                  and not _signed_dilution_line(m.group(0), generic, conc, confirmed)):
+            elif not diluted and not any(abs(conc - c) < 1e-9 for c in signed):
                 problem = (f"states {conc:g}mg/mL, which is not a declared "
                            f"concentration for {generic} "
                            f"({', '.join(f'{c:g}' for c in signed)}mg/mL)")
