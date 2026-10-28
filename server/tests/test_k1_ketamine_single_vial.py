@@ -142,6 +142,12 @@ def kit_file(tmp_path, monkeypatch):
     path.write_text(json.dumps(raw))
     monkeypatch.setattr(dcn, "CONFIG", path)
     monkeypatch.setattr(dcn, "CHANGE_LOG", tmp_path / "log.jsonl")
+    # The tool's declaration record too: a test never writes the real one.
+    sys.path.insert(0, str(dcn._DIR / "tools"))
+    import set_concentration
+    rec = tmp_path / "KIT_DECLARATIONS_default.md"
+    rec.write_text("# Kit declarations\n\n## Declarations\n\n| Date | Drug |\n|---|---|\n")
+    monkeypatch.setattr(set_concentration, "DECLARATIONS", rec)
     return path
 
 

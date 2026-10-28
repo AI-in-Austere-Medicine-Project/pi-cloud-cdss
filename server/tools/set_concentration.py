@@ -9,7 +9,7 @@ Edit the concentration master list. The sanctioned path.
     python3 tools/set_concentration.py --drug rocuronium --declare "100 mg / 10 mL vial" \
             --mass-mg 100 --volume-ml 10 --justification "standard stocked vial"
     python3 tools/set_concentration.py --drug ketamine --single "500 mg / 10 mL vial" \
-            --by clinician --date 2026-10-28 --reason "Owner declaration, <name>, <date>: ..."
+            --by clinician --name "<name>" --date 2026-10-28 --reason "Owner declaration, <name>, <date>: ..."
 
 Hand-editing drug_concentrations.json works too, and the loader will detect and
 log it on next import. This tool exists because it cannot get the guardrails
@@ -22,6 +22,10 @@ question off (confirm_required false), so a dose serves mg and mL from that
 vial without asking. It needs a signer, a date and the declaration in
 --reason (the person's name rides there), and is logged with what it removed.
 A strength the medic states that is not this vial still withholds the volume.
+
+--sign and --single also append the declaration to docs/authoring/
+KIT_DECLARATIONS.md (date, drug, strength, vial, signer, reason; --name is the
+signer's name, --by the role), unless that row is already there.
 
 WHY SIGNING AND REVOKING ARE NOT SYMMETRIC
 ──────────────────────────────────────────
@@ -49,6 +53,34 @@ if str(_SERVER) not in _sys.path:
 import drug_concentrations as dcn
 
 PENDING = dcn.PENDING
+# Owner, #193 review (2026-10-28): every declaration is recorded here (drug,
+# strength, signer, date), in the repository, beside the gitignored kit file.
+DECLARATIONS = _SERVER.parent / "docs" / "authoring" / "KIT_DECLARATIONS.md"
+
+
+def _strength(mg_ml):
+    return f"{mg_ml:g} mg/mL"
+
+
+def record_declaration(date, drug, pres, kind, by, name, reason):
+    """Append one row to KIT_DECLARATIONS.md, unless it already holds it."""
+    signer = f"{name} ({by})" if name else by
+    cells = [date, drug, _strength(pres["concentration_mg_ml"]), pres.get("label_text") or "",
+             kind, signer, (reason or "").replace("|", "/").replace("\n", " ")]
+    row = "| " + " | ".join(cells) + " |"
+    try:
+        text = DECLARATIONS.read_text()
+    except OSError as e:
+        print(f"⚠️  {DECLARATIONS} unreadable ({e}): declaration not recorded there")
+        return
+    # The same declaration (date, drug, strength, vial, kind, signer) is held
+    # once, whatever its reason says: the owner's command repeats a row a PR
+    # already recorded.
+    key = "| " + " | ".join(cells[:6]) + " |"
+    if any(line.startswith(key) for line in text.splitlines()):
+        return
+    DECLARATIONS.write_text(text.rstrip("\n") + "\n" + row + "\n")
+    print(f"recorded in {DECLARATIONS.name}")
 
 
 def _load_raw():
@@ -116,6 +148,8 @@ def main():
     ap.add_argument("--by")
     ap.add_argument("--date")
     ap.add_argument("--reason", default="")
+    ap.add_argument("--name", default="",
+                    help="the signer's name, for KIT_DECLARATIONS.md (--by is the role)")
     args = ap.parse_args()
 
     if args.list or not args.drug:
@@ -215,6 +249,8 @@ def main():
                         "actor": args.by, "reason": args.reason,
                         "config_hash": dcn._config_hash(),
                         "snapshot": dcn.snapshot_from_file()})
+        record_declaration(args.date, args.drug, pres, "single vial (no vial question)",
+                           args.by, args.name, args.reason)
         print(f"{args.drug}: {args.single} = {pres['concentration_mg_ml']:g} mg/mL is the "
               f"kit's single vial, signed by {args.by} on {args.date}; removed "
               f"{', '.join(removed) or 'nothing'}; no vial question.")
@@ -250,6 +286,7 @@ def main():
                         "actor": args.by, "reason": args.reason,
                         "config_hash": dcn._config_hash(),
                         "snapshot": dcn.snapshot_from_file()})
+        record_declaration(args.date, args.drug, pres, "signed", args.by, args.name, args.reason)
         print(f"signed {args.drug} {args.sign} = "
               f"{pres['concentration_mg_ml']:g} mg/mL by {args.by} on {args.date}")
         return 0
