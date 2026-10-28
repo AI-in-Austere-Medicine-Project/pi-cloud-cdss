@@ -183,10 +183,12 @@ def test_no_volume_is_printed_with_a_trailing_zero(query):
 def test_a_sub_millilitre_draw_keeps_three_decimals_and_its_leading_zero():
     vol, conc = dcn.volume_ml("ketamine", 6.25, {"ketamine": 50.0})
     assert (vol, conc) == (0.125, 50.0)
-    ctx = _ctx(80.0, ped=False)
+    # 100 kg: 25 mg, NASEMSO's cap, is 0.5 mL at the vial. Under 0.5 mL is
+    # drawn from the signed dilution (K3; #195 ruling 1, owner, 2026-10-28).
+    ctx = _ctx(100.0, ped=False)
     ctx.confirmed_concentrations = {"ketamine": 50.0}
     card = oc.build_ketamine_analgesia_response(ctx)
-    assert "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)" in card
+    assert "Draw 0.5 mL of 50mg/mL ketamine IV (25 mg)" in card
     audited, issues = oc.audit_volume_lines(card, ctx)
     assert issues == [] and audited == card
 

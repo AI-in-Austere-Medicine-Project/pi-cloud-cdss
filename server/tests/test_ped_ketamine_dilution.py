@@ -75,7 +75,10 @@ def test_25kg_confirmed_the_cautions_carry_the_dilution():
     assert "0.04 mL/kg" in cautions, "the mL/kg equivalence is missing"
     assert "OWNER-DECLARED dilution" in cautions
     assert oc.VOLUMES_AFTER_VIAL_LINE not in cautions
-    assert "Draw 0.1 mL of 50mg/mL ketamine IV (5 mg)" in card, card
+    # #195 ruling 2 (owner, 2026-10-28): a confirmed vial the dilution is made
+    # from is diluted too, under 0.5 mL (K3).
+    assert ("Draw 1 mL of 5mg/mL ketamine dilution IV (5 mg). Dilute first: 1 mL of "
+            "50mg/mL ketamine in 9 mL normal saline.") in card, card
 
 
 @pytest.mark.parametrize("weight", [10.0, 25.0, 50.0])
@@ -95,11 +98,20 @@ def test_below_the_vial_floor_the_refusal_names_the_dilution():
     assert "a dilution the kit has not declared" not in give
 
 
-def test_an_adult_is_never_told_to_dilute():
+def test_an_adult_is_told_to_dilute_only_once_the_vial_is_confirmed():
+    """Was "an adult is never told to dilute" (owner, 2026-09-18). #195 ruling 1
+    (owner, 2026-10-28) declared the adult IV analgesia dilution; like the
+    paediatric one, its recipe and volumes wait for the vial."""
     card = oc.build_ketamine_analgesia_response(_ctx(80.0, ped=False))
-    assert "dilution" not in card.lower() and "5 mg/mL" not in card
+    assert "Dilute first" not in card and "5 mg/mL" not in card and "5mg/mL" not in card
+    assert oc.VOLUMES_AFTER_VIAL_LINE in card
     b = brief.build_brief(card, oc.MEDICATION_TERMS, weight_kg=80.0)["brief"]
     assert "Dilute" not in b and "Diluted" not in b
+    confirmed = _ctx(80.0, ped=False)
+    confirmed.confirmed_concentrations = {"ketamine": 50.0}
+    card = oc.build_ketamine_analgesia_response(confirmed)
+    assert ("Draw 4 mL of 5mg/mL ketamine dilution IV (20 mg). Dilute first: 1 mL of "
+            "50mg/mL ketamine in 9 mL normal saline.") in card, card
 
 
 def test_an_entry_without_a_dilution_keeps_the_old_refusal():
