@@ -848,6 +848,18 @@ def extract_patient_context(query: str,
             hit = drug_concentrations.match_confirmation(drug, q)
             if hit is not None:
                 ctx.confirmed_concentrations[drug] = hit
+        # K1 (owner, 2026-10-28): a strength the medic states that is not a
+        # signed vial overrides the kit's single vial. It is recorded as this
+        # patient's vial for the drugs this turn names (else those under
+        # discussion); resolve() then finds it matches nothing signed and asks
+        # again, so the kit's volume is withheld. The stated number is never
+        # used to compute one.
+        stated = drug_concentrations.stated_strengths(q)
+        if stated:
+            for drug in drug_contracts.resolve_drugs(q) or ctx.drugs_named:
+                signed = drug_concentrations.all_signed_strengths(drug)
+                if not any(abs(c - x) < 1e-9 for c in signed for x in stated):
+                    ctx.confirmed_concentrations[drug] = stated[0]
 
     return ctx
 

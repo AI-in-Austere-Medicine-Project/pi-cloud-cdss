@@ -8,11 +8,20 @@ Edit the concentration master list. The sanctioned path.
     python3 tools/set_concentration.py --drug ketamine --revoke "500 mg / 10 mL vial"
     python3 tools/set_concentration.py --drug rocuronium --declare "100 mg / 10 mL vial" \
             --mass-mg 100 --volume-ml 10 --justification "standard stocked vial"
+    python3 tools/set_concentration.py --drug ketamine --single "500 mg / 10 mL vial" \
+            --by clinician --date 2026-10-28 --reason "Owner declaration, <name>, <date>: ..."
 
 Hand-editing drug_concentrations.json works too, and the loader will detect and
 log it on next import. This tool exists because it cannot get the guardrails
 wrong: it validates before writing, refuses to sign anything the loader would
 reject, and always clears signoff when a VALUE changes.
+
+--single (K1, owner 2026-10-28) declares a vial the kit's ONLY one for that
+drug: it signs it, removes the drug's other presentations and turns the vial
+question off (confirm_required false), so a dose serves mg and mL from that
+vial without asking. It needs a signer, a date and the declaration in
+--reason (the person's name rides there), and is logged with what it removed.
+A strength the medic states that is not this vial still withholds the volume.
 
 WHY SIGNING AND REVOKING ARE NOT SYMMETRIC
 ──────────────────────────────────────────
@@ -98,6 +107,9 @@ def main():
     ap.add_argument("--sign", metavar="LABEL")
     ap.add_argument("--revoke", metavar="LABEL")
     ap.add_argument("--declare", metavar="LABEL")
+    ap.add_argument("--single", metavar="LABEL",
+                    help="this vial is the kit's only one for the drug: sign it, "
+                         "remove the others, stop asking which vial")
     ap.add_argument("--mass-mg", type=float)
     ap.add_argument("--volume-ml", type=float)
     ap.add_argument("--justification")
@@ -162,6 +174,50 @@ def main():
                         "snapshot": dcn.snapshot_from_file()})
         print(f"declared {args.drug} {args.declare} = {conc:g} mg/mL, UNSIGNED. "
               f"Sign it before any volume is served.")
+        return 0
+
+    # ── single: this vial is the only one in the kit ───────────────────────
+    if args.single:
+        if not args.by or args.by not in dcn.SIGNOFF_AUTHORS:
+            print(f"--by must be one of {', '.join(dcn.SIGNOFF_AUTHORS)}")
+            return 1
+        if not args.date:
+            print("--date is required")
+            return 1
+        if not args.reason.strip():
+            print("--reason must carry the declaration: who declares this the "
+                  "kit's only vial, and when")
+            return 1
+        pres = _find_pres(entry, args.single)
+        if pres is None:
+            print(f"no such presentation: {args.single} (declare it first)")
+            return 1
+        candidate = dict(pres, signoff=True, reviewed_by=args.by,
+                         review_date=args.date)
+        candidate.setdefault("corroboration",
+                             dcn._corroboration(args.drug,
+                                                candidate["concentration_mg_ml"]))
+        reason = dcn._validate(entry, candidate)
+        if reason:
+            print(f"REFUSED — not declared: {reason}")
+            return 1
+        removed = [p.get("label_text") for p in entry["presentations"] if p is not pres]
+        pres.update(candidate)
+        entry["presentations"] = [pres]
+        entry["confirm_required"] = False
+        entry.pop("confirm_reason", None)
+        entry["single_vial"] = {"label_text": args.single, "declaration": args.reason,
+                                "by": args.by, "date": args.date}
+        _save_raw(doc)
+        dcn.append_log({"event": "SINGLE_VIAL", "drug": args.drug, "label": args.single,
+                        "removed": removed, "old": None,
+                        "new": [pres["concentration_mg_ml"], True],
+                        "actor": args.by, "reason": args.reason,
+                        "config_hash": dcn._config_hash(),
+                        "snapshot": dcn.snapshot_from_file()})
+        print(f"{args.drug}: {args.single} = {pres['concentration_mg_ml']:g} mg/mL is the "
+              f"kit's single vial, signed by {args.by} on {args.date}; removed "
+              f"{', '.join(removed) or 'nothing'}; no vial question.")
         return 0
 
     # ── sign: requires an authorised signer ─────────────────────────────────

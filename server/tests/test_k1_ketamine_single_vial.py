@@ -128,7 +128,7 @@ def test_the_override_applies_to_any_single_vial_drug(gen):
     # The conftest kit's rocuronium: one signed vial, 100 mg / 10 mL (10 mg/mL).
     status, conc, _ = dcn.resolve("rocuronium")
     assert (status, conc) == (dcn.RESOLVED, 10.0)
-    ctx = oc.extract_patient_context("80 kg adult RSI, rocuronium, I have 50 mg / 5 mL... no, 20 mg/mL vials", [])
+    ctx = oc.extract_patient_context("80 kg adult RSI, rocuronium, I have the 20 mg/mL vials")
     assert oc.vial_unconfirmed("rocuronium", ctx)
 
 
