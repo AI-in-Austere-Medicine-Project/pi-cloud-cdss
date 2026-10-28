@@ -96,7 +96,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
-| K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **in review**; owner, 2026-10-28. Replay rows signed off by the owner. The owner merges and applies the signature to the live kit |
+| K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **done**: #193, merged; the owner applied the declaration to the live kit (2026-10-28) |
+| K3 | A kit-vial volume under 0.5 mL is drawn from the signed push dilution (paediatric ketamine: 5 mg/mL); was v1.1 #5; number assigned here, owner to confirm | **in review**; owner, 2026-10-28 |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -1287,6 +1288,22 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Done (failing tests first):** a "(kit vial)" draw line is spoken "..., from your kit." (`spoken.DRAW_KIT`); a stated vial is spoken as before. 40 pipe rows' spoken briefs gain only those words; answers unchanged.
 
 Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
+
+### K3: a kit-vial volume under 0.5 mL from the signed dilution (owner, 2026-10-28)
+
+**Owner:** "After the ketamine --single declaration on the live kit, run_tests.sh is 27/29: "Ped IV ketamine correct dose" and "Ped 20kg IV ketamine: 4 mg, SMOG, dilution after the vial" fail on missing keyword 'IV: 5 mg' / 'IV: 4 mg'. Paste the full answer for both. If the mg is right and only the format moved, update the harness keywords. If a 0.1 mL / 0.08 mL volume is shown with no dilution instruction, the paediatric-dilution item comes off v1.1 and is fixed now, failing test first: for a kit-vial volume under 0.5 mL, the answer gives the signed dilution (ketamine 5 mg/mL: 1 mL of 50 mg/mL in 9 mL NS) and the volume from the diluted strength. PR, do not merge."
+
+**Found:** the mg was right (5 and 4 mg); the cards drew 0.1 and 0.08 mL of undiluted 50 mg/mL, with the recipe only a caution. Both branches applied.
+
+**Done (failing tests first):**
+- The GIVE line, TLDR, brief and spoken brief draw from the signed dilution: "Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg). Dilute first: 1 mL of 50mg/mL ketamine (kit vial) in 9 mL normal saline."
+- The volume audit accepts the diluted strength only as that signed dilution, made from the resolved vial, with exact arithmetic. The unconfirmed-volume check accepts the signed recipe's own two volumes.
+- The two harness cases look for the dilution line and recipe; 29/29 on the branch with the live kit.
+- Replay vs main 979565b: 0 newly held, 0 newly released, 0 newly dosing; 3 pipe rows draw from the dilution, mg unchanged.
+
+**For the owner:** the adult 0.375 mL (no adult dilution signed) and a medic-stated vial keep the vial volume.
+
+Detail: `docs/K3_PED_KETAMINE_DILUTION_2026-10-28.md`.
 
 ### S1: speech in (owner, 2026-10-27)
 
