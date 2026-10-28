@@ -11,12 +11,13 @@
 ```
 cd /home/andrew/pi-cloud-cdss/server
 python3 tools/set_concentration.py --drug ketamine --single "500 mg / 10 mL vial" \
-    --by clinician --date 2026-10-28 \
+    --by clinician --name "Andrew Azelton" --date 2026-10-28 \
     --reason "Owner declaration, Andrew Azelton, 2026-10-28: ketamine 500 mg / 10 mL (50 mg/mL) is the kit's single ketamine vial (K1)"
 sudo systemctl restart edgecdss.service
 ```
 
-- `--by clinician` is the role the serving fence honours (`SIGNOFF_AUTHORS`). The name rides in `--reason`, which the change log keeps, as for every other signature.
+- `--by clinician` is the role the serving fence honours (`SIGNOFF_AUTHORS`). The name rides in `--reason`, which the change log keeps, as for every other signature, and in `--name`, which `KIT_DECLARATIONS.md` records.
+- The command appends nothing to `docs/authoring/KIT_DECLARATIONS.md` on the live checkout: this PR already records that declaration, and the tool does not repeat a row it holds.
 
 ## 2. What changed
 
@@ -41,7 +42,7 @@ It needs an authorised `--by`, a `--date` and the declaration in `--reason`, and
 - With the override they get mg and the vial question.
 
 **Not changed:**
-- **The GIVE line:** it is the same as for the other single-vial kit drugs: "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg)". It states the concentration it used, which is the medic's catch-point. It does not add the word "kit"; the owner can ask for a label on every kit-vial line.
+- **The GIVE line's form:** it states the concentration it used, which is the medic's catch-point. Since the owner's review it also says where that came from (section 5).
 - **The mg doses.**
 - **The other vials and the gates.**
 
@@ -119,3 +120,24 @@ It needs an authorised `--by`, a `--date` and the declaration in `--reason`, and
 | live | have a 6 year old in pain. need to give ketamine iV established weight is 45kg | Draw 0.18 mL of 50mg/mL ketamine IV (9 mg). Indication: moderate to severe pain / analgesia. |
 
 The H-SESS-014 rows are one bank row that runs five questions together. Their mg (160 mg for "RSI meds for a 100kg male", from the first line's 80 kg) is main's, unchanged here.
+
+## 5. Owner review of #193 (2026-10-28)
+
+**Owner:** "#193: one released row and 38 newly-dosing rows signed off (Andrew Azelton). Yes, label every kit-vial volume line "(kit vial)". Add docs/authoring/KIT_DECLARATIONS.md recording each declaration (drug, strength, signer, date) and append ketamine 50 mg/mL; the set_concentration tool appends to it too. The five-question bank row ("RSI for a 100 kg male" at 80 kg) goes on v1.1 as a test-corpus fix. Then stop; I'll merge and run the command."
+
+- **Signed off:** the newly released log row and the 38 rows newly serving ketamine mL (section 4), by Andrew Azelton, 2026-10-28.
+- **"(kit vial)"** (failing tests first):
+  - A volume from the kit's single vial, not a vial the medic stated, says so on the GIVE line and the TLDR: "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial)." and "= 18.75mg = 0.375mL of 50mg/mL (kit vial)."
+  - Every single-vial kit drug is labelled (rocuronium, succinylcholine, lorazepam, TXA, naloxone).
+  - A vial the medic states ("I have 500 mg / 10 mL") drops the label: the volume is from what they said.
+  - The label follows the dose, so the volume audit, the brief and the spoken brief read the line as before. The brief's pattern takes the label.
+  - The spoken brief does not say "kit vial".
+- **`docs/authoring/KIT_DECLARATIONS.md`:**
+  - It holds the ketamine 50 mg/mL declaration, and the six signatures already in the live kit (role AI-AIM, 2026-08-25) as signed before the record began.
+  - `set_concentration.py --sign` and `--single` append a row: date, drug, strength, vial, kind, signer (`--name`, then the `--by` role), reason.
+  - The same declaration (all but the reason) is held once. A refused declaration is not recorded.
+- **The H-SESS-014 corpus row** is on the v1.1 list (WORK_ORDER v1.1; REFERENCE §9).
+- **Replay with the label**, main `058136a` against this branch and the K1 kit: the same counts as section 4, except pipe has 45 changed rows, not 43.
+  - With the label removed, every row in every set is identical to the replay signed off above.
+  - The two extra pipe rows are lorazepam volumes main already served, now labelled.
+- **Suite:** 3,772 passed, 0 failed.

@@ -96,7 +96,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
-| K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume | **in review**; owner, 2026-10-28. The owner applies the signature to the live kit after merging |
+| K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)"; KIT_DECLARATIONS.md | **in review**; owner, 2026-10-28. Replay rows signed off by the owner. The owner merges and applies the signature to the live kit |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -1274,6 +1274,13 @@ A changed row that neither side can judge is listed as unjudged and never counte
   - 0 newly held.
   - **1 newly released**, for sign-off: live "ketamine for pain, 75 kg IV, 500mg/10ml vial" → the correct 0.375 mL.
   - **38 pipe rows newly serve ketamine mL**, listed in the doc. Every volume is dose ÷ 50, the mg is unchanged and no other drug changed.
+
+**Owner, #193 review (2026-10-28):** "one released row and 38 newly-dosing rows signed off (Andrew Azelton). Yes, label every kit-vial volume line "(kit vial)". Add docs/authoring/KIT_DECLARATIONS.md recording each declaration (drug, strength, signer, date) and append ketamine 50 mg/mL; the set_concentration tool appends to it too. The five-question bank row ("RSI for a 100 kg male" at 80 kg) goes on v1.1 as a test-corpus fix. Then stop; I'll merge and run the command."
+
+**Done (failing tests first):**
+- **"(kit vial)":** a volume from the kit's single vial, not a vial the medic stated, says so on the GIVE line and the TLDR: "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial)." Every single-vial kit drug is labelled. A vial the medic states drops the label.
+- **`docs/authoring/KIT_DECLARATIONS.md`:** the ketamine 50 mg/mL declaration, and the six signatures already in the live kit. `set_concentration.py` appends each `--sign` and `--single` (`--name` is the signer, `--by` the role) and does not repeat a row it holds.
+- **The H-SESS-014 corpus row** is on the v1.1 list.
 
 Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
 
@@ -2538,6 +2545,8 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **A drug-choice question gets one drug's card** (found in #110). "norepinephrine drip vs epinephrine drip, which for this patient" and "start levophed or epi, he is still hypotensive" get the norepinephrine card (the first previously got the epinephrine card).
 - **The corpus was ingested from the superseded ID39** (found in #100). `server/data/jts_protocols` holds both `Airway_Management_of_Traumatic_Injuries_17_Jul_2017_ID39.pdf` and `Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf`. All 28 ID39 chunks in the production ChromaDB come from the 2017 edition. Re-ingest is a separate decision.
 - **The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list** (found in #100). The 2026 ID39 p.28 supports its 1.5 mg/kg dose, not "Burns", "Spinal cord injury" or "Hyperkalemia". ID40 p.3 does. Correcting it is a re-sign of that contract.
+
+- **A test-corpus row doses one question at another question's weight** (found in K1's replay, #193; owner, 2026-10-28: v1.1, a test-corpus fix). Bank row H-SESS-014 runs five questions together as one query; "Need RSI meds for a 100kg male" is dosed at the first line's 80 kg (ketamine 160 mg). Main does the same. Fix the corpus row (one question per turn), not the server.
 
 ## Deferred (do not touch)
 
