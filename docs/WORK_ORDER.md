@@ -97,7 +97,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **done**: #193, merged; the owner applied the declaration to the live kit (2026-10-28) |
-| K3 | A kit-vial volume under 0.5 mL is drawn from the signed push dilution (paediatric ketamine: 5 mg/mL); was v1.1 #5; number assigned here, owner to confirm | **in review**; owner, 2026-10-28 |
+| K3 | A volume under 0.5 mL at the vial (kit or stated) is drawn from the signed push dilution made from it (ketamine IV analgesia, adult and paediatric: 5 mg/mL); was v1.1 #5 | **in review**; owner, 2026-10-28; numbering confirmed; #195 rulings applied |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -1302,6 +1302,15 @@ Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
 - Replay vs main 979565b: 0 newly held, 0 newly released, 0 newly dosing; 3 pipe rows draw from the dilution, mg unchanged.
 
 **For the owner:** the adult 0.375 mL (no adult dilution signed) and a medic-stated vial keep the vial volume.
+
+**Owner, #195 rulings (2026-10-28):** "K3 numbering confirmed. 1. Adult: same rule, any kit-vial volume under 0.5 mL gets the signed dilution. Sign the adult IV ketamine dilution as an owner declaration (Andrew Azelton, today): 1 mL of 50 mg/mL in 9 mL NS = 5 mg/mL, for IV analgesia only; so 75 kg gives 3.75 mL of 5 mg/mL. Failing test first; record in KIT_DECLARATIONS. 2. Medic-stated vial: the dilution applies whenever the volume is under 0.5 mL and the vial (kit or stated) is the one the signed dilution is made from; a stated 500 mg/10 mL for the 20 kg child gets 0.8 mL of 5 mg/mL. Failing test first. 3. The 08:50 process on :8012: identify it (ps -fp $(lsof -t -i :8012)) and stop it if it's yours; report what it was. Replay, suite, harness. Report."
+
+**Done (failing tests first):**
+- Ruling 1: `push_dilution` (clinician, Andrew Azelton, 2026-10-28) on both adult IV analgesia entries, the recipe and mL/kg in their serve cautions (the existing invariant), a KIT_DECLARATIONS.md row. 75 kg: 3.75 mL of 5 mg/mL.
+- Ruling 2: the resolved vial, kit or stated; "(kit vial)" only for the kit's. The 20 kg child with a stated 500 mg / 10 mL: 0.8 mL of 5 mg/mL.
+- Tests that pinned volumes under 0.5 mL follow the rulings.
+- Ruling 3: the :8012 process was this session's S2 test server (PID 2213160); stopped.
+- Suite 3,811 passed; harness 29/29; replay 0 newly held, 0 newly released, 13 pipe rows drawn from the dilution with mg unchanged, 1 newly dosing row is a new live log question.
 
 Detail: `docs/K3_PED_KETAMINE_DILUTION_2026-10-28.md`.
 
