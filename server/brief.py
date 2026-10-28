@@ -147,7 +147,7 @@ _MG_LINE_RE = re.compile(
     r"^(?P<drug>.+?) (?P<route>\S+): (?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\.$")
 _DRAW_LINE_RE = re.compile(
     r"^Draw [\d.]+ mL of [\d.]+ ?mg/mL (?P<drug>.+?) (?P<route>\S+) "
-    r"\((?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\)\.$")
+    r"\((?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\)(?: \(kit vial\))?\.$")
 # All-caps tokens of four or more letters that are acronyms, not shouting.
 # Three letters and under are left alone (IV, TBI, GCS, TXA): nearly all
 # acronyms, and the shouted short words are listed in _SHOUTED_SHORT.

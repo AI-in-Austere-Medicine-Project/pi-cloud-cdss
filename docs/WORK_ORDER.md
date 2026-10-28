@@ -96,6 +96,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
+| K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **in review**; owner, 2026-10-28. Replay rows signed off by the owner. The owner merges and applies the signature to the live kit |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -1257,6 +1258,35 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
 
 **Done:** the PR records the criterion: Jetson-wheel retrieval is unchanged within Chroma's own noise, with 0 changed on all five replays. `spoken.MANY_INDICATIONS` is "{drug}. Several indications are on screen. Say one." The CPU fallback's silence is documented as accepted, with the GPU primary. The service venv is the owner's step: the owner merges, then installs the wheel.
+
+### K1: ketamine's single kit vial (owner, 2026-10-28)
+
+**Owner:** "K1: sign ketamine 500 mg/10 mL (50 mg/mL) as the kit's single ketamine vial, owner declaration Andrew Azelton, dated. Failing test first: "ketamine for pain, 75 kg IV" with no vial stated serves mg and mL ("0.375 mL of 50 mg/mL, kit") without the vial question; a different concentration stated in the question still overrides it. Replay; list every row that newly serves an mL. PR, do not merge."
+
+**Done (one PR, failing tests first):**
+- **The declaration:** `set_concentration.py --single "500 mg / 10 mL vial" --by clinician --date 2026-10-28 --reason "Owner declaration, Andrew Azelton, …"`. It signs the vial, removes the unsigned 200 mg / 20 mL, sets `confirm_required` false, records `single_vial` and logs `SINGLE_VIAL`.
+  - `drug_concentrations.json` is gitignored deployment state, so the signature is not in the PR.
+  - It was applied to the worktree's kit for the replay. The owner applies it to the live kit after merging (command in the doc).
+- **"ketamine for pain, 75 kg IV":** "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg)", with no vial question.
+- **Override:** a strength stated in the question that is no signed vial ("I have the 100 mg/mL", "200 mg / 20 mL") is recorded as the patient's vial. `resolve()` asks again, so the answer is mg only with the vial question. This holds for any single-vial drug, and the stated number is never used.
+  - Two live questions stated "500mg/50ml" (10 mg/mL). Without the override, K1 would have served them a fifth of the dose.
+- **Replay vs main `058136a`:**
+  - 0 newly held.
+  - **1 newly released**, for sign-off: live "ketamine for pain, 75 kg IV, 500mg/10ml vial" → the correct 0.375 mL.
+  - **38 pipe rows newly serve ketamine mL**, listed in the doc. Every volume is dose ÷ 50, the mg is unchanged and no other drug changed.
+
+**Owner, #193 review (2026-10-28):** "one released row and 38 newly-dosing rows signed off (Andrew Azelton). Yes, label every kit-vial volume line "(kit vial)". Add docs/authoring/KIT_DECLARATIONS.md recording each declaration (drug, strength, signer, date) and append ketamine 50 mg/mL; the set_concentration tool appends to it too. The five-question bank row ("RSI for a 100 kg male" at 80 kg) goes on v1.1 as a test-corpus fix. Then stop; I'll merge and run the command."
+
+**Done (failing tests first):**
+- **"(kit vial)":** a volume from the kit's single vial, not a vial the medic stated, says so on the GIVE line and the TLDR: "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial)." Every single-vial kit drug is labelled. A vial the medic states drops the label.
+- **`docs/authoring/KIT_DECLARATIONS.md`:** the ketamine 50 mg/mL declaration, and the six signatures already in the live kit. `set_concentration.py` appends each `--sign` and `--single` (`--name` is the signer, `--by` the role) and does not repeat a row it holds.
+- **The H-SESS-014 corpus row** is on the v1.1 list.
+
+**Owner, second review (2026-10-28):** "#193: no label when the medic states the vial (correct as built). Spoken summary says "kit vial" too, as "from your kit". Stop."
+
+**Done (failing tests first):** a "(kit vial)" draw line is spoken "..., from your kit." (`spoken.DRAW_KIT`); a stated vial is spoken as before. 40 pipe rows' spoken briefs gain only those words; answers unchanged.
+
+Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
 
 ### S1: speech in (owner, 2026-10-27)
 
@@ -2519,6 +2549,8 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **A drug-choice question gets one drug's card** (found in #110). "norepinephrine drip vs epinephrine drip, which for this patient" and "start levophed or epi, he is still hypotensive" get the norepinephrine card (the first previously got the epinephrine card).
 - **The corpus was ingested from the superseded ID39** (found in #100). `server/data/jts_protocols` holds both `Airway_Management_of_Traumatic_Injuries_17_Jul_2017_ID39.pdf` and `Airway_Management_in_Trauma_28_Jan_2026_ID39.pdf`. All 28 ID39 chunks in the production ChromaDB come from the 2017 edition. Re-ingest is a separate decision.
 - **The signed succinylcholine dose contract cites ID39 p.28 for contraindications the page doesn't list** (found in #100). The 2026 ID39 p.28 supports its 1.5 mg/kg dose, not "Burns", "Spinal cord injury" or "Hyperkalemia". ID40 p.3 does. Correcting it is a re-sign of that contract.
+
+- **A test-corpus row doses one question at another question's weight** (found in K1's replay, #193; owner, 2026-10-28: v1.1, a test-corpus fix). Bank row H-SESS-014 runs five questions together as one query; "Need RSI meds for a 100kg male" is dosed at the first line's 80 kg (ketamine 160 mg). Main does the same. Fix the corpus row (one question per turn), not the server.
 
 ## Deferred (do not touch)
 

@@ -26,7 +26,8 @@ The shapes, in order:
                 "Held. The reason is on the screen. Use local protocol."
   dose          "Give <drug>, <dose>, <route>." per dose line (at most three),
                 then "Draw <volume> of <drug>, <concentration>." when the card
-                states the volume, or "Confirm the concentration before drawing
+                states the volume ("..., from your kit." when the line says
+                "(kit vial)"), or "Confirm the concentration before drawing
                 it up." when it says it has none; then one WATCH line
                 ("Watch: ...") when a card wrote it.
   card, gate    its GIVE line(s) and WATCH line, or its first brief line, as
@@ -54,6 +55,8 @@ HOLD_NOT_SIGNED = "Held. The {drugs} dose in the answer is not the signed dose. 
 HOLD_OTHER = "Held. The reason is on the screen. " + USE_LOCAL
 GIVE = "Give {drug}, {dose}, {route}."
 DRAW = "Draw {volume} of {drug}, {concentration}."
+# Owner, 2026-10-28: the kit-vial label is spoken too, as "from your kit".
+DRAW_KIT = "Draw {volume} of {drug}, {concentration}, from your kit."
 NO_VOLUME = "Confirm the concentration before drawing it up."
 WATCH = "Watch: {line}"
 MORE_DOSES = "More doses are on the screen."
@@ -285,10 +288,11 @@ def _known_drug(text: str, index: dict):
 # The dose lines are code-made (openai_client's canonical GIVE line and the
 # card builders), in three shapes:
 #   Draw 0.18 mL of 1mg/mL epinephrine IM (0.18 mg).
+#   Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial).
 #   Draw 168 mg of artesunate IV (168 mg).
 #   ketamine IV: 160 mg (2 mg/kg × 80 kg). NO VOLUME — confirm concentration …
 _DRAW_RE = re.compile(
-    rf"^Draw ({_NUM}) mL of ({_NUM})\s*(mg|mcg)/mL (.+?) ({_ROUTE_ALT}) \(({_NUM}) (mg|mcg|g|units)\)\.?")
+    rf"^Draw ({_NUM}) mL of ({_NUM})\s*(mg|mcg)/mL (.+?) ({_ROUTE_ALT}) \(({_NUM}) (mg|mcg|g|units)\)( \(kit vial\))?\.?")
 _DRAW_MASS_RE = re.compile(
     rf"^Draw ({_NUM}) (mg|mcg|g|units) of (.+?) ({_ROUTE_ALT}) \(({_NUM}) (mg|mcg|g|units)\)\.?")
 _COLON_RE = re.compile(
@@ -303,13 +307,14 @@ def dose_sentences(line: str, index: dict):
     body = line.split(" Indication:")[0].strip()
     m = _DRAW_RE.match(body)
     if m:
-        vol, conc, cu, drug, route, dose, du = m.groups()
+        vol, conc, cu, drug, route, dose, du, kit = m.groups()
         name = _known_drug(drug, index)
         if not name:
             return None
         return name, [GIVE.format(drug=name, dose=amount_words(dose, None, du),
                                   route=ROUTE_SPOKEN[route]),
-                      DRAW.format(volume=amount_words(vol, None, "mL"), drug=name,
+                      (DRAW_KIT if kit else DRAW).format(
+                                  volume=amount_words(vol, None, "mL"), drug=name,
                                   concentration=amount_words(conc, None, f"{cu}/mL"))]
     m = _DRAW_MASS_RE.match(body)
     if m:

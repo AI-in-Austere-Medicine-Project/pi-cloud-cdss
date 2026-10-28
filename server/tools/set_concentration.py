@@ -8,11 +8,24 @@ Edit the concentration master list. The sanctioned path.
     python3 tools/set_concentration.py --drug ketamine --revoke "500 mg / 10 mL vial"
     python3 tools/set_concentration.py --drug rocuronium --declare "100 mg / 10 mL vial" \
             --mass-mg 100 --volume-ml 10 --justification "standard stocked vial"
+    python3 tools/set_concentration.py --drug ketamine --single "500 mg / 10 mL vial" \
+            --by clinician --name "<name>" --date 2026-10-28 --reason "Owner declaration, <name>, <date>: ..."
 
 Hand-editing drug_concentrations.json works too, and the loader will detect and
 log it on next import. This tool exists because it cannot get the guardrails
 wrong: it validates before writing, refuses to sign anything the loader would
 reject, and always clears signoff when a VALUE changes.
+
+--single (K1, owner 2026-10-28) declares a vial the kit's ONLY one for that
+drug: it signs it, removes the drug's other presentations and turns the vial
+question off (confirm_required false), so a dose serves mg and mL from that
+vial without asking. It needs a signer, a date and the declaration in
+--reason (the person's name rides there), and is logged with what it removed.
+A strength the medic states that is not this vial still withholds the volume.
+
+--sign and --single also append the declaration to docs/authoring/
+KIT_DECLARATIONS.md (date, drug, strength, vial, signer, reason; --name is the
+signer's name, --by the role), unless that row is already there.
 
 WHY SIGNING AND REVOKING ARE NOT SYMMETRIC
 ──────────────────────────────────────────
@@ -40,6 +53,34 @@ if str(_SERVER) not in _sys.path:
 import drug_concentrations as dcn
 
 PENDING = dcn.PENDING
+# Owner, #193 review (2026-10-28): every declaration is recorded here (drug,
+# strength, signer, date), in the repository, beside the gitignored kit file.
+DECLARATIONS = _SERVER.parent / "docs" / "authoring" / "KIT_DECLARATIONS.md"
+
+
+def _strength(mg_ml):
+    return f"{mg_ml:g} mg/mL"
+
+
+def record_declaration(date, drug, pres, kind, by, name, reason):
+    """Append one row to KIT_DECLARATIONS.md, unless it already holds it."""
+    signer = f"{name} ({by})" if name else by
+    cells = [date, drug, _strength(pres["concentration_mg_ml"]), pres.get("label_text") or "",
+             kind, signer, (reason or "").replace("|", "/").replace("\n", " ")]
+    row = "| " + " | ".join(cells) + " |"
+    try:
+        text = DECLARATIONS.read_text()
+    except OSError as e:
+        print(f"⚠️  {DECLARATIONS} unreadable ({e}): declaration not recorded there")
+        return
+    # The same declaration (date, drug, strength, vial, kind, signer) is held
+    # once, whatever its reason says: the owner's command repeats a row a PR
+    # already recorded.
+    key = "| " + " | ".join(cells[:6]) + " |"
+    if any(line.startswith(key) for line in text.splitlines()):
+        return
+    DECLARATIONS.write_text(text.rstrip("\n") + "\n" + row + "\n")
+    print(f"recorded in {DECLARATIONS.name}")
 
 
 def _load_raw():
@@ -98,12 +139,17 @@ def main():
     ap.add_argument("--sign", metavar="LABEL")
     ap.add_argument("--revoke", metavar="LABEL")
     ap.add_argument("--declare", metavar="LABEL")
+    ap.add_argument("--single", metavar="LABEL",
+                    help="this vial is the kit's only one for the drug: sign it, "
+                         "remove the others, stop asking which vial")
     ap.add_argument("--mass-mg", type=float)
     ap.add_argument("--volume-ml", type=float)
     ap.add_argument("--justification")
     ap.add_argument("--by")
     ap.add_argument("--date")
     ap.add_argument("--reason", default="")
+    ap.add_argument("--name", default="",
+                    help="the signer's name, for KIT_DECLARATIONS.md (--by is the role)")
     args = ap.parse_args()
 
     if args.list or not args.drug:
@@ -164,6 +210,52 @@ def main():
               f"Sign it before any volume is served.")
         return 0
 
+    # ── single: this vial is the only one in the kit ───────────────────────
+    if args.single:
+        if not args.by or args.by not in dcn.SIGNOFF_AUTHORS:
+            print(f"--by must be one of {', '.join(dcn.SIGNOFF_AUTHORS)}")
+            return 1
+        if not args.date:
+            print("--date is required")
+            return 1
+        if not args.reason.strip():
+            print("--reason must carry the declaration: who declares this the "
+                  "kit's only vial, and when")
+            return 1
+        pres = _find_pres(entry, args.single)
+        if pres is None:
+            print(f"no such presentation: {args.single} (declare it first)")
+            return 1
+        candidate = dict(pres, signoff=True, reviewed_by=args.by,
+                         review_date=args.date)
+        candidate.setdefault("corroboration",
+                             dcn._corroboration(args.drug,
+                                                candidate["concentration_mg_ml"]))
+        reason = dcn._validate(entry, candidate)
+        if reason:
+            print(f"REFUSED — not declared: {reason}")
+            return 1
+        removed = [p.get("label_text") for p in entry["presentations"] if p is not pres]
+        pres.update(candidate)
+        entry["presentations"] = [pres]
+        entry["confirm_required"] = False
+        entry.pop("confirm_reason", None)
+        entry["single_vial"] = {"label_text": args.single, "declaration": args.reason,
+                                "by": args.by, "date": args.date}
+        _save_raw(doc)
+        dcn.append_log({"event": "SINGLE_VIAL", "drug": args.drug, "label": args.single,
+                        "removed": removed, "old": None,
+                        "new": [pres["concentration_mg_ml"], True],
+                        "actor": args.by, "reason": args.reason,
+                        "config_hash": dcn._config_hash(),
+                        "snapshot": dcn.snapshot_from_file()})
+        record_declaration(args.date, args.drug, pres, "single vial (no vial question)",
+                           args.by, args.name, args.reason)
+        print(f"{args.drug}: {args.single} = {pres['concentration_mg_ml']:g} mg/mL is the "
+              f"kit's single vial, signed by {args.by} on {args.date}; removed "
+              f"{', '.join(removed) or 'nothing'}; no vial question.")
+        return 0
+
     # ── sign: requires an authorised signer ─────────────────────────────────
     if args.sign:
         if not args.by or args.by not in dcn.SIGNOFF_AUTHORS:
@@ -194,6 +286,7 @@ def main():
                         "actor": args.by, "reason": args.reason,
                         "config_hash": dcn._config_hash(),
                         "snapshot": dcn.snapshot_from_file()})
+        record_declaration(args.date, args.drug, pres, "signed", args.by, args.name, args.reason)
         print(f"signed {args.drug} {args.sign} = "
               f"{pres['concentration_mg_ml']:g} mg/mL by {args.by} on {args.date}")
         return 0

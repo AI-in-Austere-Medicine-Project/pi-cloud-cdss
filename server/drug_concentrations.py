@@ -376,6 +376,36 @@ def match_confirmation(generic_name: str, text: str) -> Optional[float]:
     return best
 
 
+_STRENGTH_RE = None
+
+
+def stated_strengths(text: str) -> list:
+    """[mg/mL] for every vial strength a text states: "100 mg/mL", "10 mg per
+    mL", "200 mg / 20 mL", "500 mg in 5 mL". The separator is required, as in
+    match_confirmation: "500 mg over 10 minutes" is a rate, not a vial.
+
+    K1 (owner, 2026-10-28): "a different concentration stated in the question
+    still overrides" the kit's single vial. This is the only use: a strength
+    the medic states that is not a signed vial WITHHOLDS the kit's volume. It
+    never supplies one; no path computes a millilitre from free text.
+    """
+    import re
+    global _STRENGTH_RE
+    if _STRENGTH_RE is None:
+        unit = r"(mcg|µg|μg|ug|mg|g)"
+        _STRENGTH_RE = re.compile(
+            rf"\b(\d+(?:\.\d+)?)\s*{unit}\s*(?:/|\bper\b|\bin\b)\s*(\d+(?:\.\d+)?)?\s*m\s*l\b",
+            re.IGNORECASE)
+    to_mg = {"mcg": 0.001, "µg": 0.001, "μg": 0.001, "ug": 0.001, "mg": 1.0, "g": 1000.0}
+    out = []
+    for m in _STRENGTH_RE.finditer(text or ""):
+        mass = float(m.group(1)) * to_mg[m.group(2).lower()]
+        vol = float(m.group(3)) if m.group(3) else 1.0
+        if vol > 0:
+            out.append(round(mass / vol, 6))
+    return out
+
+
 def draw_precision(true_volume_ml: float) -> int:
     """Decimal places a syringe can actually be read to for this volume.
 
