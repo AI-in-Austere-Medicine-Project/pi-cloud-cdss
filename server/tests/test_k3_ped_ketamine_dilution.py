@@ -107,10 +107,102 @@ def test_the_spoken_brief_says_dilute_then_draw(single_vial, gen):
 
 # ── scope ───────────────────────────────────────────────────────────────────
 
-def test_an_adult_dose_with_no_signed_dilution_is_unchanged(single_vial, gen):
+# ── #195 ruling 1 (owner, 2026-10-28): the adult IV analgesia dilution ─────
+# "Adult: same rule, any kit-vial volume under 0.5 mL gets the signed
+# dilution. Sign the adult IV ketamine dilution as an owner declaration
+# (Andrew Azelton, today): 1 mL of 50 mg/mL in 9 mL NS = 5 mg/mL, for IV
+# analgesia only; so 75 kg gives 3.75 mL of 5 mg/mL. Failing test first;
+# record in KIT_DECLARATIONS."
+
+ADULT_DILUTED = "Draw 3.75 mL of 5mg/mL ketamine dilution IV (18.75 mg). " + RECIPE
+
+
+def test_the_75kg_adult_gets_3_75_ml_of_the_dilution(single_vial, gen):
     r = run("ketamine for pain, 75 kg IV")["response"]
-    assert ADULT_DRAW in r, r
+    assert ADULT_DILUTED in r, r
+    assert ADULT_DRAW not in r and "0.375" not in r, r
+    assert "ketamine IV = 18.75mg = 3.75mL of 5mg/mL dilution (kit vial)." in r, r
+
+
+def test_an_adult_volume_of_half_a_millilitre_is_drawn_from_the_vial(single_vial, gen):
+    r = run("ketamine for pain, 100 kg IV")["response"]
+    assert "Draw 0.5 mL of 50mg/mL ketamine IV (25 mg) (kit vial)." in r, r
     assert "Dilute first" not in r, r
+
+
+def _ketamine_entries():
+    return [e for e in drug_contracts.servable_entries()["ketamine"]]
+
+
+def test_the_adult_iv_analgesia_entries_carry_the_owner_declared_dilution():
+    adult = [e for e in _ketamine_entries()
+             if e["route"] == "IV" and "analgesia" in e["indication"] and e["population"] != "peds"]
+    assert len(adult) == 2, [(e["population"], e["dose_range"]) for e in adult]
+    for e in adult:
+        dil = drug_contracts.push_dilution(e)
+        assert dil is not None, e["population"]
+        assert (dil["concentration_mg_ml"], dil["from_concentration_mg_ml"], dil["drug_ml"],
+                dil["diluent_ml"], dil["diluent"]) == (5.0, 50.0, 1.0, 9.0, "normal saline")
+        assert (dil["declared_by"], dil["declared_name"], dil["declared_on"]) == (
+            "clinician", "Andrew Azelton", "2026-10-28")
+
+
+def test_the_dilution_is_for_iv_analgesia_only():
+    for e in _ketamine_entries():
+        if e["route"] != "IV" or "analgesia" not in e["indication"]:
+            assert drug_contracts.push_dilution(e) is None, (e["indication"], e["route"])
+
+
+def test_kit_declarations_records_the_adult_dilution():
+    import pathlib
+    text = (pathlib.Path(__file__).resolve().parents[2] / "docs/authoring/KIT_DECLARATIONS.md").read_text()
+    row = [l for l in text.splitlines() if l.startswith("| 2026-10-28 | ketamine | 5 mg/mL |")]
+    assert len(row) == 1, row
+    assert "1 mL of 50 mg/mL in 9 mL normal saline" in row[0]
+    assert "adult IV analgesia" in row[0] and "Andrew Azelton (clinician)" in row[0], row[0]
+
+
+# ── #195 ruling 2 (owner, 2026-10-28): a vial the medic states ─────────────
+# "the dilution applies whenever the volume is under 0.5 mL and the vial (kit
+# or stated) is the one the signed dilution is made from; a stated 500 mg/10
+# mL for the 20 kg child gets 0.8 mL of 5 mg/mL. Failing test first."
+
+STATED_RECIPE = "Dilute first: 1 mL of 50mg/mL ketamine in 9 mL normal saline."
+
+
+@pytest.mark.parametrize("stated", ["I have 500 mg / 10 mL", "I have 50 mg/mL"])
+def test_a_stated_vial_gets_the_dilution_too(single_vial, gen, stated):
+    r = run(f"{PED20}, {stated}")["response"]
+    assert DRAW20 + " " + STATED_RECIPE in r, r
+    assert "0.08" not in r and "(kit vial)" not in r, r
+
+
+def test_a_stated_vial_on_a_kit_that_asks_gets_the_dilution(gen):
+    # The conftest kit asks which ketamine vial; the medic answers in the question.
+    r = run(f"{PED20}, I have 500 mg / 10 mL")["response"]
+    assert DRAW20 + " " + STATED_RECIPE in r, r
+
+
+@pytest.fixture
+def both_signed(monkeypatch):
+    """The conftest kit with its 200 mg / 20 mL (10 mg/mL) vial signed too."""
+    entries = copy.deepcopy(dcn.ENTRIES)
+    for p in entries["ketamine"]["presentations"]:
+        p.update(signoff=True, reviewed_by="clinician", review_date="2026-10-28")
+    monkeypatch.setattr(dcn, "ENTRIES", entries)
+
+
+def test_a_stated_vial_the_dilution_is_not_made_from_keeps_its_volume(both_signed, gen):
+    # 4 mg of a signed 10 mg/mL vial is 0.4 mL; the recipe starts from 50 mg/mL.
+    r = run(f"{PED20}, I have 200 mg / 20 mL")["response"]
+    assert "Draw 0.4 mL of 10mg/mL ketamine IV (4 mg)." in r, r
+    assert "Dilute first" not in r, r
+
+
+def test_a_stated_vial_is_spoken_without_the_kit():
+    _, said = spoken.dose_sentences(DRAW20 + " " + STATED_RECIPE, spoken._drug_index())
+    assert said[1] == ("Dilute one millilitre of ketamine, fifty milligrams per millilitre, "
+                       "in nine millilitres of normal saline.")
 
 
 def _ped_candidate(dose_mg):
@@ -206,3 +298,12 @@ def test_a_dilution_line_in_another_shape_is_never_spoken_as_the_vial():
     line = "Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg). Dilute first: see cautions."
     _, said = spoken.dose_sentences(line, spoken._drug_index())
     assert said == ["Give ketamine, four milligrams, intravenously.", spoken.DILUTION_ON_SCREEN]
+
+
+@pytest.mark.parametrize("stated, kept", [("500 mg / 10 mL", True), ("200 mg / 20 mL", False)])
+def test_the_audit_takes_the_dilution_only_from_the_confirmed_vial_it_is_made_from(
+        both_signed, stated, kept):
+    ctx = oc.extract_patient_context(f"{PED20}, I have {stated}")
+    text = "**GIVE**\n- " + DRAW20 + " " + STATED_RECIPE + " Indication: moderate to severe pain / analgesia."
+    out, issues = oc.audit_volume_lines(text, ctx)
+    assert (issues == [] and out == text) == kept, (issues, out)
