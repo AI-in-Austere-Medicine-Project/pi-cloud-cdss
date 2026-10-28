@@ -198,7 +198,7 @@ def test_the_adult_rsi_brief_is_unchanged():
     assert b.splitlines()[0] == (
         "[RSI induction] ketamine IV: 160 mg (2 mg/kg × 80 kg). No volume — confirm "
         "concentration to compute volume. · [RSI paralytic] Draw 9.6 mL of 10mg/mL "
-        "rocuronium IV (96 mg) (1.2 mg/kg × 80 kg). · [post-intubation sedation — "
+        "rocuronium IV (96 mg) (kit vial) (1.2 mg/kg × 80 kg). · [post-intubation sedation — "
         "repeated bolus (no infusion pump)] ketamine IV: 40 mg (0.5 mg/kg × 80 kg). "
         "No volume — confirm concentration to compute volume.")
     assert "Dilute" not in b and "Age <" not in b

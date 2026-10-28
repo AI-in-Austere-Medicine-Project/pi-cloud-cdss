@@ -504,6 +504,9 @@ class DoseCandidate:
     display_value: Optional[float] = None
     display_units: Optional[str] = None
     volume_refusal: Optional[str] = None
+    # K1 review (owner, 2026-10-28): the volume came from the kit's single
+    # vial, not from a vial the medic stated. Its lines say "(kit vial)".
+    kit_vial: bool = False
     # The entry's declared push dilution (drug_contracts.push_dilution), or
     # None. Never a volume source: it lets a refusal name the dilution instead
     # of "a dilution the kit has not declared".
@@ -2699,7 +2702,11 @@ def resolve_dose_volume(d: DoseCandidate,
                 kept.append(VOLUMES_AFTER_VIAL_LINE)
                 d = dc_replace(d, cautions=kept, warning="; ".join(kept) or None)
         return dc_replace(d, volume_refusal=why) if why else d
-    return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc)
+    return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc,
+                      kit_vial=d.drug not in confirmed)
+
+
+KIT_VIAL_LABEL = " (kit vial)"
 
 
 def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
@@ -2718,8 +2725,11 @@ def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
         why = d.volume_refusal or CONFIRM_CONCENTRATION_LINE
         return (f"{prefix}{d.drug} {d.route}: {dose_txt}. "
                 f"NO VOLUME — {why}. Indication: {d.indication}.")
+    # The label follows the dose, so "Draw X mL of Ymg/mL drug route (Z mg)"
+    # still reads as it always has (the audit, the brief, the spoken brief).
+    kit = KIT_VIAL_LABEL if d.kit_vial else ""
     return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
-            f"{d.drug} {d.route} ({dose_txt}). Indication: {d.indication}.")
+            f"{d.drug} {d.route} ({dose_txt}){kit}. Indication: {d.indication}.")
 
 
 def render_dose_summary(d: DoseCandidate, label: str) -> str:
@@ -2750,8 +2760,9 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
             return f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg."
         return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "
                 f"Volume not computed — {CONFIRM_CONCENTRATION_LINE}.")
+    kit = KIT_VIAL_LABEL if d.kit_vial else ""
     return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg = "
-            f"{d.volume_ml:g}mL of {d.concentration_mg_ml:g}mg/mL.")
+            f"{d.volume_ml:g}mL of {d.concentration_mg_ml:g}mg/mL{kit}.")
 
 
 def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
