@@ -28,7 +28,10 @@ The shapes, in order:
                 then "Draw <volume> of <drug>, <concentration>." when the card
                 states the volume ("..., from your kit." when the line says
                 "(kit vial)"), or "Confirm the concentration before drawing
-                it up." when it says it has none; then one WATCH line
+                it up." when it says it has none. A draw from the signed
+                dilution (K3) is "Give ...", "Dilute <volume> of <drug>,
+                <concentration>, from your kit, in <volume> of <diluent>.",
+                "Draw <volume> of the dilution."; then one WATCH line
                 ("Watch: ...") when a card wrote it.
   card, gate    its GIVE line(s) and WATCH line, or its first brief line, as
                 written out by the converter.
@@ -57,6 +60,12 @@ GIVE = "Give {drug}, {dose}, {route}."
 DRAW = "Draw {volume} of {drug}, {concentration}."
 # Owner, 2026-10-28: the kit-vial label is spoken too, as "from your kit".
 DRAW_KIT = "Draw {volume} of {drug}, {concentration}, from your kit."
+# K3 (owner, 2026-10-28): a kit-vial volume under 0.5 mL is drawn from the
+# signed dilution; the recipe is spoken before the draw.
+DILUTE = "Dilute {volume} of {drug}, {concentration}{kit}, in {diluent_volume} of {diluent}."
+DRAW_DILUTION = "Draw {volume} of the dilution."
+DILUTION_ON_SCREEN = "The dilution is on the screen."
+DILUENTS = ("normal saline", "sterile water")
 NO_VOLUME = "Confirm the concentration before drawing it up."
 WATCH = "Watch: {line}"
 MORE_DOSES = "More doses are on the screen."
@@ -293,6 +302,12 @@ def _known_drug(text: str, index: dict):
 #   ketamine IV: 160 mg (2 mg/kg × 80 kg). NO VOLUME — confirm concentration …
 _DRAW_RE = re.compile(
     rf"^Draw ({_NUM}) mL of ({_NUM})\s*(mg|mcg)/mL (.+?) ({_ROUTE_ALT}) \(({_NUM}) (mg|mcg|g|units)\)( \(kit vial\))?\.?")
+#   Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg). Dilute first: 1 mL of
+#     50mg/mL ketamine (kit vial) in 9 mL normal saline.
+_DRAW_DILUTION_RE = re.compile(
+    rf"^Draw ({_NUM}) mL of {_NUM}\s*(?:mg|mcg)/mL (.+?) dilution ({_ROUTE_ALT}) "
+    rf"\(({_NUM}) (mg|mcg|g|units)\)\. Dilute first: ({_NUM}) mL of ({_NUM})\s*(mg|mcg)/mL "
+    rf"(.+?)( \(kit vial\))? in ({_NUM}) mL ({'|'.join(DILUENTS)})\.?$")
 _DRAW_MASS_RE = re.compile(
     rf"^Draw ({_NUM}) (mg|mcg|g|units) of (.+?) ({_ROUTE_ALT}) \(({_NUM}) (mg|mcg|g|units)\)\.?")
 _COLON_RE = re.compile(
@@ -305,6 +320,29 @@ def dose_sentences(line: str, index: dict):
     """(drug, [sentences]) for a code-made dose line, or None when the line is
     not one (or names a drug the index does not know)."""
     body = line.split(" Indication:")[0].strip()
+    m = _DRAW_DILUTION_RE.match(body)
+    if m:
+        vol, drug, route, dose, du, dml, conc, cu, drug2, kit, diluent_ml, diluent = m.groups()
+        name = _known_drug(drug, index)
+        if not name or _known_drug(drug2, index) != name:
+            return None
+        return name, [GIVE.format(drug=name, dose=amount_words(dose, None, du),
+                                  route=ROUTE_SPOKEN[route]),
+                      DILUTE.format(volume=amount_words(dml, None, "mL"), drug=name,
+                                    concentration=amount_words(conc, None, f"{cu}/mL"),
+                                    kit=", from your kit" if kit else "",
+                                    diluent_volume=amount_words(diluent_ml, None, "mL"),
+                                    diluent=diluent),
+                      DRAW_DILUTION.format(volume=amount_words(vol, None, "mL"))]
+    if re.search(r"\bdilut", body, re.IGNORECASE):
+        # A dilution line in any other shape: its strength must never be
+        # spoken as if it were the vial's.
+        m = _DRAW_RE.match(body)
+        name = _known_drug(m.group(4).replace(" dilution", ""), index) if m else None
+        if not name:
+            return None
+        return name, [GIVE.format(drug=name, dose=amount_words(m.group(6), None, m.group(7)),
+                                  route=ROUTE_SPOKEN[m.group(5)]), DILUTION_ON_SCREEN]
     m = _DRAW_RE.match(body)
     if m:
         vol, conc, cu, drug, route, dose, du, kit = m.groups()

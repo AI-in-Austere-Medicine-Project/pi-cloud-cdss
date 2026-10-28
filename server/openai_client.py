@@ -511,6 +511,11 @@ class DoseCandidate:
     # None. Never a volume source: it lets a refusal name the dilution instead
     # of "a dilution the kit has not declared".
     dilution: Optional[dict] = None
+    # K3 (owner, 2026-10-28): set when the volume is drawn from `dilution`,
+    # made from the kit's vial, because the vial volume was under
+    # DILUTE_BELOW_ML. volume_ml and concentration_mg_ml are then the
+    # dilution's.
+    dilute_from: Optional[dict] = None
     # The contract's cautions as a LIST, unjoined. `warning` is the same text
     # joined with "; " for the generator's ALLOWED_DOSES block; anything that
     # renders cautions to a human must use this instead, because several of
@@ -2702,11 +2707,33 @@ def resolve_dose_volume(d: DoseCandidate,
                 kept.append(VOLUMES_AFTER_VIAL_LINE)
                 d = dc_replace(d, cautions=kept, warning="; ".join(kept) or None)
         return dc_replace(d, volume_refusal=why) if why else d
-    return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc,
-                      kit_vial=d.drug not in confirmed)
+    kit_vial = d.drug not in confirmed
+    dil = drug_concentrations._dilution_for(d.dilution, conc)
+    if kit_vial and dil and vol < DILUTE_BELOW_ML:
+        dil_conc = float(dil["concentration_mg_ml"])
+        true_vol = d.dose_mg / dil_conc
+        if drug_concentrations.drawable(true_vol)[0]:
+            return dc_replace(
+                d, volume_ml=round(true_vol, drug_concentrations.draw_precision(true_vol)),
+                concentration_mg_ml=dil_conc, kit_vial=True, dilute_from=dil)
+    return dc_replace(d, volume_ml=vol, concentration_mg_ml=conc, kit_vial=kit_vial)
 
 
+# K3 (owner, 2026-10-28): "for a kit-vial volume under 0.5 mL, the answer
+# gives the signed dilution (ketamine 5 mg/mL: 1 mL of 50 mg/mL in 9 mL NS)
+# and the volume from the diluted strength." Only where the dose entry
+# declares a push_dilution made from that vial; a dose with none keeps its
+# vial volume.
+DILUTE_BELOW_ML = 0.5
 KIT_VIAL_LABEL = " (kit vial)"
+DILUTION_WORD = " dilution"
+
+
+def dilution_sentence(d: DoseCandidate) -> str:
+    """"Dilute first: 1 mL of 50mg/mL ketamine (kit vial) in 9 mL normal saline."""
+    dil = d.dilute_from
+    return (f"Dilute first: {dil['drug_ml']:g} mL of {dil['from_concentration_mg_ml']:g}mg/mL "
+            f"{d.drug}{KIT_VIAL_LABEL} in {dil['diluent_ml']:g} mL {dil['diluent']}.")
 
 
 def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
@@ -2727,6 +2754,11 @@ def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
                 f"NO VOLUME — {why}. Indication: {d.indication}.")
     # The label follows the dose, so "Draw X mL of Ymg/mL drug route (Z mg)"
     # still reads as it always has (the audit, the brief, the spoken brief).
+    if d.dilute_from:
+        # The kit-vial label moves to the recipe: the vial is what it dilutes.
+        return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
+                f"{d.drug}{DILUTION_WORD} {d.route} ({dose_txt}). {dilution_sentence(d)} "
+                f"Indication: {d.indication}.")
     kit = KIT_VIAL_LABEL if d.kit_vial else ""
     return (f"{prefix}Draw {d.volume_ml:g} mL of {d.concentration_mg_ml:g}mg/mL "
             f"{d.drug} {d.route} ({dose_txt}){kit}. Indication: {d.indication}.")
@@ -2761,8 +2793,9 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
         return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg. "
                 f"Volume not computed — {CONFIRM_CONCENTRATION_LINE}.")
     kit = KIT_VIAL_LABEL if d.kit_vial else ""
+    made = DILUTION_WORD if d.dilute_from else ""
     return (f"- {label}: {d.drug} {d.route} = {d.dose_mg:g}mg = "
-            f"{d.volume_ml:g}mL of {d.concentration_mg_ml:g}mg/mL{kit}.")
+            f"{d.volume_ml:g}mL of {d.concentration_mg_ml:g}mg/mL{made}{kit}.")
 
 
 def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
@@ -4674,6 +4707,29 @@ def _decimals(text: str) -> int:
     return len(text.split(".")[1]) if "." in text else 0
 
 
+def _signed_dilution_line(line: str, generic: str, conc: float, confirmed: dict) -> bool:
+    """K3: "Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg)" draws from a
+    signed dilution: the line names the dilution, a signed entry for this
+    drug on this route declares one at this strength, and it is made from the
+    vial the kit resolves to (no dilution while the kit asks which vial). The
+    arithmetic is then checked like any other line, at the dilution."""
+    if drug_concentrations is None or drug_contracts is None:
+        return False
+    head = line.lower().split("(")[0]
+    if DILUTION_WORD.strip() not in head:
+        return False
+    status, vial, _p = drug_concentrations.resolve(generic, confirmed)
+    if status != drug_concentrations.RESOLVED or not vial:
+        return False
+    routes = {r for r, rx in _ROUTE_WORD_RES.items() if rx.search(head)}
+    for e in drug_contracts.servable_entries().get(generic) or []:
+        dil = drug_concentrations._dilution_for(drug_contracts.push_dilution(e), vial)
+        if (dil and (e.get("route") or "").upper() in routes
+                and abs(float(dil["concentration_mg_ml"]) - conc) < 1e-9):
+            return True
+    return False
+
+
 def audit_volume_lines(response_text: str,
                        ctx: Optional[PatientContext] = None) -> tuple:
     """(rewritten_text, issues). Verifies every millilitre before it is served.
@@ -4725,7 +4781,8 @@ def audit_volume_lines(response_text: str,
             elif generic in confirmed and abs(conc - confirmed[generic]) > 1e-9:
                 problem = (f"states {conc:g}mg/mL but the confirmed vial for "
                            f"this patient is {confirmed[generic]:g}mg/mL")
-            elif not any(abs(conc - c) < 1e-9 for c in signed):
+            elif (not any(abs(conc - c) < 1e-9 for c in signed)
+                  and not _signed_dilution_line(m.group(0), generic, conc, confirmed)):
                 problem = (f"states {conc:g}mg/mL, which is not a declared "
                            f"concentration for {generic} "
                            f"({', '.join(f'{c:g}' for c in signed)}mg/mL)")
@@ -5555,6 +5612,19 @@ def _derives(volume: float, masses: list, conc: float) -> bool:
     return any(m > 0 and abs(volume - m / conc) <= (m / conc) * 0.05 for m in masses)
 
 
+def _recipe_volumes(drug: str, vial: Optional[float], stated: set, volumes: list) -> set:
+    """The volumes of a signed push_dilution made from `vial`, when a sentence
+    states that vial's strength and both of the recipe's volumes."""
+    out = set()
+    if not vial or round(vial, 6) not in stated:
+        return out
+    for e in drug_contracts.servable_entries().get(drug) or []:
+        dil = drug_concentrations._dilution_for(drug_contracts.push_dilution(e), vial)
+        if dil and float(dil["drug_ml"]) in volumes and float(dil["diluent_ml"]) in volumes:
+            out |= {float(dil["drug_ml"]), float(dil["diluent_ml"])}
+    return out
+
+
 def unconfirmed_volume_issues(response_text: str, ctx: PatientContext) -> list:
     """One issue per drug whose mL an answer states without a vial it follows from.
 
@@ -5586,7 +5656,7 @@ def unconfirmed_volume_issues(response_text: str, ctx: PatientContext) -> list:
         masses = [float(n) * _MASS_TO_MG[u.lower()] for n, u in _STATED_MASS_RE.findall(plain)]
         stated = {round(c, 6) for c, _a, _b in _concentrations_in(sentence)}
         routes = {r for r, rx in _ROUTE_WORD_RES.items() if rx.search(sentence)}
-        vials, quoted, drawn_from = {}, False, {}
+        vials, quoted, drawn_from, recipe = {}, False, {}, set()
         for drug in drugs:
             status, conc = None, None
             if drug_concentrations is not None:
@@ -5606,9 +5676,15 @@ def unconfirmed_volume_issues(response_text: str, ctx: PatientContext) -> list:
             # A signed preparation the sentence names, on that preparation's route.
             drawn_from[drug] = {c for r in routes for c in prepared.get(r, ())
                                 if round(c, 6) in stated}
+            # K3: the signed push_dilution's own recipe, "1 mL of 50mg/mL in
+            # 9 mL", from the vial the kit resolves to and stated here; both
+            # of its volumes, or neither.
+            recipe |= _recipe_volumes(drug, conc, stated, volumes)
         if quoted:
             continue
         for v in volumes:
+            if v in recipe:
+                continue
             if any((conc and _derives(v, masses, conc))
                    or any(_derives(v, masses, c) for c in drawn_from[d])
                    for d, (_st, conc) in vials.items()):

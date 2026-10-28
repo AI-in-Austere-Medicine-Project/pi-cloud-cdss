@@ -146,7 +146,7 @@ _NO_VOLUME_RE = re.compile(r"^(?P<head>.*?\.)\s+NO VOLUME\s+—\s+(?P<why>.+?)\.
 _MG_LINE_RE = re.compile(
     r"^(?P<drug>.+?) (?P<route>\S+): (?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\.$")
 _DRAW_LINE_RE = re.compile(
-    r"^Draw [\d.]+ mL of [\d.]+ ?mg/mL (?P<drug>.+?) (?P<route>\S+) "
+    r"^Draw [\d.]+ mL of [\d.]+ ?mg/mL (?P<drug>.+?)(?: dilution)? (?P<route>\S+) "
     r"\((?P<value>\d+(?:\.\d+)?) (?P<unit>mg|mcg|g)\)(?: \(kit vial\))?\.$")
 # All-caps tokens of four or more letters that are acronyms, not shouting.
 # Three letters and under are left alone (IV, TBI, GCS, TXA): nearly all
@@ -442,6 +442,8 @@ def dose_line(item: str, weight_kg=None) -> str:
     clause = dose_clause(item)
     m = _NO_VOLUME_RE.match(clause)
     head, why = (m.group("head"), m.group("why")) if m else (clause, None)
+    # K3: a draw from the signed dilution carries its recipe after it.
+    head, _sep, recipe = head.partition(" Dilute first: ")
     parsed = _MG_LINE_RE.match(head) or _DRAW_LINE_RE.match(head)
     out = head
     if parsed:
@@ -451,6 +453,8 @@ def dose_line(item: str, weight_kg=None) -> str:
         basis = per_kg_basis(*key)
         if basis:
             out = f"{head[:-1]} {basis}."
+    if recipe:
+        out += f" Dilute first: {recipe}"
     if why is not None:
         out += f" No volume — {why}."
     return out

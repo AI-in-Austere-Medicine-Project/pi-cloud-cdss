@@ -193,3 +193,16 @@ def test_the_signed_recipe_volumes_follow_from_the_dilution(ped_ctx, text, holds
 def test_no_recipe_volume_serves_while_the_kit_asks_which_vial():
     ctx = oc.extract_patient_context(PED20)   # conftest kit: two ketamine vials
     assert oc.unconfirmed_volume_issues(RECIPE, ctx)
+
+
+def test_the_brief_keeps_the_per_kg_basis_and_the_recipe():
+    import brief
+    item = DRAW20 + " " + RECIPE + " Indication: moderate to severe pain / analgesia."
+    assert brief.dose_line(item, weight_kg=20) == (
+        "Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg) (0.2 mg/kg × 20 kg). " + RECIPE)
+
+
+def test_a_dilution_line_in_another_shape_is_never_spoken_as_the_vial():
+    line = "Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg). Dilute first: see cautions."
+    _, said = spoken.dose_sentences(line, spoken._drug_index())
+    assert said == ["Give ketamine, four milligrams, intravenously.", spoken.DILUTION_ON_SCREEN]
