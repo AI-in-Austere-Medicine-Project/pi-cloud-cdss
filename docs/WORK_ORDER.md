@@ -95,6 +95,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | S1 | Speech in: whisper.cpp base.en on the Jetson, `/transcribe`, push to talk into the question box; the medic presses send. With it, `edgecdss-v3` bench only | **in review**; owner, 2026-10-27 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
+| K2 | Kit packet: a page per bank drug with a signed dose, the kit file's and SMOG's strengths, SIGN lines, one or two strengths stocked (Word and PDF) | **ready for the owner**; owner, 2026-10-28. Nothing signed |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
