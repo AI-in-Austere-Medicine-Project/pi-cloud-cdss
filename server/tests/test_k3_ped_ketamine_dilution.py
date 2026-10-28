@@ -171,3 +171,25 @@ def test_the_spoken_dilution_sentence_is_a_fixed_template():
                     "Dilute one millilitre of ketamine, fifty milligrams per millilitre, "
                     "from your kit, in nine millilitres of normal saline.",
                     "Draw zero point eight millilitres of the dilution."]
+
+
+# ── a model answer that repeats the offered line ────────────────────────────
+# The card is code-made; the generator is offered the same GIVE line
+# (build_allowed_dose_block). Repeated verbatim it must not hold: the
+# recipe's volumes are the signed dilution's own (owner, #181 review: "An mL
+# serves when it comes from a confirmed vial OR from a signed entry's own
+# recipe line"). Any other recipe or volume still holds.
+
+@pytest.mark.parametrize("text, holds", [
+    ("- " + DRAW20 + " " + RECIPE + " Indication: moderate to severe pain / analgesia.", False),
+    ("Mix 2 mL of 50mg/mL ketamine in 8 mL normal saline.", True),     # not the signed recipe
+    ("Mix 1 mL of 100mg/mL ketamine in 9 mL normal saline.", True),    # not the kit's vial
+    ("Mix 1 mL of 50mg/mL ketamine in 9 mL normal saline, give 2 mL IV.", True),  # 2 mL follows from nothing
+])
+def test_the_signed_recipe_volumes_follow_from_the_dilution(ped_ctx, text, holds):
+    assert bool(oc.unconfirmed_volume_issues(text, ped_ctx)) == holds
+
+
+def test_no_recipe_volume_serves_while_the_kit_asks_which_vial():
+    ctx = oc.extract_patient_context(PED20)   # conftest kit: two ketamine vials
+    assert oc.unconfirmed_volume_issues(RECIPE, ctx)
