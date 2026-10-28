@@ -449,6 +449,14 @@
           ],
           "min_age_months": 3,
           "cautions": [
+            {
+              "tier": "serve",
+              "text": "OWNER-DECLARED dilution for IV push (Andrew Azelton, 2026-10-28): 5 mg/mL — 1 mL of ketamine 50 mg/mL in 9 mL of normal saline."
+            },
+            {
+              "tier": "serve",
+              "text": "0.25 mg/kg equals 0.05 mL/kg of that dilution."
+            },
             "NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.",
             "Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.",
             {
@@ -1096,6 +1104,14 @@
             "Hypersensitivity"
           ],
           "cautions": [
+            {
+              "tier": "serve",
+              "text": "OWNER-DECLARED dilution for IV push (Andrew Azelton, 2026-10-28): 5 mg/mL — 1 mL of ketamine 50 mg/mL in 9 mL of normal saline."
+            },
+            {
+              "tier": "serve",
+              "text": "0.1 mg/kg equals 0.02 mL/kg of that dilution."
+            },
             "JTS ID61 typical dose 20 mg, range 0.1-0.2 mg/kg IV/IO, every 10-30 minutes PRN.",
             "If no IV/IO is available, JTS ID61 says QUADRUPLE the dose for the IM route.",
             "JTS ID61: avoid oversedation; respiratory depression appears above 1 mg/kg, especially with fast IV/IO administration.",
