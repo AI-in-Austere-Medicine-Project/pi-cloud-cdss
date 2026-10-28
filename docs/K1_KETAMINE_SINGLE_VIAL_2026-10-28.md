@@ -130,8 +130,8 @@ The H-SESS-014 rows are one bank row that runs five questions together. Their mg
   - A volume from the kit's single vial, not a vial the medic stated, says so on the GIVE line and the TLDR: "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial)." and "= 18.75mg = 0.375mL of 50mg/mL (kit vial)."
   - Every single-vial kit drug is labelled (rocuronium, succinylcholine, lorazepam, TXA, naloxone).
   - A vial the medic states ("I have 500 mg / 10 mL") drops the label: the volume is from what they said.
-  - The label follows the dose, so the volume audit, the brief and the spoken brief read the line as before. The brief's pattern takes the label.
-  - The spoken brief does not say "kit vial".
+  - The label follows the dose, so the volume audit and the brief read the line as before. The brief's pattern takes the label.
+  - The spoken brief says it as "from your kit" (second review, below).
 - **`docs/authoring/KIT_DECLARATIONS.md`:**
   - It holds the ketamine 50 mg/mL declaration, and the six signatures already in the live kit (role AI-AIM, 2026-08-25) as signed before the record began.
   - `set_concentration.py --sign` and `--single` append a row: date, drug, strength, vial, kind, signer (`--name`, then the `--by` role), reason.
@@ -141,3 +141,9 @@ The H-SESS-014 rows are one bank row that runs five questions together. Their mg
   - With the label removed, every row in every set is identical to the replay signed off above.
   - The two extra pipe rows are lorazepam volumes main already served, now labelled.
 - **Suite:** 3,772 passed, 0 failed.
+
+**Owner, second review (2026-10-28):** "#193: no label when the medic states the vial (correct as built). Spoken summary says "kit vial" too, as "from your kit". Stop."
+
+- **"from your kit"** (failing tests first): a "(kit vial)" draw line is spoken "Draw zero point three seven five millilitres of ketamine, fifty milligrams per millilitre, from your kit." A vial the medic states is spoken as before, with no "kit". The template is fixed (`spoken.DRAW_KIT`), as V3 requires.
+- **Replay:** the five sets' answers are unchanged (the change is in the spoken brief only). Over the 838 pipe rows, the spoken brief from this branch against the one before: 40 changed (the 38 signed-off ketamine rows and the 2 lorazepam rows), each only by ", from your kit." on a line labelled "(kit vial)"; 0 other changes. The other four sets store recorded answers, not rendered ones.
+- **Suite:** 3,775 passed, 0 failed.

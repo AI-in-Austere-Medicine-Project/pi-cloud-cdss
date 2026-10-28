@@ -96,7 +96,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
-| K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)"; KIT_DECLARATIONS.md | **in review**; owner, 2026-10-28. Replay rows signed off by the owner. The owner merges and applies the signature to the live kit |
+| K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **in review**; owner, 2026-10-28. Replay rows signed off by the owner. The owner merges and applies the signature to the live kit |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -1281,6 +1281,10 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - **"(kit vial)":** a volume from the kit's single vial, not a vial the medic stated, says so on the GIVE line and the TLDR: "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial)." Every single-vial kit drug is labelled. A vial the medic states drops the label.
 - **`docs/authoring/KIT_DECLARATIONS.md`:** the ketamine 50 mg/mL declaration, and the six signatures already in the live kit. `set_concentration.py` appends each `--sign` and `--single` (`--name` is the signer, `--by` the role) and does not repeat a row it holds.
 - **The H-SESS-014 corpus row** is on the v1.1 list.
+
+**Owner, second review (2026-10-28):** "#193: no label when the medic states the vial (correct as built). Spoken summary says "kit vial" too, as "from your kit". Stop."
+
+**Done (failing tests first):** a "(kit vial)" draw line is spoken "..., from your kit." (`spoken.DRAW_KIT`); a stated vial is spoken as before. 40 pipe rows' spoken briefs gain only those words; answers unchanged.
 
 Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
 
