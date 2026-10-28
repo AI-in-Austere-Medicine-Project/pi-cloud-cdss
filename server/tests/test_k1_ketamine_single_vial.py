@@ -246,6 +246,34 @@ def test_the_brief_still_reads_a_labelled_draw_line():
     assert "(kit vial)" in line and "0.25 mg/kg × 75 kg" in line, line
 
 
+# Owner, 2026-10-28: "Spoken summary says "kit vial" too, as "from your kit"."
+
+KIT_SPOKEN = ("Give ketamine, eighteen point seven five milligrams, intravenously. "
+              "Draw zero point three seven five millilitres of ketamine, "
+              "fifty milligrams per millilitre, from your kit.")
+
+
+def test_the_spoken_brief_says_from_your_kit(single_vial, gen):
+    r = oc._query_with_rag_internal(ASK, _JtsHit(), conversation_history=[])
+    assert KIT_SPOKEN in r["spoken_brief"], r["spoken_brief"]
+
+
+def test_a_vial_the_medic_states_is_not_spoken_as_from_your_kit(single_vial, gen):
+    r = oc._query_with_rag_internal(f"{ASK}, I have 500 mg / 10 mL", _JtsHit(),
+                                    conversation_history=[])
+    said = r["spoken_brief"]
+    assert "fifty milligrams per millilitre." in said and "kit" not in said, said
+
+
+def test_the_spoken_draw_sentence_follows_the_label():
+    import spoken
+    index = spoken._drug_index()
+    _, kit = spoken.dose_sentences(KIT_DRAW, index)
+    _, stated = spoken.dose_sentences(DRAW + ".", index)
+    assert kit[1].endswith(", from your kit."), kit
+    assert "kit" not in stated[1], stated
+
+
 def test_the_dose_check_reads_a_labelled_draw_line(single_vial):
     ctx = oc.extract_patient_context(ASK)
     text = "**GIVE**\n" + "- " + KIT_DRAW + " Indication: moderate to severe pain / analgesia."
