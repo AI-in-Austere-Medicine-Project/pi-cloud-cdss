@@ -7995,7 +7995,7 @@ def _mark_generator(start: float, end: float, timing: Optional[dict]) -> None:
     latency.mark_last("llm_last_token", end)
 
 
-def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = False,
+def _query_with_rag_internal(query: str, chromadb_client,
                              conversation_history: list = None,
                              session_ctx: Optional[PatientContext] = None,
                              model: Optional[str] = None,
@@ -8005,7 +8005,7 @@ def _query_with_rag_internal(query: str, chromadb_client, voice_mode: bool = Fal
     `on_early` (D4): called once, just before the generator is called, with
     the header and the patient strip. Never with model text or a dose."""
     state: dict = {"on_early": on_early}
-    result = _run_pipeline(query, chromadb_client, voice_mode,
+    result = _run_pipeline(query, chromadb_client,
                            conversation_history, session_ctx, model, state)
     # A deterministic answer returned before Step 3: the pre-gates are done
     # when it is. On the model path this was marked at Step 3 and stays.
@@ -8039,7 +8039,7 @@ def attach_brief(result: dict) -> dict:
     return result
 
 
-def _run_pipeline(query: str, chromadb_client, voice_mode: bool = False,
+def _run_pipeline(query: str, chromadb_client,
                    conversation_history: list = None,
                    session_ctx: Optional[PatientContext] = None,
                    model: Optional[str] = None,
@@ -8768,7 +8768,7 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
 
 
 
-def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
+def query_with_rag(query: str, chromadb_client,
                    conversation_history: list = None,
                    session_ctx: Optional[PatientContext] = None,
                    synthetic: bool = False,
@@ -8804,7 +8804,7 @@ def query_with_rag(query: str, chromadb_client, voice_mode: bool = False,
     query_id = uuid.uuid4().hex
     early = (lambda payload: on_early(dict(payload, query_id=query_id))) if on_early else None
     result = _query_with_rag_internal(
-        query, chromadb_client, voice_mode, conversation_history, session_ctx,
+        query, chromadb_client, conversation_history, session_ctx,
         model=model, on_early=early
     )
     # Stamped once, here, so the client footer and the log entry can never

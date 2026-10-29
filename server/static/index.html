@@ -99,6 +99,9 @@ header h1 span { color: var(--blue); }
 #talk:disabled { opacity: 0.4; cursor: default; }
 #talknote { font-family: var(--mono); font-size: 11px; color: var(--dim); min-height: 0; margin-top: 4px; }
 #talknote:empty { display: none; }
+/* P1: a failure is red and readable, not an 11px grey line under the box. */
+#talknote.rec { color: var(--red); }
+#talknote.err { color: var(--red); font-size: 13px; font-weight: 600; }
 #opts {
   display: flex; gap: 16px; align-items: center; margin-top: 8px;
   font-family: var(--mono); font-size: 11px; color: var(--dim); flex-wrap: wrap;
@@ -263,11 +266,8 @@ details.sect > .sect-body { padding: 0 2px 10px 2px; }
     <button id="talk" type="button" title="Hold to talk. The words appear in the box; read them, then press SEND.">HOLD TO TALK</button>
     <button id="send">SEND</button>
   </div>
-  <div id="talknote" role="status"></div>
+  <div id="talknote" role="status" aria-live="polite"></div>
   <div id="opts">
-    <span>MODE:</span>
-    <label><input type="radio" name="mode" value="brief" checked> brief</label>
-    <label><input type="radio" name="mode" value="detailed"> detailed</label>
     <button id="newpatient" type="button" title="Clear this patient's weight, age and access">NEW PATIENT</button>
     <span>MODEL: <select id="model" title="Which model answers. The safety validator is held constant and is not changed by this."><option value="">loading…</option></select></span>
     <span style="margin-left:auto">TOKEN: <input id="token" value="edgecdss-demo-2026"></span>
@@ -1055,6 +1055,7 @@ function earlyHtml(e) {
 async function ask(followUp, inputMode) {
   const fromChip = typeof followUp === 'string';
   if (fromChip && send.disabled) return;           // one request at a time
+  if (!fromChip && talkRevealing) return;          // P1: the transcript is still going in
   const text = (fromChip ? followUp : q.value).trim();
   if (!text) return;
   const spokenInput = !fromChip && heardInBox;
@@ -1062,7 +1063,6 @@ async function ask(followUp, inputMode) {
   send.disabled = true;
   addMsg('Medic', esc(text), 'user');
   const pending = addMsg('EdgeCDSS', '<span class="thinking">consulting guidelines</span>');
-  const mode = document.querySelector('input[name=mode]:checked').value;
   // C1: the history this query is sent with, kept for a report about its answer.
   const historyUsed = history.slice(-50);
   try {
@@ -1074,7 +1074,7 @@ async function ask(followUp, inputMode) {
       body: JSON.stringify({
         query: text, device_id: deviceId,
         timestamp: new Date().toISOString(),
-        voice_mode: mode, conversation_history: historyUsed,
+        conversation_history: historyUsed,
         session_id: sessionId,
         model: document.getElementById('model').value,
         input_mode: (fromChip && inputMode) || (spokenInput ? 'voice' : 'typed')
@@ -1150,15 +1150,57 @@ send.onclick = () => ask();
 // recording goes to /transcribe as 16-bit mono 16 kHz WAV (made here, so the
 // server needs no decoder), and the words go into the box after anything
 // already typed. Nothing is sent: the medic reads, edits, and presses SEND.
+//
+// P1 (owner, 2026-10-29, live): "Hold-to-talk does nothing from the owner's
+// Mac." Every way it can fail is said on the screen, in red, and named once in
+// the browser console as "[talk] <case>". The browser gives a page no
+// microphone at all unless it is a secure context: https, or localhost. Over
+// http by IP navigator.mediaDevices is undefined. While held, the note says it
+// is recording, with the time and the input level; the transcript goes into
+// the box a word at a time. whisper returns the clip's words together, so the
+// pacing is the portal's, after /transcribe answers.
 const talk = document.getElementById('talk');
 const talkNote = document.getElementById('talknote');
 const TALK_LABEL = 'HOLD TO TALK';
 const TALK_RATE = 16000;
 const TALK_MIN_S = 0.3;
+const TALK_WORD_MS = 60;
 let heardInBox = false;     // the box holds a transcript: the query is input_mode "voice"
 let rec = null;             // the recording in progress, while the button is held
+let talkRevealing = false;  // the transcript is going into the box
 
-function talkSay(text) { talkNote.textContent = text || ''; }
+function talkSay(text, cls) {
+  talkNote.textContent = text || '';
+  talkNote.classList.toggle('err', cls === 'err');
+  talkNote.classList.toggle('rec', cls === 'rec');
+}
+
+// One console line per failure, so the browser console says which case it was.
+function talkFail(kind, text, detail) {
+  console.warn('[talk] ' + kind + (detail ? ' ' + detail : ''));
+  talkSay(text, 'err');
+}
+
+function micFailure(err) {
+  const name = (err && err.name) || '';
+  const what = name + (err && err.message ? ': ' + err.message : '');
+  if (name === 'NotAllowedError' || name === 'SecurityError')
+    return ['permission-denied', 'Microphone permission denied. Allow the microphone for this site ' +
+            '(the browser\'s address bar or site settings), then hold again. Or type the question.'];
+  if (name === 'NotFoundError' || name === 'OverconstrainedError')
+    return ['no-microphone', 'No microphone found. Connect one, then hold again. Or type the question.'];
+  if (name === 'NotReadableError' || name === 'AbortError')
+    return ['microphone-busy', 'The microphone could not start (' + what + '). It may be in use by ' +
+            'another app. Type the question instead.'];
+  return ['microphone-error', 'The microphone did not open (' + (what || err) + '). Type the question instead.'];
+}
+
+function talkMeter(r) {
+  const s = ((performance.now() - r.t0) / 1000).toFixed(1);
+  const bars = Math.min(8, Math.round(Math.sqrt(r.level) * 8));
+  return '● Recording ' + s + ' s · level ' + '▮'.repeat(bars) + '▯'.repeat(8 - bars) +
+         ' · let go to transcribe';
+}
 
 // Averages each 16 kHz sample's window of input samples: enough of a low-pass
 // for speech, and exact in length (floor(n * 16000 / rate)).
@@ -1211,29 +1253,81 @@ function talkRelease(r) {
 async function talkStart(e) {
   if (e && e.preventDefault) e.preventDefault();
   if (rec || talk.disabled) return;
-  const r = { chunks: [], rate: 0, released: false };
+  if (!window.isSecureContext || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+    talkFail('insecure-origin', 'Voice needs https or localhost. This page is ' + location.origin +
+             ', and over plain http the browser gives it no microphone. Open the portal\'s https ' +
+             'address, or localhost on the device. Or type the question.');
+    return;
+  }
+  const r = { chunks: [], rate: 0, released: false, t0: performance.now(), peak: 0, level: 0 };
   rec = r;
   talk.classList.add('rec');
   talk.textContent = '● RECORDING';
-  talkSay('');
+  talkSay('● Recording · waiting for the microphone (allow it if the browser asks)', 'rec');
   try {
     r.stream = await navigator.mediaDevices.getUserMedia(
       { audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
   } catch (err) {
-    rec = null;
+    if (rec === r) rec = null;
     talkReset();
-    talkSay('No microphone: ' + (err && err.message || err) + '. Type the question instead.');
+    const [kind, text] = micFailure(err);
+    talkFail(kind, text, (err && err.name) || '');
     return;
   }
-  if (r.released) { talkRelease(r); return; }        // let go before the microphone opened
+  if (r.released) {
+    // Let go before the microphone opened: the first press on a site, while
+    // the browser asked for the microphone. Said, not dropped.
+    talkRelease(r);
+    talkFail('released-before-microphone', 'The microphone is on now. Hold the button again ' +
+             'and speak; let go when you finish.');
+    return;
+  }
   const Ctx = window.AudioContext || window.webkitAudioContext;
   r.ctx = new Ctx();
+  // Created after the await, so outside the press: Safari can start it
+  // suspended, and a suspended context delivers no audio.
+  if (r.ctx.state === 'suspended' && r.ctx.resume) r.ctx.resume().catch(() => {});
   r.rate = r.ctx.sampleRate;
   r.src = r.ctx.createMediaStreamSource(r.stream);
   r.node = r.ctx.createScriptProcessor(4096, 1, 1);
-  r.node.onaudioprocess = ev => { r.chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0))); };
+  r.node.onaudioprocess = ev => {
+    const c = new Float32Array(ev.inputBuffer.getChannelData(0));
+    let p = 0;
+    for (let i = 0; i < c.length; i++) p = Math.max(p, Math.abs(c[i]));
+    r.chunks.push(c);
+    r.peak = Math.max(r.peak, p);
+    r.level = p;
+    if (rec === r) talkSay(talkMeter(r), 'rec');
+  };
   r.src.connect(r.node);
   r.node.connect(r.ctx.destination);
+  talkSay(talkMeter(r), 'rec');
+}
+
+// Into the box after anything already typed, a word at a time. The box is
+// read-only and SEND waits until the last word is in.
+function talkReveal(heard, done) {
+  const base = q.value.trim() ? q.value.replace(/\s*$/, ' ') : '';
+  const words = heard.trim().split(/\s+/);
+  let i = 0;
+  talkRevealing = true;
+  q.readOnly = true;
+  const step = () => {
+    i++;
+    q.value = base + words.slice(0, i).join(' ');
+    q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 140) + 'px';
+    if (i < words.length) { setTimeout(step, TALK_WORD_MS); return; }
+    talkRevealing = false;
+    q.readOnly = false;
+    done();
+  };
+  setTimeout(step, 0);
+}
+
+function talkDone() {
+  talk.disabled = false;
+  talkReset();
+  q.focus();
 }
 
 async function talkStop(e) {
@@ -1242,39 +1336,61 @@ async function talkStop(e) {
   if (!r) return;
   rec = null;
   r.released = true;
-  talkRelease(r);
   talkReset();
+  if (!r.stream) return;      // still waiting for the microphone: talkStart says what happens
+  talkRelease(r);
   const samples = downsampleTo16k(r.chunks, r.rate || TALK_RATE);
+  if ((performance.now() - r.t0) / 1000 < TALK_MIN_S) {
+    talkFail('too-short', 'Hold the button while you speak.');
+    return;
+  }
+  if (!samples.length || r.peak === 0) {
+    talkFail('no-audio', 'No audio captured from the microphone (' +
+             (samples.length ? 'only silence' : 'no sound arrived') + '). Check the input device ' +
+             'and its level, then hold again. Or type the question.',
+             samples.length ? 'silence' : 'none');
+    return;
+  }
   if (samples.length < TALK_MIN_S * TALK_RATE) {
-    talkSay('Hold the button while you speak.');
+    talkFail('too-short', 'Hold the button while you speak.');
     return;
   }
   talk.disabled = true;
   talk.textContent = 'TRANSCRIBING…';
+  talkSay('Transcribing…');
+  let res;
   try {
-    const res = await fetch('/transcribe', {
+    res = await fetch('/transcribe', {
       method: 'POST',
       headers: { 'Content-Type': 'audio/wav', 'X-Access-Token': document.getElementById('token').value },
       body: wav16k(samples),
     });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(d.detail || ('HTTP ' + res.status));
-    const heard = String(d.text || '');
-    if (!heard.trim()) {
-      talkSay('Nothing was heard. Hold the button and speak, or type.');
-    } else {
-      // Verbatim, after anything already typed. Nothing is sent.
-      q.value = q.value.trim() ? q.value.replace(/\s*$/, ' ') + heard : heard;
-      heardInBox = true;
-      q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 140) + 'px';
-      talkSay('Check the words, then press SEND.');
-    }
   } catch (err) {
-    talkSay('Speech in failed: ' + (err && err.message || err) + '. Type the question instead.');
+    talkFail('transcribe-unreachable', 'Speech in failed: could not reach /transcribe (' +
+             ((err && err.message) || err) + '). Type the question instead.');
+    talkDone();
+    return;
   }
-  talk.disabled = false;
-  talkReset();
-  q.focus();
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    talkFail('transcribe-error', 'Speech in failed: /transcribe ' + res.status +
+             (d.detail ? ': ' + d.detail : '') + '. Type the question instead.', String(res.status));
+    talkDone();
+    return;
+  }
+  const heard = String(d.text || '');
+  if (!heard.trim()) {
+    talkFail('empty-transcript', 'Nothing was heard. Hold the button and speak, or type.');
+    talkDone();
+    return;
+  }
+  // Verbatim, after anything already typed. Nothing is sent.
+  talkSay('');
+  talkReveal(heard, () => {
+    heardInBox = true;
+    talkSay('Check the words, then press SEND.');
+    talkDone();
+  });
 }
 
 talk.addEventListener('pointerdown', talkStart);

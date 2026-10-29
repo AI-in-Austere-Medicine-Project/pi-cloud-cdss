@@ -35,7 +35,7 @@ def preprocess_query(query: str) -> str:
     return processed
 
 
-def query_cdss(query: str, voice_mode: str = "brief") -> str:
+def query_cdss(query: str) -> str:
     """Send query to arcaneone backend and return response"""
     try:
         processed_query = preprocess_query(query)
@@ -47,7 +47,6 @@ def query_cdss(query: str, voice_mode: str = "brief") -> str:
             "query": processed_query,
             "device_id": DEVICE_ID,
             "timestamp": datetime.datetime.now().isoformat(),
-            "voice_mode": voice_mode
         }
         response = requests.post(
             f"{SERVER_URL}/query",

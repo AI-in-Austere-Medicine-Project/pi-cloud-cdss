@@ -58,7 +58,7 @@ def fetch(path):
     out = []
     for ident, q in ITEMS:
         with post("/query", {"query": q, "device_id": "v3-tts", "timestamp": "2026-10-26T00:00:00",
-                             "voice_mode": "brief", "conversation_history": []}) as r:
+                             "conversation_history": []}) as r:
             d = json.load(r)
         speak = {"text": d.get("response", "").replace("**", "").replace("|", ". "),
                  "source": d.get("source", ""), "brief": d.get("spoken_brief") or d.get("brief") or ""}
