@@ -463,7 +463,6 @@ def test_concurrent_queries_are_not_serialised(monkeypatch):
     ("query", "x" * (main.MAX_QUERY_CHARS + 1)),
     ("device_id", "x" * 201),
     ("timestamp", "x" * 65),
-    ("voice_mode", "x" * 33),
     ("model", "x" * 129),
 ])
 def test_an_oversized_query_field_is_refused(field, value):
@@ -504,6 +503,19 @@ def test_an_ordinary_session_is_still_accepted(monkeypatch):
     r = call("POST", "/query",
              json={**QUERY_BODY, "conversation_history": turns}, headers=TOKEN)
     assert r.status_code == 200
+
+
+def test_a_client_that_still_sends_voice_mode_is_answered(monkeypatch):
+    """P1 (owner, 2026-10-29): /query no longer takes voice_mode, which nothing
+    read. An older client that still sends it is answered, not refused, and is
+    not echoed a field the server does not have."""
+    import inspect
+    monkeypatch.setattr(main, "query_with_rag", lambda *a, **k: dict(OK_RESULT))
+    assert "voice_mode" not in main.QueryRequest.model_fields
+    assert "voice_mode" not in main.QueryResponse.model_fields
+    r = call("POST", "/query", json={**QUERY_BODY, "voice_mode": "detailed"}, headers=TOKEN)
+    assert r.status_code == 200 and "voice_mode" not in r.json()
+    assert "voice_mode" not in inspect.getsource(main.query_endpoint)
 
 
 def test_query_still_requires_the_token():

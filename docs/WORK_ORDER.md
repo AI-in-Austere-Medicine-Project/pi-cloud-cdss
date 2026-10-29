@@ -97,7 +97,8 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **done**: #193, merged; the owner applied the declaration to the live kit (2026-10-28) |
-| K3 | A volume under 0.5 mL at the vial (kit or stated) is drawn from the signed push dilution made from it (ketamine IV analgesia, adult and paediatric: 5 mg/mL); was v1.1 #5 | **in review**; owner, 2026-10-28; numbering confirmed; #195 rulings applied |
+| K3 | A volume under 0.5 mL at the vial (kit or stated) is drawn from the signed push dilution made from it (ketamine IV analgesia, adult and paediatric: 5 mg/mL); was v1.1 #5 | **done**: #195, merged; owner signed off the replay rows (2026-10-28) |
+| P1 | Portal: every hold-to-talk failure shown on screen and named in the console; voice in needs https or localhost; the MODE brief/detailed control removed (number assigned here, owner to confirm) | **in review**; owner, 2026-10-29 |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -1313,6 +1314,20 @@ Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
 - Suite 3,811 passed; harness 29/29; replay 0 newly held, 0 newly released, 13 pipe rows drawn from the dilution with mg unchanged, 1 newly dosing row is a new live log question.
 
 Detail: `docs/K3_PED_KETAMINE_DILUTION_2026-10-28.md`.
+
+### P1: hold to talk shows every failure; no MODE control (owner, 2026-10-29)
+
+**Owner:** "Live, two portal findings, one PR: 1. Hold-to-talk does nothing from the owner's Mac. Make every failure visible: a recording indicator while held, the transcript appearing word by word, and an on-screen message for each failure case (microphone permission denied, insecure origin so no microphone, no audio captured, /transcribe error with status). Tell me which case it was from the browser console if you can reproduce it; if the portal is reached over http by IP, say so and document that voice-in needs https or localhost. 2. Remove the Mode brief/detailed control from the portal; it does nothing. Config and tests. PR, do not merge."
+
+**Found:** Chromium against live over `http://192.168.1.126:8000`: not a secure context, `navigator.mediaDevices` undefined; the button never turned red and the only sign was an 11 px grey line. Over localhost and the https tunnel it records. The live access log is not readable from this account, so which address the Mac used is not known. A second silent case: letting go before the microphone opened (the first press, while the browser asks). `voice_mode` was carried to `_run_pipeline` and never read.
+
+**Done (failing tests first):**
+- Each failure: a red message under the box and one console line `[talk] <case>`; a recording note with seconds and input level while held; the transcript a word at a time (60 ms), the box read-only and SEND waiting until it is in; a suspended AudioContext resumed (Safari).
+- The MODE radios, and `voice_mode` from the portal body, `/query`'s request and response, the pipeline signatures, `run_tests.sh`, the latency tools and `client/`. A client that still sends it is answered.
+- Voice in needs https or localhost: documented in the P1 doc and REFERENCE (S1, P1).
+- Suite 3,829 passed; harness 29/29; replay vs main f9119c3: all five sets byte-identical, 0 newly held, 0 newly released.
+
+Detail: `docs/P1_PORTAL_VOICE_MODE_2026-10-29.md`.
 
 ### S1: speech in (owner, 2026-10-27)
 

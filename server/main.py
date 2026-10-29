@@ -108,7 +108,6 @@ class QueryRequest(BaseModel):
     query: str = Field(..., max_length=MAX_QUERY_CHARS)
     device_id: str = Field(..., max_length=200)
     timestamp: str = Field(..., max_length=64)
-    voice_mode: str = Field("brief", max_length=32)
     conversation_history: list = Field(default_factory=list,
                                        max_length=MAX_HISTORY_TURNS)
     model: str = Field("", max_length=128)  # "" = server default; unknown values fall back to it
@@ -146,7 +145,6 @@ class QueryResponse(BaseModel):
     sources: list = []
     query_type: str
     processing_time_ms: int
-    voice_mode: str
     rate_limit_remaining: int
     validator_result: str = ""
     validator_issues: list = []
@@ -276,7 +274,6 @@ def _query_response(result: dict, request: "QueryRequest", ms: int) -> "QueryRes
         sources=result.get("sources") or [],
         query_type="chromadb",
         processing_time_ms=ms,
-        voice_mode=request.voice_mode,
         rate_limit_remaining=999,
         validator_result=result.get("validator_result", ""),
         validator_issues=result.get("validator_issues", []),
@@ -314,8 +311,7 @@ async def query_endpoint(request: QueryRequest, http_request: Request):
     # T-2: self-declared test-suite traffic. Log hygiene only — run_tests.sh
     # fires at the live endpoint by design, and nothing may branch on this.
     synthetic = http_request.headers.get("X-Test-Run", "") == "1"
-    kwargs = dict(voice_mode=(request.voice_mode == "brief"),
-                  conversation_history=request.conversation_history,
+    kwargs = dict(conversation_history=request.conversation_history,
                   synthetic=synthetic, model=request.model or None,
                   input_mode=request.input_mode,
                   session_id=request.session_id,

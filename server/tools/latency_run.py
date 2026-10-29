@@ -38,7 +38,7 @@ def main(out_path):
     out = []
     for it in items:
         body = json.dumps({"query": it["query"], "device_id": "v1-latency", "timestamp": "2026-10-25T00:00:00",
-                           "voice_mode": "brief", "conversation_history": it["history"],
+                           "conversation_history": it["history"],
                            "session_id": "v1-latency"}).encode()
         req = urllib.request.Request(API, body, {"Content-Type": "application/json",
                                                  "X-Access-Token": TOKEN, "X-Test-Run": "1"})

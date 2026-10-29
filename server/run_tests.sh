@@ -20,7 +20,7 @@ run_test() {
         -H "Content-Type: application/json" \
         -H "X-Access-Token: $TOKEN" \
         -H "X-Test-Run: 1" \
-        -d "{\"query\":\"$query\",\"device_id\":\"test\",\"timestamp\":\"2026-06-28T00:00:00\",\"voice_mode\":\"brief\",\"conversation_history\":$history}")
+        -d "{\"query\":\"$query\",\"device_id\":\"test\",\"timestamp\":\"2026-06-28T00:00:00\",\"conversation_history\":$history}")
 
     response=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('response',''))" 2>/dev/null)
     validator=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('validator_result',''))" 2>/dev/null)

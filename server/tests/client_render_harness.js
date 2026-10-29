@@ -108,7 +108,6 @@ const SEPSIS_PAYLOAD = {
   sources: [{ title: 'Sepsis Management CPG', page: 4, confidence: 0.62 }],
   query_type: 'chromadb',
   processing_time_ms: 1,
-  voice_mode: 'brief',
   rate_limit_remaining: 999,
   validator_result: 'SAFE',
   validator_issues: [],
