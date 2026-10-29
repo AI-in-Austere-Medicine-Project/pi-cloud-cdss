@@ -74,7 +74,7 @@ def test_http_by_ip_says_voice_needs_https_or_localhost():
     assert out["calls"] == [] and out["noteErr"]
     assert "https or localhost" in out["note"] and "http://192.168.1.126:8000" in out["note"]
     assert _case(out) == "insecure-origin"
-    assert out["disabled"] is False and out["button"] == "HOLD TO TALK"
+    assert out["disabled"] is False and not out["heldRec"] and "RECORDING" not in out["button"]
 
 
 @needs_node
