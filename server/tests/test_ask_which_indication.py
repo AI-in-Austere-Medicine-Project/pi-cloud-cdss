@@ -122,7 +122,9 @@ def test_the_pain_answer_is_the_signed_analgesia_card_with_the_ml(seen, answer):
     history = HISTORY_AT_TURN_2 + [{"query": TURN_2, "response": "Which indication for ketamine — ...?"}]
     r = run(answer, history)
     assert r["source_mode"] == "DETERMINISTIC_PRE_GATE", r["response"][:200]
-    assert "of 50mg/mL ketamine IV" in r["response"], r["response"]
+    # 89 kg: 22.25 mg is 0.445 mL at the vial, drawn from the signed 5 mg/mL
+    # dilution (K3; #195 ruling 1, owner, 2026-10-28).
+    assert "Draw 4.45 mL of 5mg/mL ketamine dilution IV (22.25 mg)" in r["response"], r["response"]
     assert "Indication: moderate to severe pain / analgesia" in r["response"]
 
 

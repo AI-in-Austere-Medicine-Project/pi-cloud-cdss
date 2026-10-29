@@ -258,7 +258,9 @@ ADULT_BASELINE = {
     "adult80_pain": {
         "GIVE": "- ketamine IV: 20 mg. NO VOLUME — confirm concentration to compute volume. Indication: moderate to severe pain / analgesia.",
         "CONTRAINDICATIONS": "- ketamine — moderate to severe pain / analgesia: Hypersensitivity",
-        "CAUTIONS": "- ketamine — moderate to severe pain / analgesia:\n  - NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.\n  - Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.\n- Ask **\"why this dose?\"** for the citations, the maxima, and anything held back from this list."
+        # #195 ruling 1 (owner, 2026-10-28): the entry declares the 5 mg/mL
+        # dilution; with the vial unconfirmed its recipe waits for the vial.
+        "CAUTIONS": "- ketamine — moderate to severe pain / analgesia:\n  - NASEMSO warns: overdose may lead to panic attacks and aggressive behaviour; rarely seizures, increased ICP, and cardiac arrest.\n  - Non-invasive capnography is an earlier predictor of hypoventilation than pulse oximetry.\n  - Volumes and any dilution: given once the vial is confirmed.\n- Ask **\"why this dose?\"** for the citations, the maxima, and anything held back from this list."
     },
     "adult80_rsi": {
         "GIVE": "- ketamine IV: 160 mg. NO VOLUME — confirm concentration to compute volume. Indication: RSI induction.\n- Draw 9.6 mL of 10mg/mL rocuronium IV (96 mg) (kit vial). Indication: RSI paralytic.",

@@ -61,7 +61,9 @@ def test_the_whole_path_to_the_ml():
     assert [r["response"].split("—")[0].strip() for r in rs[:4]] == [
         "IV or IM? Do you have access?", WEIGHT_Q, "Which ketamine do you have",
         "Which indication for ketamine"]
-    assert "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)" in rs[4]["response"], rs[4]["response"]
+    # #195 ruling 1 (owner, 2026-10-28): 20 mg is 0.4 mL at the vial, so it is
+    # drawn from the signed 5 mg/mL dilution (K3).
+    assert "Draw 4 mL of 5mg/mL ketamine dilution IV (20 mg)" in rs[4]["response"], rs[4]["response"]
 
 
 @pytest.mark.parametrize("q", [

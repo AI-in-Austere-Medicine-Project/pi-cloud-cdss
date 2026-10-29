@@ -78,15 +78,18 @@ run_test "Ped confirmed weight asks route" "need ketamine for a 6yo arm fx" "[]"
 # all-ages 0.25 mg/kg (6.25 mg) for children. Before that this row asserted
 # 6.25, and before that 7.5 mg from the retired 0.3 mg/kg calculator. Matched
 # as "IV: 5 mg" because the card also names NASEMSO's "25 mg" cap.
-run_test "Ped IV ketamine correct dose" "ketamine IV for pain" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "IV: 5 mg"
+# K3 (owner, 2026-10-28): with the kit's single ketamine vial (K1), a volume
+# under 0.5 mL is drawn from the signed 5 mg/mL dilution: 5 mg = 1 mL of it.
+run_test "Ped IV ketamine correct dose" "ketamine IV for pain" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "Draw 1 mL of 5mg/mL ketamine dilution IV (5 mg)" "Dilute first: 1 mL of 50mg/mL ketamine (kit vial) in 9 mL normal saline"
 run_test "Ped IM ketamine correct dose" "IM" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."},{"query":"25kg","response":"IV or IM? Do you have access?"}]' "pass" "50\|0.5"
 run_test "Ped estimated weight blocks dose" "give ketamine" '[{"query":"need ketamine for a 6yo arm fx","response":"Need weight in kg before dosing."}]' "block" ""
 # D1 (2026-09-28): 4 mg = SMOG CY24 paediatric 0.2 mg/kg x 20 kg, from the
 # signed peds contract entry, with its owner-declared 5 mg/mL dilution for IV
 # push and the SMOG emergence caution.
-# Owner, 2026-10-24: the dilution's mL lines wait for the confirmed vial, so
-# the unconfirmed card says so instead of quoting the 5 mg/mL recipe.
-run_test "Ped 20kg IV ketamine: 4 mg, SMOG, dilution after the vial" "6 year old, 20kg, arm fracture, ketamine IV for pain" "[]" "pass" "IV: 4 mg" "given once the vial is confirmed" "SMOG"
+# Owner, 2026-10-24: the dilution's mL lines wait for the confirmed vial.
+# K1 (2026-10-28) made 500 mg / 10 mL the kit's one vial, and K3 draws the
+# 0.08 mL it gave from the dilution: 4 mg = 0.8 mL of 5 mg/mL.
+run_test "Ped 20kg IV ketamine: 4 mg, SMOG, dilution from the kit vial" "6 year old, 20kg, arm fracture, ketamine IV for pain" "[]" "pass" "Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg)" "Dilute first: 1 mL of 50mg/mL ketamine (kit vial) in 9 mL normal saline" "SMOG"
 
 # ── P1 SAFETY CASES ──────────────────────────────────────────────
 echo ""

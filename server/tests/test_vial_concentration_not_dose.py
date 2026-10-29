@@ -82,7 +82,9 @@ def test_after_pain_the_signed_iv_analgesia_dose_is_served_in_mg_and_ml(seen):
     resp = r["response"]
     assert r["source_mode"] == "DETERMINISTIC_PRE_GATE", resp[:200]
     assert r["validator_result"] not in ("UNSAFE", "BLOCKED"), r
-    assert "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg)" in resp, resp
+    # 0.375 mL at the vial: drawn from the signed 5 mg/mL dilution (K3; #195
+    # ruling 1, owner, 2026-10-28).
+    assert "Draw 3.75 mL of 5mg/mL ketamine dilution IV (18.75 mg)" in resp, resp
     assert "Indication: moderate to severe pain / analgesia" in resp
 
 

@@ -181,7 +181,9 @@ def test_an_unconfirmed_drug_gives_milligrams_and_says_why(unsigned_kit):
 
 def test_a_signed_concentration_produces_a_volume(signed_ketamine):
     """The fence is a gate, not a wall — control for the refusals above."""
-    ctx = PatientContext(confirmed_weight_kg=80.0, weight_source="stated",
+    # 120 kg: a volume of at least 0.5 mL at the vial. Under that it is drawn
+    # from the signed dilution (K3; #195 ruling 1, owner, 2026-10-28).
+    ctx = PatientContext(confirmed_weight_kg=120.0, weight_source="stated",
                          route_preference="IV")
     doses = oc.build_allowed_doses("ketamine dose for analgesia IV", ctx)
     d = _analgesia(doses)

@@ -36,7 +36,10 @@ import providers  # noqa: E402
 
 VALIDATOR_OK = '{"result": "SAFE", "issues": [], "rationale": "ok"}'
 ASK = "ketamine for pain, 75 kg IV"
-DRAW = "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg)"
+# #195 ruling 1 (owner, 2026-10-28): 18.75 mg is 0.375 mL at the vial, under
+# 0.5 mL, so it is drawn from the owner-declared 5 mg/mL dilution (K3):
+# "75 kg gives 3.75 mL of 5 mg/mL". Kit or stated vial alike (ruling 2).
+DRAW = "Draw 3.75 mL of 5mg/mL ketamine dilution IV (18.75 mg)"
 VIAL_Q = "Which ketamine do you have"
 
 _LABEL_RE = re.compile(r"\d+(?:\.\d+)?\s*mg\s*/\s*\d+(?:\.\d+)?\s*mL\s*(?:vial|ampoule|amp)\b"
@@ -212,8 +215,10 @@ def test_single_refuses_a_vial_the_kit_does_not_declare(kit_file, monkeypatch):
 # A volume from the kit's single vial, not a vial the medic stated, says so on
 # the GIVE line and the TLDR. A vial the medic states drops the label.
 
-KIT_DRAW = "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg) (kit vial)."
-KIT_TLDR = "= 18.75mg = 0.375mL of 50mg/mL (kit vial)."
+KIT_DRAW = DRAW + ". Dilute first: 1 mL of 50mg/mL ketamine (kit vial) in 9 mL normal saline."
+KIT_TLDR = "= 18.75mg = 3.75mL of 5mg/mL dilution (kit vial)."
+# The undiluted vial line, as other single-vial drugs still print it.
+VIAL_DRAW = "Draw 0.375 mL of 50mg/mL ketamine IV (18.75 mg)"
 
 
 def test_a_kit_vial_volume_is_labelled_on_the_give_line_and_the_tldr(single_vial, gen):
@@ -249,8 +254,9 @@ def test_the_brief_still_reads_a_labelled_draw_line():
 # Owner, 2026-10-28: "Spoken summary says "kit vial" too, as "from your kit"."
 
 KIT_SPOKEN = ("Give ketamine, eighteen point seven five milligrams, intravenously. "
-              "Draw zero point three seven five millilitres of ketamine, "
-              "fifty milligrams per millilitre, from your kit.")
+              "Dilute one millilitre of ketamine, fifty milligrams per millilitre, from your kit, "
+              "in nine millilitres of normal saline. "
+              "Draw three point seven five millilitres of the dilution.")
 
 
 def test_the_spoken_brief_says_from_your_kit(single_vial, gen):
@@ -262,14 +268,14 @@ def test_a_vial_the_medic_states_is_not_spoken_as_from_your_kit(single_vial, gen
     r = oc._query_with_rag_internal(f"{ASK}, I have 500 mg / 10 mL", _JtsHit(),
                                     conversation_history=[])
     said = r["spoken_brief"]
-    assert "fifty milligrams per millilitre." in said and "kit" not in said, said
+    assert "fifty milligrams per millilitre, in nine" in said and "kit" not in said, said
 
 
 def test_the_spoken_draw_sentence_follows_the_label():
     import spoken
     index = spoken._drug_index()
-    _, kit = spoken.dose_sentences(KIT_DRAW, index)
-    _, stated = spoken.dose_sentences(DRAW + ".", index)
+    _, kit = spoken.dose_sentences(VIAL_DRAW + " (kit vial).", index)
+    _, stated = spoken.dose_sentences(VIAL_DRAW + ".", index)
     assert kit[1].endswith(", from your kit."), kit
     assert "kit" not in stated[1], stated
 

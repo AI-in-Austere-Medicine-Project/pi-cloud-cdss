@@ -136,7 +136,9 @@ def test_after_the_vial_is_confirmed_the_card_serves_the_ml():
     ctx = oc.rebuild_patient_context_from_history(CONFIRMED)
     assert ctx.confirmed_concentrations == {"ketamine": 50.0}
     card = oc.build_ketamine_analgesia_response(ctx)
-    assert "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)" in card, card
+    # 20 mg is 0.4 mL at the vial: drawn from the signed 5 mg/mL dilution
+    # (K3; #195 ruling 1, owner, 2026-10-28).
+    assert "Draw 4 mL of 5mg/mL ketamine dilution IV (20 mg)" in card, card
 
 
 def test_after_the_vial_is_confirmed_a_model_answer_in_ml_passes():

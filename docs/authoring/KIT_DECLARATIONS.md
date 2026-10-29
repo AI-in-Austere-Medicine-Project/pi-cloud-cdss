@@ -24,3 +24,4 @@ From the live kit file, read 2026-10-28. Each was signed by role `AI-AIM` on 202
 | Date | Drug | Strength | Vial | Declaration | Signer | Reason |
 |---|---|---|---|---|---|---|
 | 2026-10-28 | ketamine | 50 mg/mL | 500 mg / 10 mL vial | single vial (no vial question) | Andrew Azelton (clinician) | Owner declaration, Andrew Azelton, 2026-10-28: ketamine 500 mg / 10 mL (50 mg/mL) is the kit's single ketamine vial (K1) |
+| 2026-10-28 | ketamine | 5 mg/mL | 1 mL of 50 mg/mL in 9 mL normal saline | push dilution, adult IV analgesia only (any kit-vial volume under 0.5 mL is drawn from it); in `drug_contracts.json`, not the kit file | Andrew Azelton (clinician) | Owner declaration, Andrew Azelton, 2026-10-28 (#195 ruling 1): adult IV ketamine dilution, 1 mL of 50 mg/mL in 9 mL NS = 5 mg/mL, for IV analgesia only; 75 kg gives 3.75 mL of 5 mg/mL (K3) |

@@ -9,7 +9,8 @@ which echoed the vial question. A child's "500" got no dose at all. And
 "pain" went to the model, which wrote 80 mg (held). The RSI bundle already
 resumes on its vial answer (rsi_bundle_should_resume); the analgesia card did
 not. Now it resumes on the vial answer and on "pain" as the indication
-answer, and serves the canonical "Draw X mL of 50mg/mL ketamine IV (Y mg)".
+answer, and serves the canonical "Draw X mL of 50mg/mL ketamine IV (Y mg)",
+or, under 0.5 mL at the vial, the signed 5 mg/mL dilution (K3; #195 ruling 1).
 
     cd server && ./run_unit_tests.sh
 """
@@ -51,15 +52,15 @@ def run_flow(turns):
 
 @pytest.mark.parametrize("turns, line", [
     (["ketamine for pain 80kg adult IV access", "500 mg / 10 mL"],
-     "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)"),
+     "Draw 4 mL of 5mg/mL ketamine dilution IV (20 mg)"),
     (["ketamine for pain 80kg adult IV access", "500"],
-     "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)"),
+     "Draw 4 mL of 5mg/mL ketamine dilution IV (20 mg)"),
     (["6 year old 20 kg, arm fracture, ketamine IV for pain", "500"],
-     "Draw 0.08 mL of 50mg/mL ketamine IV (4 mg)"),
+     "Draw 0.8 mL of 5mg/mL ketamine dilution IV (4 mg)"),
     (["ketamine for pain 80kg adult IV access", "Show the vial math for that dose.", "500"],
-     "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)"),
+     "Draw 4 mL of 5mg/mL ketamine dilution IV (20 mg)"),
     (["need to give ketamine 80kg adult IV", "500", "pain"],
-     "Draw 0.4 mL of 50mg/mL ketamine IV (20 mg)"),
+     "Draw 4 mL of 5mg/mL ketamine dilution IV (20 mg)"),
 ])
 def test_the_card_comes_back_with_the_ml(turns, line):
     r = run_flow(turns)[-1]
