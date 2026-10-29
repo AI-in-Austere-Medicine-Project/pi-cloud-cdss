@@ -262,7 +262,8 @@ def test_a_chip_goes_out_through_the_history_path_tagged_chip(rendered):
     assert chip["query"] == "Why that dose?"
     assert [t["query"] for t in chip["conversation_history"]] == \
         ["RSI an 80kg male trauma patient ketamine and rocuronium"]
-    assert chip["model"] == typed["model"] and chip["voice_mode"] == typed["voice_mode"]
+    assert chip["model"] == typed["model"]
+    assert "voice_mode" not in chip and "voice_mode" not in typed   # P1: no MODE control
 
 
 # ── the local-model badge ────────────────────────────────────────────────────
