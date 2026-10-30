@@ -2061,7 +2061,11 @@ def other_indication_issues(response_text: str, other: list, query: str,
     def signed_for_stated(drug, x):
         return any(k.drug.lower() == drug.lower() and abs(x - k.dose_mg) <= k.dose_mg * 0.05 + 1e-9
                    for k in kept or [])
-    stated = ", ".join(sorted(stated_indication_classes(query)))
+    # The classes the question states by its own words, where it states any
+    # (med sweep PR 1): "intubated, post-intubation sedation" is about
+    # sedation, not "RSI, sedation".
+    named = _strongly_stated_classes(query) & stated_indication_classes(query)
+    stated = ", ".join(sorted(named or stated_indication_classes(query)))
     matched = []
     free_text_dose_issues(response_text, other, patient_ctx, query, accepted=matched)
     for vol_s, conc_s, drug_s, mg_s in re.findall(CANONICAL_GIVE_RE, response_text.lower()):

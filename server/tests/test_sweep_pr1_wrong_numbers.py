@@ -293,3 +293,9 @@ def test_the_2026_10_27_propofol_template_line_stays_held():
     doses = oc.build_allowed_doses(q, ctx)
     issues = oc.run_deterministic_checks(q, text, ctx, doses, current_query=q).issues
     assert any('propofol for "sedation"' in i for i in issues), issues
+
+
+def test_the_hold_names_the_specific_indication_not_the_generic_one():
+    issues = _issues(MID_Q, MID_SERVED)
+    line = next(i for i in issues if "ongoing sedation (prolonged field care)" in i)
+    assert "this question is about sedation:" in line, line
