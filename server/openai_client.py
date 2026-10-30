@@ -1879,7 +1879,134 @@ def _drug_stated_classes(stated: set, drug_classes: set) -> set:
     return stated
 
 
-def stated_indication_matched(query: str, doses: list) -> tuple:
+# Med sweep 2026-10-30 (owner, PR 1): A32 accepted a dose from another
+# indication or form three ways, each closed here for every drug.
+#
+# 1. A generic word stated a class. "Ventriculostomy in place, antibiotic
+#    prophylaxis" stated the wound class through "antibiotic", and cefazolin's
+#    wound entry is 2 g, not the ventriculostomy's 1 g; "intubated" stated RSI,
+#    and propofol's only bolus is its induction dose. A class stated only by
+#    its generic words yields, per drug, to a class the question states by its
+#    own words.
+_WEAK_CUES = {
+    "wound infection prophylaxis": re.compile(r"antibiotic\w*|infect\w*"),
+    "TBI seizure prophylaxis": re.compile(r"prophyla\w*"),
+    "RSI": re.compile(r"\bintubated\b|post[- ]?intubation"),
+}
+
+
+def _strongly_stated_classes(text: str) -> set:
+    """The classes a question states by more than their generic words."""
+    low = (text or "").lower()
+    out = set()
+    for name, _w, _l, cue in INDICATION_CLASSES:
+        weak = _WEAK_CUES.get(name)
+        if re.search(cue, weak.sub(" ", low) if weak else low):
+            out.add(name)
+    return out | {"sedation"} if "RSI" in out else out
+
+
+# 2. Inside one class the signed indications differ: "post-intubation
+#    sedation bolus" (1-4 mg) and "ongoing sedation (prolonged field care)"
+#    (0.5-2 mg) are both "sedation"; "background pain — low-dose analgesia"
+#    and "moderate to severe pain" are both "pain". Where the question's words
+#    name some of a class's labels more than others, those are the ones it
+#    asked for. A tie (no label named over another) keeps the class whole.
+_LABEL_STOPWORDS = frozenset(
+    "and the for with without not dose doses patient incl iv im io in no of or to "
+    "repeated pump available".split())
+
+
+_NEGATED_WORDS_RE = re.compile(r"\b(?:no|not|without)\s+[a-z ]+?(?=[),;.—]|$)")
+
+
+def _label_stems(text: str) -> set:
+    """Word stems, without what a "no"/"without" negates: "(no infusion
+    pump)" does not name an infusion."""
+    low = _NEGATED_WORDS_RE.sub(" ", (text or "").lower())
+    return {w[:6] for w in re.findall(r"[a-z]+", low)
+            if len(w) >= 3 and w not in _LABEL_STOPWORDS}
+
+
+# 3. The form. "Sedation infusion" was served propofol's induction bolus, and
+#    "atropine failed, infusion" epinephrine's bradycardia push dose. Where
+#    the question asks for an infusion and the drug has a signed infusion for
+#    it, a bolus is not accepted; a loading dose is part of an infusion.
+_INFUSION_ASKED_RE = re.compile(
+    r"\binfusion\b|\bdrips?\b|\bgtt\b|\btitrat\w*|\bper (?:hour|minute)\b|/\s*(?:hr|min)\b"
+    r"|(?<!heart )(?<!pulse )(?<!respiratory )(?<!resp )\brate\b")
+_NO_INFUSION_RE = re.compile(
+    r"\bno (?:infusion|pump|drip)\b|\bwithout (?:an? )?(?:infusion|pump|drip)\b|\bpush[- ]dose\b")
+
+
+def is_rate_entry(entry: dict) -> bool:
+    """A signed entry dosed per unit time (an infusion), not a bolus."""
+    units = str((entry.get("dose_range") or {}).get("units") or "")
+    parts = [x.strip().lower() for x in units.split("/")]
+    return len(parts) >= 2 and parts[-1] in _RATE_TIME_PER_MIN
+
+
+def _infusion_asked(query: str) -> bool:
+    low = (query or "").lower()
+    return bool(_INFUSION_ASKED_RE.search(low)) and not _NO_INFUSION_RE.search(low)
+
+
+def _entry_fits(entry: dict, ctx: Optional["PatientContext"]) -> bool:
+    if ctx is None:
+        return True
+    pops = (entry.get("population") or "").split("|")
+    return ("peds" if ctx.is_pediatric else "adult") in pops
+
+
+def _accepted_indications(drug: str, query: str, stated: set, strong: set,
+                          routes: set, ctx: Optional["PatientContext"]) -> Optional[set]:
+    """The signed indication labels of `drug` the check accepts for this
+    question, or None when the question states nothing the drug is signed for
+    (A32: left alone)."""
+    signed = drug_contracts.servable_entries().get(drug, [])
+    classes = {indication_class(e.get("indication")) for e in signed}
+    mine = _drug_stated_classes(stated, classes)
+    if not classes & mine:
+        return None
+    specific = _drug_stated_classes(strong, classes) & classes
+    if specific:
+        mine = specific
+    words = _label_stems(query)
+    pool = [e for e in signed if _entry_fits(e, ctx)
+            and indication_class(e.get("indication")) in mine
+            and (is_rate_entry(e) or not routes or (e.get("route") or "").upper() in routes)]
+    accepted = []
+    for c in mine:
+        in_class = [e for e in pool if indication_class(e.get("indication")) == c]
+        scores = [len(_label_stems(e.get("indication")) & words) for e in in_class]
+        if scores and max(scores) > min(scores):
+            in_class = [e for e, s in zip(in_class, scores) if s == max(scores)]
+        accepted += in_class
+    if _infusion_asked(query) and any(is_rate_entry(e) for e in accepted):
+        accepted = [e for e in accepted if is_rate_entry(e)
+                    or "loading" in (e.get("indication") or "").lower()]
+    return {(e.get("indication") or "").lower() for e in accepted}
+
+
+def class_matched(query: str, doses: list) -> list:
+    """A32 by class alone: the doses whose class the question states, for
+    each drug signed in a stated class (the check before med sweep PR 1)."""
+    doses = list(doses or [])
+    stated = _check_classes(query)
+    if not stated or drug_contracts is None:
+        return doses
+    signed = drug_contracts.servable_entries()
+    kept = []
+    for d in doses:
+        classes = {indication_class(e.get("indication")) for e in signed.get(d.drug, [])}
+        mine = _drug_stated_classes(stated, classes)
+        if not (classes & mine and indication_class(d.indication) not in mine):
+            kept.append(d)
+    return kept
+
+
+def stated_indication_matched(query: str, doses: list,
+                              ctx: Optional["PatientContext"] = None) -> tuple:
     """(kept, other): the doses the check accepts for this question, and the
     doses of the same drugs that are signed for another indication.
 
@@ -1900,14 +2027,24 @@ def stated_indication_matched(query: str, doses: list) -> tuple:
     if not stated or drug_contracts is None:
         return doses, []
     signed = drug_contracts.servable_entries()
+    strong = _strongly_stated_classes(query)
+    accepted = {}
+    for drug in dict.fromkeys(d.drug for d in doses):
+        routes = {(d.route or "").upper() for d in doses if d.drug == drug}
+        accepted[drug] = _accepted_indications(drug, query, stated, strong, routes, ctx)
     kept, other = [], []
     for d in doses:
-        classes = {indication_class(e.get("indication")) for e in signed.get(d.drug, [])}
-        mine = _drug_stated_classes(stated, classes)
-        if classes & mine and indication_class(d.indication) not in mine:
-            other.append(d)
-        else:
+        ok = accepted.get(d.drug)
+        labels = {(e.get("indication") or "").lower() for e in signed.get(d.drug, [])}
+        if ok is None:
             kept.append(d)
+        elif (d.indication or "").lower() in labels:
+            (kept if (d.indication or "").lower() in ok else other).append(d)
+        else:
+            # Not a signed label: the class rule, as before.
+            classes = {indication_class(e.get("indication")) for e in signed.get(d.drug, [])}
+            mine = _drug_stated_classes(stated, classes)
+            (other if indication_class(d.indication) not in mine else kept).append(d)
     return kept, other
 
 
@@ -1924,7 +2061,11 @@ def other_indication_issues(response_text: str, other: list, query: str,
     def signed_for_stated(drug, x):
         return any(k.drug.lower() == drug.lower() and abs(x - k.dose_mg) <= k.dose_mg * 0.05 + 1e-9
                    for k in kept or [])
-    stated = ", ".join(sorted(stated_indication_classes(query)))
+    # The classes the question states by its own words, where it states any
+    # (med sweep PR 1): "intubated, post-intubation sedation" is about
+    # sedation, not "RSI, sedation".
+    named = _strongly_stated_classes(query) & stated_indication_classes(query)
+    stated = ", ".join(sorted(named or stated_indication_classes(query)))
     matched = []
     free_text_dose_issues(response_text, other, patient_ctx, query, accepted=matched)
     for vol_s, conc_s, drug_s, mg_s in re.findall(CANONICAL_GIVE_RE, response_text.lower()):
@@ -2097,9 +2238,24 @@ ANALGESIA_INDICATIONS = ("moderate to severe pain",)
 # ID91 p.33). An IM request falls back to it after "moderate to severe pain"
 # (the paediatric IM entry); it is never the dissociative-sedation entry.
 IM_ANALGESIA_INDICATIONS = ("breakthrough pain — im/in",)
+# Med sweep 2026-10-30 (owner, PR 1): "background pain" / "prolonged field
+# care pain" resolves to the PFC low-dose entry, 0.1-0.2 mg/kg (JTS ID91), not
+# the acute 0.25 mg/kg. Live: "prolonged field care, ongoing background pain,
+# ketamine IV" was served 20 mg at 80 kg; signed is 8-16 mg. Where the route
+# has no PFC entry for the patient the card holds, as for any unsigned route:
+# the acute dose is not what was asked for.
+BACKGROUND_ANALGESIA_INDICATIONS = ("background pain",)
+_BACKGROUND_PAIN_RE = re.compile(
+    r"\bbackground pain\b|\b(?:prolonged field care|pfc)\b(?=[^.]*\b(?:pain|analges\w*)\b)"
+    r"|\b(?:pain|analges\w*)\b[^.]*\b(?:prolonged field care|pfc)\b")
 
 
-def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate]:
+def is_background_pain_request(text: str) -> bool:
+    return bool(_BACKGROUND_PAIN_RE.search((text or "").lower()))
+
+
+def _contract_analgesia_candidate(ctx: PatientContext,
+                                  background: bool = False) -> Optional[DoseCandidate]:
     """The signed ketamine ANALGESIA entry for this patient's route, or None.
 
     Scoped hard, twice over, because both of the entries next door would be a
@@ -2122,6 +2278,11 @@ def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate
     IM also takes "breakthrough pain — IM/IN" (A35), after "moderate to
     severe pain": the adult bank's only IM pain entry.
 
+    `background` (med sweep PR 1): the question asked for background or
+    prolonged-field-care pain. IV takes "background pain — low-dose
+    analgesia (prolonged field care)" only; IM takes "breakthrough pain —
+    IM/IN (prolonged field care)" only. Never the acute entry.
+
     Returns None when nothing is signed for that route, and the card holds.
     The legacy calculators that used to backfill it (0.3 mg/kg IV, 2 mg/kg
     IM, no signed entry behind either) were removed by A35.
@@ -2132,7 +2293,10 @@ def _contract_analgesia_candidate(ctx: PatientContext) -> Optional[DoseCandidate
     if route not in ("IV", "IM"):
         return None
 
-    lookups = [ANALGESIA_INDICATIONS] + ([IM_ANALGESIA_INDICATIONS] if route == "IM" else [])
+    if background:
+        lookups = [IM_ANALGESIA_INDICATIONS if route == "IM" else BACKGROUND_ANALGESIA_INDICATIONS]
+    else:
+        lookups = [ANALGESIA_INDICATIONS] + ([IM_ANALGESIA_INDICATIONS] if route == "IM" else [])
     candidates = [(n, e) for patterns in lookups
                   for n, e in drug_contracts.signed_entries_by_indication(
                       patterns, ctx.is_pediatric, ctx.age_years)]
@@ -5520,6 +5684,16 @@ def hemorrhage_control_issues(current_query: str, response_text: str) -> list:
 # "0.1 mL/kg", "mL per hour"). Read after the concentration phrases are removed,
 # as states_ml_volume does.
 _DRAWN_ML_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*m\s*l\b(?!\s*(?:/|per\b))", re.IGNORECASE)
+# Med sweep 2026-10-30 (owner, PR 1): "mL/kg" volumes are checked like any
+# mL. Live, "Calcium gluconate IV: 100 mg/kg (10 mL/kg of 10% solution)" was
+# served SAFE at 20 kg: 200 mL, ten times the volume of the dose, with no kit
+# vial at all. A per-kg volume is the volume at the patient's weight; a per-kg
+# mass in the same sentence, the dose at that weight. Not a rate ("mL/kg/hr").
+_PER_KG_ML_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*m\s*l\s*(?:/|per\s+)\s*kg\b(?!\s*(?:/|per\b))",
+                           re.IGNORECASE)
+_PER_KG_MASS_RE = re.compile(
+    r"\b(\d+(?:\.\d+)?)\s*(mcg|µg|μg|ug|mg|g)\s*(?:/|per\s+)\s*kg\b(?!\s*(?:/|per\b))",
+    re.IGNORECASE)
 _STATED_MASS_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s*(mcg|µg|μg|ug|micrograms?|mg|milligrams?|g|grams?)\b(?!\s*/)",
                              re.IGNORECASE)
 _MASS_TO_MG = {"mcg": 0.001, "µg": 0.001, "μg": 0.001, "ug": 0.001, "microgram": 0.001,
@@ -5651,16 +5825,27 @@ def unconfirmed_volume_issues(response_text: str, ctx: PatientContext) -> list:
     if drug_contracts is None:
         return []
     confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
+    weight = ctx.dosing_weight_kg if ctx else None
     out, signed = {}, {}
     for sentence in re.split(r"(?<=[.!?])\s+|\n", response_text or ""):
         plain = _CONCENTRATION_PHRASE_RE.sub(" ", sentence.lower())
         volumes = [float(v) for v in _DRAWN_ML_RE.findall(plain)]
-        if not volumes:
+        per_kg = [float(v) for v in _PER_KG_ML_RE.findall(plain)]
+        if not volumes and not per_kg:
             continue
         drugs = drug_contracts.resolve_drugs(sentence)
         if not drugs:
             continue
         masses = [float(n) * _MASS_TO_MG[u.lower()] for n, u in _STATED_MASS_RE.findall(plain)]
+        if per_kg and not weight:
+            for drug in drugs:
+                out.setdefault(drug, f"The answer gives a {drug} volume per kg with no confirmed "
+                                     f"weight to check it against. Give the {drug} dose in mg.")
+            continue
+        if per_kg:
+            volumes += [v * weight for v in per_kg]
+            masses += [float(n) * _MASS_TO_MG[u.lower()] * weight
+                       for n, u in _PER_KG_MASS_RE.findall(plain)]
         stated = {round(c, 6) for c, _a, _b in _concentrations_in(sentence)}
         routes = {r for r, rx in _ROUTE_WORD_RES.items() if rx.search(sentence)}
         vials, quoted, drawn_from, recipe = {}, False, {}, set()
@@ -5718,7 +5903,11 @@ def run_deterministic_checks(query: str, response_text: str,
     # applies, so a list built elsewhere cannot widen what passes.
     allowed_doses = indication_matched(query, allowed_doses or [])
     # A32: and, where the question states an indication, only that one's.
-    allowed_doses, other_doses = stated_indication_matched(query, allowed_doses)
+    # The label check (A1b) keeps A32's class-level list, as before this
+    # narrowed further (med sweep PR 1): it holds a label for an indication
+    # not built, and a narrower list would leave it nothing to judge against.
+    labelled_doses = class_matched(query, allowed_doses)
+    allowed_doses, other_doses = stated_indication_matched(query, allowed_doses, patient_ctx)
 
     # ── ALLOWED_DOSES contract enforcement (implemented 2026-07-18) ───────
     # Parse canonical GIVE lines ("Draw X mL of Ymg/mL drug ... (Zmg)") and
@@ -5774,7 +5963,7 @@ def run_deterministic_checks(query: str, response_text: str,
                                             response_text))
 
     # ── A dose labelled for an indication it was not built for (A1b) ──────
-    issues.extend(indication_label_issues(response_text, allowed_doses))
+    issues.extend(indication_label_issues(response_text, labelled_doses))
 
     # ── A dose signed for another indication than the one stated (A32) ────
     issues.extend(other_indication_issues(response_text, other_doses, query, patient_ctx,
@@ -6859,8 +7048,9 @@ def is_ketamine_analgesia_context(text: str) -> bool:
 
 # A35: with no signed analgesia entry on the route, the card holds. It names
 # the route and no number (the hold never states what is not signed).
-def ketamine_analgesia_unsigned_issue(route: str) -> str:
-    return (f"No ketamine dose for pain is signed for the {route} route for this "
+def ketamine_analgesia_unsigned_issue(route: str, background: bool = False) -> str:
+    pain = "background (prolonged field care) pain" if background else "pain"
+    return (f"No ketamine dose for {pain} is signed for the {route} route for this "
             f"patient, so none is given here. Use local protocol or medical control.")
 
 
@@ -6907,7 +7097,7 @@ def build_ketamine_age_block(ctx: PatientContext) -> Optional[str]:
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
+def build_ketamine_analgesia_response(ctx: PatientContext, query: str = "") -> Optional[str]:
     """Ketamine analgesia for a confirmed weight and a known route.
 
     Signed contract only (A35). This card used to
@@ -6934,11 +7124,12 @@ def build_ketamine_analgesia_response(ctx: PatientContext) -> Optional[str]:
     if block:
         return block
 
-    d = _contract_analgesia_candidate(ctx)
+    background = is_background_pain_request(query)
+    d = _contract_analgesia_candidate(ctx, background=background)
     if d is None:
         # No signed entry for this route: hold (A35). No calculator backfill.
         return build_safety_hold(
-            [ketamine_analgesia_unsigned_issue(ctx.route_preference)], "")
+            [ketamine_analgesia_unsigned_issue(ctx.route_preference, background)], "")
     d = resolve_dose_volume(d, ctx)
     served = [d]
 
@@ -8017,25 +8208,37 @@ def _query_with_rag_internal(query: str, chromadb_client,
     result.setdefault("provider", None)
     result.setdefault("fallbacks", [])
     result.setdefault("fallback_from", None)
-    return attach_brief(result)
+    return attach_brief(result, query)
 
 
-def attach_brief(result: dict) -> dict:
+def asked_drugs(query: Optional[str]) -> list:
+    """The drugs a question names, as generic names (med sweep PR 1: the brief
+    leads with them)."""
+    if drug_contracts is None or not query:
+        return []
+    return list(drug_contracts.resolve_drugs(query))
+
+
+def attach_brief(result: dict, query: Optional[str] = None) -> dict:
     """Add `brief`, `critical_sections` and `spoken_brief`. Reads the response;
-    changes nothing.
+    changes nothing. `query`, the medic's message: the drug it names leads
+    the brief and the spoken brief (med sweep PR 1).
 
     Last, after _finalise, so the brief is built from exactly the text that is
     served — stripped volumes, notices and holds included — and so no gate,
     override or validator ever sees it. Presentation only: see brief.py.
     """
     pc = result.get("patient_context") or {}
+    asked = asked_drugs(query)
+    drugs_in = drug_contracts.resolve_drugs if drug_contracts is not None else None
     out = brief_mod.build_brief(
         result.get("response", ""), MEDICATION_TERMS,
-        weight_kg=pc.get("confirmed_weight_kg"), age_years=pc.get("age_years"))
+        weight_kg=pc.get("confirmed_weight_kg"), age_years=pc.get("age_years"),
+        asked_drugs=asked, drugs_in=drugs_in)
     result["brief"] = out["brief"]
     result["critical_sections"] = out["critical_sections"]
     # V3: what the listen button says, from fixed templates (spoken.py).
-    result["spoken_brief"] = spoken_mod.build(result)
+    result["spoken_brief"] = spoken_mod.build(result, asked, drugs_in)
     return result
 
 
@@ -8382,7 +8585,7 @@ def _run_pipeline(query: str, chromadb_client,
             and patient_ctx.confirmed_weight_kg
             and patient_ctx.route_preference in ["IV", "IM"]
         ):
-            ket_response = build_ketamine_analgesia_response(patient_ctx)
+            ket_response = build_ketamine_analgesia_response(patient_ctx, full_query_history)
             if ket_response:
                 label = "PED " if patient_ctx.is_pediatric else ""
                 print(f"💊 {label}KETAMINE ANALGESIA PRE-GATE")
@@ -8692,6 +8895,10 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         # never rewritten, and the deterministic cards returned long before.
         if not outcome.blocked:
             final_response = brief_mod.normalise_headers(final_response)
+            # Med sweep PR 1: the generator's BRIEF leads with the asked drug.
+            final_response = brief_mod.asked_drug_leads(
+                final_response, asked_drugs(query),
+                drug_contracts.resolve_drugs if drug_contracts is not None else None)
         # Applied after the gate for the same reason the reset notice is: a label
         # must never become text the validator reasons about or an override
         # matches its keywords against. Served answers only — a safety hold is

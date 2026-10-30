@@ -70,7 +70,7 @@ def test_the_legacy_calculators_are_gone():
 def test_with_nothing_signed_on_the_route_the_card_holds(monkeypatch):
     """No signed IM pain entry for this patient: the card holds rather than
     computing a dose of its own."""
-    monkeypatch.setattr(oc, "_contract_analgesia_candidate", lambda ctx: None)
+    monkeypatch.setattr(oc, "_contract_analgesia_candidate", lambda ctx, **k: None)
     _ctx, card = _card()
     assert card is not None
     assert "**GIVE**" not in card, card
