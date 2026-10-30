@@ -37,8 +37,9 @@ import openai_client as oc  # noqa: E402
 import spoken  # noqa: E402
 
 
-def _issues(history, text):
+def _issues(history, text, vials=None):
     ctx = oc.rebuild_patient_context_from_history(history)
+    ctx.confirmed_concentrations = dict(vials or {})
     doses = oc.build_allowed_doses(history, ctx)
     return oc.run_deterministic_checks(history, text, ctx, doses, current_query=history).issues
 
@@ -58,11 +59,11 @@ def test_calcium_gluconate_ml_per_kg_holds():
 
 
 def test_a_per_kg_volume_that_does_not_follow_from_the_vial_holds():
-    """Ketamine's kit vial is 50 mg/mL: 0.25 mg/kg is 0.005 mL/kg, not 0.05."""
+    """The 50 mg/mL vial confirmed: 0.25 mg/kg is 0.005 mL/kg, not 0.05."""
     q = "80 kg adult, femur fracture, severe pain, ketamine IV"
     text = ("**GIVE**\n- Ketamine IV: 0.25 mg/kg (0.05 mL/kg of 50 mg/mL). "
             "Indication: moderate to severe pain / analgesia.")
-    issues = _issues(q, text)
+    issues = _issues(q, text, {"ketamine": 50.0})
     assert any("ketamine" in i and "mL" in i for i in issues), issues
 
 
@@ -70,14 +71,15 @@ def test_a_per_kg_volume_that_follows_from_the_vial_serves():
     q = "80 kg adult, femur fracture, severe pain, ketamine IV"
     text = ("**GIVE**\n- Ketamine IV: 0.25 mg/kg (0.005 mL/kg of 50 mg/mL). "
             "Indication: moderate to severe pain / analgesia.")
-    assert _issues(q, text) == []
+    assert _issues(q, text, {"ketamine": 50.0}) == []
 
 
 def test_a_per_kg_volume_with_no_weight_holds():
     q = "adult, femur fracture, severe pain, ketamine IV"
     text = ("**GIVE**\n- Ketamine IV: 0.25 mg/kg (0.005 mL/kg of 50 mg/mL). "
             "Indication: moderate to severe pain / analgesia.")
-    assert any("ketamine" in i and "mL" in i for i in _issues(q, text))
+    issues = _issues(q, text, {"ketamine": 50.0})
+    assert any("ketamine" in i and "per kg" in i for i in issues), issues
 
 
 # ── midazolam[8]: the asked drug leads; 0.5 mg is not post-intubation ───────
@@ -273,3 +275,21 @@ def test_acute_pain_still_gets_the_acute_entry():
                                     _NoRetrieval(), conversation_history=[])
     give = r["response"].split("**GIVE**")[1].split("**", 1)[0]
     assert "moderate to severe pain / analgesia" in give, r["response"]
+
+
+# ── Found in this PR's replay: a held label stays held ──────────────────────
+# Live, 2026-10-27 (session log line 145): held by the label check (A1b)
+# because propofol was built only for induction. With the narrower A32 list
+# the label check had no propofol to judge against and the row released. The
+# label check keeps the class-level list.
+
+def test_the_2026_10_27_propofol_template_line_stays_held():
+    q = "80 kg adult, intubated, propofol infusion rate for sedation"
+    text = ("**BRIEF**\n- Propofol NO VOLUME — confirm concentration to compute volume.\n"
+            "- Start propofol infusion at 10-75 mcg/kg/min via infusion pump or Dial-a-Drip.\n\n"
+            "**DO THIS**\n1. Start propofol infusion at 10-75 mcg/kg/min.\n\n"
+            "**GIVE**\n- Draw X mL of Y mg/mL propofol IV (Z mg). Indication: sedation.\n")
+    ctx = oc.PatientContext(confirmed_weight_kg=80.0, is_pediatric=False)
+    doses = oc.build_allowed_doses(q, ctx)
+    issues = oc.run_deterministic_checks(q, text, ctx, doses, current_query=q).issues
+    assert any('propofol for "sedation"' in i for i in issues), issues
