@@ -571,8 +571,65 @@ def _fit(lead, doses, optional, critical):
     return lead_l + dose_l + list(optional[:room]) + crit_l
 
 
+# ── The asked drug leads (med sweep 2026-10-30, owner, PR 1) ─────────────────
+# "The brief/spoken first line must name the drug that was asked; a brief line
+# for another drug never leads." Live: "post-intubation sedation, midazolam IV"
+# was answered with a BRIEF whose only line was ketamine 40 mg. Order only: no
+# line is removed, and the one line added is the asked drug's own GIVE line,
+# verbatim, which is what the prompt says BRIEF copies — or, when the answer
+# doses the asked drug nowhere, that fact.
+NOT_DOSED = "No {drug} dose in this answer."
+
+
+def names_drug(line: str, drug: str, drugs_in=None) -> bool:
+    """`drugs_in` reads the generic names a line states (aliases included:
+    "TXA" is tranexamic acid); without it, the name itself."""
+    if drugs_in is not None:
+        return drug in drugs_in(line or "")
+    return bool(re.search(r"(?<!\w)" + re.escape(drug.lower()) + r"(?!\w)", (line or "").lower()))
+
+
+def _names_asked(line: str, asked, drugs_in=None) -> bool:
+    return any(names_drug(line, d, drugs_in) for d in asked)
+
+
+def asked_drug_leads(response_text: str, asked_drugs, drugs_in=None) -> str:
+    """The response with its BRIEF section's lines for an asked drug first.
+
+    A BRIEF with no line for the asked drug takes that drug's first GIVE line
+    at its head; if no dose line anywhere names it and the BRIEF states a dose,
+    "No <drug> dose in this answer." leads instead."""
+    asked = [d for d in (asked_drugs or []) if d]
+    if not asked or not response_text:
+        return response_text
+    lines = response_text.split("\n")
+    start = next((i for i, l in enumerate(lines)
+                  if (m := _HEADING_RE.match(l)) and _norm_heading(m.group(1)) == BRIEF_SECTION), None)
+    if start is None:
+        return response_text
+    end = start + 1
+    while end < len(lines) and lines[end].strip() and not _HEADING_RE.match(lines[end]):
+        end += 1
+    body = lines[start + 1:end]
+    items = [l for l in body if _ITEM_RE.match(l.strip())]
+    if not items:
+        return response_text
+    if any(_names_asked(l, asked, drugs_in) for l in items):
+        body = ([l for l in body if _names_asked(l, asked, drugs_in)]
+                + [l for l in body if not _names_asked(l, asked, drugs_in)])
+    else:
+        _pre, sections = parse_sections(response_text)
+        give = [item for name, sec in sections if name in DOSE_SECTIONS
+                for item in _top_items(sec) if _names_asked(item, asked, drugs_in)]
+        if give:
+            body = [f"- {_clean(give[0])}"] + body
+        elif any(_DOSE_RE.search(l) for l in items):
+            body = [f"- {NOT_DOSED.format(drug=asked[0])}"] + body
+    return "\n".join(lines[:start + 1] + body + lines[end:])
+
+
 def build_brief(response_text: str, medication_terms=(), weight_kg=None,
-                age_years=None) -> dict:
+                age_years=None, asked_drugs=(), drugs_in=None) -> dict:
     """{"brief": str, "critical_sections": [str]} for one served response.
 
     `weight_kg` is the patient's CONFIRMED weight, the one the dose calculators
@@ -580,12 +637,13 @@ def build_brief(response_text: str, medication_terms=(), weight_kg=None,
     `age_years` also decide whether an age-based contraindication could apply
     (age_cleared) — only which lines reach the brief, never what the card says.
     """
-    out = _build(response_text, medication_terms, weight_kg, age_years)
+    out = _build(response_text, medication_terms, weight_kg, age_years, asked_drugs, drugs_in)
     out["brief"] = "\n".join(_sentence_case(l) for l in out["brief"].split("\n"))
     return out
 
 
-def _build(response_text, medication_terms, weight_kg, age_years=None):
+def _build(response_text, medication_terms, weight_kg, age_years=None, asked_drugs=(),
+           drugs_in=None):
     preamble, sections = parse_sections(response_text)
     content = [p for p in preamble if not _is_notice(p) and p != DISCLAIMER]
 
@@ -626,6 +684,13 @@ def _build(response_text, medication_terms, weight_kg, age_years=None):
 
     dose_items = [(name, item) for name, lines in sections if name in DOSE_SECTIONS
                   for item in _top_items(lines) if _DOSE_RE.search(item)]
+    asked = [d for d in (asked_drugs or []) if d]
+    if asked and dose_items:
+        if any(_names_asked(item, asked, drugs_in) for _, item in dose_items):
+            dose_items = ([x for x in dose_items if _names_asked(x[1], asked, drugs_in)]
+                          + [x for x in dose_items if not _names_asked(x[1], asked, drugs_in)])
+        else:
+            lead = [NOT_DOSED.format(drug=asked[0])] + lead
     clauses = [dose_clause(item) for _, item in dose_items]
     dosed = _dosed_drugs(clauses, medication_terms)
     doses = [dose_line(item, weight_kg) for _, item in dose_items]

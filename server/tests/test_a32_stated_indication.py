@@ -33,6 +33,7 @@ import openai_client as oc  # noqa: E402
 FEMUR_PAIN = "80 kg adult, femur fracture, IV access, ketamine drip for pain, what rate 500"
 SHOCK = "80 kg adult, BP 70/40 after 2 L of fluid, still in shock, epinephrine infusion rate"
 BRADY = "80 kg adult, HR 38, symptomatic bradycardia, epinephrine infusion rate"
+BRADY_PUSH = "80 kg adult, HR 38, symptomatic bradycardia, push dose epinephrine"
 NO_INDICATION = "Need to give ketamine 89kg IV established 500"
 
 KETAMINE_SEDATION_40 = ("**GIVE**\n- Draw 0.8 mL of 50mg/mL ketamine IV (40 mg). Indication: "
@@ -72,7 +73,15 @@ def test_the_signed_analgesia_dose_still_serves():
 
 
 def test_the_bradycardia_push_dose_still_serves_for_bradycardia():
-    assert _issues(BRADY, EPI_PUSH) == []
+    """Was asked as BRADY, "... epinephrine infusion rate". Med sweep PR 1
+    (owner, 2026-10-30): an infusion asked accepts no bolus where the drug
+    has a signed infusion for it, so the push dose serves when a push dose is
+    asked (tests/test_sweep_pr1_wrong_numbers.py)."""
+    assert _issues(BRADY_PUSH, EPI_PUSH) == []
+
+
+def test_the_bradycardia_push_dose_holds_when_the_infusion_rate_is_asked():
+    assert _issues(BRADY, EPI_PUSH)
 
 
 # ── No stated indication: today's behaviour ─────────────────────────────────

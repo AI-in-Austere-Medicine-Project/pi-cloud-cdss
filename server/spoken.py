@@ -43,6 +43,8 @@ changes nothing on screen and nothing any gate saw.
 
 import re
 
+import brief as brief_mod
+
 try:
     import drug_contracts
 except Exception:  # the voice must not be able to break the answer
@@ -404,11 +406,14 @@ def _hold(response: str, index: dict) -> str:
     return HOLD_OTHER
 
 
-def build(result: dict) -> str:
+def build(result: dict, asked_drugs=(), drugs_in=None) -> str:
     """The spoken brief for one served answer. Never raises: a failure here
-    is a fixed sentence pointing at the screen, not a missing answer."""
+    is a fixed sentence pointing at the screen, not a missing answer.
+
+    `asked_drugs` (med sweep PR 1): the drugs the question named. Their dose
+    is said first; an answer that doses none of them says so first."""
     try:
-        return _build(result)
+        return _build(result, asked_drugs, drugs_in)
     except Exception:
         return CARD_ON_SCREEN
 
@@ -466,7 +471,7 @@ def _which_indication(response: str):
     return WHICH_INDICATION.format(drug=_capitalised(said_drug), names="; ".join(names))
 
 
-def _build(result: dict) -> str:
+def _build(result: dict, asked_drugs=(), drugs_in=None) -> str:
     response = result.get("response") or ""
     index = _drug_index()
     if response.lstrip().startswith(HOLD_OPENER):
@@ -479,6 +484,16 @@ def _build(result: dict) -> str:
 
     dose_lines = [(sec, item, dose_sentences(item, index))
                   for sec in DOSE_SECTIONS for item in secs.get(sec, [])]
+    asked = [d for d in (asked_drugs or []) if d]
+    not_dosed = []
+    if asked and any(got for _, _, got in dose_lines):
+        def mine(item):
+            return any(brief_mod.names_drug(item, d, drugs_in) for d in asked)
+        if any(got and mine(item) for _, item, got in dose_lines):
+            dose_lines = ([x for x in dose_lines if x[2] and mine(x[1])]
+                          + [x for x in dose_lines if not (x[2] and mine(x[1]))])
+        else:
+            not_dosed = [brief_mod.NOT_DOSED.format(drug=asked[0])]
     # One drug twice in a section is told apart by its indication. On a card
     # that is the signed entry's own clause; a model's is model wording, so a
     # model answer sends the medic to the screen instead.
@@ -513,6 +528,7 @@ def _build(result: dict) -> str:
             if said:
                 spoken.append(said)
 
+    spoken = not_dosed + spoken
     if not deterministic:
         return _capitalised(" ".join(spoken)) if spoken else MODEL_NO_DOSE
     if not spoken:

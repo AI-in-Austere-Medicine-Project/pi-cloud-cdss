@@ -117,11 +117,20 @@ def test_a_pending_vial_still_holds_and_says_so():
 
 @pytest.mark.parametrize("line", [
     "Run the morphine infusion at 2 mL/hr.",
-    "Morphine 0.1 mL/kg is not used here.",
+    "Run the morphine infusion at 0.02 mL/kg/hr.",
 ])
 def test_a_rate_is_not_read_as_a_volume(line):
     ctx = oc.extract_patient_context("80 kg adult, morphine")
     assert oc.unconfirmed_volume_issues(line, ctx) == []
+
+
+def test_a_per_kg_volume_is_a_volume():
+    """Was a "not a volume" case. Med sweep PR 1 (owner, 2026-10-30): "mL/kg"
+    volumes are checked like any mL — live served calcium gluconate "10 mL/kg
+    of 10% solution", ten times the dose's volume (test_sweep_pr1_wrong_numbers)."""
+    ctx = oc.extract_patient_context("80 kg adult, morphine")
+    issues = oc.unconfirmed_volume_issues("Morphine 0.1 mL/kg is not used here.", ctx)
+    assert len(issues) == 1 and "morphine" in issues[0], issues
 
 
 # ── Owner ruling on recipes (2026-10-25) ────────────────────────────────────
