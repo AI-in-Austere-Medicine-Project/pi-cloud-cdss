@@ -1451,6 +1451,14 @@ def _render_allowed_doses(query, ctx):
 # list is the "explicitly-flagged backfill" — adding to it is a deliberate,
 # reviewable act, and every entry in it is a drug/route the bank does not yet
 # cover.
+def _card_ctx(w, child):
+    return _oc.PatientContext(confirmed_weight_kg=w, weight_source="stated", is_pediatric=child)
+
+
+def _card_served(drug, patterns, ctx, route):
+    return _oc._served_from_pairs(_oc._card_signed_entries(drug, patterns, ctx, route)[0], ctx)
+
+
 DOSE_TEMPLATE_CASES = [
     {
         "name": "rsi_bundle",
@@ -1575,6 +1583,37 @@ DOSE_TEMPLATE_CASES = [
                                                     _analgesia_ctx("IV")),
         "backfill": [],  # A35: no calculator backfills a role
         "weight": 60.0,
+    },
+    # Med sweep PR 2 (owner, 2026-10-30): the anaphylaxis, sepsis and ketamine
+    # drip cards serve their drug's signed entry.
+    {
+        "name": "anaphylaxis_card_adult",
+        "render": lambda: _oc.build_anaphylaxis_response(_card_ctx(80.0, False)),
+        "contract": lambda: _card_served("epinephrine", ("anaphylaxis",), _card_ctx(80.0, False), "IM"),
+        "backfill": [],
+        "weight": 80.0,
+    },
+    {
+        "name": "anaphylaxis_card_paediatric",
+        "render": lambda: _oc.build_anaphylaxis_response(_card_ctx(20.0, True)),
+        "contract": lambda: _card_served("epinephrine", ("anaphylaxis",), _card_ctx(20.0, True), "IM"),
+        "backfill": [],
+        "weight": 20.0,
+    },
+    {
+        "name": "sepsis_card_adult",
+        "render": lambda: _oc.build_sepsis_management_response(_card_ctx(80.0, False)),
+        "contract": lambda: _card_served("ceftriaxone", ("sepsis",), _card_ctx(80.0, False), "IV"),
+        "backfill": [],
+        "weight": 80.0,
+    },
+    {
+        "name": "ketamine_drip_card_adult",
+        "render": lambda: _oc.build_ketamine_drip_response(_card_ctx(90.0, False)),
+        "contract": lambda: _card_served("ketamine", _oc.KETAMINE_INFUSION_INDICATIONS,
+                                         _card_ctx(90.0, False), "IV"),
+        "backfill": [],
+        "weight": 90.0,
     },
     {
         "name": "allowed_doses_seizure",
@@ -1742,10 +1781,9 @@ def test_the_retired_analgesia_hardcode_is_gone_from_the_iv_path():
 # to the protocol.
 DOSELESS_CARDS = {
     "build_cico_response", "build_tension_pneumothorax_response",
-    "build_sepsis_management_response", "build_anaphylaxis_response",
     "build_hypothermic_arrest_response",
     "build_mascal_response",
-    "build_ketamine_drip_response", "build_cholera_response",
+    "build_cholera_response",
     "build_ketamine_age_block",
     "build_snake_bite_response", "build_vtach_response",
     "build_txa_sepsis_block", "build_wpw_drug_block",
@@ -1760,6 +1798,8 @@ NOT_A_DOSE_CARD = {
     "build_fixed_prep_response", "build_ketamine_analgesia_response",
     "build_rsi_response", "build_hemorrhagic_shock_dcr_response",
     "build_tbi_management_response", "build_seizure_response",
+    "build_sepsis_management_response", "build_anaphylaxis_response",
+    "build_ketamine_drip_response",
 }
 
 # Cards that render the RECORD behind a dose already served. They print

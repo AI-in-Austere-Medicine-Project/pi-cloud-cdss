@@ -178,7 +178,7 @@ def test_ketamine_drip_card_serves_the_signed_rate(card_only):
     r = run("ketamine drip for sedation, intubated, 90 kg")
     text = r["response"]
     assert "**KETAMINE SEDATION DRIP**" in text, text
-    rate = _section(text, "RATE")
+    rate = _section(text, "DRIP")
     assert "ketamine IV: 0.5-2 mg/kg/hr" in rate, rate
     assert "45-180 mg/hr for this 90kg patient" in rate, rate
     assert "Indication: prolonged sedation infusion" in rate
@@ -188,5 +188,26 @@ def test_ketamine_drip_card_serves_the_signed_rate(card_only):
 def test_ketamine_drip_card_holds_a_child_by_name(card_only):
     r = run("ketamine drip for sedation, intubated, 20 kg 6 year old")
     text = r["response"]
-    rate = _section(text, "RATE")
+    rate = _section(text, "DRIP")
     assert "ketamine" in rate and "mg/kg/hr" not in rate, rate
+
+
+# ── Found in this PR's replay ───────────────────────────────────────────────
+# The seizure card named no benzodiazepine in its no-weight line, so "how much
+# midaz for the seizure" left the card for the generator. And "no antivenom
+# available" counted as naming antivenom.
+
+def test_the_seizure_card_holds_a_named_benzodiazepine_by_name(card_only):
+    r = run("how much midaz for the seizure")
+    assert "**ACTIVE SEIZURE**" in r["response"], r["response"][:300]
+    assert "No signed benzodiazepine (midazolam) dose without a weight" in r["response"]
+
+
+def test_a_drug_the_question_does_not_have_is_not_asked(card_only):
+    r = run("snakebite, no antivenom available, what do I do")
+    assert "**SNAKE BITE**" in r["response"], r["response"][:300]
+
+
+def test_a_benzodiazepine_already_given_is_named_and_the_card_answers(card_only):
+    r = run("80kg male still in status after 10 mg of versed")
+    assert "A benzodiazepine (midazolam) has already been given" in r["response"], r["response"]

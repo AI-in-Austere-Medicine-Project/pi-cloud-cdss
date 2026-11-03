@@ -225,8 +225,11 @@ def test_an_infant_rsi_brief_leads_with_the_blocked_induction_not_the_paralytic(
     lines = r["brief"].splitlines()
     assert lines[0].startswith("ketamine induction: contraindicated under 3 months")
     assert "rocuronium" not in lines[0]
-    assert "rocuronium" in lines[1] and lines[1].endswith(
-        f"— {brief.PARALYTIC_QUALIFIER}.")
+    # Med sweep PR 2: the infant bundle also carries the atropine pre-dose,
+    # which follows the paralytic on this line; the qualifier stays with the
+    # paralytic.
+    paralytic = next(x for x in lines[1].split(" · ") if "rocuronium" in x)
+    assert paralytic.rstrip(".").endswith(f"— {brief.PARALYTIC_QUALIFIER}".rstrip(".")), lines[1]
     assert "Draw 0.5 mL of 10mg/mL rocuronium IV (5 mg)" in _section(r["response"], "GIVE")
 
 
