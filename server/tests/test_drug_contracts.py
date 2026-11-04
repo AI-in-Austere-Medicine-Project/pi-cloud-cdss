@@ -1800,6 +1800,9 @@ NOT_A_DOSE_CARD = {
     "build_tbi_management_response", "build_seizure_response",
     "build_sepsis_management_response", "build_anaphylaxis_response",
     "build_ketamine_drip_response",
+    # Med sweep PR 3: the signed rates offered to the generator, beside
+    # build_allowed_doses; it renders nothing itself.
+    "build_allowed_rates",
 }
 
 # Cards that render the RECORD behind a dose already served. They print

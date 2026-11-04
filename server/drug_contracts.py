@@ -1300,6 +1300,30 @@ def _limit_mg(limit, weight_kg: Optional[float]) -> tuple:
     return None, why or f"{units!r} is not a mass"
 
 
+def escalation_steps_mg(entry: dict, dose_mg: Optional[float],
+                        weight_kg: Optional[float]) -> tuple:
+    """The later boluses of a signed escalation, in mg: each doubles the one
+    before, up to the entry's maximum single dose.
+
+    Med sweep PR 3 (owner, 2026-10-30): "atropine nerve-agent escalation
+    within the signed 16 mg". Only an entry whose max_single rule says the
+    escalation reaches it: atropine's nerve-agent IV/IO bolus, signed as "2 mg
+    then 4, 8, 16 mg" (CBRN ID69 p.28), "each later bolus doubles". Every
+    other entry has none, and its dose is its only value."""
+    limit = entry.get("max_single")
+    if (dose_mg is None or dose_mg <= 0 or not isinstance(limit, dict)
+            or "escalat" not in str(limit.get("rule") or "").lower()):
+        return ()
+    cap, _why = _limit_mg(limit, weight_kg)
+    if cap is None:
+        return ()
+    steps, x = [], dose_mg * 2
+    while x <= cap * (1 + 1e-9):
+        steps.append(round(x, 4))
+        x *= 2
+    return tuple(steps)
+
+
 def resolve_dose(entry: dict, weight_kg: Optional[float]) -> dict:
     """Turn a dose_entry into something servable, or say why not.
 

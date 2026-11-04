@@ -8,7 +8,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 24 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 25 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -396,7 +396,7 @@ except Exception as e:
 # ─────────────────────────────────────────────────────────────────────────────
 
 AccessState = Literal["UNKNOWN", "CONFIRMED_IV_IO", "NO_IV_IO", "FAILED_IV"]
-RoutePreference = Literal["UNKNOWN", "IV", "IM", "IO"]
+RoutePreference = Literal["UNKNOWN", "IV", "IM", "IO", "IN"]
 
 
 @dataclass
@@ -530,6 +530,11 @@ class DoseCandidate:
     # the number and drop the qualification. Empty for the legacy calculators,
     # which have no contract entry behind them.
     contraindications: List[str] = field(default_factory=list)
+    # Med sweep PR 3 (owner): "atropine nerve-agent escalation within the
+    # signed 16 mg". The doubling steps above dose_mg, in mg, for an entry
+    # whose signed maximum single dose is an escalation's ceiling
+    # (drug_contracts.escalation_steps_mg). Empty for every other entry.
+    escalation_mg: tuple = ()
 
 
 @dataclass
@@ -670,6 +675,21 @@ def weight_is_hedged(text: str, start: int, end: int) -> bool:
                 or _HEDGE_AFTER_RE.search(after))
 
 
+_INTRANASAL_RE = re.compile(
+    r"\bintra-?nasal\w*|\bnasal(?:ly)?\s+(?:route|spray|atomi[sz]\w*|mist\w*|dose)\b"
+    r"|\b(?:via|through|up) (?:the )?nose\b|\batomi[sz]er\b|\bMAD\b", re.IGNORECASE)
+_IN_ROUTE_RE = re.compile(r"\bIN\b")
+
+
+def _states_intranasal(text: str) -> bool:
+    t = text or ""
+    if _INTRANASAL_RE.search(t):
+        return True
+    letters = [c for c in t if c.isalpha()]
+    shouting = bool(letters) and sum(c.isupper() for c in letters) > 0.6 * len(letters)
+    return not shouting and bool(_IN_ROUTE_RE.search(t))
+
+
 def extract_patient_context(query: str,
                              prior_ctx: Optional[PatientContext] = None,
                              conversation_history: Optional[list] = None,
@@ -808,6 +828,13 @@ def extract_patient_context(query: str,
         ctx.route_preference = "IV"
     if re.search(r'\bio\b', q):
         ctx.route_preference = "IO"
+    # Med sweep 2026-10-30 (owner, PR 3): ""intranasal"/"IN" is a route".
+    # "ketamine intranasal" was asked "IV or IM?", and the signed IN entries
+    # were never offered. "IN" in capitals only, and not in a message typed
+    # in capitals ("80 KG ADULT IN PAIN"); "nasal" only as a way of giving a
+    # drug, never an injury or an airway.
+    if _states_intranasal(query):
+        ctx.route_preference = "IN"
 
     # ── Access state ──────────────────────────────────────────────────────
     confirmed_iv = ['have a 14g', 'have an iv', 'iv established', 'got an iv',
@@ -824,7 +851,8 @@ def extract_patient_context(query: str,
                  'only have im', 'im only', 'only im']
     if any(x in full_text for x in failed_iv):
         ctx.access_state = "NO_IV_IO"
-        ctx.route_preference = "IM"
+        if ctx.route_preference != "IN":
+            ctx.route_preference = "IM"
 
     # ── Provider scope ────────────────────────────────────────────────────
     scope_map = {
@@ -1390,15 +1418,48 @@ _ACK_RE = re.compile(r"^\s*(?:yes|yeah|yep|y|ok|okay|k|sure|please|go on|go ahea
 _WEIGHT_ANSWER_RE = re.compile(r"\b\d+(?:\.\d+)?\s*(?:kgs?|kilo\w*|lbs?|pounds?)\b|^\s*\d+(?:\.\d+)?\s*$",
                                re.IGNORECASE)
 _ROUTE_ANSWER_RE = re.compile(r"\b(?:iv|io|im|intravenous\w*|intraosseous|intramuscular\w*|"
-                              r"access|line)\b", re.IGNORECASE)
+                              r"intra-?nasal\w*|nasal\w*|access|line)\b", re.IGNORECASE)
 _ADULT_ANSWER_RE = re.compile(r"\b(?:adult|infant|child|toddler|kid|pediatric|paediatric|"
                               r"newborn|neonate|baby)\b", re.IGNORECASE)
 _SEVERITY_ANSWER_RE = re.compile(r"\b(?:mild|moderate|severe|\d+)\b", re.IGNORECASE)
 
 
+# Med sweep 2026-10-30 (owner, PR 3): "calcium with no salt asks "chloride
+# or gluconate?"". Live (T9): "calcium after 4 units of blood" was answered
+# "no signed calcium dose" beside two signed salts. "Calcium" as a level or a
+# lab value ("ionized calcium is low", "check a calcium level", "calcium
+# 0.9") is not a request for the drug.
+CALCIUM_SALT_ASK = "Calcium chloride or calcium gluconate?"
+_BARE_CALCIUM_RE = re.compile(
+    r"(?<!ionized )(?<!ionised )(?<!serum )(?<!check )(?<!check a )(?<!check the )(?<!low )"
+    r"(?<!high )(?<!measure )(?<!lab )\bcalcium\b(?!\s*(?:chloride|gluconate|channel|levels?"
+    r"|blockers?|is\b|was\b|of \d|[<>=]|\d))", re.IGNORECASE)
+_CALCIUM_SALT_ANSWER_RE = re.compile(r"\b(chloride|gluconate)\b", re.IGNORECASE)
+
+
+def calcium_salt_answer(query: str, last_response: str) -> str:
+    """"chloride", answering CALCIUM_SALT_ASK, is "calcium chloride": the
+    turn as the history and the dose builder read it."""
+    if ((last_response or "").strip().startswith(CALCIUM_SALT_ASK)
+            and not re.search(r"\bcalcium\b", query or "", re.IGNORECASE)):
+        return _CALCIUM_SALT_ANSWER_RE.sub(lambda m: f"calcium {m.group(1).lower()}", query)
+    return query
+
+
+def asks_calcium_salt(text: str) -> bool:
+    """The turn asks for calcium and names no salt."""
+    t = text or ""
+    if not _BARE_CALCIUM_RE.search(t):
+        return False
+    return not ({"calcium chloride", "calcium gluconate"}
+                & set(drug_contracts.resolve_drugs(t.lower()) if drug_contracts else []))
+
+
 def pending_question_kind(last_response: str) -> Optional[str]:
     """What the last response asked before dosing, or None."""
     r = (last_response or "").strip()
+    if r.startswith(CALCIUM_SALT_ASK):
+        return "calcium salt"
     if r.startswith("Which indication for "):
         return "indication"
     if re.match(r"Which .+? do you have", r):
@@ -1444,6 +1505,8 @@ def answers_pending_question(kind: Optional[str], query: str,
         return bool(stated_indication_classes(q))
     if kind == "severity":
         return bool(_SEVERITY_ANSWER_RE.search(q))
+    if kind == "calcium salt":
+        return bool(_CALCIUM_SALT_ANSWER_RE.search(q))
     return False
 
 
@@ -1461,6 +1524,8 @@ def scope_request(query: str, prior_queries: str, last_response: str = "") -> tu
     """
     kind = pending_question_kind(last_response)
     answered = kind is not None and answers_pending_question(kind, query, prior_queries)
+    if kind == "calcium salt" and answered:
+        query = calcium_salt_answer(query, last_response)
     named = {g for _s, _e, g in _drug_spans(query)}
     if named:
         keep = set(named) - negated_drugs(query)
@@ -1767,7 +1832,11 @@ INDICATION_CLASSES = [
      r"neonat\w*|newborn"),
     ("agitation", "agitation", r"agitat|violent|behaviou?r",
      r"agitat\w*|violent|combative|aggressi\w*|excited delirium|behaviou?r\w*|psychos\w*"
-     r"|restrain\w*|thrashing"),
+     r"|restrain\w*|thrashing"
+     # Med sweep PR 3 (owner): "fighting us" / "kicking our ass" (T1, live).
+     # Fighting a person, not a "fighting position".
+     r"|\bfighting (?:us|me|him|her|them|everyone|every\w*|the (?:crew|team|medics?|staff|restraints?))\b"
+     r"|\bkicking (?:our|my|his|her|their) (?:ass|butt)\b|\bswinging at\b"),
     ("RSI", "RSI", r"\brsi\b|induction",
      r"\brsi\b|intubat\w*|rapid sequence|induction"),
     # Freeze plan item 2 (owner, 2026-10-21): procedural sedation for pacing
@@ -1777,6 +1846,15 @@ INDICATION_CLASSES = [
     ("pacing / cardioversion", "pacing or cardioversion", r"pacing|cardioversion",
      r"\bpacing\b|\b(?:about|going|ready|prepar\w*) to pace\b|\bpace (?:him|her|them|the patient)\b"
      r"|transcutaneous(?:ly)? pac\w*|\btcp\b|cardiover\w*"),
+    # Med sweep 2026-10-30 (owner, PR 3): "midazolam indication list includes
+    # procedural sedation". Its labels read as sedation, whose question word
+    # is "already intubated", and the sedation cue skips "procedural
+    # sedation", so "procedural sedation for a shoulder reduction" was asked
+    # which indication with no option for it. After pacing, which keeps its
+    # own "procedural sedation for pacing / cardioversion" labels.
+    ("procedural sedation", "procedural sedation", r"\bprocedural\b|conscious sedation",
+     r"\bprocedural\b|conscious sedat\w*|sedat\w* for (?:a |an |the )?(?:[a-z-]+ ){0,2}"
+     r"(?:reduction|relocation|procedure|repair|debridement|dressing change)"),
     ("sedation", "sedation (already intubated)", r"sedation",
      r"(?<!procedural )sedat\w*|intubated|post[- ]?intubation|\btubed\b|on the vent|ventilat\w*"),
     ("seizure", "seizure", r"seizure|epilep",
@@ -1870,6 +1948,7 @@ def _check_classes(query: str) -> set:
 
 
 PACING_CLASS = "pacing / cardioversion"
+PROCEDURAL_CLASS = "procedural sedation"
 
 
 def _drug_stated_classes(stated: set, drug_classes: set) -> set:
@@ -1878,7 +1957,7 @@ def _drug_stated_classes(stated: set, drug_classes: set) -> set:
     class alone ("about to pace, midazolam for sedation" is E13, not the ID61
     add-on). A drug with no pacing entry keeps the sedation reading it had."""
     if PACING_CLASS in stated and PACING_CLASS in drug_classes:
-        return stated - {"sedation"}
+        return stated - {"sedation", PROCEDURAL_CLASS}
     return stated
 
 
@@ -2300,13 +2379,15 @@ def _contract_analgesia_candidate(ctx: PatientContext,
     if drug_contracts is None or ctx.dosing_weight_kg is None:
         return None
     route = ctx.route_preference
-    if route not in ("IV", "IM"):
+    if route not in ("IV", "IM", "IN"):
         return None
 
+    # IN (med sweep PR 3) as IM: "breakthrough pain — IM/IN (prolonged field
+    # care)" is the bank's only IN ketamine pain entry.
     if background:
-        lookups = [IM_ANALGESIA_INDICATIONS if route == "IM" else BACKGROUND_ANALGESIA_INDICATIONS]
+        lookups = [IM_ANALGESIA_INDICATIONS if route in ("IM", "IN") else BACKGROUND_ANALGESIA_INDICATIONS]
     else:
-        lookups = [ANALGESIA_INDICATIONS] + ([IM_ANALGESIA_INDICATIONS] if route == "IM" else [])
+        lookups = [ANALGESIA_INDICATIONS] + ([IM_ANALGESIA_INDICATIONS] if route in ("IM", "IN") else [])
     candidates = [(n, e) for patterns in lookups
                   for n, e in drug_contracts.signed_entries_by_indication(
                       patterns, ctx.is_pediatric, ctx.age_years)]
@@ -2393,6 +2474,7 @@ def _contract_candidate(name: str, entry: dict, w: Optional[float]) -> Optional[
         contraindications=list(drug_contracts.serve_contraindications(entry)),
         dilution=drug_contracts.push_dilution(entry),
         warning="; ".join(cautions) or None,
+        escalation_mg=drug_contracts.escalation_steps_mg(entry, resolved["dose_mg"], w),
     )
 
 
@@ -2914,6 +2996,13 @@ def dilution_sentence(d: DoseCandidate) -> str:
             f"{d.drug}{kit} in {dil['diluent_ml']:g} mL {dil['diluent']}.")
 
 
+def is_oral_without_liquid(d: DoseCandidate) -> bool:
+    """A PO dose of a drug with no signed presentation: a tablet (or gel),
+    never a volume."""
+    return ((d.route or "").upper() == "PO" and drug_concentrations is not None
+            and not drug_concentrations.signed_presentations(d.drug))
+
+
 def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
     """One canonical GIVE line, or the mg-only line when there is no volume.
 
@@ -2927,6 +3016,11 @@ def render_give_line(d: DoseCandidate, prefix: str = "- ") -> str:
                 if d.display_value is not None and d.display_units
                 else f"{d.dose_mg:g} mg")
     if d.volume_ml is None or d.concentration_mg_ml is None:
+        if is_oral_without_liquid(d):
+            # Med sweep PR 3 (owner): "no "confirm concentration" for
+            # tablets". An oral dose with no signed liquid has no volume to
+            # compute.
+            return f"{prefix}{d.drug} {d.route}: {dose_txt}. Indication: {d.indication}."
         why = d.volume_refusal or CONFIRM_CONCENTRATION_LINE
         return (f"{prefix}{d.drug} {d.route}: {dose_txt}. "
                 f"NO VOLUME — {why}. Indication: {d.indication}.")
@@ -2976,8 +3070,98 @@ def render_dose_summary(d: DoseCandidate, label: str) -> str:
             f"{d.volume_ml:g}mL of {d.concentration_mg_ml:g}mg/mL{made}{kit}.")
 
 
-def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
+# Brief tidy (med sweep 2026-10-30, owner, PR 3): "no contradictory "NO
+# VOLUME" beside a volume line, no extra ranges, no "confirm concentration"
+# for tablets." Live: a child's ketamine BRIEF gave "Draw 0.4 mL … (20 mg)"
+# and, under it, "Ketamine IV: 20 mg. NO VOLUME — confirm concentration";
+# a child's naloxone BRIEF quoted another indication's "0.001-0.015
+# mg/kg/dose" beside the 2 mg line; moxifloxacin PO was "Draw 400 mg … PO"
+# with "confirm concentration"; propofol "Draw 40 mg of propofol IV (40 mg)".
+# After the gate, on a served answer: a dose line that states a signed dose
+# in another shape takes the signed dose's own line; a BRIEF range that is
+# no signed rate goes. Lines only change shape or go: no number is added
+# that the check did not pass, and nothing is tidied in a hold.
+_TIDY_AMOUNT_RE = re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)\s*(mg|mcg|µg|μg|ug|g)\b(?!\s*/)", re.IGNORECASE)
+_TIDY_RANGE_RE = re.compile(
+    r"\d+(?:\.\d+)?\s*[-–]\s*\d+(?:\.\d+)?\s*(?:mg|mcg|µg|μg|ug|g|units?)\b", re.IGNORECASE)
+_DRAW_MASS_RE = re.compile(r"\bdraw\s+\d+(?:\.\d+)?\s*(?:mg|mcg|µg|μg|ug|g)\b", re.IGNORECASE)
+
+
+def _tidy_target(item: str, doses: List[DoseCandidate]) -> Optional[DoseCandidate]:
+    """The signed dose an item states, when the item is not that dose's own
+    line: a "Draw <mass>" line, a NO VOLUME line beside a volume, or a
+    tablet asked for its concentration."""
+    low = item.lower()
+    malformed = (bool(_DRAW_MASS_RE.search(item)) or "no volume" in low
+                 or CONFIRM_CONCENTRATION_LINE in low)
+    if not malformed:
+        return None
+    resolve = drug_contracts.resolve_drugs if drug_contracts is not None else None
+    stated = [float(m.group(1)) * _TO_MG_UNIT[m.group(2).lower().replace("µ", "mc").replace("μ", "mc")]
+              for m in _TIDY_AMOUNT_RE.finditer(item)
+              if m.group(2).lower().replace("µ", "mc").replace("μ", "mc") in _TO_MG_UNIT]
+    for d in doses:
+        if not brief_mod.names_drug(item, d.drug, resolve):
+            continue
+        if not stated or not all(abs(x - d.dose_mg) <= d.dose_mg * 0.05 + 1e-9 for x in stated):
+            continue
+        if "no volume" in low and d.volume_ml is None and not is_oral_without_liquid(d) \
+                and not _DRAW_MASS_RE.search(item):
+            return None  # the signed line itself: no volume is computable
+        return d
+    return None
+
+
+def tidy_dose_lines(response_text: str, doses: Optional[List[DoseCandidate]],
+                    rates: Optional[List[ServedEntry]] = None) -> str:
+    """The served answer with its BRIEF and dose sections tidied (above)."""
+    if not response_text or (not doses and not rates):
+        return response_text
+    doses = list(doses or [])
+    signed_ranges = {_normalised(render_range_line(r)) for r in rates or []}
+    out, section, seen = [], "", set()
+    for line in response_text.split("\n"):
+        m = brief_mod._HEADING_RE.match(line)
+        if m:
+            section, seen = brief_mod._norm_heading(m.group(1)), set()
+            out.append(line)
+            continue
+        is_item = bool(brief_mod._ITEM_RE.match(line.strip()))
+        if is_item and section in (brief_mod.BRIEF_SECTION,) + brief_mod.DOSE_SECTIONS:
+            target = _tidy_target(line, doses)
+            if target is not None:
+                line = render_give_line(target)
+            elif (section == brief_mod.BRIEF_SECTION and _TIDY_RANGE_RE.search(line)
+                  and _normalised(line) not in signed_ranges):
+                continue
+            key = _normalised(line)
+            if key in seen:
+                continue
+            seen.add(key)
+        elif is_item and _DRAW_MASS_RE.search(line) and _tidy_target(line, doses) is not None:
+            # A step ("1. Draw 40 mg of propofol IV (40 mg).") keeps its
+            # words; a mass is given, not drawn.
+            line = _DRAW_MASS_RE.sub(lambda m: "Give" + m.group(0)[4:], line, count=1)
+        out.append(line)
+    return "\n".join(out)
+
+
+ALLOWED_RATES_HEAD = ("ALLOWED_RATES — signed infusion rates. Give the rate EXACTLY as "
+                      "written; never as a bolus, and no mL/hr:")
+
+
+def _allowed_rate_lines(rates: Optional[List[ServedEntry]]) -> list:
+    if not rates:
+        return []
+    return [ALLOWED_RATES_HEAD] + [render_range_line(r) for r in rates]
+
+
+def build_allowed_dose_block(doses: List[DoseCandidate],
+                             rates: Optional[List[ServedEntry]] = None) -> str:
     if not doses:
+        if rates:
+            return "\n".join(["ALLOWED_DOSES: no bolus dose for this request."]
+                             + _allowed_rate_lines(rates))
         return "ALLOWED_DOSES: none. Do not provide medication doses in this response."
     lines = ["ALLOWED_DOSES — use EXACTLY these values. Do not calculate alternatives:"]
     for d in doses:
@@ -2991,13 +3175,13 @@ def build_allowed_dose_block(doses: List[DoseCandidate]) -> str:
         cis = getattr(d, "contraindications", None)
         if cis:
             lines.append(f"  Contraindications: {'; '.join(cis)}")
-    if any(d.volume_ml is None for d in doses):
+    if any(d.volume_ml is None and not is_oral_without_liquid(d) for d in doses):
         lines.append(
             "  A line with NO VOLUME has no confirmed concentration for that "
             "drug. Give the milligram dose and the confirm-concentration "
             "sentence exactly as written. Do NOT compute or invent a mL "
             "volume for it.")
-    return "\n".join(lines)
+    return "\n".join(lines + _allowed_rate_lines(rates))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -4212,6 +4396,49 @@ def render_range_line(s: ServedEntry, prefix: str = "- ") -> str:
             f"Indication: {s.indication}.")
 
 
+# The infusion ruling (owner, 2026-11-03, med sweep PR 3): "signed infusion
+# entries enter the allowed list as rates (per-kg/min or per-kg/hr with the
+# signed range), and a correct signed infusion line serves; a bolus for an
+# infusion question still holds." Found in PR 1: the label check held a
+# signed infusion's own label ("Indication: symptomatic bradycardia —
+# infusion") because rate entries were never built, and the generator was
+# never offered a rate to copy. The rate VALUE check (A11/A11b) is unchanged;
+# the form rule (A32 gap 3) still holds a bolus for an infusion question.
+def build_allowed_rates(query: str, ctx: PatientContext) -> List[ServedEntry]:
+    """The signed infusion rates for the drugs the question names, for this
+    patient, narrowed the way the dose check narrows a bolus: the population,
+    the stated route (a rate is IV/IO), the indication the question states
+    (A32, A11b). The same population rules as a dose: a child needs a weight,
+    and an adult entry an adult (#181)."""
+    if drug_contracts is None:
+        return []
+    if ctx.is_pediatric and ctx.dosing_weight_kg is None:
+        return []
+    if not ctx.is_pediatric and not ctx.adult_established:
+        return []
+    if ctx.route_preference not in ("UNKNOWN", "IV", "IO"):
+        return []
+    low = (query or "").lower()
+    stated = _check_classes(query)
+    strong = _strongly_stated_classes(query)
+    categories = rate_indications(query)
+    pairs = []
+    for drug in drug_contracts.resolve_drugs(low):
+        if drug in negated_drugs(query):
+            continue
+        ok = _accepted_indications(drug, query, stated, strong, {"IV", "IO"}, ctx) if stated else None
+        for e in drug_contracts.servable_entries().get(drug, []):
+            if not is_rate_entry(e) or not _entry_fits(e, ctx):
+                continue
+            if ok is not None and (e.get("indication") or "").lower() not in ok:
+                continue
+            category = _rate_indication_category(e.get("indication"))
+            if categories and category is not None and category not in categories:
+                continue
+            pairs.append((drug, e))
+    return _served_from_pairs(pairs, ctx)
+
+
 def _prep_give_block(served: List[ServedEntry], note: Optional[str]) -> str:
     """What goes under GIVE: the signed entries, or the note saying which
     question the signed entries do not cover. Never called with neither — that
@@ -5050,15 +5277,19 @@ def audit_volume_lines(response_text: str,
 # ─────────────────────────────────────────────────────────────────────────────
 _FREE_DOSE_SKIP_SECTIONS = frozenset({"DON'T", "DONT", "DO NOT", "SOURCE", "SOURCES"})
 _FREE_DOSE_HEADING_RE = re.compile(r"^\s*(?:⚠️\s*)?\*\*([^*a-z]*[A-Z][^*a-z]*)\*\*")
+# "/dose" ("per dose") is a dose, not a rate or a concentration (med sweep
+# PR 3, naloxone[2]: "0.001-0.015 mg/kg/dose" was read as neither and
+# served beside the signed 2 mg).
+_PER_DOSE = r"(?:/|per\s+)\s*dose\b"
 _FREE_DOSE_AMOUNT_RE = re.compile(
     r"(?<![\d.])(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*"
-    r"(mg|mcg|µg|μg|ug|micrograms?|milligrams?|g|grams?)\b(?!\s*(?:/|per\b))",
+    r"(mg|mcg|µg|μg|ug|micrograms?|milligrams?|g|grams?)\b(?!\s*(?!" + _PER_DOSE + r")(?:/|per\b))",
     re.IGNORECASE)
 # A per-kg dose: mass per kg, and NOT then per unit time (that is a rate).
 _FREE_DOSE_PER_KG_RE = re.compile(
     r"(?<![\d.])(\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*"
     r"(mg|mcg|µg|μg|ug|micrograms?|milligrams?|g|grams?)\s*(?:/|per\s+)\s*kg\b"
-    r"(?!\s*(?:/|per\b))",
+    r"(?!\s*(?!" + _PER_DOSE + r")(?:/|per\b))",
     re.IGNORECASE)
 # A threshold, not a dose: ">0.3 mg/kg", "above 2 mg", "greater than 1 g".
 _FREE_DOSE_THRESHOLD_RE = re.compile(
@@ -5330,9 +5561,16 @@ def free_text_dose_issues(response_text: str,
     indications = rate_indications(query) if query else set()
     classes = stated_indication_classes(query) if query else set()
     allowed, signed_units = {}, {}
+    # A signed escalation's later boluses (PR 3) pass as the escalation, never
+    # as the dose a labelled dose line gives: "Atropine IV: 16 mg …
+    # Indication: nerve agent poisoning" names the ceiling as the first bolus.
+    escalation, escalation_units = {}, {}
     for d in allowed_doses or []:
         allowed.setdefault(d.drug.lower(), []).append(d.dose_mg)
         signed_units.setdefault(d.drug.lower(), []).append(_mass_unit(d.display_units))
+        for mg in getattr(d, "escalation_mg", ()) or ():
+            escalation.setdefault(d.drug.lower(), []).append(mg)
+            escalation_units.setdefault(d.drug.lower(), []).append(_mass_unit(d.display_units))
     weight = patient_ctx.dosing_weight_kg if patient_ctx is not None else None
     query_drugs = {sp[2] for sp in _drug_spans(query)} if query else set()
     query_drug = next(iter(query_drugs)) if len(query_drugs) == 1 else None
@@ -5414,6 +5652,10 @@ def free_text_dose_issues(response_text: str,
                 factor = _TO_MG_UNIT[amt.group(3).lower()]
                 values = [float(v) * factor for v in amt.group(1, 2) if v]
                 ok = allowed.get(drug.lower(), [])
+                units = signed_units.get(drug.lower(), [])
+                if "indication:" not in line.lower():
+                    ok = ok + escalation.get(drug.lower(), [])
+                    units = units + escalation_units.get(drug.lower(), [])
                 if per_kg_weight is None:
                     # A per-kg dose is only a number once there is a weight.
                     stated = [v * weight for v in values] if weight else None
@@ -5424,7 +5666,6 @@ def free_text_dose_issues(response_text: str,
                     # A25: the value is signed; the unit must be the one the
                     # matched entry is written in. An entry with no display
                     # unit (the older calculators) is not judged on unit.
-                    units = signed_units.get(drug.lower(), [])
                     matched = {units[i] for i, a in enumerate(ok)
                                if any(abs(x - a) <= a * 0.05 + 1e-9 for x in stated)}
                     said = _mass_unit(amt.group(3))
@@ -5488,11 +5729,32 @@ def free_text_dose_issues(response_text: str,
     return list(dict.fromkeys(issues))
 
 
+# Found in med sweep PR 3's replay (live, 2026-10-27): "Draw X mL of Y mg/mL
+# propofol IV (Z mg). Indication: sedation." is the prompt's format line,
+# copied unfilled. It was held only by the label check, because propofol's
+# sedation infusion was not built; with signed rates built (the infusion
+# ruling) nothing held it. A dose line with the template's letters where its
+# numbers go is not a dose, whatever else is right.
+_UNFILLED_TEMPLATE_RE = re.compile(
+    r"\b[Dd]raw\s+[A-Z]\s*m[lL]\b|\b[A-Z]\s*mg/m[lL]\b|\(\s*[A-Z]\s*(?:mg|mcg)\s*\)")
+
+
+def unfilled_template_issues(response_text: str) -> list:
+    issues = []
+    for line in (response_text or "").splitlines():
+        if _UNFILLED_TEMPLATE_RE.search(line):
+            shown = line.strip(" -*")
+            issues.append(f"The answer has an unfilled dose template (\"{shown}\"), not a "
+                          f"dose. Ask again for the drug by name to get the signed dose.")
+    return list(dict.fromkeys(issues))
+
+
 _INDICATION_LABEL_RE = re.compile(r"\bindication:\s*([^.\n]+)", re.IGNORECASE)
 
 
 def indication_label_issues(response_text: str,
-                            allowed_doses: Optional[List["DoseCandidate"]]) -> list:
+                            allowed_doses: Optional[List["DoseCandidate"]],
+                            allowed_rates: Optional[List["ServedEntry"]] = None) -> list:
     """Issues for a dose line whose "Indication:" names another signed indication.
 
     The value checks cannot see this: at 50 kg the seizure dose of midazolam is
@@ -5505,7 +5767,8 @@ def indication_label_issues(response_text: str,
     if drug_contracts is None:
         return []
     built = {}
-    for d in allowed_doses or []:
+    # A signed rate is built too (the infusion ruling, PR 3).
+    for d in list(allowed_doses or []) + list(allowed_rates or []):
         built.setdefault(d.drug.lower(), set()).add((d.indication or "").lower())
     signed = drug_contracts.servable_entries()
     issues, section = [], ""
@@ -5972,8 +6235,12 @@ def run_deterministic_checks(query: str, response_text: str,
     issues.extend(hemorrhage_control_issues(current_query if current_query is not None else query,
                                             response_text))
 
+    # ── A dose line still in the prompt's template (med sweep PR 3) ───────
+    issues.extend(unfilled_template_issues(response_text))
+
     # ── A dose labelled for an indication it was not built for (A1b) ──────
-    issues.extend(indication_label_issues(response_text, labelled_doses))
+    issues.extend(indication_label_issues(response_text, labelled_doses,
+                                          build_allowed_rates(query, patient_ctx)))
 
     # ── A dose signed for another indication than the one stated (A32) ────
     issues.extend(other_indication_issues(response_text, other_doses, query, patient_ctx,
@@ -6955,9 +7222,11 @@ def build_full_query_history(query: str, conversation_history: Optional[list] = 
     if conversation_history:
         parts = []
         event_turns = _env_number("CDSS_EVENT_TURNS", 12, int)
-        for turn in conversation_history[-event_turns:]:
+        turns = conversation_history[-event_turns:]
+        for i, turn in enumerate(turns):
             if turn.get("query"):
-                parts.append(turn.get("query", ""))
+                before = (turns[i - 1] or {}).get("response") if i else ""
+                parts.append(calcium_salt_answer(turn.get("query", ""), before or ""))
         prior_queries = " ".join(parts).strip()
 
     full_query_history = f"{prior_queries} {query}".strip()
@@ -7125,7 +7394,7 @@ def build_ketamine_analgesia_response(ctx: PatientContext, query: str = "") -> O
     is gone. What it must NEVER do is reach for the signed IM
     dissociative-sedation entry — see _contract_analgesia_candidate.
     """
-    if not ctx.confirmed_weight_kg or ctx.route_preference not in ["IV", "IM"]:
+    if not ctx.confirmed_weight_kg or ctx.route_preference not in ["IV", "IM", "IN"]:
         return None
 
     # A stated age the entry's floor rules out refuses here too, for any
@@ -8273,7 +8542,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    twenty-four early returns before retrieval — count them with the source_mode
+    twenty-five early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -8771,7 +9040,7 @@ def _run_pipeline(query: str, chromadb_client,
             and is_ketamine_analgesia_context(full_query_history)
             and not is_rsi_or_post_intubation_context(query)
             and patient_ctx.confirmed_weight_kg
-            and patient_ctx.route_preference in ["IV", "IM"]
+            and patient_ctx.route_preference in ["IV", "IM", "IN"]
         ):
             ket_response = build_ketamine_analgesia_response(patient_ctx, full_query_history)
             if ket_response and not card_yields(query, ket_response):
@@ -8896,6 +9165,15 @@ def _run_pipeline(query: str, chromadb_client,
                     "patient_context": patient_ctx.to_dict()
                 }
 
+        # Step 2l-00 (med sweep PR 3): "calcium" with no salt. Calcium chloride
+        # and calcium gluconate are signed at different doses (1 g and 3 g after
+        # massive transfusion), so the salt is asked, as the vial is.
+        if asks_calcium_salt(request_query):
+            print("🚪 CALCIUM SALT ASK")
+            return {"response": CALCIUM_SALT_ASK, "sources": [], "source_mode": "PRE_GATE",
+                    "validator_result": "SKIPPED_SAFE_GATE", "validator_issues": [],
+                    "patient_context": patient_ctx.to_dict()}
+
         # Step 2l-0 (A39): a drug this turn asks about with no signed entry at
         # all holds here, before any question about it and before the model.
         unsigned = unsigned_drugs_named(query)
@@ -8954,7 +9232,8 @@ def _run_pipeline(query: str, chromadb_client,
 
         # Step 4: Build dose candidates from full history, not only current query.
         allowed_doses = build_allowed_doses(full_query_history, patient_ctx, current_query=cue_query)
-        allowed_dose_block = build_allowed_dose_block(allowed_doses)
+        allowed_rates = build_allowed_rates(full_query_history, patient_ctx)
+        allowed_dose_block = build_allowed_dose_block(allowed_doses, allowed_rates)
         print(f"💊 {len(allowed_doses)} dose candidates built")
 
         allowed_actions = build_allowed_actions(full_query_history, patient_ctx)
@@ -9096,6 +9375,8 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
             final_response = brief_mod.asked_drug_leads(
                 final_response, asked_drugs(query),
                 drug_contracts.resolve_drugs if drug_contracts is not None else None)
+            # Med sweep PR 3: the brief tidy.
+            final_response = tidy_dose_lines(final_response, allowed_doses, allowed_rates)
         # Applied after the gate for the same reason the reset notice is: a label
         # must never become text the validator reasons about or an override
         # matches its keywords against. Served answers only — a safety hold is

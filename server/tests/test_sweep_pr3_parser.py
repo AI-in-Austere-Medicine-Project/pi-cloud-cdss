@@ -201,6 +201,18 @@ def test_the_signed_nerve_agent_escalation_serves():
     assert issues == [], issues
 
 
+def test_a_dose_line_that_gives_the_ceiling_as_the_dose_holds():
+    """Found in this PR's replay (live, 2026-10-30): the steps escalated 2, 4,
+    8, 16 mg, and the GIVE line gave 16 mg under the escalation's label."""
+    text = ("**DO THIS**\n1. Administer atropine IV: 2 mg.\n2. Administer atropine IV: 4 mg.\n"
+            "3. Administer atropine IV: 8 mg.\n4. Administer atropine IV: 16 mg.\n\n"
+            "**GIVE**\n- Atropine IV: 16 mg. Indication: nerve agent poisoning — escalating "
+            "IV/IO bolus.\n")
+    issues = _issues(ATROPINE_Q, text)
+    assert any("16 mg" in i for i in issues), issues
+    assert _issues(ATROPINE_Q, text.replace("- Atropine IV: 16 mg.", "- Atropine IV: 2 mg.")) == []
+
+
 def test_an_escalation_past_the_signed_16_mg_holds():
     text = ATROPINE_ESCALATION.replace("then 16 mg.", "then 16 mg, then 32 mg.")
     issues = _issues(ATROPINE_Q, text)
@@ -250,7 +262,10 @@ def test_the_salt_answer_carries_the_request(card_only):
 
 # ── Brief tidy ──────────────────────────────────────────────────────────────
 
-KETAMINE6_Q = "20 kg 6 year old, combative, need dissociative sedation, ketamine IV"
+# The vial is named: the sweep's kit served its one ketamine vial, and a
+# kit file with more than one asks which.
+KETAMINE6_Q = ("20 kg 6 year old, combative, need dissociative sedation, ketamine IV, "
+               "500 mg / 10 mL vial")
 KETAMINE6_SERVED = (
     "**BRIEF**\n"
     "- Draw 0.4 mL of 50mg/mL ketamine IV (20 mg) (kit vial). Indication: agitated or "
@@ -283,12 +298,34 @@ NALOXONE2_SERVED = (
     "respiratory depression.\n")
 
 
-def test_no_extra_range_in_the_brief(model_says):
+def test_the_sweeps_extra_range_now_holds(model_says):
+    """Served SAFE live: "mg/kg/dose" was read as neither a dose nor a rate.
+    It is a dose now, and not naloxone's signed one."""
     model_says(NALOXONE2_SERVED)
     r = run(NALOXONE2_Q)
-    assert not _held(r), r["response"][:400]
-    assert "0.001-0.015" not in r["response"], r["response"]
-    assert "Draw 5 mL of 0.4mg/mL naloxone IV (2 mg)" in _section(r["response"], "BRIEF")
+    assert _held(r) and "0.001-0.015 mg/kg" in r["response"], r["response"][:400]
+
+
+def test_no_extra_range_in_the_brief():
+    """A range the check let through (every value signed) is still not the
+    brief's: the brief carries the dose lines."""
+    q = NALOXONE2_Q
+    doses = oc.build_allowed_doses(q, _ctx(q))
+    text = ("**BRIEF**\n- Draw 5 mL of 0.4mg/mL naloxone IV (2 mg).\n"
+            "- Naloxone 2-2 mg IV, repeat as needed.\n\n**GIVE**\n"
+            "- Draw 5 mL of 0.4mg/mL naloxone IV (2 mg). Indication: opioid-induced "
+            "respiratory depression.\n")
+    out = oc.tidy_dose_lines(text, doses)
+    assert "2-2 mg" not in out, out
+    assert "Draw 5 mL of 0.4mg/mL naloxone IV (2 mg)." in _section(out, "BRIEF")
+
+
+def test_a_signed_rate_in_the_brief_stays():
+    ctx = _ctx(EPI6_Q)
+    rates = oc.build_allowed_rates(EPI6_Q, ctx)
+    line = oc.render_range_line(rates[0])
+    text = f"**BRIEF**\n{line}\n\n**GIVE**\n{line}\n"
+    assert oc.tidy_dose_lines(text, oc.build_allowed_doses(EPI6_Q, ctx), rates) == text
 
 
 MOXI_Q = "80 kg adult, combat wound, can swallow, antibiotic prophylaxis, moxifloxacin PO"
@@ -321,13 +358,24 @@ def test_a_draw_line_with_no_volume_is_tidied(model_says):
     """propofol[0] on PR 2's branch: qwen wrote "Draw 40 mg of propofol IV (40 mg)"."""
     model_says(
         "**BRIEF**\n- Draw 40 mg of propofol IV (40 mg).\n\n"
-        "**DO THIS**\n1. Induce.\n\n"
+        "**DO THIS**\n1. Draw 40 mg of propofol IV (40 mg).\n\n"
         "**GIVE**\n- Draw 40 mg of propofol IV (40 mg). Indication: induction of "
         "anaesthesia, hypotensive trauma patient (reduced dose).\n")
     r = run("80 kg adult, hypotensive trauma patient, need induction, propofol IV")
     assert not _held(r), r["response"][:400]
     assert "Draw 40 mg" not in r["response"], r["response"]
     assert "propofol IV: 40 mg" in _section(r["response"], "GIVE"), r["response"]
+    assert "1. Give 40 mg of propofol IV (40 mg)." in r["response"], r["response"]
+
+
+def test_an_extra_per_dose_range_holds():
+    """Found on this PR's harness (qwen, live): the range moved from BRIEF to
+    DO THIS. "mg/kg/dose" was read as neither a dose nor a rate."""
+    text = NALOXONE2_SERVED.replace(
+        "2. Administer naloxone IV.",
+        "2. Administer naloxone 0.001-0.015 mg/kg/dose (up to 2 mg) IV.")
+    issues = _issues(NALOXONE2_Q, text)
+    assert any("0.001-0.015 mg/kg" in i for i in issues), issues
 
 
 # ── The infusion ruling: a signed rate is an allowed dose ───────────────────
