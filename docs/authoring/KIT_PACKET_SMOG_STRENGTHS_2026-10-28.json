@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "K2: the strengths SMOG CY24 shows for each bank drug with a signed dose.",
+    "Read from server/data/jts_protocols/SMOG_CY24_REVISION_FINAL.pdf (printed page == PDF page),",
+    "each drug's monograph page and the infusion chart after it, 2026-10-28. Quotes verbatim",
+    "(pdftotext -layout; column text from the page's other side removed).",
+    "kind: vial = a strength as supplied (a SIGN line in the packet); infusion = a bag the",
+    "medic mixes (shown for reference, no SIGN line: a bag is not a vial).",
+    "A drug not listed here: its SMOG monograph states doses in mg and no strength, or SMOG",
+    "has no monograph for it."
+  ],
+  "source": "U.S. Army Aeromedical Evacuation Standard Medical Operating Guidelines (SMOG), CY24 revision",
+  "drugs": {
+    "epinephrine": [
+      {"kind": "vial", "mg_ml": 1.0, "page": 113, "quote": "Epinephrine 1mg/1ml (1:1,000)"},
+      {"kind": "vial", "mg_ml": 0.1, "page": 114, "quote": "IV: 1mg/10mL (0.1mg/mL) pre-filled 10cc Syringe"},
+      {"kind": "infusion", "mg_ml": 0.002, "page": 113, "quote": "MIX 1 mg/500 mL ... CONCENTRATION 2 mcg/mL"}
+    ],
+    "calcium chloride": [
+      {"kind": "vial", "mg_ml": 100.0, "page": 101, "quote": "solution concentration of 100 mg/mL (10%) containing 1.4 mEq (27 mg) ... (1gram = 10cc of a 10% solution)"}
+    ],
+    "calcium gluconate": [
+      {"kind": "vial", "mg_ml": 100.0, "page": 102, "quote": "Hypocalcemia prophylaxis from massive transfusion 30mL of 10% solution over 5 minutes"}
+    ],
+    "dextrose": [
+      {"kind": "vial", "mg_ml": 500.0, "page": 105, "quote": "10-25 g (40-100 mL of 25% solution or 20-50 mL of 50% solution)"},
+      {"kind": "vial", "mg_ml": 250.0, "page": 105, "quote": "10-25 g (40-100 mL of 25% solution or 20-50 mL of 50% solution)"},
+      {"kind": "infusion", "mg_ml": 250.0, "page": 105, "quote": "D25= 25ml NS + 25ml D50 (12.5g in 50ml's solution)"},
+      {"kind": "infusion", "mg_ml": 100.0, "page": 105, "quote": "Newborns: 5ml/kg D10 (Max 25 G/dose)"}
+    ],
+    "ketamine": [
+      {"kind": "infusion", "mg_ml": 1.0, "page": 128, "quote": "MIX 500 mg/500 mL ... CONCENTRATION 1 mg/mL"}
+    ],
+    "fentanyl": [
+      {"kind": "infusion", "mg_ml": 0.01, "page": 119, "quote": "MIX 1 mg/100 mL ... CONCENTRATION 10 mcg/mL"}
+    ],
+    "norepinephrine": [
+      {"kind": "infusion", "mg_ml": 0.008, "page": 147, "quote": "MIX 4 mg/500 mL ... CONCENTRATION 8 mcg/mL"}
+    ],
+    "propofol": [
+      {"kind": "infusion", "mg_ml": 10.0, "page": 154, "quote": "MIX 500 mg/50 mL ... CONCENTRATION 10 mg/mL"}
+    ],
+    "cefazolin": [
+      {"kind": "infusion", "mg_ml": 8.0, "page": 103, "quote": "War wounds (dirty wounds), 2g in 250 mL NS IV"}
+    ],
+    "ertapenem": [
+      {"kind": "infusion", "mg_ml": 4.0, "page": 116, "quote": "Give 1g in 250 mL NS IV over 5 min"}
+    ],
+    "atropine": [
+      {"kind": "infusion", "mg_ml": 0.08, "page": 100, "quote": "IV/IO: (Nerve agent) Atropine 20mg in 250mL"}
+    ]
+  }
+}

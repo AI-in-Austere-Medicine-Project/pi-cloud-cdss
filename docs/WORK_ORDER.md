@@ -95,6 +95,7 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | S1 | Speech in: whisper.cpp base.en on the Jetson, `/transcribe`, push to talk into the question box; the medic presses send. With it, `edgecdss-v3` bench only | **in review**; owner, 2026-10-27 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
+| K2 | Kit packet: a page per bank drug with a signed dose, the kit file's and SMOG's strengths, SIGN lines, one or two strengths stocked (Word and PDF) | **ready for the owner**; owner, 2026-10-28. Nothing signed |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **done**: #193, merged; the owner applied the declaration to the live kit (2026-10-28) |
 | K3 | A volume under 0.5 mL at the vial (kit or stated) is drawn from the signed push dilution made from it (ketamine IV analgesia, adult and paediatric: 5 mg/mL); was v1.1 #5 | **done**: #195, merged; owner signed off the replay rows (2026-10-28) |
