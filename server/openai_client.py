@@ -1631,12 +1631,15 @@ def _rsi_role(indication: str) -> Optional[str]:
         return "paralytic"
     if "post-intubation sedation" in i or "ongoing sedation" in i:
         return "sedation"
+    if "rsi pre-dose" in i:
+        return "pre-dose"
     return None
 
 
 RSI_INDUCTION_INDICATIONS = ("RSI induction",)
 RSI_PARALYTIC_INDICATIONS = ("RSI paralytic",)
 RSI_SEDATION_INDICATIONS = ("post-intubation sedation", "ongoing sedation")
+RSI_PREDOSE_INDICATIONS = ("RSI pre-dose",)
 SEIZURE_INDICATIONS = ("active seizure",)
 
 # ── A1b: the indication a seizing patient's dose must be for ────────────────
@@ -2202,6 +2205,13 @@ def _contract_rsi_entries(query: str, ctx: PatientContext) -> list:
     # contraindications rocuronium does not. An unfilled role falls through to
     # the legacy calculator for the preferred drug instead.
     chosen += [(n, e) for n, e in paralytics if n == preferred][:1]
+
+    # Med sweep PR 2 (owner, 2026-10-30): the paediatric bundle carries the
+    # signed atropine pre-dose (JTS ID39 p.28). Who gets it is the entry's
+    # own caution, printed with it. Live, atropine[5] got the bundle with
+    # "Ask for atropine by name for the dose" and no atropine.
+    if ctx.is_pediatric:
+        chosen += [(n, e) for n, e in pick(RSI_PREDOSE_INDICATIONS) if n == "atropine"][:1]
     return chosen
 
 
@@ -7321,10 +7331,11 @@ Guideline-based support only. Not a substitute for clinical judgment."""
         by_role.setdefault(_rsi_role(d.indication), d)
 
     by_role = {k: resolve_dose_volume(v, ctx) for k, v in by_role.items() if v}
+    pre = by_role.get("pre-dose")
     ket_ind = by_role.get("induction")
     paralytic = by_role.get("paralytic")
     ket_post = by_role.get("sedation")
-    served = [d for d in (ket_ind, paralytic, ket_post) if d is not None]
+    served = [d for d in (pre, ket_ind, paralytic, ket_post) if d is not None]
     if not served:
         # Every role empty — nothing signed and nothing to calculate. Fall
         # through to the normal pipeline rather than print an RSI heading over
@@ -7372,14 +7383,27 @@ Guideline-based support only. Not a substitute for clinical judgment."""
     sed_name = ket_post.drug if ket_post else "sedation"
     par_name = paralytic.drug if paralytic else "paralytic"
 
+    pre_line = f"{render_give_line(pre)}\n" if pre else ""
+    # Med sweep PR 2: one paralytic per intubation (the role ruling above). A
+    # question naming both gets the other held by name, not dropped silently.
+    other_par = ""
+    if paralytic is not None:
+        named = set(asked_drugs(text))
+        for other in ("rocuronium", "succinylcholine"):
+            if other != paralytic.drug and other in named:
+                other_par = (f"\n- {other}: no dose here: one paralytic per intubation, "
+                             f"and this bundle's is {paralytic.drug}.")
+    step2 = ("Atropine pre-dose first (see its cautions), then induction, then paralytic."
+             if pre else "Give induction first, then paralytic.")
+
     return f"""**DO THIS**
 1. Pre-oxygenate and prepare suction, backup airway, and cricothyrotomy equipment.
-2. Give induction first, then paralytic.
+2. {step2}
 3. Intubate, confirm tube, secure tube, then continue post-intubation sedation.
 
 **GIVE**
-{_give(ket_ind, "induction")}
-{_give(paralytic, "paralytic")}
+{pre_line}{_give(ket_ind, "induction")}
+{_give(paralytic, "paralytic")}{other_par}
 
 **POST-INTUBATION SEDATION**
 {_give(ket_post, "post-intubation sedation")}
@@ -7523,8 +7547,58 @@ def build_hemorrhagic_shock_dcr_response(ctx: Optional[PatientContext] = None,
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_sepsis_management_response() -> str:
-    return """**SEPSIS**
+# Med sweep PR 2 (owner, 2026-10-30): the anaphylaxis, sepsis and ketamine
+# drip cards serve their drug's signed entry, as the TBI card does, through
+# the same population gate the drug lane uses: a child needs a weight, and an
+# adult fixed dose needs an adult confirmed or a weight (#181). Where nothing
+# is signed for the patient, or the gate is not met, the card holds the drug
+# by name, so a question that names it is still answered here.
+def _card_signed_entries(drug: str, patterns, ctx: Optional[PatientContext],
+                         route: Optional[str] = None) -> tuple:
+    """(pairs, why_not): the signed (drug, entry) pairs for this patient, or
+    no pairs and what the card must ask for. why_not is None when the gate is
+    met (pairs may still be empty: nothing signed for this patient)."""
+    ctx = ctx or PatientContext()
+    if drug_contracts is None:
+        return [], None
+    if ctx.dosing_weight_kg is None:
+        if ctx.is_pediatric:
+            return [], "give the child's weight in kg"
+        if not ctx.adult_established:
+            return [], "confirm the patient is an adult, or give the age or the weight in kg"
+    pairs = [(n, e) for n, e in drug_contracts.signed_entries_by_indication(
+        patterns, ctx.is_pediatric, ctx.age_years)
+        if n == drug and (route is None or e.get("route") == route)]
+    return pairs, None
+
+
+def _card_hold_line(drug: str, route: str, what: str, why_not: Optional[str],
+                    ctx: Optional[PatientContext]) -> str:
+    """The line that holds a card's drug by name."""
+    if why_not:
+        return f"- {drug} {route}: no signed dose until you {why_not}."
+    who = "a child" if ctx is not None and ctx.is_pediatric else "this patient"
+    return (f"- {drug}: no signed {drug} {what} for {who} here. "
+            "Use local protocol or medical control.")
+
+
+def _card_dose_blocks(served) -> str:
+    if not served:
+        return ""
+    return (f"\n**CONTRAINDICATIONS**\n{served_contraindications_block(served)}\n"
+            f"\n**CAUTIONS**\n{served_cautions_block(served)}\n")
+
+
+SEPSIS_ID83_SOURCE = "JTS CPG ID83, Sepsis Management in Prolonged Field Care (28 Oct 2020)"
+
+
+def build_sepsis_management_response(ctx: Optional[PatientContext] = None) -> str:
+    pairs, why_not = _card_signed_entries("ceftriaxone", ("sepsis",), ctx, route="IV")
+    served = _served_from_pairs(pairs, ctx)
+    give = ("\n".join(render_range_line(x) for x in served)
+            or _card_hold_line("ceftriaxone", "IV", "dose for sepsis", why_not, ctx))
+    doses = f" · doses: {served_source_line(served, '')}" if served else ""
+    return f"""**SEPSIS**
 - Treat as suspected sepsis/septic shock.
 
 **TREAT**
@@ -7532,32 +7606,42 @@ def build_sepsis_management_response() -> str:
 2. Give fluid bolus per local protocol and reassess frequently.
 3. Start antibiotics if available and evacuate urgently.
 
+**GIVE**
+{give}
+{_card_dose_blocks(served)}
 **DON'T**
 - Do not use TXA/DCR/LTOWB for sepsis alone unless hemorrhage is clearly present.
 
 **TLDR**
 - Fever or pus plus hypotension = sepsis: fluids, antibiotics, urgent evacuation.
 
-**SOURCE**: JTS Clinical Practice Guideline — Sepsis Management in Prolonged \
-Field Care, CPG ID83, 28 Oct 2020
+**SOURCE**: {SEPSIS_ID83_SOURCE}{doses}
 
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_anaphylaxis_response() -> str:
-    return """**ANAPHYLAXIS**
+def build_anaphylaxis_response(ctx: Optional[PatientContext] = None) -> str:
+    pairs, why_not = _card_signed_entries("epinephrine", ("anaphylaxis",), ctx, route="IM")
+    served = _served_from_pairs(pairs, ctx)
+    give = ("\n".join(render_range_line(x) for x in served)
+            or _card_hold_line("epinephrine", "IM", "dose for anaphylaxis", why_not, ctx))
+    source = (f"\n**SOURCE**: {served_source_line(served, '')}\n" if served else "")
+    return f"""**ANAPHYLAXIS**
 
 **DO THIS**
 1. Give epinephrine IM now if severe allergic reaction with airway symptoms or hypotension.
 2. High-flow oxygen, IV/IO access, monitor BP and airway.
 3. Evacuate urgently; repeat epi per local protocol if not improving.
 
+**GIVE**
+{give}
+{_card_dose_blocks(served)}
 **WATCH**
 - Worsening airway swelling, wheeze, shock, or recurrent symptoms.
 
 **TLDR**
 - Severe anaphylaxis with throat swelling or dropping BP needs epinephrine now.
-
+{source}
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
@@ -7650,8 +7734,12 @@ def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None
         lev = [d for d in served if d.drug.lower() == "levetiracetam"]
         rest = [d for d in served if d not in ket and d not in lev]
         served = ket + lev + rest
-        give.append("- A benzodiazepine has already been given: no further benzodiazepine "
-                    "dose here. Second line:")
+        # Med sweep PR 2: the line names the benzodiazepine given, so it
+        # holds that drug by name and the card still answers the question.
+        given = [d for d in asked_drugs(query) if d in _BENZODIAZEPINES]
+        named = f" ({', '.join(given)})" if given else ""
+        give.append(f"- A benzodiazepine{named} has already been given: no further "
+                    "benzodiazepine dose here. Second line:")
         ket_signed = drug_contracts is not None and any(
             n == "ketamine" for n, _ in drug_contracts.signed_entries_by_indication(
                 SECOND_LINE_SEIZURE_INDICATIONS, ctx.is_pediatric, ctx.age_years))
@@ -7674,11 +7762,15 @@ def build_seizure_response(query: str = "", ctx: Optional[PatientContext] = None
     else:
         give += [render_give_line(d) for d in served]
     if not benzo_given and not any(d.drug.lower() in _BENZODIAZEPINES for d in served):
+        # Med sweep PR 2: a benzodiazepine the question names is named here,
+        # so the card holds it by name.
+        asked_benzo = [d for d in asked_drugs(query) if d in _BENZODIAZEPINES]
+        benzo = "benzodiazepine" + (f" ({', '.join(asked_benzo)})" if asked_benzo else "")
         if ctx.dosing_weight_kg is None:
-            give.append("- No signed benzodiazepine dose without a weight: give the patient's "
+            give.append(f"- No signed {benzo} dose without a weight: give the patient's "
                         "weight in kg for the signed dose.")
         else:
-            give.append("- No signed benzodiazepine dose for this patient here. Use local "
+            give.append(f"- No signed {benzo} dose for this patient here. Use local "
                         "protocol or medical control.")
     give_text = "\n".join(give)
     step2 = ("A benzodiazepine has already been given: go to the second line below."
@@ -7959,8 +8051,38 @@ def build_mascal_response() -> str:
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
-def build_ketamine_drip_response() -> str:
-    return """**KETAMINE SEDATION DRIP**
+KETAMINE_INFUSION_INDICATIONS = ("prolonged sedation infusion",)
+
+
+def _rate_at_weight(entry: dict, w: Optional[float]) -> Optional[str]:
+    """A per-kg rate at this weight ("45-180 mg/hr for this 90kg patient"):
+    the signed range times the weight, in the entry's own units less "/kg"."""
+    rng = entry.get("dose_range") or {}
+    units = rng.get("units") or ""
+    if not w or not rng.get("per_kg") or "/kg/" not in units:
+        return None
+    lo, hi = rng.get("min"), rng.get("max")
+    if lo is None or hi is None:
+        return None
+    each = units.replace("/kg/", "/")
+    span = f"{lo * w:g}" if lo == hi else f"{lo * w:g}-{hi * w:g}"
+    return f"{span} {each} for this {w:g}kg patient"
+
+
+def build_ketamine_drip_response(ctx: Optional[PatientContext] = None) -> str:
+    """The ketamine sedation drip card. Med sweep PR 2: it serves the signed
+    infusion as a rate (mg/kg/hr), and at a confirmed weight the same range in
+    mg/hr. No pump rate in mL: the mix is the signed entry's caution, printed
+    beneath."""
+    pairs, why_not = _card_signed_entries("ketamine", KETAMINE_INFUSION_INDICATIONS, ctx, route="IV")
+    served = _served_from_pairs(pairs, ctx)
+    w = ctx.dosing_weight_kg if ctx else None
+    for s_, (_, entry) in zip(served, pairs):
+        s_.resolved_note = _rate_at_weight(entry, w)
+    rate = ("\n".join(render_range_line(x) for x in served)
+            or _card_hold_line("ketamine", "IV", "infusion rate", why_not, ctx))
+    source = (f"\n**SOURCE**: {served_source_line(served, '')}\n" if served else "")
+    return f"""**KETAMINE SEDATION DRIP**
 
 **DO THIS**
 1. Confirm the patient is intubated and tube is secured.
@@ -7968,14 +8090,14 @@ def build_ketamine_drip_response() -> str:
 3. Titrate ketamine sedation to BP, ventilator synchrony, and agitation.
 
 **DRIP**
-- Ketamine infusion: document concentration in mg/mL and pump rate in mL/hr.
-
+{rate}
+{_card_dose_blocks(served)}
 **WATCH**
 - BP, HR, SpO2, ETCO2 if available, and ventilator synchrony.
 
 **TLDR**
-- Intubated sedation: ketamine drip with mg/mL concentration and mL/hr pump rate.
-
+- Intubated sedation: ketamine drip at the signed rate, titrated to BP and ventilator synchrony.
+{source}
 Guideline-based support only. Not a substitute for clinical judgment."""
 
 
@@ -8048,6 +8170,63 @@ def is_hypothermic_pulseless(q: str) -> bool:
     return bool(_HYPOTHERMIA_RE.search(q) and _PULSELESS_RE.search(q))
 
 
+# Med sweep PR 2 (owner, 2026-10-30): "a card answers a question that names a
+# drug only if the card serves that drug's signed dose, or holds it by name;
+# otherwise the drug lane answers." Live, each of these named a drug and got a
+# card with no dose for it: the anaphylaxis card ("Give epinephrine IM now"),
+# the sepsis card for a push-dose epinephrine question, the DCR card for
+# propofol induction, the RSI bundle for the atropine pre-dose.
+#
+# A dose is a line outside the cautions, contraindications, watch, don't,
+# TLDR and source that names the drug and states an amount. A hold is such a
+# line that says no signed dose or rate is given. A caution that names the
+# drug ("Ask for atropine by name for the dose") is neither.
+_CARD_NON_ANSWER_SECTIONS = frozenset({
+    "CAUTIONS", "CONTRAINDICATIONS", "WATCH", "WATCH FOR", "DON'T", "TLDR", "SOURCE",
+    "EVAC", "EVAC IF"})
+_CARD_HEADER_RE = re.compile(r"^\*\*([^*]+)\*\*")
+_CARD_DOSE_RE = re.compile(
+    r"\d[\d.,]*\s*(?:-\s*\d[\d.,]*\s*)?(?:mg|mcg|micrograms?|g|units?|meq|mmol|ml)\b", re.I)
+_CARD_HOLD_RE = re.compile(
+    r"\bno\s+signed\b|\bno\b[^.]{0,60}\b(?:dose|rate)\b[^.]{0,40}\b(?:signed|served|here)\b"
+    r"|\bno dose served\b|\bnot signed\b", re.I)
+
+
+# A drug the question says it does not have is not asked for: "snakebite, no
+# antivenom available, what do I do" keeps the snake bite card.
+_CARD_NOT_HAD_RE = re.compile(r"\b(?:no|without|out\s+of)\s+([a-z][\w-]*)", re.I)
+
+
+def card_unanswered_drugs(query: str, card_text: str) -> list:
+    """The drugs the question names that the card neither doses nor holds by
+    name. Empty: the card answers."""
+    asked = asked_drugs(_CARD_NOT_HAD_RE.sub(" ", query or ""))
+    if not asked or not card_text:
+        return []
+    section, lines = None, []
+    for line in card_text.splitlines():
+        m = _CARD_HEADER_RE.match(line.strip())
+        if m:
+            section = m.group(1).strip().rstrip(":").upper()
+            continue
+        if section not in _CARD_NON_ANSWER_SECTIONS:
+            lines.append(line)
+    out = []
+    for drug in asked:
+        mine = [x for x in lines if brief_mod.names_drug(x, drug, drug_contracts.resolve_drugs)]
+        if not any(_CARD_DOSE_RE.search(x) or _CARD_HOLD_RE.search(x) for x in mine):
+            out.append(drug)
+    return out
+
+
+def card_yields(query: str, card_text: str) -> bool:
+    """True when the drug lane answers instead of this card."""
+    missing = card_unanswered_drugs(query, card_text)
+    if missing:
+        print(f"↪ CARD YIELDS to the drug lane: no dose or hold for {', '.join(missing)}")
+    return bool(missing)
+
+
 def build_general_case_response(query: str, ctx: Optional[PatientContext] = None,
                                 history: Optional[str] = None) -> Optional[str]:
     """The fixed common-case cards. Each is chosen by the CURRENT turn; only the
@@ -8057,7 +8236,7 @@ def build_general_case_response(query: str, ctx: Optional[PatientContext] = None
     if any(x in q for x in ["vtach", "v tach", "v-tach", "ventricular tachycardia"]):
         return build_vtach_response()
     if "anaphylaxis" in q or ("hives" in q and ("throat" in q or "bp" in q)):
-        return build_anaphylaxis_response()
+        return build_anaphylaxis_response(ctx)
     if is_active_seizure_card_query(q):
         return build_seizure_response(history or query, ctx)
     if (("cardiac arrest" in q and any(x in q for x in ["hypothermic", "snow", "cold", "frozen"]))
@@ -8070,7 +8249,7 @@ def build_general_case_response(query: str, ctx: Optional[PatientContext] = None
     if "mascal" in q:
         return build_mascal_response()
     if "ketamine drip" in q and any(x in q for x in ["intubated", "on the vent", "ventilator"]):
-        return build_ketamine_drip_response()
+        return build_ketamine_drip_response(ctx)
     if "cholera" in q:
         return build_cholera_response()
     if "snake" in q or "pit viper" in q:
@@ -8473,9 +8652,13 @@ def _run_pipeline(query: str, chromadb_client,
             and not has_clear_hemorrhage(query)
             and not looks_like_poisoning(query)
         ):
+            sepsis_response = build_sepsis_management_response(patient_ctx)
+        else:
+            sepsis_response = None
+        if sepsis_response and not card_yields(query, sepsis_response):
             print("🧫 SEPSIS MANAGEMENT PRE-GATE")
             return {
-                "response": build_sepsis_management_response(),
+                "response": sepsis_response,
                 "sources": [],
                 "source_mode": "DETERMINISTIC_PRE_GATE",
                 "validator_result": "DETERMINISTIC_CHECKED",
@@ -8485,7 +8668,7 @@ def _run_pipeline(query: str, chromadb_client,
 
         # Step 2i: Deterministic common benchmark scenarios
         general_response = build_general_case_response(query, patient_ctx, full_query_history)
-        if general_response:
+        if general_response and not card_yields(query, general_response):
             print("📌 COMMON CASE PRE-GATE")
             return {
                 "response": general_response,
@@ -8514,15 +8697,17 @@ def _run_pipeline(query: str, chromadb_client,
                     "validator_issues": [TENSION_UNSIGNED_ISSUE],
                     "patient_context": patient_ctx.to_dict()
                 }
-            print("🫁 TENSION PNEUMOTHORAX PRE-GATE" + (" (+ DCR reassess)" if with_dcr else ""))
-            return {
-                "response": build_tension_pneumothorax_response(with_dcr=with_dcr),
-                "sources": [],
-                "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "DETERMINISTIC_CHECKED",
-                "validator_issues": [],
-                "patient_context": patient_ctx.to_dict()
-            }
+            tension_response = build_tension_pneumothorax_response(with_dcr=with_dcr)
+            if not card_yields(query, tension_response):
+                print("🫁 TENSION PNEUMOTHORAX PRE-GATE" + (" (+ DCR reassess)" if with_dcr else ""))
+                return {
+                    "response": tension_response,
+                    "sources": [],
+                    "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "DETERMINISTIC_CHECKED",
+                    "validator_issues": [],
+                    "patient_context": patient_ctx.to_dict()
+                }
 
         # Step 2i-iii: Severe TBI card (A2, 2026-09-24). After tension (breathing
         # before the head), before the RSI and vent steps so an already-
@@ -8532,12 +8717,15 @@ def _run_pipeline(query: str, chromadb_client,
         # Step 2k-iv) keep their own cards.
         if looks_like_severe_tbi(query):
             intubated = already_intubated(query)
+            tbi_response = None
             if not (looks_like_hemorrhagic_shock(query)
                     or is_vent_settings_query(query)
                     or (_RSI_REQUEST_RE.search(query) and not intubated)):
+                tbi_response = build_tbi_management_response(patient_ctx, intubated=intubated)
+            if tbi_response and not card_yields(query, tbi_response):
                 print("🧠 SEVERE TBI CARD" + (" (intubated)" if intubated else ""))
                 return {
-                    "response": build_tbi_management_response(patient_ctx, intubated=intubated),
+                    "response": tbi_response,
                     "sources": [],
                     "source_mode": "DETERMINISTIC_PRE_GATE",
                     "validator_result": "DETERMINISTIC_CHECKED",
@@ -8586,7 +8774,7 @@ def _run_pipeline(query: str, chromadb_client,
             and patient_ctx.route_preference in ["IV", "IM"]
         ):
             ket_response = build_ketamine_analgesia_response(patient_ctx, full_query_history)
-            if ket_response:
+            if ket_response and not card_yields(query, ket_response):
                 label = "PED " if patient_ctx.is_pediatric else ""
                 print(f"💊 {label}KETAMINE ANALGESIA PRE-GATE")
                 return {
@@ -8609,7 +8797,9 @@ def _run_pipeline(query: str, chromadb_client,
             # a "sux" from three turns ago steer a fresh RSI request.
             rsi_text = full_query_history if rsi_resume else query
             rsi_response = build_rsi_response(patient_ctx, rsi_text)
-            if rsi_response:
+            # The access check is a hold: it never yields.
+            if rsi_response and (rsi_response.startswith("**RSI ACCESS CHECK**")
+                                 or not card_yields(query, rsi_response)):
                 print("💉 RSI PRE-GATE")
                 return {
                     "response": rsi_response,
@@ -8627,10 +8817,15 @@ def _run_pipeline(query: str, chromadb_client,
         # card behaves exactly like an absent one and the pipeline carries on
         # to the gate question or the referral it produced before.
         vent_hit = vent_module.dispatch(query, patient_ctx)
+        vent_response = None
+        if vent_hit:
+            vent_response = vent_module.render(vent_hit[0], vent_hit[1], patient_ctx, query)
+            if card_yields(query, vent_response):
+                vent_hit = None
         if vent_hit:
             family, card = vent_hit
             basis = vent_module.dosing_basis(patient_ctx)
-            response = vent_module.render(family, card, patient_ctx, query)
+            response = vent_response
             ask = vent_module.follow_up_ask(family, basis)
             if ask:
                 # Non-blocking. The settings are served and the ask is for what
@@ -8689,15 +8884,17 @@ def _run_pipeline(query: str, chromadb_client,
                     "validator_issues": [JUNCTIONAL_UNSIGNED_ISSUE],
                     "patient_context": patient_ctx.to_dict()
                 }
-            print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
-            return {
-                "response": build_hemorrhagic_shock_dcr_response(patient_ctx, query),
-                "sources": [],
-                "source_mode": "DETERMINISTIC_PRE_GATE",
-                "validator_result": "DETERMINISTIC_CHECKED",
-                "validator_issues": [],
-                "patient_context": patient_ctx.to_dict()
-            }
+            dcr_response = build_hemorrhagic_shock_dcr_response(patient_ctx, query)
+            if not card_yields(query, dcr_response):
+                print("🩸 HEMORRHAGIC-SHOCK DCR PRE-GATE")
+                return {
+                    "response": dcr_response,
+                    "sources": [],
+                    "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "DETERMINISTIC_CHECKED",
+                    "validator_issues": [],
+                    "patient_context": patient_ctx.to_dict()
+                }
 
         # Step 2l-0 (A39): a drug this turn asks about with no signed entry at
         # all holds here, before any question about it and before the model.
