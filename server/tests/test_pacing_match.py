@@ -51,7 +51,9 @@ def _issues(q, text):
 def test_e13_is_its_own_class():
     pacing = oc.indication_class(E13)
     assert pacing not in (None, "sedation")
-    assert oc.indication_class("procedural sedation") == "sedation"
+    # Procedural sedation is its own class since med sweep PR 3 (owner,
+    # 2026-10-30); pacing stays apart from it.
+    assert oc.indication_class("procedural sedation") == "procedural sedation"
     assert oc.indication_class(
         "procedural sedation (incl. cardioversion, transcutaneous pacing)") == pacing
 
