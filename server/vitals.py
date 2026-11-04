@@ -359,8 +359,24 @@ def _reason(name: str, value: float, unit: str = "") -> str:
     if unit and unit == _alt_unit(name):
         return (f"{label(name)} {value:g}{stated} is outside the plausible range "
                 f"{spec.get('alt_min')}-{spec.get('alt_max')}{_alt_unit(name)}")
+    if not unit and spec.get("assumed_unit_when_unstated"):
+        # Med sweep 2026-10-30 (owner, PR 3): "glucose values never read as
+        # temperature". This branch said "temperature" for every two-unit
+        # vital, so "glucose 2.1" was rejected as an implausible temperature.
+        # A glucose with no unit is read in the assumed unit; say so, and how
+        # to give the other.
+        assumed = spec["assumed_unit_when_unstated"]
+        other = _alt_unit(name) if assumed == _unit(name) else _unit(name)
+        lo, hi = ((spec.get("min"), spec.get("max")) if assumed == _unit(name)
+                  else (spec.get("alt_min"), spec.get("alt_max")))
+        said = (f"{label(name)} {value:g} with no unit is read as {assumed}, and is "
+                f"outside {lo}-{hi}{assumed}")
+        in_other = (_in_alt_range(name, value) if assumed == _unit(name)
+                    else _in_range(name, value))
+        return f"{said}; if it is {other}, say \"{value:g} {other}\"" if in_other else said
     if not unit and spec.get("alt_unit"):
-        return (f"{label(name)} {value:g} is not a plausible temperature in either "
+        noun = "temperature" if name == "temp" else label(name).lower()
+        return (f"{label(name)} {value:g} is not a plausible {noun} in either "
                 f"unit ({spec.get('min')}-{spec.get('max')}{_unit(name)} or "
                 f"{spec.get('alt_min')}-{spec.get('alt_max')}{_alt_unit(name)})")
     return (f"{label(name)} {value:g}{stated} is outside the plausible range "
