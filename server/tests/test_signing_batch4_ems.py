@@ -204,7 +204,7 @@ def test_kit_vial_none_never_gives_a_volume(monkeypatch):
                                                         presentations=cc.ENTRIES["testosteril"]["presentations"][:1]))
     d = oc.DoseCandidate(drug="testosteril", indication="t", route="PO", dose_mg=1.0, source="t")
     assert oc.resolve_dose_volume(d).volume_ml == 1.0
-    d = oc.DoseCandidate(drug="testosteril", indication="t", route="PO", dose_mg=1.0, source="t", kit_vial="none")
+    d = oc.DoseCandidate(drug="testosteril", indication="t", route="PO", dose_mg=1.0, source="t", entry_vial="none")
     assert oc.resolve_dose_volume(d).volume_ml is None
 
 
@@ -213,7 +213,7 @@ def test_a_pinned_candidate_takes_its_volume_from_the_pinned_vial(monkeypatch):
     _two_vials(monkeypatch)
     d = oc.DoseCandidate(drug="testosteril", indication="t", route="IM", dose_mg=0.3, source="t")
     assert oc.resolve_dose_volume(d).volume_ml is None
-    d = oc.DoseCandidate(drug="testosteril", indication="t", route="IM", dose_mg=0.3, source="t", kit_vial=1.0)
+    d = oc.DoseCandidate(drug="testosteril", indication="t", route="IM", dose_mg=0.3, source="t", entry_vial=1.0)
     assert oc.resolve_dose_volume(d).volume_ml == pytest.approx(0.3)
 
 
@@ -221,9 +221,17 @@ def test_the_ems_kit_declarations_are_recorded():
     text = DECLARATIONS.read_text()
     assert "EMS kit" in text
     for drug, strength in [("acetaminophen", "10 mg/mL"), ("atropine", "0.4 mg/mL"), ("epinephrine", "1 mg/mL"),
-                           ("epinephrine", "0.1 mg/mL"), ("ketamine", "100 mg/mL"), ("lidocaine", "20 mg/mL"),
+                           ("ketamine", "100 mg/mL"), ("lidocaine", "20 mg/mL"),
                            ("ondansetron", "2 mg/mL"), ("tranexamic acid", "100 mg/mL")]:
         assert any(drug in line and strength in line and "EMS kit" in line for line in text.splitlines()), (drug, strength)
+
+
+def test_epinephrine_one_in_ten_thousand_is_refused_by_the_decimal_guard():
+    """0.1 mg/mL is 10x below the only strength the approved sources cite for
+    epinephrine (1 mg/mL): the kit's decimal-error guard refuses it, and the
+    guard is not loosened. Listed for the owner's ruling."""
+    text = DECLARATIONS.read_text()
+    assert not any("| epinephrine | 0.1 mg/mL |" in line for line in text.splitlines())
 
 
 def test_conflicting_card_strengths_are_not_declared():

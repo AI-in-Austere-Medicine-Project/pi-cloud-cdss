@@ -80,9 +80,18 @@ PENDING = "PENDING_CLINICAL_SIGNOFF"
 # in --reason, where the audit log keeps it.
 SIGNOFF_AUTHORS = ("clinician", "AI-AIM")
 
-CONFIG = _DIR / "drug_concentrations.json"
+def _config_for(drug_set: Optional[str]) -> pathlib.Path:
+    """Each drug set has its own kit (owner, 2026-11-12): PFC
+    drug_concentrations.json, EMS drug_concentrations_ems.json. Both are
+    deployment state, gitignored. An unknown set reads the PFC file, and
+    drug_contracts serves nothing under an unknown set anyway."""
+    name = (drug_set or "PFC").strip().upper()
+    return _DIR / ("drug_concentrations_ems.json" if name == "EMS" else "drug_concentrations.json")
+
+
+CONFIG = _config_for(os.getenv("CDSS_DRUG_SET"))
 CHANGE_LOG = pathlib.Path(os.getenv("CDSS_CONCENTRATION_LOG",
-                                    str(_DIR / "drug_concentrations.log.jsonl")))
+                                    str(CONFIG.with_suffix(".log.jsonl"))))
 
 # Tier 1 of the sane-range check. Structural only — nothing here is a clinical
 # judgement about any particular drug, because this module is not allowed to
@@ -295,7 +304,8 @@ NEEDS_CONFIRMATION = "NEEDS_CONFIRMATION"
 NONE_DECLARED = "NONE_DECLARED"
 
 
-def resolve(generic_name: str, confirmed: Optional[dict] = None) -> tuple:
+def resolve(generic_name: str, confirmed: Optional[dict] = None,
+            pinned: Optional[float] = None) -> tuple:
     """(status, concentration_mg_ml, presentation).
 
     confirmed is this patient's already-answered concentrations, {drug: mg/mL}.
@@ -315,6 +325,15 @@ def resolve(generic_name: str, confirmed: Optional[dict] = None) -> tuple:
                 return RESOLVED, p["concentration_mg_ml"], p
         # A confirmation that no longer matches anything signed is stale — the
         # list changed under it. Ask again rather than serve the old answer.
+        return NEEDS_CONFIRMATION, None, None
+
+    # Ruling 4 (owner, 2026-11-12): an entry whose own row states the strength
+    # uses that vial, without the question, when the kit holds it signed. A
+    # strength the kit does not hold is no answer: the question stays.
+    if isinstance(pinned, (int, float)) and not isinstance(pinned, bool):
+        for p in signed:
+            if abs(p["concentration_mg_ml"] - pinned) < 1e-9:
+                return RESOLVED, p["concentration_mg_ml"], p
         return NEEDS_CONFIRMATION, None, None
 
     entry = ENTRIES.get(generic_name) or {}
@@ -492,9 +511,9 @@ def drawable(volume_ml_value: float, dilution: Optional[dict] = None) -> tuple:
 
 
 def volume_ml(generic_name: str, dose_mg: float,
-              confirmed: Optional[dict] = None) -> tuple:
+              confirmed: Optional[dict] = None, pinned: Optional[float] = None) -> tuple:
     """(volume_ml, concentration_mg_ml) or (None, None). The ONLY mL source."""
-    status, conc, _ = resolve(generic_name, confirmed)
+    status, conc, _ = resolve(generic_name, confirmed, pinned)
     if status != RESOLVED or not conc:
         return None, None
     true_vol = dose_mg / conc
@@ -506,13 +525,14 @@ def volume_ml(generic_name: str, dose_mg: float,
 
 def volume_refusal(generic_name: str, dose_mg: float,
                    confirmed: Optional[dict] = None,
-                   dilution: Optional[dict] = None) -> Optional[str]:
+                   dilution: Optional[dict] = None,
+                   pinned: Optional[float] = None) -> Optional[str]:
     """Why no volume, when a concentration IS resolved. None if there is one.
 
     `dilution` is the dose entry's declared push dilution, named in the refusal
     when it is made from the vial that was resolved.
     """
-    status, conc, _ = resolve(generic_name, confirmed)
+    status, conc, _ = resolve(generic_name, confirmed, pinned)
     if status != RESOLVED or not conc:
         return None
     ok, why = drawable(dose_mg / conc, _dilution_for(dilution, conc))

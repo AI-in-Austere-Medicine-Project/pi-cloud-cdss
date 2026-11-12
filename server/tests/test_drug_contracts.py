@@ -342,8 +342,12 @@ def test_every_tier_1_citation_names_a_guideline_and_page():
                     continue
                 c = src["citation"]
                 cls = src.get("source_class")
-                assert cls in ("NASEMSO", "JTS", "SMOG"), f"{name}: tier 1 but {cls!r}"
-                if cls == "NASEMSO":
+                assert cls in ("NASEMSO", "JTS", "SMOG", "EMS"), f"{name}: tier 1 but {cls!r}"
+                if cls == "EMS":
+                    # Signing batch 4 (owner, 2026-11-12): the EMS set's formulary,
+                    # each card with its own MD number and update date.
+                    assert "Medication Formulary" in c and "MD " in c and "updated" in c, c
+                elif cls == "NASEMSO":
                     assert "NASEMSO" in c and "v3.0" in c, c
                 elif cls == "SMOG":
                     assert "SMOG" in c and "CY24" in c, c
@@ -2099,6 +2103,12 @@ def test_the_detail_tier_hides_only_these_families():
                 for e in d["dose_entries"] for c in dc.detail_cautions(e)}
     assert families == {
         "The cited guideline states no cumulative max",
+        # Signing batch 4 (owner, 2026-11-12), ruling 5: "Adverse effects are
+        # cautions, spoken under 'why'." And the EMS formulary's own silence on
+        # a maximum, worded as the guidelines' is.
+        "Adverse/side effects, as the formulary lists",
+        "The formulary states no cumulative maximum f",
+        "The formulary states no maximum single dose ",
         "The cited guideline states no maximum single",
         "HISTORICAL CAUTION, NOT AN ACTIVE CONTRAINDI",
         "CORROBORATING: JTS ID40 (05 Apr 2021) p.3 gi",

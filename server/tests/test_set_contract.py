@@ -246,7 +246,8 @@ def test_the_tool_never_signs_what_the_engine_would_not_serve(sandbox):
         for e in drug["dose_entries"]:
             candidate = dict(e, signoff=True, reviewed_by=SIGNER,
                              review_date=DATE)
-            engine_ok = dc.entry_is_servable(candidate, drug)[0]
+            # Signing is checked under the entry's own set, as the tool does.
+            engine_ok = dc.entry_is_servable(candidate, drug, served_set=candidate.get("set"))[0]
             tool_ok = sc.sign_refusal(e) == ""
             assert engine_ok or not tool_ok, (
                 f"{name}/{e['indication']}: the tool would sign an entry the "

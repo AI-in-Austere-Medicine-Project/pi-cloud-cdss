@@ -90,7 +90,9 @@ def _named_source(entry: dict) -> tuple:
 def export_entry(name: str, drug: dict, entry: dict, classify: Callable,
                  aliases: Optional[list] = None) -> dict:
     label = entry["indication"]
-    cls = classify(label)
+    # An EMS entry names its class (the PFC class table is not the EMS
+    # formulary's); a PFC entry's class comes from the server's table.
+    cls = entry.get("indication_class") or classify(label)
     if not cls:
         raise ExportRefused(f"{name} '{label}' falls in no indication class: "
                             "Pocket would have no word to ask for it")
@@ -133,6 +135,7 @@ def export_entry(name: str, drug: dict, entry: dict, classify: Callable,
         "signer": entry["reviewed_by"],
         "date": entry["review_date"],
         "version": entry.get("version"),
+        **({"kit_vial": entry["kit_vial"]} if "kit_vial" in entry else {}),
     }
 
 
@@ -258,11 +261,18 @@ def _dump(obj) -> bytes:
     return (json.dumps(obj, indent=1, sort_keys=True, ensure_ascii=False) + "\n").encode()
 
 
+def file_names(set_name: str) -> dict:
+    """PFC keeps the names Pocket already reads; another set's files say its set."""
+    sfx = "" if set_name == "PFC" else f"-{set_name.lower()}"
+    return {k: f"{k}{sfx}.json" for k in ("bank", "kit", "manifest")}
+
+
 def write_export(out, bank: dict, kit: dict, git: dict, inputs_sha256: dict) -> dict:
     assert_signed(bank, kit)
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    blobs = {"bank.json": _dump(bank), "kit.json": _dump(kit)}
+    names = file_names(bank["set"])
+    blobs = {names["bank"]: _dump(bank), names["kit"]: _dump(kit)}
     manifest = {
         "set": bank["set"],
         "bank_version": bank["bank_version"],
@@ -280,7 +290,7 @@ def write_export(out, bank: dict, kit: dict, git: dict, inputs_sha256: dict) -> 
     }
     for name, blob in blobs.items():
         (out / name).write_bytes(blob)
-    (out / "manifest.json").write_bytes(_dump(manifest))
+    (out / names["manifest"]).write_bytes(_dump(manifest))
     return manifest
 
 
@@ -307,7 +317,7 @@ def export(out, kit_path=None, set_name="PFC") -> dict:
     bank = build_bank(dc.DRUGS, version, set_name=set_name)
     return write_export(out, bank, kit, git, {
         "drug_contracts.json": hashlib.sha256(contracts.read_bytes()).hexdigest(),
-        "drug_concentrations.json": hashlib.sha256(
+        pathlib.Path(kit_path).name: hashlib.sha256(
             pathlib.Path(kit_path).read_bytes()).hexdigest(),
     })
 

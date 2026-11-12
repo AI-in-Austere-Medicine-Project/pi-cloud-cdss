@@ -708,6 +708,30 @@ def serve_cautions(entry: dict) -> list:
     return [label] + cautions if label else cautions
 
 
+def _ems_fields_problem(entry: dict) -> Optional[str]:
+    """Signing batch 4 (owner, 2026-11-12). An EMS entry names its indication
+    class (the PFC class table is not the EMS formulary's) and says which kit
+    vial its own row states (ruling 4): a strength in mg/mL, "none" (the row's
+    form is no kit vial: a tablet, a tube, a rate), or null (the row states no
+    single strength: the vial question stays)."""
+    cls = entry.get("indication_class")
+    if not isinstance(cls, str) or not cls.strip():
+        return "an EMS entry must name its indication_class"
+    if "kit_vial" not in entry:
+        return "an EMS entry must say its kit_vial (a strength in mg/mL, \"none\", or null)"
+    kv = entry["kit_vial"]
+    if kv is None or kv == "none":
+        return None
+    if isinstance(kv, bool) or not isinstance(kv, (int, float)) or kv <= 0:
+        return f"kit_vial {kv!r} is not a strength in mg/mL, \"none\" or null"
+    return None
+
+
+def kit_vial(entry: dict):
+    """The entry's kit_vial: a strength, "none", or None (ask). PFC entries: None."""
+    return (entry or {}).get("kit_vial")
+
+
 def entry_is_servable(entry: dict, drug: Optional[dict] = None,
                       served_set: Optional[str] = None) -> tuple:
     """(servable, reason). The single gate every serve path goes through.
@@ -731,6 +755,10 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None,
         return False, f"this server's drug set {serving!r} is not a known set: nothing serves"
     if entry_set != serving:
         return False, f"a {entry_set} set entry: this server serves the {serving} set"
+    if entry_set == "EMS":
+        why = _ems_fields_problem(entry)
+        if why:
+            return False, why
 
     if entry.get("signoff") is not True:
         return False, "signoff is not true"
