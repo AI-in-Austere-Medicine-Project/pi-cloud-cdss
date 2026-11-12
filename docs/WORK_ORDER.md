@@ -123,6 +123,7 @@ Owner asks outside the lettered items:
 | 3% NaCl contract, signed at 7.5 g | **done**: #85, merged and deployed |
 | Multi-model benchmark run 3 | **done**: #87, merged and deployed |
 | Pocket bank export (owner, 2026-11-04): `server/tools/export_pocket_bank.py` writes bank.json, kit.json and a manifest for EdgeCDSS Pocket; refuses any unsigned entry | **in review** (see the section below) |
+| Drug sets, EMS beside PFC (owner, 2026-11-12, signing batch 4): every dose entry names its set; a server serves one set (`CDSS_DRUG_SET`, default PFC); the exporter writes one bank per set | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -1278,6 +1279,22 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - `repeat` has no field in the contract. It is the signed caution wording verbatim, never parsed: 43 entries have such a line.
 - 69 of the 108 have no quote on any source; their citation and page are exported, `quote` is null. `source_basis` says so: 39 name a source that states it backs the dose, 63 a citation that does not say which field it backs, 6 an owner declaration.
 - `signer` is the role in `reviewed_by` (all 108 say `AI-AIM`). A person's name is on an entry only where a declaration carries one.
+
+### Drug sets: EMS beside PFC (owner, 2026-11-12, signing batch 4)
+
+**Owner:** "This formulary is its own drug set, "EMS", separate from the existing JTS/SMOG bank, which becomes the "PFC" set. Add a set field to the contract format and the exporter (one bank file per set), with a test that an entry from one set is never served under another. The formulary's concentrations are the EMS set's kit."
+
+**Done (failing tests first, `test_drug_sets.py`, 14 tests, all failing on the base):**
+- **The format:** `set` is a required dose-entry field (`_ENTRY_REQUIRED`), one of `drug_contracts.KNOWN_SETS` = PFC, EMS. All 118 existing entries are `"set": "PFC"`; nothing else in the bank changed.
+- **One gate:** `entry_is_servable()` refuses an entry whose set is missing or unknown, and an entry of any set but the one this server serves. The served set is `CDSS_DRUG_SET` (default PFC; case-insensitive); an unknown value serves nothing, loudly, rather than quietly picking a set. Every serve path already goes through this gate, so `servable_entries()` and everything built on it see one set.
+- **End to end:** with a signed EMS magnesium entry added to the bank, a PFC server still holds "magnesium: no signed dose" before the model runs (A39). On the base the model was called with the EMS entry treated as signed.
+- **Signing is not serving:** `set_contract.py` checks a candidate under its own set, so an EMS entry can be signed on a PFC server.
+- **The exporter:** `--set PFC|EMS` (default PFC). A set's bank holds only its own entries (`"set"` on the bank, every entry and the manifest); the other set's entries are counted (`other_set_left_out`) and their drugs are "no signed dose" names there. Each set has its own kit: `drug_concentrations.json` for PFC, `drug_concentrations_ems.json` for EMS (gitignored, like the PFC kit). The EMS export refuses until that kit has a signed vial.
+- **Test fixtures** that build signed entries carry `"set": "PFC"` (4 builders in 3 files): the old shape is no longer a signable entry.
+
+**Replay (base 0b0af9b, the exporter branch, vs this branch; live kit):** served 1,738, held 308, gate 1,408, log 5,002, pipe 850: 0 changed in every set; 0 newly held, 0 newly released, 0 newly dosing. Suite 3,929 passed, 47 skipped, 3 xfailed.
+
+**Stacked on #199** (the exporter is not on main yet): rebase onto main after #199 merges.
 
 ### K1: ketamine's single kit vial (owner, 2026-10-28)
 
