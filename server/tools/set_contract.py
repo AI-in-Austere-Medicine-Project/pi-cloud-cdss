@@ -371,7 +371,9 @@ def cmd_sign(args) -> int:
                      review_date=args.date,
                      version=old_version[:-len("-draft")]
                      if old_version.endswith("-draft") else old_version)
-    ok, why = dc.entry_is_servable(candidate, drug)
+    # Signing is not serving: the candidate is checked under its own set, so an
+    # EMS entry can be signed on a PFC server (and the reverse).
+    ok, why = dc.entry_is_servable(candidate, drug, served_set=candidate.get("set"))
     if not ok:
         print(f"REFUSED — not signed: the engine would not serve it: {why}")
         return 1

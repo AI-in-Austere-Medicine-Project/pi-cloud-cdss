@@ -36,7 +36,7 @@ def _entry(**over):
                       {"tier": "detail", "text": "A detail line."}],
          "sources": [_source(page=7, quote="1 mg/kg", supports="1 mg/kg IV")],
          "signoff": True, "reviewed_by": "AI-AIM", "review_date": "2026-11-01",
-         "version": "1.0.0"}
+         "version": "1.0.0", "set": "PFC"}
     e.update(over)
     return e
 

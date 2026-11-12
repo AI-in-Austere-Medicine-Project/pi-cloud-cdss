@@ -70,6 +70,7 @@ logs/
 server/drug_concentrations.log.jsonl
 server/drug_contracts.log.jsonl
 server/drug_concentrations.json
+server/drug_concentrations_ems.json
 
 # Replay output (CLAUDE.md rule 5)
 replay-out/
