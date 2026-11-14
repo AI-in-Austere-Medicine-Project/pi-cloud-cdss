@@ -122,6 +122,7 @@ Owner asks outside the lettered items:
 | D6 bench script uses A22's context (owner, 2026-10-08): bench_remote.sh's tok/s probe asked Ollama for no num_ctx (default 4096: a different setting from the arms, a reload, a silent cut); it now asks for CDSS_LOCAL_NUM_CTX (8192) with truncate false, exported once for every local client and recorded in meta.json. Checked live: 8192, 100% GPU; an oversized prompt is refused, not cut. `make probe` (`ollama run`, a one-line prompt) is unchanged: it cannot set num_ctx and its prompt is short | **done**: #147, merged |
 | 3% NaCl contract, signed at 7.5 g | **done**: #85, merged and deployed |
 | Multi-model benchmark run 3 | **done**: #87, merged and deployed |
+| Pocket bank export (owner, 2026-11-04): `server/tools/export_pocket_bank.py` writes bank.json, kit.json and a manifest for EdgeCDSS Pocket; refuses any unsigned entry | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -1260,6 +1261,23 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Owner rulings on #189 (2026-10-27):** "(1) "unchanged within Chroma's own noise, 0 changed on all five replays" is acceptable; record it in the PR as the criterion. (2) The five-option sentence names the drug: "Ketamine. Several indications are on screen. Say one." (3) The CPU fallback's 3 s silence is accepted and documented; GPU is primary. Add commit 2, then stop; I'll merge and install the wheel myself."
 
 **Done:** the PR records the criterion: Jetson-wheel retrieval is unchanged within Chroma's own noise, with 0 changed on all five replays. `spoken.MANY_INDICATIONS` is "{drug}. Several indications are on screen. Say one." The CPU fallback's silence is documented as accepted, with the GPU primary. The service venv is the owner's step: the owner merges, then installs the wheel.
+
+### Pocket bank export (owner, 2026-11-04)
+
+**Owner:** "add a tool server/tools/export_pocket_bank.py that writes bank.json (every signed entry: drug, aliases, indication, population, route, rule, cap, repeat, cautions, dilution, source, page, quote, signer, date) and kit.json (declared vial strengths), with a manifest (bank version, EdgeCDSS commit, sha256). It refuses to export any unsigned entry. Own PR there, do not merge."
+
+**Done (failing tests first, `test_export_pocket_bank.py`):**
+- **The refusal, three ways:** signoff false is left out and counted; marked signed and failing `entry_is_servable` refuses the whole export; the writer checks every outgoing entry and vial again and writes nothing.
+- **Added to the requested fields, because a dose cannot be read safely without them:** `floor` (`min_single`), `min_age_months`, `contraindications` (ruling 12), `serve_cautions` (the provenance label and tiers already applied), `indication_class`, every source in `sources`.
+- **Names with no number:** `no_signed_dose` lists each recognised drug with nothing signed, names and aliases only, so the device can say "no signed dose for magnesium" and can ask "ketamine or ketorolac" (ketorolac has no signed entry).
+- **The kit** is gitignored deployment state, so a commit cannot pin it: its sha256 is in the manifest. Signed vials only; an EXAMPLE kit, a missing kit or one with no signed vial is refused.
+- **Repeatable:** no clock in the output. Uncommitted changes to the files that decide the export refuse it, so the manifest's commit is what was read.
+- **No serving file is touched**, so no replay: nothing decided, held or dosed can move.
+
+**What the export shows about the bank (108 signed entries, 25 drugs, 6 signed vials):**
+- `repeat` has no field in the contract. It is the signed caution wording verbatim, never parsed: 43 entries have such a line.
+- 69 of the 108 have no quote on any source; their citation and page are exported, `quote` is null. `source_basis` says so: 39 name a source that states it backs the dose, 63 a citation that does not say which field it backs, 6 an owner declaration.
+- `signer` is the role in `reviewed_by` (all 108 say `AI-AIM`). A person's name is on an entry only where a declaration carries one.
 
 ### K1: ketamine's single kit vial (owner, 2026-10-28)
 
