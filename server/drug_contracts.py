@@ -154,6 +154,13 @@ _ENTRY_REQUIRED = ("indication", "population", "route", "dose_range",
 # by the same single gate as an unsigned entry. An unknown CDSS_DRUG_SET serves
 # nothing: a typo must not quietly pick a set.
 KNOWN_SETS = ("PFC", "EMS")
+# Test sets (owner, 2026-11-13): bench testing only, never served. EMS-TEST is
+# the whole EMS formulary as transcribed, unsigned, status "test". Its entries
+# live outside this repo's bank (a gitignored file only the Pocket exporter
+# reads, with --test), and the gate below refuses any entry of a test set, or
+# with status "test", under every served set. A test set is not a KNOWN_SET,
+# so CDSS_DRUG_SET=EMS-TEST serves nothing.
+TEST_SETS = ("EMS-TEST",)
 
 
 def _served_set(env=os.environ) -> Optional[str]:
@@ -748,6 +755,10 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None,
         return False, f"missing field(s): {', '.join(sorted(missing))}"
 
     entry_set = entry.get("set")
+    if entry_set in TEST_SETS:
+        return False, f"a {entry_set} entry: a test set is for bench testing only and never serves"
+    if entry.get("status") == "test":
+        return False, "status \"test\": a test entry is for bench testing only and never serves"
     if entry_set not in KNOWN_SETS:
         return False, f"set {entry_set!r} is not a known drug set ({', '.join(KNOWN_SETS)})"
     serving = SERVED_SET if served_set is None else served_set

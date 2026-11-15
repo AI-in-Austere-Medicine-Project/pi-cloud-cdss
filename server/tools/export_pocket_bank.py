@@ -2,6 +2,7 @@
 """Export the signed dose bank for EdgeCDSS Pocket.
 
     python3 server/tools/export_pocket_bank.py --out <dir> [--set PFC|EMS] [--kit <path>]
+    python3 server/tools/export_pocket_bank.py --out <dir> --test [--entries <path>] [--kit <path>]
 
 Writes bank.json (every signed entry of ONE drug set), kit.json (that set's
 kit: its signed vials) and manifest.json (set, bank version, EdgeCDSS commit,
@@ -19,6 +20,15 @@ cases, because a smaller bank nobody decided on is a silent failure:
 An entry with signoff false is simply not exported, and is counted. A drug with
 nothing signed exports its names only, no number, so the device can say "no
 signed dose for magnesium" rather than not recognising the word.
+
+--test (owner, 2026-11-13) writes the EMS-TEST bench bank instead:
+bank-ems-test.json, kit-ems-test.json (the EMS kit's signed vials) and
+manifest-ems-test.json with "test": true. Its entries are unsigned, status
+"test", read from a gitignored file (they reproduce the agency's formulary),
+and each carries check_failed (the reasons Pocket says "unverified"). EdgeCDSS
+never serves them (drug_contracts.TEST_SETS); only this flag exports them, and
+without it the writer still refuses anything unsigned. A test bank holds test
+entries only, and the flag never relabels a signed bank.
 
 No clock in the output: the same commit and kit export the same bytes.
 """
@@ -41,6 +51,11 @@ import drug_contracts as dc  # noqa: E402
 DEFAULT_KIT = _SERVER / "drug_concentrations.json"
 # Each set has its own kit (deployment state, gitignored like the PFC kit).
 DEFAULT_KITS = {"PFC": DEFAULT_KIT, "EMS": _SERVER / "drug_concentrations_ems.json"}
+# EMS-TEST: unsigned bench entries (gitignored; the agency's formulary as
+# transcribed). Its kit is the EMS kit: only signed vials ever leave.
+TEST_SET = "EMS-TEST"
+DEFAULT_TEST_ENTRIES = _SERVER / "drug_contracts_ems_test.json"
+DEFAULT_KITS[TEST_SET] = DEFAULT_KITS["EMS"]
 # The tracked files that decide what is exported. The kit is gitignored
 # deployment state, so a commit cannot pin it: its hash is in the manifest.
 PINNED = ("server/drug_contracts.json", "server/drug_contracts.py",
@@ -176,25 +191,100 @@ def build_bank(drugs: dict, version: str, classify: Optional[Callable] = None,
                                     f"fails the gate: {why}")
             entries.append(export_entry(name, drug, entry, classify, sorted(aliases)))
 
-    signed = {e["drug"] for e in entries}
-    unsigned_names = {}
-    for name, drug in drugs.items():
-        if name not in signed:
-            unsigned_names.setdefault(name, set()).update(drug.get("aliases") or [])
-    for term, generic in index.items():
-        if generic not in signed:
-            names = unsigned_names.setdefault(generic, set())
-            if term != generic.lower():
-                names.add(term)
     return {
         "set": set_name,
         "bank_version": version,
         "entries": entries,
-        "no_signed_dose": [{"drug": n, "aliases": sorted(a)}
-                           for n, a in sorted(unsigned_names.items())],
+        "no_signed_dose": _no_dose_names(drugs, {e["drug"] for e in entries}, index),
         "unsigned_left_out": unsigned,
         "other_set_left_out": other_set,
     }
+
+
+def _no_dose_names(drugs: dict, dosed: set, index: dict) -> list:
+    """Every recognised drug with no entry in this bank: its names, no number."""
+    unsigned_names = {}
+    for name, drug in drugs.items():
+        if name not in dosed:
+            unsigned_names.setdefault(name, set()).update(drug.get("aliases") or [])
+    for term, generic in index.items():
+        if generic not in dosed:
+            names = unsigned_names.setdefault(generic, set())
+            if term != generic.lower():
+                names.add(term)
+    return [{"drug": n, "aliases": sorted(a)} for n, a in sorted(unsigned_names.items())]
+
+
+# ── the test bank (EMS-TEST, bench testing only) ──────────────────────────
+
+def _test_entry_problem(entry: dict) -> Optional[str]:
+    if entry.get("set") != TEST_SET:
+        return f"set {entry.get('set')!r} is not {TEST_SET}: a test bank holds test entries only"
+    if entry.get("status") != "test":
+        return f"status {entry.get('status')!r} is not \"test\""
+    if entry.get("signoff") is True:
+        return "it is marked signed: a test bank holds unsigned test entries only"
+    cf = entry.get("check_failed")
+    if not isinstance(cf, list) or not all(isinstance(x, str) and x.strip() for x in cf):
+        return "check_failed must be a list of reasons (empty when every check passed)"
+    ok, why = dc._dose_range_ok(entry.get("dose_range"))
+    if ok:
+        dr = entry["dose_range"]
+        kind, _, why = dc.classify_units(dr.get("units"), dr.get("per_kg"))
+        ok = kind != dc.UNKNOWN
+    if not ok:
+        return f"dose: {why}"
+    if entry.get("population") not in dc.VALID_POPULATIONS:
+        return f"population {entry.get('population')!r}"
+    if entry.get("route") not in ("IV", "IM", "IN", "PO", "NEB"):
+        return f"route {entry.get('route')!r}"
+    if not any(s.get("tier") in (1, 2) for s in entry.get("sources") or []):
+        return "no tier 1 or 2 source"
+    return None
+
+
+def build_test_bank(doc: dict, version: str) -> dict:
+    """The EMS-TEST bank: every entry of the test file, unsigned, status "test",
+    with its check_failed reasons. Refused, not filtered, when anything in it is
+    not a test entry."""
+    entries = []
+    for drug in doc.get("drugs") or []:
+        name = drug["generic_name"]
+        for entry in drug.get("dose_entries") or []:
+            why = _test_entry_problem(entry)
+            if why:
+                raise ExportRefused(f"{name} '{entry.get('indication')}' "
+                                    f"({entry.get('route')}): {why}")
+            e = export_entry(name, drug, entry, classify=lambda _l: None)
+            e.update(status="test", check_failed=list(entry["check_failed"]))
+            entries.append(e)
+    if not entries:
+        raise ExportRefused("the test file holds no entry")
+    names = {d["generic_name"]: d for d in doc["drugs"]}
+    return {
+        "set": TEST_SET,
+        "test": True,
+        "bank_version": version,
+        "entries": entries,
+        "no_signed_dose": _no_dose_names(dict(dc.DRUGS, **names),
+                                         {e["drug"] for e in entries}, _recognised_names()),
+        "unsigned_left_out": 0,
+        "other_set_left_out": 0,
+    }
+
+
+def assert_test(bank: dict, kit: dict) -> None:
+    """The test writer's guard: test entries only, and the kit still signed."""
+    if bank.get("test") is not True or bank.get("set") != TEST_SET:
+        raise ExportRefused(f"--test writes the {TEST_SET} bank only; this is the "
+                            f"{bank.get('set')} bank")
+    for e in bank["entries"]:
+        if e.get("status") != "test" or e.get("set") != TEST_SET or e.get("signoff") is True:
+            raise ExportRefused(f"{e.get('drug')} '{e.get('indication')}': not a test entry")
+    for v in kit["vials"]:
+        why = _signature_problem(v)
+        if why:
+            raise ExportRefused(f"{v.get('drug')} vial {v.get('label')!r}: {why}")
 
 
 # ── the kit ────────────────────────────────────────────────────────────────
@@ -267,8 +357,14 @@ def file_names(set_name: str) -> dict:
     return {k: f"{k}{sfx}.json" for k in ("bank", "kit", "manifest")}
 
 
-def write_export(out, bank: dict, kit: dict, git: dict, inputs_sha256: dict) -> dict:
-    assert_signed(bank, kit)
+def write_export(out, bank: dict, kit: dict, git: dict, inputs_sha256: dict,
+                 test: bool = False) -> dict:
+    if test:
+        assert_test(bank, kit)
+    elif bank.get("test") or bank.get("set") in dc.TEST_SETS:
+        raise ExportRefused(f"a {bank.get('set')} bank is a test bank: it is written only with --test")
+    else:
+        assert_signed(bank, kit)
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
     names = file_names(bank["set"])
@@ -288,6 +384,9 @@ def write_export(out, bank: dict, kit: dict, git: dict, inputs_sha256: dict) -> 
                    "unsigned_left_out": bank["unsigned_left_out"],
                    "other_set_left_out": bank["other_set_left_out"]},
     }
+    if test:
+        manifest["test"] = True
+        manifest["counts"]["check_failed"] = sum(bool(e["check_failed"]) for e in bank["entries"])
     for name, blob in blobs.items():
         (out / name).write_bytes(blob)
     (out / names["manifest"]).write_bytes(_dump(manifest))
@@ -307,7 +406,9 @@ def git_state() -> dict:
     return {"commit": _git("rev-parse", "HEAD"), "date": _git("log", "-1", "--format=%cs")}
 
 
-def export(out, kit_path=None, set_name="PFC") -> dict:
+def export(out, kit_path=None, set_name="PFC", test=False, entries_path=None) -> dict:
+    if test:
+        return export_test(out, kit_path, entries_path)
     kit_path = DEFAULT_KITS[set_name] if kit_path is None else kit_path
     git = git_state()
     contracts = _SERVER / "drug_contracts.json"
@@ -322,11 +423,42 @@ def export(out, kit_path=None, set_name="PFC") -> dict:
     })
 
 
+def export_test(out, kit_path=None, entries_path=None) -> dict:
+    """The EMS-TEST bench bank. The entries file is gitignored, so the commit
+    cannot pin it: its hash is in the manifest, beside the kit's."""
+    kit_path = pathlib.Path(DEFAULT_KITS[TEST_SET] if kit_path is None else kit_path)
+    entries_path = pathlib.Path(DEFAULT_TEST_ENTRIES if entries_path is None else entries_path)
+    git = git_state()
+    try:
+        doc = json.loads(entries_path.read_text())
+    except (OSError, ValueError) as e:
+        raise ExportRefused(f"no readable test entries at {entries_path}: {e}") from e
+    if doc.get("set") != TEST_SET or doc.get("test") is not True:
+        raise ExportRefused(f"{entries_path.name} is not an {TEST_SET} file (set and test:true)")
+    version = f"{doc.get('schema_version', '0')}+{git['date']}.{git['commit'][:7]}.test"
+    kit = build_kit(kit_path)
+    bank = build_test_bank(doc, version)
+    return write_export(out, bank, kit, git, {
+        entries_path.name: hashlib.sha256(entries_path.read_bytes()).hexdigest(),
+        kit_path.name: hashlib.sha256(kit_path.read_bytes()).hexdigest(),
+    }, test=True)
+
+
 def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", required=True, type=pathlib.Path)
-    ap.add_argument("--set", default="PFC", choices=dc.KNOWN_SETS,
+    class _Set(argparse.Action):  # remembers that --set was given, for --test
+        def __call__(self, parser, ns, value, option_string=None):
+            ns.set, ns.set_given = value, True
+
+    ap.set_defaults(set_given=False)
+    ap.add_argument("--set", default="PFC", choices=dc.KNOWN_SETS, action=_Set,
                     help="the drug set to export (one bank per set; default PFC)")
+    ap.add_argument("--test", action="store_true",
+                    help=f"write the {TEST_SET} bench bank (unsigned, test:true; never served)")
+    ap.add_argument("--entries", type=pathlib.Path, default=None,
+                    help="with --test: the test entries file (gitignored; default "
+                         "server/drug_contracts_ems_test.json)")
     ap.add_argument("--kit", type=pathlib.Path, default=None,
                     help="the set's deployed kit (gitignored; default "
                          "drug_concentrations.json for PFC, drug_concentrations_ems.json for EMS)")
@@ -336,7 +468,12 @@ def parse_args(argv=None):
 def main(argv=None) -> int:
     args = parse_args(argv)
     try:
-        manifest = export(args.out, args.kit, args.set)
+        if args.test and args.set_given:
+            raise ExportRefused(f"--test exports the {TEST_SET} set only, not {args.set}")
+        if args.entries is not None and not args.test:
+            raise ExportRefused("--entries is the test entries file: it needs --test")
+        manifest = export(args.out, args.kit, args.set, test=args.test,
+                          entries_path=args.entries)
     except ExportRefused as e:
         print(f"REFUSED: {e}", file=sys.stderr)
         return 1

@@ -125,6 +125,7 @@ Owner asks outside the lettered items:
 | Pocket bank export (owner, 2026-11-04): `server/tools/export_pocket_bank.py` writes bank.json, kit.json and a manifest for EdgeCDSS Pocket; refuses any unsigned entry | **in review** (see the section below) |
 | Drug sets, EMS beside PFC (owner, 2026-11-12, signing batch 4): every dose entry names its set; a server serves one set (`CDSS_DRUG_SET`, default PFC); the exporter writes one bank per set | **in review** (see the section below) |
 | Signing batch 4 rulings, the EMS set (owner, Andrew Azelton, 2026-11-12): sign the EMS entries as transcribed except check (a)/(b) failures, flagged entries and what the engine cannot express; the EMS kit declared; Pocket export `bank-ems.json` | **in review** (see the section below) |
+| EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -1310,6 +1311,27 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Found:** the first packet called the epinephrine and norepinephrine pages scanned images; they have a text layer (the packet was regenerated). Both checks report more than the signable entries need, listed in the rulings record for the owner.
 
 **Stacked on the set branch** (itself on #199): rebase onto main after both merge.
+
+### EMS-TEST: a bench-testing set (owner, 2026-11-13)
+
+**Owner:** "New ruling: the 184 unsigned EMS entries stay unsigned. Add a third set, "EMS-TEST": all 206 formulary entries as transcribed, status "test", for bench testing only. Exporter: a --test flag writes bank-ems-test.json with test:true in the manifest. Without the flag it still refuses anything unsigned. EdgeCDSS never serves a test set; pin that with a test. Pocket loads a test bank only when started with POCKET_TEST=1, and refuses it otherwise. It says "Test set. Not for patient use." on boot and at the start of every read-back. Every log line carries test:true. Entries that failed check (a) or (b), or contradict their own card, are included but marked check_failed with the reason; Pocket says "unverified" before those doses. The 22 signed entries stay in the real EMS set unchanged. Failing tests first. PFC and EMS replays byte-identical. One PR in each repo, do not merge."
+
+**Where the entries live.** The test entries reproduce the agency's formulary, and the batch 4 ruling keeps only signed entries in this public repo. So EMS-TEST is not in `drug_contracts.json`: it is a gitignored file, `server/drug_contracts_ems_test.json` (built with the formulary, outside the repo), that only `export_pocket_bank.py --test` reads. Its sha256 is in the test manifest beside the kit's.
+
+**EdgeCDSS never serves it.** `drug_contracts.TEST_SETS = ("EMS-TEST",)` is not a `KNOWN_SET`. `entry_is_servable()` refuses an entry of a test set, or with `status: "test"` whatever set it names, under every served set, before any other check; `CDSS_DRUG_SET=EMS-TEST` serves nothing. Tests pin each of these, that the repo bank holds no test entry, and that no server module names the test file (`server/tests/test_ems_test_set.py`).
+
+**The exporter.** `--test` writes `bank-ems-test.json`, `kit-ems-test.json` (the EMS kit's signed vials; no unsigned vial ever leaves) and `manifest-ems-test.json` with `"test": true` and a `check_failed` count. A test bank holds test entries only (set EMS-TEST, status test, unsigned, `check_failed` a list), refused rather than filtered. Without the flag nothing changes: the writer refuses anything unsigned, refuses a test bank, and the signed manifests carry no `test` key; `--test` with `--set` is refused.
+
+**What is in it (206 formulary entries, i.e. every dose row but the 9 non-drug rows and the table-only dose).** 178 are in the test bank, across 29 drugs; 84 of them `check_failed`. The other 28 the bank format cannot carry, so they are listed, not exported: SL, topical and MDI routes (13), mEq doses (7, sodium bicarbonate), weight-banded doses in one cell (5), two rows with no number ("Utilize that regimen", "Contact OLMC") and the push-dose epinephrine row, whose dose cell carries its dilution (1). Transcription choices for the test bank only: IO-only rows are IV (the engine's IV includes IO); "1st X; 2nd Y" serves X with the printed text as a caution; ", min 0.1 mg" is the floor; two rows with no signing class get one (newborn resuscitation, procedural sedation).
+
+**check_failed** carries every reason (84 entries; 200 reasons): check (a) failures (88 reasons), check (b) failures (61), and contradictions with its own card (51, on 41 entries): a packet flag stating one (a table against its row, an infusion time against its drip rate, a band ten times its dose), on the row or on one printing the same dose, or a card whose concentration line contradicts its own rows (adenosine, calcium chloride, magnesium sulfate, pralidoxime).
+
+**The 22 signed entries** stay in the EMS set unchanged (their copies in EMS-TEST are unsigned test entries like the rest).
+
+**Pocket** (its own PR): loads `bank-ems-test.json` only with `POCKET_TEST=1` and refuses anything marked test otherwise; says "Test set. Not for patient use." at boot and before every read-back; every log record carries `test: true` and `check_failed`; "Unverified." before a check_failed dose; "Test range" and "test-set maximum", never "signed", for a test entry's numbers. Pocket still ignores `kit_vial`, so a test dose's volume comes from the drug's one signed vial (e.g. epinephrine 1:10,000 rows get 1 mg/mL volumes): bench testing only.
+
+**Replay:** against the base (`a49edb4`, signing batch 4), PFC and EMS (`CDSS_DRUG_SET=EMS`) each through served, held, gate, log and pipe: every output file byte-identical (`cmp`); 0 changed, 0 newly released, 0 newly held.
+
 
 ### Drug sets: EMS beside PFC (owner, 2026-11-12, signing batch 4)
 
