@@ -127,6 +127,7 @@ Owner asks outside the lettered items:
 | Signing batch 4 rulings, the EMS set (owner, Andrew Azelton, 2026-11-12): sign the EMS entries as transcribed except check (a)/(b) failures, flagged entries and what the engine cannot express; the EMS kit declared; Pocket export `bank-ems.json` | **done**: #202, merged 2026-11-15 |
 | EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **done**: #203, merged 2026-11-15 |
 | W1, Pocket on the web for outside testers (owner, 2026-11-15): `/pocket` runs the pinned Pocket code (Vosk with its grammar, its engine and templates, Piper); PFC only; product-pocket logs outside the replay sets; one talker at a time | **done**: #204, merged and deployed 2026-11-15; release → first audio through the tunnel measured (median 471 ms) |
+| W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -1312,6 +1313,23 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Found:** the first packet called the epinephrine and norepinephrine pages scanned images; they have a text layer (the packet was regenerated). Both checks report more than the signable entries need, listed in the rulings record for the owner.
 
 **Stacked on the set branch** (itself on #199): rebase onto main after both merge.
+
+### W1 pin bump: Pocket's hearing fixes (owner, 2026-11-15)
+
+**Owner:** "Once I tell you it's merged, open the EdgeCDSS PR (pin bump, spoken=True on the hear path, panel check, replay). Do not merge that one either." Rulings on Pocket #5 (2026-11-15): "Typed input stays as it is; no pair asks for typed text." "Do not commit my voice recordings to the public repo; keep them private as you have."
+
+**What changed.** `server/pocket_pin.json` names Pocket `f8f7aa5` (main after #5: route words, a Vosk grammar of signed drugs only, cefazolin's spelling, confused pairs ask "X or Y?"). Between the head #5 was tested at (`7e89c2d`) and the merge, only Pocket's README and an image changed; bank, grammar, engine and voice code are byte-identical. `pocket_web.Runtime.turn` passes `spoken=True` to Pocket's session for heard text (`/pocket/hear`) and not for the typed box (`/pocket/say`), so a heard pair asks first and typed text reads as before. The new checkout installs beside the old one (`~/pocket-web/edgecdss-pocket-f8f7aa5fe807`); the live service keeps the old one until it is deployed.
+
+**Panel check.** The five "How to test" answers are word for word the same on the new engine (the panel test passes unchanged); the panel is not changed.
+
+**Tests** (failing first, `server/tests/test_pocket_web.py`): the pin is #5's merge; heard "epinephrine … intramuscular …" asks "Epinephrine or norepinephrine?" and the answer reads back; heard "fentanyl for pain i n …" asks "IM or IN?"; the typed box never asks either; the new route words are heard through the web. The Piper → Vosk loopback test, which failed on the old pin in the failing-test run (the old grammar heard Piper's "i v" right about 30 % of the time), passed 10 of 10 on the new pin. Suite: 4,048 passed, 47 skipped, 3 xfailed.
+
+**Harness (:8012, Pocket only: Kokoro and whisper not loaded, for memory, the live service carrying Pocket beside it).** Through the web with real Vosk: the eight W1 "i v" fixtures (shipped in Pocket's tests) all read back "Ketamine, agitation, IV, eighty kilos. Confirm?"; the owner's epinephrine clip asks "Epinephrine or norepinephrine?"; the owner's ertapenem clip is "Not recognised."; typed epinephrine IM and fentanyl IN read back without asking.
+
+**Replay:** against main (`82a59ba`), PFC and EMS (`CDSS_DRUG_SET=EMS`), each through served, held, gate, log and pipe: every output file byte-identical (`cmp`); 0 changed, 0 newly released, 0 newly held.
+
+**Deploying** (the owner's step, after merge): `/home/andrew/deploy_pocket.sh` (it installs the pinned checkout, re-checks the models, leaves onnxruntime-gpu alone, restarts, and checks vosk and piper import).
+
 
 ### W1: Pocket on the web, for outside testers (owner, 2026-11-15)
 
