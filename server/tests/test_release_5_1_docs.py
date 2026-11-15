@@ -21,7 +21,9 @@ SAFETY = (ROOT / "SAFETY.md").read_text(encoding="utf-8")
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 REFERENCE = (ROOT / "docs" / "REFERENCE.md").read_text(encoding="utf-8")
 RAW = json.load(open(Path(dc.__file__).with_name("drug_contracts.json"), encoding="utf-8"))
-TOTAL = sum(len(d.get("dose_entries", [])) for d in RAW["drugs"])
+# The docs describe what this server serves: its drug set's entries (PFC by
+# default). Batch 4's EMS entries are a separate set (owner, 2026-11-12).
+TOTAL = sum(1 for d in RAW["drugs"] for e in d.get("dose_entries", []) if e.get("set") == dc.SERVED_SET)
 LIVE = sum(len(v) for v in dc.servable_entries().values())
 RETIRED = len(RAW.get("retired_entries", []))
 

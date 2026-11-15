@@ -51,7 +51,9 @@ def test_the_sets_are_pfc_and_ems():
 def test_every_entry_in_the_bank_names_its_set_and_the_existing_bank_is_pfc():
     raw = json.loads(CONTRACTS.read_text())
     sets = [e.get("set") for d in raw["drugs"] for e in d["dose_entries"]]
-    assert sets and all(s == "PFC" for s in sets), sorted({str(s) for s in sets})
+    assert sets and all(s in dc.KNOWN_SETS for s in sets), sorted({str(s) for s in sets})
+    # The 118 entries of the bank before batch 4 are PFC; batch 4 added EMS only.
+    assert sets.count("PFC") == 118
 
 
 def test_set_is_a_required_entry_field():
@@ -79,7 +81,7 @@ def test_this_server_serves_pfc_by_default():
 
 def test_an_ems_entry_is_not_servable_on_a_pfc_server():
     _, drug, e = _a_signed_pfc_entry()
-    ems = dict(e, set="EMS")
+    ems = dict(e, set="EMS", indication_class="test", kit_vial=None)
     ok, why = dc.entry_is_servable(ems, drug)
     assert not ok and "EMS" in why and "PFC" in why, why
     assert dc.entry_is_servable(ems, drug, served_set="EMS")[0]
@@ -115,7 +117,8 @@ def _with_ems_magnesium(monkeypatch):
                                             "aliases": ["magnesium", "mag"], "drug_class": "electrolyte",
                                             "forms": [], "routes": ["IV"], "dose_entries": []}
     mg["dose_entries"] = list(mg.get("dose_entries", [])) + [
-        dict(copy.deepcopy(e), set="EMS", indication="torsades de pointes")]
+        dict(copy.deepcopy(e), set="EMS", indication="torsades de pointes",
+             indication_class="torsades", kit_vial=None)]
     drugs["magnesium sulfate"] = mg
     monkeypatch.setattr(dc, "DRUGS", drugs)
     return mg
@@ -128,7 +131,7 @@ def test_servable_entries_holds_no_entry_of_the_other_set(monkeypatch):
     assert all(e.get("set") == "PFC" for es in live.values() for e in es)
     monkeypatch.setattr(dc, "SERVED_SET", "EMS")
     live = dc.servable_entries()
-    assert list(live) == ["magnesium sulfate"]
+    assert "magnesium sulfate" in live
     assert all(e.get("set") == "EMS" for es in live.values() for e in es)
 
 
@@ -175,7 +178,7 @@ def test_a_sets_bank_holds_only_its_own_entries(monkeypatch):
     ems = ex.build_bank(dc.DRUGS, "t", classify=cls, set_name="EMS")
     assert pfc["set"] == "PFC" and ems["set"] == "EMS"
     assert pfc["entries"] and all(e["set"] == "PFC" for e in pfc["entries"])
-    assert [e["drug"] for e in ems["entries"]] == ["magnesium sulfate"]
+    assert "magnesium sulfate" in {e["drug"] for e in ems["entries"]}
     assert all(e["set"] == "EMS" for e in ems["entries"])
     assert "magnesium sulfate" in {d["drug"] for d in pfc["no_signed_dose"]}
     assert "magnesium sulfate" not in {d["drug"] for d in ems["no_signed_dose"]}

@@ -507,6 +507,11 @@ class DoseCandidate:
     # K1 review (owner, 2026-10-28): the volume came from the kit's single
     # vial, not from a vial the medic stated. Its lines say "(kit vial)".
     kit_vial: bool = False
+    # Signing batch 4, ruling 4 (owner, 2026-11-12): the dose entry's own
+    # kit_vial. A strength (mg/mL) pins the vial the entry's row states; "none"
+    # means the row's form is no kit vial (a tablet, a tube, a rate), so no
+    # volume is ever derived; None (every PFC entry) changes nothing.
+    entry_vial: object = None
     # The entry's declared push dilution (drug_contracts.push_dilution), or
     # None. Never a volume source: it lets a refusal name the dilution instead
     # of "a dilution the kit has not declared".
@@ -2238,6 +2243,7 @@ def _contract_rsi_candidates(query: str, ctx: PatientContext) -> List[DoseCandid
             cautions=list(drug_contracts.serve_cautions(entry)),
             contraindications=list(drug_contracts.serve_contraindications(entry)),
             dilution=drug_contracts.push_dilution(entry),
+            entry_vial=drug_contracts.kit_vial(entry),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
     return out
 
@@ -2324,6 +2330,7 @@ def _contract_analgesia_candidate(ctx: PatientContext,
             cautions=list(drug_contracts.serve_cautions(entry)),
             contraindications=list(drug_contracts.serve_contraindications(entry)),
             dilution=drug_contracts.push_dilution(entry),
+            entry_vial=drug_contracts.kit_vial(entry),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None)
     return None
 
@@ -2392,6 +2399,7 @@ def _contract_candidate(name: str, entry: dict, w: Optional[float]) -> Optional[
         cautions=cautions,
         contraindications=list(drug_contracts.serve_contraindications(entry)),
         dilution=drug_contracts.push_dilution(entry),
+        entry_vial=drug_contracts.kit_vial(entry),
         warning="; ".join(cautions) or None,
     )
 
@@ -2820,6 +2828,7 @@ def build_allowed_doses(query: str, ctx: PatientContext,
                 cautions=list(drug_contracts.serve_cautions(entry)),
                 contraindications=list(drug_contracts.serve_contraindications(entry)),
                 dilution=drug_contracts.push_dilution(entry),
+                entry_vial=drug_contracts.kit_vial(entry),
                 warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
 
     doses.extend(_contract_dose_candidates(query, ctx))
@@ -2845,12 +2854,13 @@ def states_ml_volume(text: str) -> bool:
         _CONCENTRATION_PHRASE_RE.sub(" ", (text or "").lower())) is not None
 
 
-def vial_unconfirmed(drug: str, ctx: Optional[PatientContext]) -> bool:
+def vial_unconfirmed(drug: str, ctx: Optional[PatientContext],
+                     pinned: Optional[float] = None) -> bool:
     """The kit asks which vial for this drug and this patient has not said."""
     if drug_concentrations is None:
         return False
     confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
-    status, _c, _p = drug_concentrations.resolve(drug, confirmed)
+    status, _c, _p = drug_concentrations.resolve(drug, confirmed, pinned)
     return status == drug_concentrations.NEEDS_CONFIRMATION
 
 
@@ -2863,17 +2873,18 @@ def resolve_dose_volume(d: DoseCandidate,
     signed concentration for this drug, or has declared more than one and the
     medic has not said which vial they are holding.
     """
-    if drug_concentrations is None:
+    if drug_concentrations is None or d.entry_vial == "none":
         return d
+    pinned = d.entry_vial if isinstance(d.entry_vial, (int, float)) and not isinstance(d.entry_vial, bool) else None
     confirmed = dict(ctx.confirmed_concentrations) if ctx else {}
-    vol, conc = drug_concentrations.volume_ml(d.drug, d.dose_mg, confirmed)
+    vol, conc = drug_concentrations.volume_ml(d.drug, d.dose_mg, confirmed, pinned)
     if vol is None:
         # A concentration may be known and the volume still refused — a dose
         # below what a syringe can draw, or above what a push can be. The
         # reason rides along so the GIVE line can say which.
         why = drug_concentrations.volume_refusal(d.drug, d.dose_mg, confirmed,
-                                                 dilution=d.dilution)
-        if vial_unconfirmed(d.drug, ctx):
+                                                 dilution=d.dilution, pinned=pinned)
+        if vial_unconfirmed(d.drug, ctx, pinned):
             # The entry's own dilution and mL lines wait for the vial too: on
             # the card and in what the generator is offered.
             kept = [c for c in d.cautions if not states_ml_volume(c)]
@@ -7706,6 +7717,7 @@ def _second_line_seizure_doses(ctx: PatientContext) -> list:
             cautions=list(drug_contracts.serve_cautions(entry)),
             contraindications=list(drug_contracts.serve_contraindications(entry)),
             dilution=drug_contracts.push_dilution(entry),
+            entry_vial=drug_contracts.kit_vial(entry),
             warning="; ".join(drug_contracts.serve_cautions(entry)) or None))
     return _finish_doses(doses, ctx)
 
