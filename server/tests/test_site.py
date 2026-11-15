@@ -142,4 +142,4 @@ def test_each_project_card_links_its_published_release():
     org = "https://github.com/AI-in-Austere-Medicine-Project"
     assert f'href="{org}/pi-cloud-cdss/releases/tag/v5.1.0">v5.1.0</a>' in html
     assert f'href="{org}/edgecdss-pocket/releases/tag/v1.1">v1.1</a>' in html
-    assert "about $40 in parts · spoken answer in about two seconds on the device" in html
+    assert "about $95 in parts · spoken answer in about two seconds on the device" in html  # Pocket README, re-costed 2026-11-16
