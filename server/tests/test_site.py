@@ -134,3 +134,12 @@ def test_the_index_states_the_current_version():
 
 def test_the_index_carries_the_research_prototype_notice():
     assert "Research prototype." in _page("index.html").text()
+
+
+def test_each_project_card_links_its_published_release():
+    """Owner, 2026-11-15: EdgeCDSS v5.1.0 and Pocket v1.1 are published releases."""
+    html = (WEB / "index.html").read_text()
+    org = "https://github.com/AI-in-Austere-Medicine-Project"
+    assert f'href="{org}/pi-cloud-cdss/releases/tag/v5.1.0">v5.1.0</a>' in html
+    assert f'href="{org}/edgecdss-pocket/releases/tag/v1.1">v1.1</a>' in html
+    assert "about $40 in parts · spoken answer in about two seconds on the device" in html
