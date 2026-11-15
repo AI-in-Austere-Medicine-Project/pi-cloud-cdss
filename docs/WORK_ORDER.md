@@ -76,11 +76,11 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | A32 | A stated indication restricts what the dose check accepts; another indication's dose of the same drug holds, naming both | **done**: #173, merged; owner, 2026-10-20 |
 | A33 | A recipe or rate that names no drug is the question's drug, or it holds | **done**: #175, merged; owner, 2026-10-21 (A32 harness finding) |
 | A34 | The offered doses are the stated route's only (IV and IO one route); "versed IM" is never offered the IV entry | **done**: #176, merged; owner, 2026-10-21 (freeze plan to v5.1.0, item 1; signing batch 2 finding 3) |
-| A35 | "Ketamine for pain IM" serves the signed adult IM entry or holds; every drug number a deterministic card emits has a signed entry behind it, or holds | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 (A34 harness finding; sweep) |
-| A36 | The requested-overdose ceilings come from the signed entries | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
-| A37 | The tension card's TXA line removed (not in its cited quote) and the card re-signed | **in review**: the v5.1.0 PR (#177); re-signed by Andrew Azelton, 2026-10-22 |
-| A38 | The seizure card chooses its benzodiazepine by the available route | **in review**: the v5.1.0 PR (#177); owner, 2026-10-22 |
-| A39 | A question naming a drug with no signed entry at all holds before the model, naming the drug and "no signed dose" | **in review**; owner, 2026-10-25 (live log 2026-10-25, row 34) |
+| A35 | "Ketamine for pain IM" serves the signed adult IM entry or holds; every drug number a deterministic card emits has a signed entry behind it, or holds | **done**: the v5.1.0 PR (#177), merged 2026-10-23; owner, 2026-10-22 (A34 harness finding; sweep) |
+| A36 | The requested-overdose ceilings come from the signed entries | **done**: the v5.1.0 PR (#177), merged 2026-10-23; owner, 2026-10-22 |
+| A37 | The tension card's TXA line removed (not in its cited quote) and the card re-signed | **done**: the v5.1.0 PR (#177), merged 2026-10-23; re-signed by Andrew Azelton, 2026-10-22 |
+| A38 | The seizure card chooses its benzodiazepine by the available route | **done**: the v5.1.0 PR (#177), merged 2026-10-23; owner, 2026-10-22 |
+| A39 | A question naming a drug with no signed entry at all holds before the model, naming the drug and "no signed dose" | **done**: #182, merged 2026-10-25; owner, 2026-10-25 (live log 2026-10-25, row 34) |
 | D5a | Full-answer logging | **done**: #111, merged and deployed |
 | D1 | Evaluation hygiene | **done**: #112, merged |
 | D5 | Distillation dataset builder | **done**: #113, merged |
@@ -92,13 +92,13 @@ Items are listed in the owner's execution order (2026-09-26, below), done items 
 | V1 | Voice latency baseline: per-turn stage timings in the session log (schema 17), TTS timing on the listen path, an offline qwen2.5:3b baseline. No behaviour change | **done**: #183, merged; owner, 2026-10-25 |
 | V2 | /speak is local Kokoro-82M (kokoro-onnx, CPU, files on disk, apt espeak-ng, no network); ElevenLabs deleted; listen-path timing | **done**: #185, merged; owner, 2026-10-25 |
 | V3 | Voice, first audio sooner: sentence streaming, Kokoro on the GPU with CPU fallback, a fixed-template spoken brief | **done**: #190, merged and deployed; follow-up (warm-up, GPU retry, V1 on live) **done**: #191, merged; owner, 2026-10-26 / 2026-10-27 |
-| S1 | Speech in: whisper.cpp base.en on the Jetson, `/transcribe`, push to talk into the question box; the medic presses send. With it, `edgecdss-v3` bench only | **in review**; owner, 2026-10-27 |
+| S1 | Speech in: whisper.cpp base.en on the Jetson, `/transcribe`, push to talk into the question box; the medic presses send. With it, `edgecdss-v3` bench only | **done**: #192, merged 2026-10-28; owner, 2026-10-27 |
 | C1 | Feedback instrument | **done**: #131, merged; issue tags applied in their own PR (owner, 2026-10-05) |
 | C2 | On-device models in the portal picker (v1.1; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | C3 | The portal is local-only in local mode (v1.1; on C2; number assigned here, owner to confirm) | **done**: #162, merged (one PR, owner 2026-10-14) |
 | K1 | Ketamine 500 mg / 10 mL as the kit's single vial (owner declaration); a different stated strength withholds the kit volume; kit-vial volume lines labelled "(kit vial)", spoken "from your kit"; KIT_DECLARATIONS.md | **done**: #193, merged; the owner applied the declaration to the live kit (2026-10-28) |
 | K3 | A volume under 0.5 mL at the vial (kit or stated) is drawn from the signed push dilution made from it (ketamine IV analgesia, adult and paediatric: 5 mg/mL); was v1.1 #5 | **done**: #195, merged; owner signed off the replay rows (2026-10-28) |
-| P1 | Portal: every hold-to-talk failure shown on screen and named in the console; voice in needs https or localhost; the MODE brief/detailed control removed (number assigned here, owner to confirm) | **in review**; owner, 2026-10-29 |
+| P1 | Portal: every hold-to-talk failure shown on screen and named in the console; voice in needs https or localhost; the MODE brief/detailed control removed (number assigned here, owner to confirm) | **done**: #196, merged 2026-10-29; owner, 2026-10-29 |
 | D2a | Prompt layout for prefix caching: the reorder only (owner, 2026-10-05: D2 split in two) | **done**: #136, merged |
 | D2b | The prompt's second template to the canonical headers (model-changing) | **done**: #137, merged; bench movements signed off 2026-10-07 (G-MTN-04 rejected, held since by A23b and A24; G-ADV-03 approved) |
 | D3 | Retrieval trim to 4 chunks | **done**: #140, merged; bench movement signed off 2026-10-08 (R2-BRADYCARDIA held, approved) |
@@ -114,19 +114,19 @@ Owner asks outside the lettered items:
 |---|---|
 | Unsigned contracts inventory (owner, 2026-10-08): the 40 unsigned drug-contract entries and P1, P2, with citations; none clean to sign (39 incomplete drafts; neonatal dextrose and P1, P2 uncertain) | **done**: #146, merged (the inventory); signing the drafts is v1.1 |
 | Contract batch 1, analgesia (owner, 2026-10-08): from the unsigned inventory, analgesia only. One entry is in the class: fentanyl, analgesia infusion, IV, adult (ketamine analgesia and morphine are already signed; ketamine's prolonged sedation infusion and naloxone IN are not analgesia). Drafted at 25-250 mcg/hr from JTS ID29 p.24, capped by ID12 p.24, every source with page and verbatim quote (checked against the PDFs). Starting rate: no source states one, left incomplete. The canine 2-10 mcg/kg/hour (SMOG p.57, MWD ID16) is excluded | **done**: #148, merged (the draft); the entry is unsigned, v1.1 |
-| Signing batch 1, analgesia (owner, 2026-10-14): ketamine (IV/IM/IN, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen, ketorolac, each with a verbatim quote, CPG ID and printed page; unquotable values incomplete; no signatures. Plus the live hold log for the last 7 days, to choose batch 2 | **in review**: ruled 2026-10-14; 8 signed (adult IM ketamine at 0.5–1.0 mg/kg after the owner's read), ketorolac excluded; ready to merge (see the section below) |
-| Signing batch 2, sedation and antibiotics (owner, 2026-10-16): midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin, ceftriaxone; per entry the proposed dose, route, maximum and repeat, a verbatim quote and the printed page; flagged where the sources disagree or no JTS/SMOG page states a number; no signatures | **in review**: ruled 2026-10-19; 5 signed, 8 held (see the section below) |
+| Signing batch 1, analgesia (owner, 2026-10-14): ketamine (IV/IM/IN, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen, ketorolac, each with a verbatim quote, CPG ID and printed page; unquotable values incomplete; no signatures. Plus the live hold log for the last 7 days, to choose batch 2 | **done**: #163, merged 2026-10-14; ruled 2026-10-14; 8 signed (adult IM ketamine at 0.5–1.0 mg/kg after the owner's read), ketorolac excluded (see the section below) |
+| Signing batch 2, sedation and antibiotics (owner, 2026-10-16): midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin, ceftriaxone; per entry the proposed dose, route, maximum and repeat, a verbatim quote and the printed page; flagged where the sources disagree or no JTS/SMOG page states a number; no signatures | **done**: #170, merged 2026-10-21; ruled 2026-10-19; 5 signed, 8 held (see the section below) |
 | Signing batch 3, the last (owner, 2026-10-21): a review packet in Word and PDF, one page per unsigned entry (42), P1/P2 and the 12 undrafted indications; verbatim quote, printed page and the source page rendered with the line boxed; JTS first, SMOG second, NASEMSO noted only; RETIRE pre-marked where no JTS or SMOG page states a number; no signatures | **done**: #174, merged; ruled by the owner 2026-10-21 and applied: 26 entries signed (24 rulings), 26 retired, 4 deferred, P1/P2 held; E27 ruled SIGN but not signable (tablets); replay 0 newly released except one which-indication question now answered (pipeline, "versed dose IM"; its IV offers removed by A34) |
 | Which indication (owner, 2026-10-15): a drug named with no indication, where more than one signed indication applies, is asked "which indication?" (like the vial question) instead of being offered every entry; the answer selects the entries. Found live: "Need to give ketamine 89kg IV established", then "500", served post-intubation sedation (44.5 mg) to a patient who was not intubated, validator SAFE | **done**: #165, merged (see the section below) |
-| Indication-only doses (owner, 2026-10-14; the v1.1 finding from #97): a question naming an injury or indication with no drug builds ALLOWED_DOSES from the signed entries for that indication, so the model is offered the dose instead of inventing one. Failing test from the femur-fracture question | **in review**: tib-fib release approved; rebased on #163; owner's #164 rulings applied and accepted (2026-10-15): pain severity clinician-declared, criteria as routing, opioids for moderate/severe only, RR < 10 for all ages (paediatric table v1.1, #168), doctrine recorded (docs/DESIGN_PRINCIPLES.md); to be rebased on #165
+| Indication-only doses (owner, 2026-10-14; the v1.1 finding from #97): a question naming an injury or indication with no drug builds ALLOWED_DOSES from the signed entries for that indication, so the model is offered the dose instead of inventing one. Failing test from the femur-fracture question | **done**: #164, merged 2026-10-16; tib-fib release approved; rebased on #163; owner's #164 rulings applied and accepted (2026-10-15): pain severity clinician-declared, criteria as routing, opioids for moderate/severe only, RR < 10 for all ages (paediatric table v1.1, #168), doctrine recorded (docs/DESIGN_PRINCIPLES.md); to be rebased on #165
 | D6 bench script uses A22's context (owner, 2026-10-08): bench_remote.sh's tok/s probe asked Ollama for no num_ctx (default 4096: a different setting from the arms, a reload, a silent cut); it now asks for CDSS_LOCAL_NUM_CTX (8192) with truncate false, exported once for every local client and recorded in meta.json. Checked live: 8192, 100% GPU; an oversized prompt is refused, not cut. `make probe` (`ollama run`, a one-line prompt) is unchanged: it cannot set num_ctx and its prompt is short | **done**: #147, merged |
 | 3% NaCl contract, signed at 7.5 g | **done**: #85, merged and deployed |
 | Multi-model benchmark run 3 | **done**: #87, merged and deployed |
-| Pocket bank export (owner, 2026-11-04): `server/tools/export_pocket_bank.py` writes bank.json, kit.json and a manifest for EdgeCDSS Pocket; refuses any unsigned entry | **in review** (see the section below) |
-| Drug sets, EMS beside PFC (owner, 2026-11-12, signing batch 4): every dose entry names its set; a server serves one set (`CDSS_DRUG_SET`, default PFC); the exporter writes one bank per set | **in review** (see the section below) |
-| Signing batch 4 rulings, the EMS set (owner, Andrew Azelton, 2026-11-12): sign the EMS entries as transcribed except check (a)/(b) failures, flagged entries and what the engine cannot express; the EMS kit declared; Pocket export `bank-ems.json` | **in review** (see the section below) |
-| EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **in review** (see the section below) |
-| W1, Pocket on the web for outside testers (owner, 2026-11-15): `/pocket` runs the pinned Pocket code (Vosk with its grammar, its engine and templates, Piper); PFC only; product-pocket logs outside the replay sets; one talker at a time | **in review** (see the section below) |
+| Pocket bank export (owner, 2026-11-04): `server/tools/export_pocket_bank.py` writes bank.json, kit.json and a manifest for EdgeCDSS Pocket; refuses any unsigned entry | **done**: #199, merged 2026-11-14 |
+| Drug sets, EMS beside PFC (owner, 2026-11-12, signing batch 4): every dose entry names its set; a server serves one set (`CDSS_DRUG_SET`, default PFC); the exporter writes one bank per set | **done**: #201, merged 2026-11-15 |
+| Signing batch 4 rulings, the EMS set (owner, Andrew Azelton, 2026-11-12): sign the EMS entries as transcribed except check (a)/(b) failures, flagged entries and what the engine cannot express; the EMS kit declared; Pocket export `bank-ems.json` | **done**: #202, merged 2026-11-15 |
+| EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **done**: #203, merged 2026-11-15 |
+| W1, Pocket on the web for outside testers (owner, 2026-11-15): `/pocket` runs the pinned Pocket code (Vosk with its grammar, its engine and templates, Piper); PFC only; product-pocket logs outside the replay sets; one talker at a time | **done**: #204, merged and deployed 2026-11-15; release → first audio through the tunnel measured (median 471 ms) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -152,7 +152,7 @@ Owner asks outside the lettered items:
 | 1 | A27: hypothermic arrest trigger | **done**: #157 |
 | 2 | A28: seizure misspellings | **done**: #158 |
 | 3 | A29: needle-decompression procedure (signed) and "pneumo" | **done**: #159 |
-| 4 | Release prep: version 5.0.0, README quick start, `SAFETY.md`, CHANGELOG, LICENSE check, v1.1 section, `edgecdss-v3` model card draft | **in review**; the `v5.0.0` tag is created after merge, on the owner's go |
+| 4 | Release prep: version 5.0.0, README quick start, `SAFETY.md`, CHANGELOG, LICENSE check, v1.1 section, `edgecdss-v3` model card draft | **done**: #160, merged 2026-10-12; tags `v5.0.0` and `v5.1.0` are on origin |
 
 **LICENSE check (2026-10-12):**
 - The repository is MIT (`LICENSE`, Copyright (c) 2026 AI in Austere Medicine Project). The tracked PDFs are the project's own documents. The guideline corpus (`server/data/`) and every model weight are outside git.
@@ -335,15 +335,15 @@ Requirement (owner): the free-text dose check reads rates (mcg/min, mcg/kg/min, 
 
 When a P5 condition (burns, spinal cord injury, hyperkalaemia) is present, the builder doesn't offer succinylcholine. A dose-layer change, kept out of A6.
 
-### A13: remove the dead safety_rules.json path (owner, #98 review; found in #98; in review, #110)
+### A13: remove the dead safety_rules.json path (owner, #98 review; found in #98; done, #110)
 
 `clinical_router.check_safety_rules()` matches `safety_rules.json` against the query, and the result goes only to a console print. Remove it, with a test that nothing depended on it.
 
-### A11b: rate matching is indication-specific (owner, #108 review; in review, #110)
+### A11b: rate matching is indication-specific (owner, #108 review; done, #110)
 
 A11 matches a stated rate against any of the drug's signed rate entries for the patient's population. Make it indication-specific, the same shape as A1b: a rate is checked against the entries for this patient's indication (for example, epinephrine for symptomatic bradycardia against 0.02–0.2 mcg/kg/min, not the shock range). Failing tests first.
 
-### A16: a deterministic norepinephrine drip card (owner, #108 review; found in #108; in review, #110)
+### A16: a deterministic norepinephrine drip card (owner, #108 review; found in #108; done, #110)
 
 Models answer a norepinephrine rate question in flat mcg/min ("2–20 mcg/min"), which A11 holds: every signed norepinephrine rate is per kg per minute, and nothing serves one. Add a deterministic norepinephrine drip card serving the signed per-kg rate, the way the epinephrine drip card does. Failing test first: the "norepinephrine 2–20 mcg/min" answer is held, and the card is served.
 
@@ -1331,6 +1331,8 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - **Memory, all loaded.** With qwen2.5:3b, Kokoro, whisper, Vosk and Piper loaded, *and* the live server still running: 7,256 of 7,546 MB used, **290 MB available**, swap 1.39 GB; harness server 2.26 GB resident (EdgeCDSS with Kokoro, whisper and Pocket), live server 1.04 GB resident (partly swapped), Ollama's llama-server 2.72 GB (Ollama put qwen 40 % on the CPU, 60 % on the GPU for want of room). Two servers is not the deployed state; Pocket's own share, measured alone, is **0.31 GB** (256 MB loaded, 308 MB after the first sentence; loads in 4.5 s). Deployed, the one server carries that 0.31 GB beside its Kokoro and whisper. qwen was unloaded straight after the snapshot.
 - **Release → the whole response, audio in it** (`/pocket/hear` on 127.0.0.1; the audio comes inline, so this is when the browser can start playing): the five examples spoken by Piper as the device prompts them, three rounds: median **518 ms**, p90 835 ms, max 851 ms (hearing median 185 ms, Piper 330 ms). The owner's gate recordings from the Radxa USB mic (2–10 s each, the first ten under 15 s): median 539 ms, p90 1,371 ms. With qwen loaded as well: median 387 ms, max 800 ms. The browser adds its audio start (not measured here); the page logs release → first audio from each tester (`event: timing`).
 
+**Through the tunnel** (owner, 2026-11-15, after deploy; `https://cdss.arcanekg.com/pocket/hear` from the Jetson, so the path is Jetson → Cloudflare → back, about 150 ms for a bare `/health`; a remote tester adds their own path, and the page logs each tester's release → first audio): the five examples, the same Piper clips three rounds: median **471 ms**, p90 887 ms, max 896 ms (first byte 462 ms; the server's own time 358 ms; response 80 KB, the audio inline). The owner's ten gate recordings: median **630 ms**, p90 1,472 ms (server 536 ms). Measurement turns are in the live Pocket log as sessions `w1-tunnel-*`. In this run's Piper clip, "i v eighty" was heard as "i dvt" in all three rounds (Not recognised); "new patient" was heard right; the gate recordings were heard as on the harness and the device.
+
 **Found (not on this item):** Vosk with Pocket's grammar heard Piper's "new patient" as "you patient" in all three rounds, and once "i v" as "i'd it": each was "Not recognised." (never another drug or dose). The owner's ten recordings (the first ten names of the Radxa drug-name gate, 2026-11-11) were heard exactly as on the device: eight as their own drug, four of them through Pocket's phonetic spellings ("add true pine" atropine, "calcium glue can aid" calcium gluconate, "soft reacts own" ceftriaxone, "eben efrain" epinephrine); cefazolin ("suffers own") not recognised; ertapenem heard as rifampin, which is unsigned, so the answer was the hold "No signed dose for rifampin." The audio cap (15 s) refused one 18.5 s gate recording, as intended.
 
 **Deploying** (the owner's step, after merge): `python3 server/tools/install_pocket.py --models`; `pip install --no-deps -r requirements-pocket.txt` into the service venv (`--no-deps`: piper-tts depends on onnxruntime, and pip would replace the Jetson's onnxruntime-gpu build); restart. Without the install the page says "Pocket unavailable" and the portal is unaffected; `POCKET_WEB=0` switches it off.
@@ -1935,7 +1937,7 @@ The global rules above apply, as for the A items:
 
 **Split (owner, 2026-10-05):** D2a is the reorder only, on all three prompts, with the prefill measured before and after; D2b is the second template's headers, benched on its own as a model-changing item.
 
-### D2a: the reorder (in review)
+### D2a: the reorder (done, #136)
 
 **What changed:** the generator prompt was GENERATOR_BASE with the patient block spliced in ahead of SCOPE, then the retrieved context, then ALLOWED_DOSES; the shared prefix ended at the patient block. Now GENERATOR_BASE comes first, whole (about 8,100 characters, about 1,900 tokens), then the retrieved context, the patient context and ALLOWED_DOSES; the question stays the user turn. The general-reference prompt (fixed text, then the acute block, the referral sentence, the patient) and the validator (fixed system prompt, everything per-query in the user turn) were already in that order and are pinned by tests.
 
@@ -1991,7 +1993,7 @@ How to read it:
 **Was for the owner to decide:** the prefill gain is real and reproducible (−26% generator prefill, cold calls gone), but end-to-end latency barely moves, and on local qwen the new order moves three answers from held to served, one of them clinically wrong. Whether D2a merges as is, waits for D2b, or waits on a no-dose content check is the owner's call.
 
 
-### D2b: the second template to the canonical headers (in review)
+### D2b: the second template to the canonical headers (done, #137)
 
 **Owner rulings (2026-10-06):** drop the condition explainer; the canonical set in both generator templates; deterministic cards untouched.
 
