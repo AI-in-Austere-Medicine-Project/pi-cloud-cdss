@@ -17,6 +17,7 @@ from openai_client import INPUT_MODES, query_with_rag
 import openai_client
 import general_reference
 import latency
+import pocket_web
 import providers
 import stt
 import tts
@@ -102,6 +103,12 @@ def require_token(x_access_token: str = Header(default="")) -> None:
     """
     if x_access_token != ACCESS_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid access token")
+
+
+# W1 (owner, 2026-11-15): /pocket, the pinned Pocket code for outside testers. The
+# page is ungated like /; its API carries the same token gate. PFC only, its own
+# logs (pocket_web.py). Loaded in a thread at startup, so /health never waits on it.
+pocket_web.mount(app, require_token=require_token)
 
 
 class QueryRequest(BaseModel):
