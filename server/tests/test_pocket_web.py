@@ -443,3 +443,53 @@ def test_piper_said_it_and_vosk_heard_it(logs):
     turn = rt.session_for("loop").handle(text)
     assert turn.kind == "readback", (heard, turn.text)
     assert turn.text == "Ketamine, agitation, IV, eighty kilos. Confirm?"
+
+
+# ── W1 pin bump: Pocket's hearing fixes (Pocket #5, owner 2026-11-15) ───────
+# Owner: "Typed input stays as it is; no pair asks for typed text." A pair the clips or
+# the sound-alike checks confuse asks "X or Y?" before the read-back when it is heard.
+
+HEARING_FIXES = "f8f7aa5fe80766891175be05d3c6e81b6c9397c3"   # Pocket #5, merged
+
+
+def test_the_pin_is_pockets_hearing_fixes_merge():
+    assert pw.PIN["commit"] == HEARING_FIXES
+
+
+def _hear(client, runtime, heard, sid="tester-a"):
+    runtime.hearing.next = heard
+    return client.post(f"/pocket/hear?session_id={sid}", content=_wav(),
+                       headers={**TOKEN, "Content-Type": "audio/wav"}).json()
+
+
+@needs_checkout
+def test_a_heard_confused_drug_pair_asks_x_or_y_first(client, runtime):
+    r = _hear(client, runtime, "epinephrine for anaphylaxis intramuscular eighty kilos")
+    assert r["kind"] == "ask" and r["text"] == "Epinephrine or norepinephrine?"
+    r = _hear(client, runtime, "epinephrine")
+    assert r["kind"] == "readback" and r["text"].startswith("Epinephrine, anaphylaxis, IM")
+
+
+@needs_checkout
+def test_a_heard_letter_spelled_im_or_in_asks_first(client, runtime):
+    r = _hear(client, runtime, "fentanyl for pain i n eighty kilos")
+    assert r["text"] == "IM or IN?"
+    r = _hear(client, runtime, "intranasal")
+    assert r["kind"] == "readback" and ", IN," in r["text"]
+
+
+@needs_checkout
+@pytest.mark.parametrize("typed", ["epinephrine for anaphylaxis im eighty kilos",
+                                   "fentanyl for pain in eighty kilos"])
+def test_the_typed_box_never_asks_a_pair(client, typed):
+    r = _say(client, typed).json()
+    assert r["kind"] == "readback", r["text"]
+
+
+@needs_checkout
+@pytest.mark.parametrize("heard, route", [("i v", "IV"), ("intravenous", "IV"), ("in the vein", "IV"),
+                                          ("intramuscular", "IM"), ("i o", "IO"), ("by mouth", "PO")])
+def test_the_new_route_words_are_heard_through_the_web(client, runtime, heard, route):
+    drug = "acetaminophen for pain" if route == "PO" else "ketamine for agitation"
+    r = _hear(client, runtime, f"{drug} {heard} eighty kilos")
+    assert r["parse"]["routes"] == [route], r["text"]
