@@ -39,6 +39,8 @@ h2 {
 }
 .card h3 { margin: 0 0 6px; font-size: 21px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+a.tag { text-decoration: none; }
+a.tag:hover { color: var(--accent); border-color: var(--accent); }
 .card p { margin: 0 0 14px; color: var(--muted); }
 .meta { font-size: 13px; color: var(--muted); margin: -4px 0 14px; }
 .links { display: flex; gap: 10px; flex-wrap: wrap; }
