@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeCDSS Pocket — web test</title>
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --panel2: #1c2129; --border: #2d333b;
+  --text: #e6edf3; --dim: #8b949e; --blue: #58a6ff; --green: #3fb950;
+  --amber: #d29922; --red: #f85149; --mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif;
+       min-height: 100vh; display: flex; flex-direction: column; }
+header { border-bottom: 1px solid var(--border); padding: 14px 16px; background: var(--panel);
+         display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+header h1 { font-size: 22px; font-weight: 800; letter-spacing: .05em; }
+header h1 span { color: var(--blue); }
+.statusline { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+main { flex: 1; width: 100%; max-width: 860px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; align-content: start; }
+.banner { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--amber);
+          border-radius: 6px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+#log { display: grid; gap: 10px; }
+.turn { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.turn .you { color: var(--dim); font-size: 13px; }
+.turn .you b { color: var(--blue); font-weight: 600; }
+.turn .ans { margin-top: 6px; font-size: 16px; line-height: 1.45; }
+.turn .ans.readback { color: var(--amber); }
+.turn .ans.dose { color: var(--green); }
+.turn .ans.hold, .turn .ans.refused { color: var(--red); }
+.meta { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.turn .meta { margin-top: 6px; }
+details.parse summary { cursor: pointer; }
+details.parse pre { white-space: pre-wrap; word-break: break-word; margin-top: 4px; }
+.fb { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.fbbtn { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+         border-radius: 4px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+.fbbtn.flag { border-color: var(--amber); }
+.fbbtn:disabled { opacity: .55; cursor: default; }
+.flagform { display: grid; gap: 6px; margin-top: 6px; width: 100%; }
+.flagform select, .flagform textarea { background: var(--bg); color: var(--text);
+         border: 1px solid var(--border); border-radius: 4px; padding: 6px; font: inherit; }
+#composer { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--border);
+            padding: 12px 16px; }
+#composer .inner { max-width: 860px; margin: 0 auto; display: grid; gap: 8px; }
+#row { display: flex; gap: 8px; }
+#typed { flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+         border-radius: 6px; padding: 10px; font-size: 16px; }
+button.big { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+             border-radius: 6px; padding: 10px 14px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
+#talk { width: 100%; padding: 16px; font-size: 18px; border-color: var(--blue); touch-action: none;
+        user-select: none; -webkit-user-select: none; }
+#talk.rec { background: var(--red); border-color: var(--red); }
+#talk:disabled, #send:disabled { opacity: .5; }
+#talknote { font-family: var(--mono); font-size: 12px; color: var(--dim); min-height: 1.2em; }
+#talknote.err { color: var(--red); } #talknote.rec { color: var(--amber); }
+#opts { display: flex; gap: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--dim); align-items: center; }
+#opts input { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 3px 6px; width: 170px; }
+.disclaimer { font-size: 11px; color: var(--dim); line-height: 1.4; }
+.howto { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; }
+.howto summary { cursor: pointer; font-weight: 700; }
+.howto ol { margin: 8px 0 4px 20px; display: grid; gap: 6px; font-size: 14px; }
+.howto code { font-family: var(--mono); color: var(--blue); }
+.howto .expect { display: block; color: var(--dim); }
+.howto p { font-size: 13px; color: var(--dim); margin-top: 6px; line-height: 1.45; }
+</style>
+</head>
+<body>
+<header>
+  <h1>EDGE<span>CDSS</span> POCKET</h1>
+  <span class="statusline">Pocket <span id="pocket-version">…</span> · bank <span id="bank-version">…</span> · set <span id="bank-set">PFC</span> · <span id="avail">connecting…</span></span>
+</header>
+<main>
+  <div class="banner"><strong>Demo &amp; research system — use simulated scenarios only. Do NOT enter PHI or real patient information. Guideline-based support only — not a substitute for clinical judgment.</strong></div>
+
+  <details class="howto" open>
+    <summary>How to test</summary>
+    <p>Pocket is the device version of EdgeCDSS: a fixed vocabulary, a read-back, and a dose only after you say "confirm". Hold the button and say each phrase, or type it, in this order. Say "i v", "p o" and "i m" letter by letter.</p>
+    <ol>
+      <li><code>ketamine for agitation iv eighty kilos</code><span class="expect">Ketamine, agitation, IV, eighty kilos. Confirm?</span></li>
+      <li><code>confirm</code><span class="expect">Ketamine one hundred and sixty milligrams. Three point two mils of fifty.</span></li>
+      <li><code>new patient</code><span class="expect">New patient. Weight and age cleared.</span></li>
+      <li><code>magnesium</code><span class="expect">No signed dose for magnesium.</span></li>
+      <li><code>acetaminophen for pain po seventy kilos</code><span class="expect">Acetaminophen, pain, PO, seventy kilos. Confirm?</span></li>
+    </ol>
+    <p>One tester at a time: if someone else is talking you will see "busy, try again". Use the buttons under each answer to say whether it was clinically appropriate or to flag an issue.</p>
+  </details>
+
+  <div id="log" aria-live="polite"></div>
+</main>
+
+<div id="composer"><div class="inner">
+  <button id="talk" class="big" type="button">HOLD TO TALK</button>
+  <div id="talknote" role="status" aria-live="polite"></div>
+  <form id="row" autocomplete="off">
+    <input id="typed" placeholder="or type a phrase, e.g. ketamine for agitation iv eighty kilos" maxlength="500">
+    <button id="send" class="big" type="submit">SEND</button>
+  </form>
+  <div id="opts">
+    <button id="newpatient" class="fbbtn" type="button">NEW PATIENT</button>
+    <span style="margin-left:auto">TOKEN: <input id="token" value="edgecdss-demo-2026"></span>
+  </div>
+  <div class="disclaimer"><strong>NO PHI / NO REAL PATIENTS.</strong> This is a research and evaluation platform — it is not HIPAA-compliant and must not be used for actual patient care. Use simulated scenarios only. All queries, responses, and feedback are logged and copied for research and system improvement. Responses are generated decision support derived from JTS CPGs and deterministic dose logic — verify against local protocol.</div>
+</div></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const sid = (() => {
+  const make = () => 'pw-' + Math.random().toString(36).slice(2, 12);
+  try {
+    let s = sessionStorage.getItem('pocket-sid');
+    if (!s) { s = make(); sessionStorage.setItem('pocket-sid', s); }
+    return s;
+  } catch (e) { return make(); }
+})();
+const hdr = extra => Object.assign({ 'X-Access-Token': $('token').value }, extra || {});
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let tagList = [];
+
+async function status() {
+  try {
+    const r = await fetch('/pocket/status', { headers: hdr() });
+    if (!r.ok) { $('avail').textContent = r.status === 401 ? 'token refused' : 'error ' + r.status; return; }
+    const s = await r.json();
+    $('pocket-version').textContent = (s.pocket_commit || '').slice(0, 12);
+    $('bank-version').textContent = s.bank_version || '—';
+    $('bank-set').textContent = s.set || 'PFC';
+    $('avail').textContent = s.available ? (s.busy ? 'in use' : 'ready') : 'unavailable: ' + s.why;
+  } catch (e) { $('avail').textContent = 'offline'; }
+}
+fetch('/issue_tags').then(r => r.json()).then(d => { tagList = d.tags || []; }).catch(() => {});
+
+function note(text, cls) {
+  $('talknote').textContent = text || '';
+  $('talknote').className = cls || '';
+}
+
+function timing(t) {
+  fetch('/pocket/timing', { method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(Object.assign({ session_id: sid }, t)) }).catch(() => {});
+}
+
+function playWav(b64, t0, turnId, input) {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+  const a = new Audio(url);
+  a.addEventListener('playing', () => {
+    timing({ turn_id: turnId, input, release_to_first_audio_ms: Math.round(performance.now() - t0) });
+  }, { once: true });
+  a.addEventListener('ended', () => URL.revokeObjectURL(url), { once: true });
+  a.play().catch(err => note('Tap the page once to let it play audio (' + err.name + ').', 'err'));
+}
+
+function show(d, input, typedText) {
+  const div = document.createElement('div');
+  div.className = 'turn';
+  const you = input === 'voice'
+    ? '<b>Heard:</b> ' + esc(d.heard || '(nothing)') + (d.decoder ? ' <span class="meta">[' + esc(d.decoder) + ']</span>' : '')
+    : '<b>Typed:</b> ' + esc(typedText);
+  const t = d.timings || {};
+  div.innerHTML = '<div class="you">' + you + '</div>' +
+    '<div class="ans ' + esc(d.kind) + '">' + esc(d.text) + '</div>' +
+    '<div class="meta">' + esc(d.kind) + (t.hear_ms != null ? ' · hear ' + t.hear_ms + ' ms' : '') +
+    ' · engine ' + t.engine_ms + ' ms · voice ' + t.synth_ms + ' ms</div>' +
+    '<details class="parse meta"><summary>parse</summary><pre>' + esc(JSON.stringify(d.parse, null, 1)) + '</pre></details>' +
+    '<div class="fb"><button class="fbbtn" data-v="appropriate">✓ clinically appropriate</button>' +
+    '<button class="fbbtn flag" data-v="flagged">⚠ flag issue</button><span class="fbnote meta"></span></div>';
+  wireFeedback(div, d.turn_id);
+  $('log').appendChild(div);
+  div.scrollIntoView({ block: 'end', behavior: 'smooth' });
+}
+
+async function sendFeedback(div, turnId, body) {
+  const out = div.querySelector('.fbnote');
+  try {
+    const r = await fetch('/pocket/feedback', { method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(Object.assign({ session_id: sid, turn_id: turnId }, body)) });
+    out.textContent = r.ok ? 'thank you, logged' : 'not logged (' + r.status + ')';
+    if (r.ok) div.querySelectorAll('.fbbtn').forEach(b => { b.disabled = true; });
+  } catch (e) { out.textContent = 'not logged (' + e + ')'; }
+}
+
+function wireFeedback(div, turnId) {
+  div.querySelectorAll('.fb > .fbbtn').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.v === 'appropriate') { sendFeedback(div, turnId, { feedback_type: 'appropriate' }); return; }
+    if (div.querySelector('.flagform')) return;
+    const f = document.createElement('div');
+    f.className = 'flagform';
+    f.innerHTML = '<select class="sev"><option value="minor">minor</option><option value="significant">significant</option>' +
+      '<option value="dangerous">dangerous</option></select>' +
+      (tagList.length ? '<select class="tags" multiple size="4">' + tagList.map(t => '<option>' + esc(t) + '</option>').join('') + '</select>' : '') +
+      '<textarea class="sug" rows="2" maxlength="4000" placeholder="What should it have said?"></textarea>' +
+      '<textarea class="com" rows="2" maxlength="4000" placeholder="Comment (no PHI)"></textarea>' +
+      '<button class="fbbtn flag" type="button">submit flag</button>';
+    div.querySelector('.fb').appendChild(f);
+    f.querySelector('button').addEventListener('click', () => {
+      const tags = f.querySelector('.tags') ? Array.from(f.querySelector('.tags').selectedOptions).map(o => o.value) : [];
+      sendFeedback(div, turnId, { feedback_type: 'flagged', severity: f.querySelector('.sev').value, issues: tags,
+        suggestion: f.querySelector('.sug').value, comment: f.querySelector('.com').value });
+    });
+  }));
+}
+
+async function answer(r, input, typedText, t0) {
+  if (r.status === 409) { note('Busy, try again. Someone else is testing Pocket right now.', 'err'); return; }
+  if (!r.ok) {
+    let why = r.status;
+    try { why = (await r.json()).detail || why; } catch (e) { /* not json */ }
+    note('Not answered: ' + why, 'err');
+    return;
+  }
+  const d = await r.json();
+  timing({ turn_id: d.turn_id, input, release_to_response_ms: Math.round(performance.now() - t0) });
+  note('');
+  show(d, input, typedText);
+  playWav(d.audio_wav_b64, t0, d.turn_id, input);
+}
+
+async function sayTyped(text) {
+  if (!text.trim()) return;
+  const t0 = performance.now();
+  $('send').disabled = true;
+  try {
+    const r = await fetch('/pocket/say', { method: 'POST', headers: hdr({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ session_id: sid, text }) });
+    await answer(r, 'typed', text, t0);
+  } catch (e) { note('Not answered: ' + e, 'err'); }
+  $('send').disabled = false;
+}
+$('row').addEventListener('submit', e => { e.preventDefault(); const t = $('typed').value; $('typed').value = ''; sayTyped(t); });
+$('newpatient').addEventListener('click', () => sayTyped('new patient'));
+
+// ── hold to talk: the portal's recorder, 16 kHz mono WAV ──
+const TALK_RATE = 16000, TALK_MIN_S = 0.3, TALK_LABEL = 'HOLD TO TALK';
+let rec = null;
+function micFailure(err) {
+  const name = (err && err.name) || '';
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'Microphone permission denied. Allow it for this site, then hold again. Or type the phrase.';
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'No microphone found. Connect one, or type the phrase.';
+  return 'The microphone did not open (' + (name || err) + '). Type the phrase instead.';
+}
+function downsampleTo16k(chunks, rate) {
+  let n = 0; chunks.forEach(c => { n += c.length; });
+  const all = new Float32Array(n); let at = 0;
+  chunks.forEach(c => { all.set(c, at); at += c.length; });
+  if (rate === TALK_RATE) return all;
+  const ratio = rate / TALK_RATE, out = new Float32Array(Math.floor(n / ratio));
+  for (let i = 0; i < out.length; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(n, Math.floor((i + 1) * ratio));
+    let sum = 0; for (let j = a; j < b; j++) sum += all[j];
+    out[i] = b > a ? sum / (b - a) : 0;
+  }
+  return out;
+}
+function wav16k(samples) {
+  const bytes = new Uint8Array(44 + samples.length * 2), v = new DataView(bytes.buffer);
+  const tag = (o, t) => { for (let i = 0; i < 4; i++) bytes[o + i] = t.charCodeAt(i); };
+  tag(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); tag(8, 'WAVE');
+  tag(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, TALK_RATE, true); v.setUint32(28, TALK_RATE * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  tag(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    const x = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
+  }
+  return bytes;
+}
+function talkRelease(r) {
+  try { if (r.node) { r.node.onaudioprocess = null; r.node.disconnect(); } } catch (e) {}
+  try { if (r.src) r.src.disconnect(); } catch (e) {}
+  try { if (r.stream) r.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { if (r.ctx) r.ctx.close(); } catch (e) {}
+}
+async function talkStart(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (rec || $('talk').disabled) return;
+  if (!window.isSecureContext || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+    note('Voice needs https. Open the portal\'s https address, or type the phrase.', 'err'); return;
+  }
+  const r = { chunks: [], rate: 0, released: false, t0: performance.now(), peak: 0 };
+  rec = r;
+  $('talk').classList.add('rec'); $('talk').textContent = '● RECORDING · LET GO TO SEND';
+  note('● waiting for the microphone (allow it if the browser asks)', 'rec');
+  try {
+    r.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  } catch (err) {
+    if (rec === r) rec = null;
+    $('talk').classList.remove('rec'); $('talk').textContent = TALK_LABEL;
+    note(micFailure(err), 'err'); return;
+  }
+  if (r.released) { talkRelease(r); note('The microphone is on now. Hold the button again and speak.', 'err'); return; }
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  r.ctx = new Ctx();
+  if (r.ctx.state === 'suspended' && r.ctx.resume) r.ctx.resume().catch(() => {});
+  r.rate = r.ctx.sampleRate;
+  r.src = r.ctx.createMediaStreamSource(r.stream);
+  r.node = r.ctx.createScriptProcessor(4096, 1, 1);
+  r.node.onaudioprocess = ev => {
+    const c = new Float32Array(ev.inputBuffer.getChannelData(0));
+    let p = 0; for (let i = 0; i < c.length; i++) p = Math.max(p, Math.abs(c[i]));
+    r.chunks.push(c); r.peak = Math.max(r.peak, p);
+    if (rec === r) note('● recording ' + ((performance.now() - r.t0) / 1000).toFixed(1) + ' s · let go to send', 'rec');
+  };
+  r.src.connect(r.node); r.node.connect(r.ctx.destination);
+}
+async function talkStop(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const r = rec;
+  if (!r) return;
+  rec = null; r.released = true;
+  $('talk').classList.remove('rec'); $('talk').textContent = TALK_LABEL;
+  if (!r.stream) return;
+  const t0 = performance.now();           // release: the latency clock starts here
+  talkRelease(r);
+  const samples = downsampleTo16k(r.chunks, r.rate);
+  if (samples.length < TALK_MIN_S * TALK_RATE) { note('Too short. Hold the button while you speak.', 'err'); return; }
+  if (r.peak < 0.01) { note('Nothing heard: the microphone gave silence. Check it, or type the phrase.', 'err'); return; }
+  $('talk').disabled = true;
+  note('listening…');
+  try {
+    const resp = await fetch('/pocket/hear?session_id=' + encodeURIComponent(sid),
+      { method: 'POST', headers: hdr({ 'Content-Type': 'audio/wav' }), body: wav16k(samples) });
+    await answer(resp, 'voice', '', t0);
+  } catch (err) { note('Not answered: ' + err, 'err'); }
+  $('talk').disabled = false;
+}
+const talk = $('talk');
+talk.addEventListener('pointerdown', talkStart);
+talk.addEventListener('pointerup', talkStop);
+talk.addEventListener('pointercancel', talkStop);
+talk.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) talkStart(e); });
+talk.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') talkStop(e); });
+
+window.addEventListener('pagehide', () => {
+  try { fetch('/pocket/release', { method: 'POST', keepalive: true, headers: hdr({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ session_id: sid }) }); } catch (e) {}
+});
+status();
+setInterval(status, 15000);
+</script>
+</body>
+</html>

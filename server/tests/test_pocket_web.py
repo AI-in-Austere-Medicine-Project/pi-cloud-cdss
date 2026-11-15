@@ -50,9 +50,12 @@ CHECKOUT = pw.checkout_dir()
 needs_checkout = pytest.mark.skipif(
     not (CHECKOUT / ".git").exists(),
     reason=f"Pocket is not installed at {CHECKOUT}: run server/tools/install_pocket.py")
+import importlib.util  # noqa: E402
 needs_models = pytest.mark.skipif(
-    not (pw.vosk_model_dir().exists() and pw.piper_voice_path().exists()),
-    reason="the Vosk model and Piper voice are not installed (install_pocket.py --models)")
+    not (pw.vosk_model_dir().exists() and pw.piper_voice_path().exists()
+         and importlib.util.find_spec("vosk") and importlib.util.find_spec("piper")),
+    reason="the Vosk model and Piper voice, or the vosk and piper-tts packages, are not "
+           "installed (install_pocket.py --models; requirements-pocket.txt)")
 
 EXAMPLE_PHRASES = ["ketamine for agitation iv eighty kilos", "confirm", "new patient",
                    "magnesium", "acetaminophen for pain po seventy kilos"]

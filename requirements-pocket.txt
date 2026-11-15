@@ -1,0 +1,11 @@
+# W1 (/pocket): Pocket's speech in and out, on top of requirements-server.txt.
+# The Pocket code itself is not a package: server/tools/install_pocket.py checks
+# out the commit server/pocket_pin.json pins.
+# Install with --no-deps on the Jetson: piper-tts depends on onnxruntime, and pip
+# would replace the Jetson's onnxruntime-gpu build with the CPU wheel.
+vosk==0.3.45
+piper-tts==1.8.0
+srt==3.5.3
+pathvalidate==3.3.1
+cffi
+pycparser
