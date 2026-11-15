@@ -43,7 +43,7 @@ def atropine_peds():
         "signoff": True,
         "reviewed_by": sorted(dc.SIGNOFF_AUTHORS)[0],
         "review_date": "2026-09-20",
-        "version": "1.0.0",
+        "version": "1.0.0", "set": "PFC",
     }
 
 

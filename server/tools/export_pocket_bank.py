@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Export the signed dose bank for EdgeCDSS Pocket.
 
-    python3 server/tools/export_pocket_bank.py --out <dir> [--kit <path>]
+    python3 server/tools/export_pocket_bank.py --out <dir> [--set PFC|EMS] [--kit <path>]
 
-Writes bank.json (every signed entry), kit.json (the kit's signed vials) and
-manifest.json (bank version, EdgeCDSS commit, sha256 of both). Pocket has no
+Writes bank.json (every signed entry of ONE drug set), kit.json (that set's
+kit: its signed vials) and manifest.json (set, bank version, EdgeCDSS commit,
+sha256 of both). One bank per set (owner, 2026-11-12): PFC is the JTS/SMOG
+bank, EMS the agency formulary; an entry of another set never enters a set's
+bank, and its drug is a "no signed dose" name there. Pocket has no
 model and signs nothing, so this file is the whole of what it can say.
 
 An unsigned entry cannot leave. drug_contracts.entry_is_servable() is the same
@@ -36,6 +39,8 @@ import drug_concentrations as cc  # noqa: E402
 import drug_contracts as dc  # noqa: E402
 
 DEFAULT_KIT = _SERVER / "drug_concentrations.json"
+# Each set has its own kit (deployment state, gitignored like the PFC kit).
+DEFAULT_KITS = {"PFC": DEFAULT_KIT, "EMS": _SERVER / "drug_concentrations_ems.json"}
 # The tracked files that decide what is exported. The kit is gitignored
 # deployment state, so a commit cannot pin it: its hash is in the manifest.
 PINNED = ("server/drug_contracts.json", "server/drug_contracts.py",
@@ -100,6 +105,7 @@ def export_entry(name: str, drug: dict, entry: dict, classify: Callable,
                 for c in entry.get("cautions") or []]
     return {
         "drug": name,
+        "set": entry["set"],
         "aliases": sorted(set(aliases if aliases is not None else drug.get("aliases") or [])),
         "indication": label,
         "indication_class": cls,
@@ -140,21 +146,27 @@ def _recognised_names() -> dict:
     return {t: idx.get(g, g) for t, g in idx.items()}
 
 
-def build_bank(drugs: dict, version: str, classify: Optional[Callable] = None) -> dict:
+def build_bank(drugs: dict, version: str, classify: Optional[Callable] = None,
+               set_name: str = "PFC") -> dict:
+    if set_name not in dc.KNOWN_SETS:
+        raise ExportRefused(f"{set_name!r} is not a drug set ({', '.join(dc.KNOWN_SETS)})")
     if classify is None:
         import openai_client  # the class table lives there; imported only when needed
         classify = openai_client.indication_class
     index = _recognised_names()
 
-    entries, unsigned = [], 0
+    entries, unsigned, other_set = [], 0, 0
     for name, drug in drugs.items():
         aliases = set(drug.get("aliases") or []) | {
             t for t, g in index.items() if g == name and t != name.lower()}
         for entry in drug.get("dose_entries", []):
+            if entry.get("set") in dc.KNOWN_SETS and entry["set"] != set_name:
+                other_set += 1
+                continue
             if entry.get("signoff") is not True:
                 unsigned += 1
                 continue
-            ok, why = dc.entry_is_servable(entry, drug)
+            ok, why = dc.entry_is_servable(entry, drug, served_set=set_name)
             if not ok:
                 raise ExportRefused(f"{name} '{entry.get('indication')}' "
                                     f"({entry.get('route')}) is marked signed and "
@@ -172,11 +184,13 @@ def build_bank(drugs: dict, version: str, classify: Optional[Callable] = None) -
             if term != generic.lower():
                 names.add(term)
     return {
+        "set": set_name,
         "bank_version": version,
         "entries": entries,
         "no_signed_dose": [{"drug": n, "aliases": sorted(a)}
                            for n, a in sorted(unsigned_names.items())],
         "unsigned_left_out": unsigned,
+        "other_set_left_out": other_set,
     }
 
 
@@ -250,6 +264,7 @@ def write_export(out, bank: dict, kit: dict, git: dict, inputs_sha256: dict) -> 
     out.mkdir(parents=True, exist_ok=True)
     blobs = {"bank.json": _dump(bank), "kit.json": _dump(kit)}
     manifest = {
+        "set": bank["set"],
         "bank_version": bank["bank_version"],
         "edgecdss_commit": git["commit"],
         "edgecdss_commit_date": git["date"],
@@ -260,7 +275,8 @@ def write_export(out, bank: dict, kit: dict, git: dict, inputs_sha256: dict) -> 
                    "drugs": len({e["drug"] for e in bank["entries"]}),
                    "vials": len(kit["vials"]),
                    "no_signed_dose": len(bank["no_signed_dose"]),
-                   "unsigned_left_out": bank["unsigned_left_out"]},
+                   "unsigned_left_out": bank["unsigned_left_out"],
+                   "other_set_left_out": bank["other_set_left_out"]},
     }
     for name, blob in blobs.items():
         (out / name).write_bytes(blob)
@@ -281,13 +297,14 @@ def git_state() -> dict:
     return {"commit": _git("rev-parse", "HEAD"), "date": _git("log", "-1", "--format=%cs")}
 
 
-def export(out, kit_path=DEFAULT_KIT) -> dict:
+def export(out, kit_path=None, set_name="PFC") -> dict:
+    kit_path = DEFAULT_KITS[set_name] if kit_path is None else kit_path
     git = git_state()
     contracts = _SERVER / "drug_contracts.json"
     schema = json.loads(contracts.read_text()).get("schema_version", "0")
     version = f"{schema}+{git['date']}.{git['commit'][:7]}"
     kit = build_kit(kit_path)
-    bank = build_bank(dc.DRUGS, version)
+    bank = build_bank(dc.DRUGS, version, set_name=set_name)
     return write_export(out, bank, kit, git, {
         "drug_contracts.json": hashlib.sha256(contracts.read_bytes()).hexdigest(),
         "drug_concentrations.json": hashlib.sha256(
@@ -295,14 +312,21 @@ def export(out, kit_path=DEFAULT_KIT) -> dict:
     })
 
 
-def main(argv=None) -> int:
+def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", required=True, type=pathlib.Path)
-    ap.add_argument("--kit", type=pathlib.Path, default=DEFAULT_KIT,
-                    help="the deployed drug_concentrations.json (gitignored)")
-    args = ap.parse_args(argv)
+    ap.add_argument("--set", default="PFC", choices=dc.KNOWN_SETS,
+                    help="the drug set to export (one bank per set; default PFC)")
+    ap.add_argument("--kit", type=pathlib.Path, default=None,
+                    help="the set's deployed kit (gitignored; default "
+                         "drug_concentrations.json for PFC, drug_concentrations_ems.json for EMS)")
+    return ap.parse_args(argv)
+
+
+def main(argv=None) -> int:
+    args = parse_args(argv)
     try:
-        manifest = export(args.out, args.kit)
+        manifest = export(args.out, args.kit, args.set)
     except ExportRefused as e:
         print(f"REFUSED: {e}", file=sys.stderr)
         return 1

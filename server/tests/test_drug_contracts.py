@@ -58,7 +58,7 @@ def signed_entry(**overrides):
         "signoff": True,
         "reviewed_by": "clinician",
         "review_date": "2026-08-24",
-        "version": "0.1.0-test",
+        "version": "0.1.0-test", "set": "PFC",
     }
     e.update(overrides)
     return e
@@ -113,7 +113,7 @@ def pending_entry(drug="ketamine", **overrides):
                        "units": dc.PENDING, "per_kg": False},
         "sources": [], "cautions": [dc.PENDING], "contraindications": [dc.PENDING],
         "signoff": False, "reviewed_by": dc.PENDING, "review_date": dc.PENDING,
-        "version": "0.1.0-draft",
+        "version": "0.1.0-draft", "set": "PFC",
     })
     entry.update(overrides)
     return entry
@@ -875,7 +875,7 @@ def _declared_fixture(**over):
         "signoff": True,
         "reviewed_by": dc.SIGNOFF_AUTHORS[0],
         "review_date": "2026-08-25",
-        "version": "0.0.1",
+        "version": "0.0.1", "set": "PFC",
         "flags": [dc.OWNER_DECLARED],
         "owner_declaration": {
             "basis": "owner clinical declaration",

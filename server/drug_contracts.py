@@ -145,7 +145,30 @@ _DRUG_REQUIRED = ("generic_name", "aliases", "drug_class", "forms", "routes",
 _ENTRY_REQUIRED = ("indication", "population", "route", "dose_range",
                    "max_single", "max_cumulative", "contraindications",
                    "cautions", "sources", "signoff", "reviewed_by",
-                   "review_date", "version")
+                   "review_date", "version", "set")
+
+# Drug sets (owner, 2026-11-12, signing batch 4). Every dose entry belongs to
+# exactly one set: PFC is the JTS/SMOG bank this repo was built on, EMS the
+# agency formulary signed from batch 4. A server serves ONE set, chosen by
+# CDSS_DRUG_SET (default PFC); an entry of any other set is not servable here,
+# by the same single gate as an unsigned entry. An unknown CDSS_DRUG_SET serves
+# nothing: a typo must not quietly pick a set.
+KNOWN_SETS = ("PFC", "EMS")
+
+
+def _served_set(env=os.environ) -> Optional[str]:
+    raw = env.get("CDSS_DRUG_SET")
+    if raw is None:
+        return "PFC"
+    name = raw.strip().upper()
+    if name in KNOWN_SETS:
+        return name
+    print(f"⚠️  CDSS_DRUG_SET={raw!r} is not a known drug set {KNOWN_SETS}: "
+          f"no dose is servable until it is fixed.")
+    return None
+
+
+SERVED_SET = _served_set()
 
 # Of those, the ones that must be non-empty and sentinel-free before the entry
 # can be served. max_single / max_cumulative are excluded on purpose: null is a
@@ -685,7 +708,8 @@ def serve_cautions(entry: dict) -> list:
     return [label] + cautions if label else cautions
 
 
-def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
+def entry_is_servable(entry: dict, drug: Optional[dict] = None,
+                      served_set: Optional[str] = None) -> tuple:
     """(servable, reason). The single gate every serve path goes through.
 
     Returns a REASON rather than a bare bool for the same argument the vent
@@ -698,6 +722,15 @@ def entry_is_servable(entry: dict, drug: Optional[dict] = None) -> tuple:
     missing = [f for f in _ENTRY_REQUIRED if f not in entry]
     if missing:
         return False, f"missing field(s): {', '.join(sorted(missing))}"
+
+    entry_set = entry.get("set")
+    if entry_set not in KNOWN_SETS:
+        return False, f"set {entry_set!r} is not a known drug set ({', '.join(KNOWN_SETS)})"
+    serving = SERVED_SET if served_set is None else served_set
+    if serving not in KNOWN_SETS:
+        return False, f"this server's drug set {serving!r} is not a known set: nothing serves"
+    if entry_set != serving:
+        return False, f"a {entry_set} set entry: this server serves the {serving} set"
 
     if entry.get("signoff") is not True:
         return False, "signoff is not true"
