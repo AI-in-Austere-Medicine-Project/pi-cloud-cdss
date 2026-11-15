@@ -297,7 +297,9 @@ class Runtime:
         with self._work:
             t0 = time.perf_counter()
             parsed = dataclasses.asdict(session.parse(text))
-            turn = session.handle(text)
+            # Heard text: a pair the clips or the sound-alike checks confuse asks "X or Y?"
+            # first. Typed text cannot be misheard and never asks (owner, 2026-11-15).
+            turn = session.handle(text, spoken=heard is not None)
             t1 = time.perf_counter()
             audio = self.synth(turn.text)
             t2 = time.perf_counter()
