@@ -2,7 +2,7 @@
 
 Offline clinical decision support on an NVIDIA Jetson. Guideline search with clinician-signed, code-checked doses.
 
-> **Research prototype.** Not for patient care. Simulated scenarios only. Enter no patient information.
+> **Research prototype.** Not validated for clinical use. Not for patient care. Simulated scenarios only. Enter no patient information (PHI).
 
 [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/) · [Portal](https://cdss.arcanekg.com) · [Substack](https://aiamp.substack.com)
 
