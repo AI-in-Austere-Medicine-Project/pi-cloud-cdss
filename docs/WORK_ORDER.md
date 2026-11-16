@@ -127,7 +127,8 @@ Owner asks outside the lettered items:
 | Signing batch 4 rulings, the EMS set (owner, Andrew Azelton, 2026-11-12): sign the EMS entries as transcribed except check (a)/(b) failures, flagged entries and what the engine cannot express; the EMS kit declared; Pocket export `bank-ems.json` | **done**: #202, merged 2026-11-15 |
 | EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **done**: #203, merged 2026-11-15 |
 | W1, Pocket on the web for outside testers (owner, 2026-11-15): `/pocket` runs the pinned Pocket code (Vosk with its grammar, its engine and templates, Piper); PFC only; product-pocket logs outside the replay sets; one talker at a time | **done**: #204, merged and deployed 2026-11-15; release → first audio through the tunnel measured (median 471 ms) |
-| W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **in review** (see the section below) |
+| W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **done**: #206, merged and deployed 2026-11-15 |
+| Site tidy-up (owner, 2026-11-15): the new index; ethics and release-notes pages restyled to it through one `web/site.css`; facts and links checked | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -1313,6 +1314,23 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Found:** the first packet called the epinephrine and norepinephrine pages scanned images; they have a text layer (the packet was regenerated). Both checks report more than the signable entries need, listed in the rulings record for the owner.
 
 **Stacked on the set branch** (itself on #199): rebase onto main after both merge.
+
+### Site tidy-up (owner, 2026-11-15)
+
+**Owner:** "Replace web/index.html with /home/andrew/site-draft/index.html. Check every link on it resolves, and correct any stale fact (version, test count). Restyle the pages that stay on the site (ethics-governance.html and the release-notes pages) to match the new index: same colours, fonts, width and light/dark behaviour, with a "← AI-AMP" link back to the index at the top. Move the shared styles into one CSS file. Do not change any wording on those pages. Old links must keep working." Rulings on the draft's claims (2026-11-15, 2026-11-16): the Pocket line is "about $75 in parts, plus any Bluetooth headset · spoken answer in about two seconds"; EdgeCDSS v5.1.0 and Pocket v1.1 are published releases, and each label links its release.
+
+**What changed.** `web/index.html` is the owner's draft, its styles moved to `web/site.css`. The draft's facts were checked:
+- **Corrected by the owner's rulings:** Pocket "v1.1", now a published release; "runs on a $15-class board" and "answers in about half a second", replaced by the line above. Its sources are Pocket's README, as re-costed in Pocket #6, and the Radxa measurements (Vosk 0.12 s + Piper 1.86 s).
+- **Confirmed as written:** EdgeCDSS v5.1.0 (`version.py`, the tag and the release), 89 JTS guidelines, 4,000+ tests (4,048), no cloud calls.
+
+Every link resolved: 14 on the draft and 3 release links, all 200. Discussions are on, the model card is public, and the Substack embed allows framing. Rendered over HTTP, the Substack box displays. The live check is item 3, after deploy.
+
+`ethics-governance.html` and the three release-notes pages now load `site.css` (the draft's colours, system fonts, 680 px, light and dark), in place of their own `<style>` and Google Fonts. Each opens with "← AI-AMP" back to the index: their existing back link, retitled. Their wording is otherwise unchanged; a test hashes each page's visible text against main. `v4.3-showcase.html` (a redirect), `papers.json` and `img/` are untouched, so old links keep working.
+
+**Tests** (failing first, `server/tests/test_site.py`, 19): one stylesheet with light and dark, no page-local styles or web fonts; the back link; wording unchanged; every local link resolves; old paths stay; the version matches `version.py`; the notice; each release link; the Pocket line.
+
+**Replay:** against main (`36ec28c`), PFC and EMS, each through served, held, gate, log and pipe: every output file byte-identical (`cmp`); 0 changed. Only `web/` and one test file change.
+
 
 ### W1 pin bump: Pocket's hearing fixes (owner, 2026-11-15)
 
