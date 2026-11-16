@@ -128,7 +128,8 @@ Owner asks outside the lettered items:
 | EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **done**: #203, merged 2026-11-15 |
 | W1, Pocket on the web for outside testers (owner, 2026-11-15): `/pocket` runs the pinned Pocket code (Vosk with its grammar, its engine and templates, Piper); PFC only; product-pocket logs outside the replay sets; one talker at a time | **done**: #204, merged and deployed 2026-11-15; release → first audio through the tunnel measured (median 471 ms) |
 | W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **done**: #206, merged and deployed 2026-11-15 |
-| Site tidy-up (owner, 2026-11-15): the new index; ethics and release-notes pages restyled to it through one `web/site.css`; facts and links checked | **in review** (see the section below) |
+| Site tidy-up (owner, 2026-11-15): the new index; ethics and release-notes pages restyled to it through one `web/site.css`; facts and links checked | **done**: #207; the shared notice wording #209 (owner, 2026-11-16) |
+| Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -1314,6 +1315,17 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Found:** the first packet called the epinephrine and norepinephrine pages scanned images; they have a text layer (the packet was regenerated). Both checks report more than the signable entries need, listed in the rulings record for the owner.
 
 **Stacked on the set branch** (itself on #199): rebase onto main after both merge.
+
+### Pocket vocabulary session: the teach page (owner, 2026-11-16)
+
+**Owner:** "Vocabulary session for Pocket's hearing. Failing tests first, PRs not merged. 1. A private teach page on the portal (owner token only, not linked from the public page). It shows one word or phrase, I hold to talk and say it, it stores the clip and what Vosk heard, then advances. Three takes each, with skip and redo. Clips stay private in ~/pocket-web/owner-clips, never committed. 2. Word list, generated from the active bank: every signed drug name and the names medics say (keppra, narcan, rocephin, ancef, versed, TXA, roc, sux, epi, levophed, vitamin K), every indication word, every route as letters and as words, control words (confirm, yes, correct, affirmative, no, cancel, negative, stop, wrong, repeat, why, new patient), and 20 sample weights and ages ("eighty kilos", "two hundred pounds", "six years"). 3. After the session, in the Pocket repo: for each word not heard as itself, add the spelling Vosk actually produced, under these rules. [...] 4. Report a table per word: takes heard before and after, and any word still unheard, with a suggested alias."
+
+This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.html`, `tests/test_pocket_teach.py`); items 3 and 4 are a Pocket PR after the session.
+
+- **Private.** The owner token is a file outside the repo (`~/pocket-web/owner-token`, read on every request); with no file, the page and its API are 404. The API answers `X-Owner-Token` only: the portal's access token does not open it. The page is served `noindex`; no public page links it (tested).
+- **The word list (136):** every signed drug by its own name where it can be said and by every signed name the bank gives it (50); the eleven medic names; 29 indications (the US spelling where the two sound alike; RSI, TBI and CNS as letters); the five routes as letters and nine as words; the twelve control words; twenty weights and ages. Each word carries what the parser reads in it, typed; a take is "heard as itself" when Pocket's hearing reads the same.
+- **A take** stores the 16 kHz WAV and a JSON record: "open" (Vosk with no grammar, and up to five alternatives: the spellings Vosk actually produces) and "pocket" (Pocket's two-decoder hearing with the pinned grammar, as `/pocket` hears). It holds the decoder lock for one clip, never the testers' talker lease, and writes nothing to the Pocket logs.
+- **Pinned grammar:** `f8f7aa5` does not yet have yes, correct, affirmative, no, negative, stop or wrong (the confirm step is Pocket's open voice branch), so for those words only "open" counts; the page says so.
 
 ### Site tidy-up (owner, 2026-11-15)
 

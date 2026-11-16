@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Pocket teach</title>
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --panel2: #1c2129; --border: #2d333b;
+  --text: #e6edf3; --dim: #8b949e; --blue: #58a6ff; --green: #3fb950;
+  --amber: #d29922; --red: #f85149; --mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
+header { border-bottom: 1px solid var(--border); padding: 14px 16px; background: var(--panel);
+         display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+header h1 { font-size: 20px; font-weight: 800; letter-spacing: .05em; }
+header h1 span { color: var(--blue); }
+.meta { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+main { max-width: 640px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px 16px; text-align: center; }
+#kind { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+#word { font-size: clamp(32px, 9vw, 52px); font-weight: 800; margin: 10px 0 4px; word-break: break-word; }
+#wnote { color: var(--amber); font-size: 14px; min-height: 1.2em; }
+#takes { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+#takes span { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); }
+#takes span.done { background: var(--blue); border-color: var(--blue); }
+#takes span.ok { background: var(--green); border-color: var(--green); }
+#takes span.miss { background: var(--red); border-color: var(--red); }
+#takes span.next { border-color: var(--amber); }
+button { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+         border-radius: 6px; padding: 10px 14px; font-weight: 700; font-size: 15px; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+#talk { width: 100%; padding: 22px; font-size: 20px; border-color: var(--blue); touch-action: none;
+        user-select: none; -webkit-user-select: none; }
+#talk.rec { background: var(--red); border-color: var(--red); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row button { flex: 1; }
+#note { font-family: var(--mono); font-size: 13px; color: var(--dim); min-height: 1.3em; text-align: center; }
+#note.err { color: var(--red); } #note.rec { color: var(--amber); }
+#result { font-family: var(--mono); font-size: 13px; line-height: 1.6; text-align: left; }
+#result b.ok { color: var(--green); } #result b.miss { color: var(--red); }
+#tokenrow { display: flex; gap: 8px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--dim); }
+#owner-token { flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+               border-radius: 4px; padding: 6px 8px; font-family: var(--mono); }
+#jump { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px; }
+.small { font-size: 12px; color: var(--dim); line-height: 1.5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>POCKET <span>TEACH</span></h1>
+  <span class="meta">Pocket <span id="pocket-version">…</span> · bank <span id="bank-version">…</span> · <span id="progress">…</span></span>
+</header>
+<main>
+  <div id="tokenrow">OWNER TOKEN <input id="owner-token" type="password" autocomplete="off"><button id="load" type="button">LOAD</button></div>
+
+  <div class="card">
+    <div id="kind">…</div>
+    <div id="word">…</div>
+    <div id="wnote"></div>
+    <div id="takes"></div>
+  </div>
+
+  <button id="talk" type="button" disabled>HOLD TO TALK</button>
+  <div id="note" role="status" aria-live="polite">Enter the owner token and press LOAD.</div>
+  <div class="row">
+    <button id="prev" type="button" disabled>◀ BACK</button>
+    <button id="redo" type="button" disabled>REDO LAST TAKE</button>
+    <button id="skip" type="button" disabled>SKIP ▶</button>
+  </div>
+  <div class="card" id="result"></div>
+  <select id="jump" aria-label="Go to word"></select>
+  <p class="small">Say the word as you would on a call: three takes each, then it moves on. Letters in capitals are said one at a time. Clips stay on the Jetson in ~/pocket-web/owner-clips. "Open" is Vosk with no grammar (the spelling it produces); "Pocket" is Pocket's own hearing with its grammar, as /pocket hears. The pinned grammar does not yet have yes, correct, affirmative, no, negative, stop or wrong, so for those words only "Open" counts.</p>
+</main>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const RATE = 16000, MIN_S = 0.3, TAKES_DEFAULT = 3;
+let words = [], at = 0, takes = TAKES_DEFAULT, results = {}, nextTake = 1, lastTake = 0, rec = null, busy = false;
+
+const token = () => $('owner-token').value.trim();
+const hdr = extra => Object.assign({ 'X-Owner-Token': token() }, extra || {});
+try { $('owner-token').value = localStorage.getItem('pocket-owner-token') || ''; } catch (e) {}
+
+function note(t, cls) { $('note').textContent = t; $('note').className = cls || ''; }
+
+async function load() {
+  try { localStorage.setItem('pocket-owner-token', token()); } catch (e) {}
+  note('loading the word list…');
+  let r;
+  try { r = await fetch('/pocket/teach/words', { headers: hdr() }); } catch (e) { note('Not loaded: ' + e, 'err'); return; }
+  if (!r.ok) { note(r.status === 401 ? 'That is not the owner token.' : 'Not loaded: HTTP ' + r.status, 'err'); return; }
+  const d = await r.json();
+  words = d.words; takes = d.takes || TAKES_DEFAULT;
+  $('pocket-version').textContent = (d.pocket_commit || '').slice(0, 12);
+  $('bank-version').textContent = d.bank_version || '';
+  $('jump').innerHTML = words.map((w, i) => `<option value="${i}">${i + 1}. ${w.show} (${w.kind})</option>`).join('');
+  const first = words.findIndex(w => (w.recorded || []).length < takes);
+  go(first < 0 ? 0 : first);
+  ['talk', 'prev', 'skip'].forEach(id => { $(id).disabled = false; });
+}
+
+function go(i) {
+  at = Math.max(0, Math.min(words.length - 1, i));
+  const w = words[at];
+  const done = (w.recorded || []).slice();
+  nextTake = 1; while (done.includes(nextTake) && nextTake <= takes) nextTake++;
+  lastTake = done.length ? Math.max(...done) : 0;
+  $('kind').textContent = w.kind;
+  $('word').textContent = w.show;
+  $('wnote').textContent = w.note || '';
+  $('jump').value = String(at);
+  $('redo').disabled = !lastTake;
+  $('result').innerHTML = (results[w.id] || []).join('') || '<span class="small">No takes yet this visit.</span>';
+  const complete = words.filter(x => (x.recorded || []).length >= takes).length;
+  $('progress').textContent = `word ${at + 1} of ${words.length} · ${complete} complete`;
+  drawTakes();
+  note(nextTake <= takes ? `Take ${nextTake} of ${takes}: hold and say it.` : 'All three takes done. REDO, BACK, or SKIP to move on.');
+}
+
+function drawTakes() {
+  const w = words[at], marks = w.marks || {};
+  $('takes').innerHTML = Array.from({ length: takes }, (_, i) => {
+    const n = i + 1, has = (w.recorded || []).includes(n);
+    const cls = has ? (marks[n] === true ? 'ok' : marks[n] === false ? 'miss' : 'done') : (n === nextTake ? 'next' : '');
+    return `<span class="${cls}" title="take ${n}"></span>`;
+  }).join('');
+}
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function shown(d) {
+  const ok = d.as_itself ? '<b class="ok">heard as itself</b>' : '<b class="miss">not heard as itself</b>';
+  const alts = (d.open_alternatives || []).slice(1).map(esc).join(' · ');
+  return `<div>Take ${d.take}: ${ok}<br>Open: “${esc(d.open)}”${alts ? ' <span class="small">(also: ' + alts + ')</span>' : ''}` +
+         `<br>Pocket: “${esc(d.pocket && d.pocket.heard)}” → ${esc(JSON.stringify(d.got))}</div>`;
+}
+
+async function send(samples, take) {
+  const w = words[at];
+  busy = true; $('talk').disabled = true; note('hearing…');
+  try {
+    const r = await fetch(`/pocket/teach/clip?word_id=${encodeURIComponent(w.id)}&take=${take}`,
+      { method: 'POST', headers: hdr({ 'Content-Type': 'audio/wav' }), body: wav16k(samples) });
+    if (!r.ok) { note('Not stored: HTTP ' + r.status + ' ' + (await r.text()), 'err'); return; }
+    const d = await r.json();
+    w.recorded = Array.from(new Set([...(w.recorded || []), take])).sort();
+    w.marks = Object.assign(w.marks || {}, { [take]: d.as_itself });
+    (results[w.id] = results[w.id] || []).push(shown(d));
+    if (w.recorded.length >= takes && take === Math.max(...w.recorded) && at < words.length - 1) {
+      go(at); note('Stored. Next word…');
+      setTimeout(() => go(at + 1), 1200);
+    } else { go(at); }
+  } catch (e) { note('Not stored: ' + e, 'err'); }
+  finally { busy = false; $('talk').disabled = false; }
+}
+
+$('load').addEventListener('click', load);
+$('prev').addEventListener('click', () => go(at - 1));
+$('jump').addEventListener('change', e => go(Number(e.target.value)));
+$('redo').addEventListener('click', () => { if (lastTake) { nextTake = lastTake; drawTakes(); note(`Redo take ${lastTake}: hold and say it.`); } });
+$('skip').addEventListener('click', async () => {
+  const w = words[at];
+  try { await fetch('/pocket/teach/skip?word_id=' + encodeURIComponent(w.id), { method: 'POST', headers: hdr() }); } catch (e) {}
+  go(at + 1);
+});
+
+// ── recording: the same capture as /pocket (16 kHz mono WAV) ──
+function downsample(chunks, rate) {
+  let n = 0; chunks.forEach(c => { n += c.length; });
+  const all = new Float32Array(n); let o = 0;
+  chunks.forEach(c => { all.set(c, o); o += c.length; });
+  if (rate === RATE) return all;
+  const ratio = rate / RATE, out = new Float32Array(Math.floor(n / ratio));
+  for (let i = 0; i < out.length; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(n, Math.floor((i + 1) * ratio));
+    let s = 0; for (let j = a; j < b; j++) s += all[j];
+    out[i] = b > a ? s / (b - a) : 0;
+  }
+  return out;
+}
+function wav16k(samples) {
+  const bytes = new Uint8Array(44 + samples.length * 2), v = new DataView(bytes.buffer);
+  const tag = (o, t) => { for (let i = 0; i < 4; i++) bytes[o + i] = t.charCodeAt(i); };
+  tag(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); tag(8, 'WAVE');
+  tag(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, RATE, true); v.setUint32(28, RATE * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  tag(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    const x = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(44 + i * 2, x < 0 ? x * 32768 : x * 32767, true);
+  }
+  return bytes;
+}
+function stopAll(r) {
+  try { if (r.node) { r.node.onaudioprocess = null; r.node.disconnect(); } } catch (e) {}
+  try { if (r.src) r.src.disconnect(); } catch (e) {}
+  try { if (r.stream) r.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { if (r.ctx) r.ctx.close(); } catch (e) {}
+}
+async function talkStart(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (rec || busy || $('talk').disabled || !words.length) return;
+  if (nextTake > takes) { note('All three takes done. REDO, BACK, or SKIP.', 'err'); return; }
+  if (!window.isSecureContext || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+    note('The microphone needs https: open the portal\'s https address.', 'err'); return;
+  }
+  const r = { chunks: [], peak: 0, released: false, take: nextTake, t0: performance.now() };
+  rec = r;
+  $('talk').classList.add('rec'); $('talk').textContent = '● RECORDING · LET GO';
+  try {
+    r.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  } catch (err) {
+    rec = null; $('talk').classList.remove('rec'); $('talk').textContent = 'HOLD TO TALK';
+    note('The microphone did not open: ' + ((err && err.name) || err), 'err'); return;
+  }
+  if (r.released) { stopAll(r); note('The microphone is on now. Hold again and speak.', 'err'); return; }
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  r.ctx = new Ctx(); r.rate = r.ctx.sampleRate;
+  if (r.ctx.state === 'suspended' && r.ctx.resume) r.ctx.resume().catch(() => {});
+  r.src = r.ctx.createMediaStreamSource(r.stream);
+  r.node = r.ctx.createScriptProcessor(4096, 1, 1);
+  r.node.onaudioprocess = ev => {
+    const c = new Float32Array(ev.inputBuffer.getChannelData(0));
+    let p = 0; for (let i = 0; i < c.length; i++) p = Math.max(p, Math.abs(c[i]));
+    r.chunks.push(c); r.peak = Math.max(r.peak, p);
+    if (rec === r) note('● recording take ' + r.take + ' · ' + ((performance.now() - r.t0) / 1000).toFixed(1) + ' s', 'rec');
+  };
+  r.src.connect(r.node); r.node.connect(r.ctx.destination);
+}
+async function talkStop(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const r = rec; if (!r) return;
+  rec = null; r.released = true;
+  $('talk').classList.remove('rec'); $('talk').textContent = 'HOLD TO TALK';
+  if (!r.stream) return;
+  stopAll(r);
+  const samples = downsample(r.chunks, r.rate);
+  if (samples.length < MIN_S * RATE) { note('Too short. Hold while you speak.', 'err'); return; }
+  if (r.peak < 0.01) { note('Silence: check the microphone.', 'err'); return; }
+  await send(samples, r.take);
+}
+const talk = $('talk');
+talk.addEventListener('pointerdown', talkStart);
+talk.addEventListener('pointerup', talkStop);
+talk.addEventListener('pointercancel', talkStop);
+document.addEventListener('keydown', e => { if (e.key === ' ' && !e.repeat && e.target.tagName !== 'INPUT') talkStart(e); });
+document.addEventListener('keyup', e => { if (e.key === ' ' && e.target.tagName !== 'INPUT') talkStop(e); });
+if (token()) load();
+</script>
+</body>
+</html>
