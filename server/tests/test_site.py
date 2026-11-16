@@ -133,7 +133,9 @@ def test_the_index_states_the_current_version():
 
 
 def test_the_index_carries_the_research_prototype_notice():
-    assert "Research prototype." in _page("index.html").text()
+    # Owner, 2026-11-16: one notice, word for word, on the site, the org profile and the READMEs.
+    assert ("Research prototype. Not validated for clinical use. Not for patient care. "
+            "Simulated scenarios only. Enter no patient information (PHI).") in _page("index.html").text()
 
 
 def test_each_project_card_links_its_published_release():
