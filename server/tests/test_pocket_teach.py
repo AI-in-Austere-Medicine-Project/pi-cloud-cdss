@@ -156,7 +156,10 @@ def test_the_word_list_is_generated_from_the_active_bank(client, runtime):
     words = _words(client)
     said = {w["say"] for w in words}
     by_kind = lambda k: {w["say"] for w in words if w["kind"] == k}  # noqa: E731
-    assert {e["drug"] for e in runtime.bank.entries} <= said            # every signed drug
+    # Every signed drug, by its own name where that can be said ("sodium chloride 3%"
+    # cannot; "hypertonic saline" is said for it).
+    named = {g for w in words if w["kind"] in ("drug", "medic") for g in (w["expect"] or [[]])[0]}
+    assert {e["drug"] for e in runtime.bank.entries} <= named
     assert {"keppra", "narcan", "rocephin", "ancef", "versed", "t x a", "roc", "sux", "epi",
             "levophed", "vitamin k"} <= said
     from grammar.vocabulary import build

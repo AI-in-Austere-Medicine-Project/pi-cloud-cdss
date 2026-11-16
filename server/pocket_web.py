@@ -206,12 +206,23 @@ class VoskHearing:
             raise Unavailable("Pocket's grammar is for another Vosk model")
         vosk.SetLogLevel(-1)
         self.model_name = pathlib.Path(model_dir).name
-        self._hearing = Hearing(vosk.Model(str(model_dir)), g, build(bank))
+        self._vosk, self._model = vosk, vosk.Model(str(model_dir))
+        self._hearing = Hearing(self._model, g, build(bank))
 
     def hear(self, pcm: bytes) -> tuple:
         u = self._hearing.start()
         u.feed(pcm)
         return u.finish()
+
+    def hear_open(self, pcm: bytes) -> tuple:
+        """The same model with no grammar: (text, the top alternatives). What Vosk
+        itself makes of a word, for the owner's teach page (pocket_teach.py)."""
+        r = self._vosk.KaldiRecognizer(self._model, RATE)
+        r.SetMaxAlternatives(5)
+        r.AcceptWaveform(pcm)
+        alts = json.loads(r.FinalResult()).get("alternatives", [])
+        texts = list(dict.fromkeys(a.get("text", "") for a in alts))
+        return (texts[0] if texts else ""), texts
 
 
 class PiperSynth:
@@ -475,4 +486,7 @@ def mount(app: FastAPI, require_token: Callable, runtime=_AUTO) -> dict:
 
     app.include_router(page)
     app.include_router(api)
+    # The owner's vocabulary session (owner, 2026-11-16): /pocket/teach, owner token only.
+    import pocket_teach
+    pocket_teach.mount(app, state, pcm16k)
     return state
