@@ -1,9 +1,12 @@
-# EdgeCDSS — Clinical Decision Support for Austere Medicine
+# EdgeCDSS
 
-**AI in Austere Medicine Project (AI-AMP)**
-Open source. Edge deployed. Safety findings published.
+Offline clinical decision support on an NVIDIA Jetson. Guideline search with clinician-signed, code-checked doses.
 
-> ⚠️ **Research prototype** — not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
+> **Research prototype.** Not validated for clinical use. Not for patient care. Simulated scenarios only. Enter no patient information (PHI).
+
+[Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/) · [Portal](https://cdss.arcanekg.com) · [Substack](https://aiamp.substack.com)
+
+Part of the [AI in Austere Medicine Project (AI-AMP)](https://github.com/AI-in-Austere-Medicine-Project). Open source. Edge deployed. Safety findings published.
 
 **Current release: 5.1.0** — what changed: [What's new in 5.1](#whats-new-in-51) and the [work order](docs/WORK_ORDER.md) · 5.0.0: [changelog entry](CHANGELOG.md#500--2026-10-12) · [`SAFETY.md`](SAFETY.md): what the system guarantees and what it does not · [work order](docs/WORK_ORDER.md) and [one-line reference](docs/REFERENCE.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
