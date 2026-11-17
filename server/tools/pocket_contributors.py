@@ -6,6 +6,8 @@
   pocket_contributors.py password            change the shared password (asked twice)
   pocket_contributors.py limits [key=value]  show or change the contributor limits
   pocket_contributors.py delete speaker-N    delete one speaker's clips and their label
+  pocket_contributors.py migrate             once, after deploying: move the owner's
+                                             earlier clips into speaker-1
 
 The password is stored hashed in $POCKET_CONTRIBUTORS_FILE (default
 ~/pocket-web/contributors.json, mode 600); clips are in $POCKET_OWNER_CLIPS (default
@@ -86,6 +88,10 @@ def main(argv=None, stdin=None) -> int:
         elif cmd == "limits":
             _limits(rest)
             _status()
+        elif cmd == "migrate":
+            moved = pt.migrate_legacy()
+            print(f"Moved {moved} entries into {pt.clips_dir() / pt.OWNER_LABEL}." if moved
+                  else "Nothing to move.")
         elif cmd == "delete" and len(rest) == 1:
             try:
                 found = pt.delete_speaker(rest[0])

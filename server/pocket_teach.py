@@ -28,7 +28,8 @@ server/tools/pocket_contributors.py and kept hashed in $POCKET_CONTRIBUTORS_FILE
 API only; the portal's own gate never reads it. Access is off until the owner turns it
 on. Each browser is given the next free label (speaker-2, speaker-3, ...; the owner is
 speaker-1) and a random key it keeps; only a hash of the key is stored, and no name
-is ever asked. Clips are stored per speaker, <clips>/<speaker>/<word_id>/take<n>.wav,
+is ever asked. Clips are stored per speaker, <clips>/<speaker>/<word_id>/take<n>.wav
+(the owner's earlier clips move there with pocket_contributors.py migrate),
 and contributors are capped per day and in total (clips and size), per clip length,
 and in new labels per day. The owner is not capped.
 """
@@ -259,7 +260,10 @@ _LEGACY = re.compile(r"^(drug|medic|indication|route|control|sample)-[a-z0-9-]+$
 
 def migrate_legacy() -> int:
     """The owner's clips from before contributors (<clips>/<word_id>/) move to speaker-1.
-    Idempotent; nothing is overwritten. Returns how many entries moved."""
+    Run by the owner (pocket_contributors.py migrate) once the new code is deployed,
+    never by the server or on mount: a process that only mounts the page must not move
+    the live service's clips from under it. Idempotent; nothing is overwritten.
+    Returns how many entries moved."""
     root, moved = clips_dir(), 0
     if not root.exists():
         return 0
@@ -520,7 +524,6 @@ def mount(app: FastAPI, state: dict, pcm16k) -> None:
                 return w, vocab
         raise HTTPException(status_code=404, detail="no such word")
 
-    migrate_legacy()
     page = APIRouter()
 
     @page.get("/pocket/teach", include_in_schema=False)

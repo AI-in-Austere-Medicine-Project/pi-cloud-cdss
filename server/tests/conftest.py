@@ -93,3 +93,17 @@ import pytest as _pytest
 def _no_ollama(monkeypatch):
     import providers
     monkeypatch.setattr(providers, "_ollama_tags", lambda force=False: None)
+
+
+# ── Pocket's private files ──────────────────────────────────────────────────
+# The owner token, the contributor password file and the recorded clips live in
+# ~/pocket-web on the device, outside the repo. No test may read or write them
+# (2026-11-17: a test that cleared POCKET_OWNER_CLIPS for the rest of the run let
+# the suite move the owner's real clips). Every test gets its own; a test that
+# needs the defaults deletes the variable with monkeypatch, which restores it.
+@_pytest.fixture(autouse=True)
+def _private_pocket_files(tmp_path_factory, monkeypatch):
+    d = tmp_path_factory.mktemp("pocket-web")
+    monkeypatch.setenv("POCKET_OWNER_CLIPS", str(d / "owner-clips"))
+    monkeypatch.setenv("POCKET_CONTRIBUTORS_FILE", str(d / "contributors.json"))
+    monkeypatch.setenv("POCKET_OWNER_TOKEN_FILE", str(d / "owner-token"))
