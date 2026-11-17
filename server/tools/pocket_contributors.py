@@ -50,7 +50,12 @@ def _status() -> None:
     print("Speakers:" if rows else "Speakers: none yet")
     for s in rows:
         who = " (owner)" if s["label"] == pt.OWNER_LABEL else ""
-        print(f"  {s['label']}{who}: {s['clips']} clips, {s['bytes'] / 1e6:.1f} MB")
+        n = f"{s['takes']} take{'' if s['takes'] == 1 else 's'}"
+        if s["label"] == pt.OWNER_LABEL:
+            print(f"  {s['label']}{who}: {n}, audio kept ({s['bytes'] / 1e6:.1f} MB)")
+        else:
+            left = f"; {s['audio_files']} audio files from before, remove with delete" if s["audio_files"] else ""
+            print(f"  {s['label']}: {n}, text only{left}")
 
 
 def _limits(pairs) -> None:

@@ -41,6 +41,9 @@ pytestmark = pytest.mark.skipif(
     reason=f"Pocket is not installed at {CHECKOUT}: run server/tools/install_pocket.py")
 
 ACCESS = {"X-Access-Token": "pocket-test-token"}
+CONSENT = ("Your recording is deleted once it has been processed. Only the text of what the "
+           "network heard is kept, and it may be used in this open-source project and future "
+           "AI-AMP projects. No name or other information is requested.")
 OWNER_TOKEN = "owner-secret-for-tests"
 PASSWORD = "pocket-voice"
 
@@ -217,8 +220,10 @@ def test_clips_are_stored_per_speaker(client, on, clips):
     assert _clip(client, hb).status_code == 200
     assert _clip(client, {"X-Owner-Token": OWNER_TOKEN}).status_code == 200
     for label in ("speaker-1", a, b):
-        assert (clips / label / "medic-narcan" / "take1.wav").read_bytes() == _wav()
         assert json.loads((clips / label / "medic-narcan" / "take1.json").read_text())["speaker"] == label
+    assert (clips / "speaker-1" / "medic-narcan" / "take1.wav").read_bytes() == _wav()
+    for label in (a, b):                                  # a contributor's audio is not kept
+        assert not (clips / label / "medic-narcan" / "take1.wav").exists()
 
 
 def test_each_speaker_resumes_from_their_own_takes_and_skips(client, on):
@@ -261,8 +266,8 @@ def test_no_test_reaches_the_real_private_files():
 
 # ── limits ──────────────────────────────────────────────────────────────────
 
-def test_over_the_daily_clip_cap_the_page_is_told_politely(client, on, tool):
-    assert tool("limits", "clips_per_day=2") == 0
+def test_over_the_daily_take_cap_the_page_is_told_politely(client, on, tool):
+    assert tool("limits", "takes_per_day=2") == 0
     _, h = _browser(client)
     assert _clip(client, h, take=1).status_code == 200
     assert _clip(client, h, take=2).status_code == 200
@@ -274,20 +279,20 @@ def test_over_the_daily_clip_cap_the_page_is_told_politely(client, on, tool):
     assert _clip(client, h2).status_code == 200
 
 
-def test_over_the_daily_size_cap_the_page_is_told_politely(client, on, tool):
-    assert tool("limits", "mb_per_day=0.02") == 0     # one half-second clip is 16 kB
-    _, h = _browser(client)
-    assert _clip(client, h, take=1).status_code == 200
-    r = _clip(client, h, take=2)
-    assert r.status_code == 429 and "thank you" in r.json()["detail"].lower()
-
-
-def test_over_the_total_cap_per_speaker_the_page_is_told_politely(client, on, tool):
-    assert tool("limits", "clips_total=1") == 0
+def test_over_the_total_take_cap_per_speaker_the_page_is_told_politely(client, on, tool):
+    assert tool("limits", "takes_total=1") == 0
     _, h = _browser(client)
     assert _clip(client, h).status_code == 200
     r = _clip(client, h, word_id="medic-sux")
     assert r.status_code == 429 and "thank you" in r.json()["detail"].lower()
+
+
+def test_limits_are_counts_of_takes_not_sizes(tool, capsys):
+    import pocket_teach
+    assert not any("mb" in k for k in pocket_teach.LIMITS)
+    assert {"takes_per_day", "takes_total", "clip_seconds", "new_speakers_per_day"} == set(pocket_teach.LIMITS)
+    assert tool("limits", "mb_per_day=5") != 0
+    assert tool("limits", "clips_per_day=5") != 0
 
 
 def test_a_clip_over_the_length_cap_is_refused_politely(client, on, tool, clips):
@@ -295,7 +300,7 @@ def test_a_clip_over_the_length_cap_is_refused_politely(client, on, tool, clips)
     _, h = _browser(client)
     r = _clip(client, h, seconds=2.5)
     assert r.status_code == 413 and "2 seconds" in r.json()["detail"]
-    assert not any((clips / "speaker-2").glob("*/take*.wav"))
+    assert not list((clips / "speaker-2").glob("*/take*")) if (clips / "speaker-2").exists() else True
 
 
 def test_new_labels_per_day_are_capped(client, on, tool):
@@ -306,7 +311,7 @@ def test_new_labels_per_day_are_capped(client, on, tool):
 
 
 def test_the_owner_is_not_capped(client, on, tool):
-    assert tool("limits", "clips_per_day=1") == 0
+    assert tool("limits", "takes_per_day=1") == 0
     owner = {"X-Owner-Token": OWNER_TOKEN}
     for take in (1, 2, 3):
         assert _clip(client, owner, take=take).status_code == 200
@@ -335,7 +340,7 @@ def test_the_command_deletes_one_speakers_clips_and_label(client, on, tool, clip
     b, hb = _browser(client)
     _clip(client, ha), _clip(client, hb)
     assert tool("delete", a) == 0
-    assert not (clips / a).exists() and (clips / b / "medic-narcan" / "take1.wav").exists()
+    assert not (clips / a).exists() and (clips / b / "medic-narcan" / "take1.json").exists()
     r = client.get("/pocket/teach/words", headers=ha)
     assert r.status_code == 401                            # that browser's key is gone
     c, _ = _browser(client)
@@ -348,8 +353,8 @@ def test_the_command_deletes_one_speakers_clips_and_label(client, on, tool, clip
 def test_the_page_has_the_consent_line_a_password_field_and_the_speaker_label():
     import pocket_teach
     html = pocket_teach.PAGE.read_text()
-    assert ("Recordings are kept privately to improve speech recognition and can be "
-            "deleted on request.") in html
+    assert CONSENT in html and pocket_teach.CONSENT == CONSENT
+    assert "kept privately" not in html
     for slot in ('id="password"', 'id="speaker"', "/pocket/teach/hello", "X-Speaker-Key",
                  "X-Teach-Password"):
         assert slot in html, slot
@@ -363,7 +368,102 @@ def test_every_speakers_takes_are_listed_for_the_spelling_step(client, on):
     a, ha = _browser(client)
     _clip(client, ha)
     _clip(client, {"X-Owner-Token": OWNER_TOKEN})
-    takes = list(pocket_teach.all_takes())
-    assert {(t["speaker"], t["word_id"], t["take"]) for t in takes} == {
+    takes = {t["speaker"]: t for t in pocket_teach.all_takes()}
+    assert {(t["speaker"], t["word_id"], t["take"]) for t in takes.values()} == {
         ("speaker-1", "medic-narcan", 1), (a, "medic-narcan", 1)}
-    assert all(pathlib.Path(t["wav"]).exists() for t in takes)
+    assert pathlib.Path(takes["speaker-1"]["wav"]).exists()       # the owner's recording
+    assert takes[a]["wav"] is None and takes[a]["open"] == "narcan"  # a contributor's text only
+
+
+# ── contributor audio is not kept (owner, 2026-11-17) ───────────────────────
+# "For a contributor, the audio is deleted as soon as the take has been decoded. Keep
+# only the text the network heard, the word and the speaker label. A test checks that
+# no contributor audio remains on disk after a take. My own owner recordings
+# (speaker-1) are still kept."
+
+def _noise_wav(seconds=0.5) -> tuple:
+    """A WAV of random samples, so its audio can be searched for byte for byte."""
+    pcm = os.urandom(int(16000 * seconds) * 2)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1), w.setsampwidth(2), w.setframerate(16000)
+        w.writeframes(pcm)
+    return buf.getvalue(), pcm
+
+
+def _files_holding(root: pathlib.Path, needle: bytes) -> list:
+    return [f for f in root.rglob("*") if f.is_file() and needle in f.read_bytes()]
+
+
+def test_no_contributor_audio_remains_on_disk_after_a_take(client, on, clips):
+    import tempfile
+    _, h = _browser(client)
+    wav, pcm = _noise_wav()
+    tmp = pathlib.Path(tempfile.gettempdir())
+    before = {f for f in tmp.iterdir()} if tmp.exists() else set()
+    for take in (1, 2, 3, 2):                                 # three takes and a redo
+        r = client.post(f"/pocket/teach/clip?word_id=medic-narcan&take={take}", content=wav,
+                        headers={**h, "Content-Type": "audio/wav"})
+        assert r.status_code == 200
+    assert not list(clips.rglob("*.wav"))
+    # Not under another name either: no file anywhere in this test's private files, or
+    # new in the temp folder, holds any of the audio.
+    needle = pcm[8000:8064]
+    assert _files_holding(clips.parent, needle) == []
+    new = {f for f in tmp.iterdir()} - before if tmp.exists() else set()
+    assert [f for f in new if f.is_file() and needle in f.read_bytes()] == []
+
+
+def test_a_contributor_take_keeps_only_the_text_heard_the_word_and_the_label(client, on, clips):
+    label, h = _browser(client)
+    r = _clip(client, h)
+    assert r.status_code == 200 and r.json()["as_itself"] is True   # the page is still told
+    rec = json.loads((clips / label / "medic-narcan" / "take1.json").read_text())
+    assert set(rec) == {"speaker", "word_id", "kind", "say", "take", "open",
+                        "open_alternatives", "pocket"}
+    assert rec["speaker"] == label and rec["say"] == "narcan" and rec["open"] == "narcan"
+    assert set(rec["pocket"]) == {"heard", "text", "decoder"}
+    for line in (clips / label / "session.jsonl").read_text().splitlines():
+        assert set(json.loads(line)) <= {"event", "word_id", "take"}
+
+
+def test_a_contributor_take_that_fails_to_decode_leaves_no_audio(client, on, clips, monkeypatch):
+    _, h = _browser(client)
+
+    def boom(self, pcm):
+        raise RuntimeError("decoder failed")
+    monkeypatch.setattr(FakeHearing, "hear_open", boom)
+    with pytest.raises(RuntimeError):
+        _clip(client, h)
+    assert not list(clips.rglob("*.wav"))
+
+
+def test_the_owners_recordings_are_still_kept_in_full(client, on, clips):
+    owner = {"X-Owner-Token": OWNER_TOKEN}
+    wav, _ = _noise_wav()
+    r = client.post("/pocket/teach/clip?word_id=medic-narcan&take=1", content=wav,
+                    headers={**owner, "Content-Type": "audio/wav"})
+    assert r.status_code == 200
+    assert (clips / "speaker-1" / "medic-narcan" / "take1.wav").read_bytes() == wav
+    rec = json.loads((clips / "speaker-1" / "medic-narcan" / "take1.json").read_text())
+    assert {"time", "as_itself", "expect", "got"} <= set(rec)
+
+
+def test_a_contributor_resumes_from_the_text_records(client, on):
+    _, h = _browser(client)
+    for take in (1, 2, 3):
+        _clip(client, h, take=take)
+    words = {w["id"]: w for w in client.get("/pocket/teach/words", headers=h).json()["words"]}
+    assert words["medic-narcan"]["recorded"] == [1, 2, 3]
+
+
+def test_status_counts_takes_and_says_whose_audio_is_kept(client, on, tool, capsys):
+    _, h = _browser(client)
+    _clip(client, h, take=1), _clip(client, h, take=2)
+    _clip(client, {"X-Owner-Token": OWNER_TOKEN})
+    capsys.readouterr()
+    assert tool("status") == 0
+    out = capsys.readouterr().out
+    assert "speaker-1 (owner): 1 take, audio kept" in out
+    assert "speaker-2: 2 takes, text only" in out
+    assert "takes_per_day = " in out and "MB" not in out.split("Speakers")[0]

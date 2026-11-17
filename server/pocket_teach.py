@@ -28,10 +28,14 @@ server/tools/pocket_contributors.py and kept hashed in $POCKET_CONTRIBUTORS_FILE
 API only; the portal's own gate never reads it. Access is off until the owner turns it
 on. Each browser is given the next free label (speaker-2, speaker-3, ...; the owner is
 speaker-1) and a random key it keeps; only a hash of the key is stored, and no name
-is ever asked. Clips are stored per speaker, <clips>/<speaker>/<word_id>/take<n>.wav
-(the owner's earlier clips move there with pocket_contributors.py migrate),
-and contributors are capped per day and in total (clips and size), per clip length,
-and in new labels per day. The owner is not capped.
+is ever asked. Takes are stored per speaker, <clips>/<speaker>/<word_id>/take<n>.json
+(the owner's earlier clips move there with pocket_contributors.py migrate).
+Contributors are capped in takes per day and in total, per clip length, and in new
+labels per day. The owner is not capped.
+
+A contributor's audio is never kept (owner, 2026-11-17): it is decoded in memory and
+dropped; only the text the network heard, the word and the speaker label are written.
+The owner's own takes (speaker-1) keep the WAV beside the record.
 """
 import datetime
 import hashlib
@@ -92,11 +96,13 @@ def _owner_token() -> str:
 LABEL_PREFIX = "speaker-"
 OWNER_LABEL = LABEL_PREFIX + "1"
 _LABEL = re.compile(r"^speaker-[1-9][0-9]{0,5}$")
-CONSENT = ("Recordings are kept privately to improve speech recognition and can be "
-           "deleted on request.")
+CONSENT = ("Your recording is deleted once it has been processed. Only the text of what the "
+           "network heard is kept, and it may be used in this open-source project and future "
+           "AI-AMP projects. No name or other information is requested.")
 # Contributor limits; the owner changes them with pocket_contributors.py limits k=v.
-LIMITS = {"clips_per_day": 450, "mb_per_day": 100.0, "clips_total": 1500, "mb_total": 300.0,
-          "clip_seconds": 6.0, "new_speakers_per_day": 20}
+# Counts of takes: a contributor's audio is not stored, so there is no size to cap.
+LIMITS = {"takes_per_day": 450, "takes_total": 1500, "clip_seconds": 6.0,
+          "new_speakers_per_day": 20}
 _ITERATIONS = 60_000
 _files = threading.RLock()          # the config, speakers.json and usage.json
 
@@ -244,13 +250,14 @@ def delete_speaker(label: str) -> bool:
 
 
 def speakers() -> list:
-    """Each speaker folder: label, clips and bytes on disk."""
+    """Each speaker folder: label, takes, and the audio kept (the owner's only)."""
     out = []
     root = clips_dir()
     for d in root.glob(LABEL_PREFIX + "*") if root.exists() else ():
         if d.is_dir() and _LABEL.match(d.name):
             wavs = list(d.glob("*/take*.wav"))
-            out.append({"label": d.name, "clips": len(wavs),
+            out.append({"label": d.name, "takes": len(list(d.glob("*/take*.json"))),
+                        "audio_files": len(wavs),
                         "bytes": sum(w.stat().st_size for w in wavs)})
     return sorted(out, key=lambda s: int(s["label"][len(LABEL_PREFIX):]))
 
@@ -283,7 +290,7 @@ def migrate_legacy() -> int:
 def all_takes():
     """Every stored take of every speaker, for the spelling step and the re-run (which
     report per speaker and overall): its record plus speaker, word_id, take and the
-    clip's path."""
+    clip's path, or None for a contributor (only the text heard is kept)."""
     for s in speakers():
         for f in sorted((clips_dir() / s["label"]).glob("*/take*.json")):
             try:
@@ -291,9 +298,8 @@ def all_takes():
             except (ValueError, OSError):
                 continue
             wav = f.with_suffix(".wav")
-            if wav.exists():
-                yield {**rec, "speaker": s["label"], "word_id": f.parent.name, "take": take,
-                       "wav": str(wav)}
+            yield {**rec, "speaker": s["label"], "word_id": f.parent.name, "take": take,
+                   "wav": str(wav) if wav.exists() else None}
 
 
 def teach_speaker(x_owner_token: str = Header(default=""),
@@ -335,34 +341,30 @@ def _usage_file(label: str) -> pathlib.Path:
     return speaker_dir(label) / "usage.json"
 
 
-def check_limits(label: str, cfg: dict, wav_bytes: int, replaces: pathlib.Path) -> None:
-    """HTTPException 429, said politely, when this clip would pass a contributor's caps."""
+def check_limits(label: str, cfg: dict, replaces: pathlib.Path) -> None:
+    """HTTPException 429, said politely, when this take would pass a contributor's caps."""
     lim = limits(cfg)
-    day = _read(_usage_file(label)).get("days", {}).get(_today(), {"clips": 0, "bytes": 0})
-    if day["clips"] + 1 > lim["clips_per_day"]:
+    day = _read(_usage_file(label)).get("days", {}).get(_today(), {}).get("takes", 0)
+    if day + 1 > lim["takes_per_day"]:
         raise HTTPException(status_code=429, detail=(
-            f"Thank you! That is today's limit of {lim['clips_per_day']} recordings for this "
+            f"Thank you! That is today's limit of {lim['takes_per_day']} recordings for this "
             "browser. Please come back tomorrow to carry on where you left off."))
-    if day["bytes"] + wav_bytes > lim["mb_per_day"] * 1e6:
-        raise HTTPException(status_code=429, detail=(
-            f"Thank you! That is today's limit of {lim['mb_per_day']:g} MB of recordings for "
-            "this browser. Please come back tomorrow to carry on where you left off."))
     have = [s for s in speakers() if s["label"] == label]
-    clips, size = (have[0]["clips"], have[0]["bytes"]) if have else (0, 0)
+    takes = have[0]["takes"] if have else 0
     if replaces.exists():                       # a redo replaces a stored take
-        clips, size = clips - 1, size - replaces.stat().st_size
-    if clips + 1 > lim["clips_total"] or size + wav_bytes > lim["mb_total"] * 1e6:
+        takes -= 1
+    if takes + 1 > lim["takes_total"]:
         raise HTTPException(status_code=429, detail=(
             "Thank you! This browser has reached its limit of recordings in all. Your "
             "clips are kept; there is nothing more to do."))
 
 
-def count_usage(label: str, wav_bytes: int) -> None:
+def count_usage(label: str) -> None:
     with _files:
         f = _usage_file(label)
         data = _read(f)
-        day = data.get("days", {}).get(_today(), {"clips": 0, "bytes": 0})
-        data["days"] = {_today(): {"clips": day["clips"] + 1, "bytes": day["bytes"] + wav_bytes}}
+        day = data.get("days", {}).get(_today(), {}).get("takes", 0)
+        data["days"] = {_today(): {"takes": day + 1}}
         _write_private(f, data)
 
 
@@ -478,6 +480,9 @@ def _log(label: str, event: dict) -> None:
 
 def store_take(word: dict, take: int, wav: bytes, pcm: bytes, hearing, vocab, lock,
                label: str = OWNER_LABEL) -> dict:
+    """Decode one take and store it. The owner's take keeps its WAV and the full record;
+    a contributor's keeps only the text heard, the word and the label. Their audio is
+    only ever in memory, and is dropped here. Returns the full result for the page."""
     with lock:
         open_text, alternatives = hearing.hear_open(pcm)
         heard, text, decoder = hearing.hear(pcm)
@@ -490,9 +495,16 @@ def store_take(word: dict, take: int, wav: bytes, pcm: bytes, hearing, vocab, lo
               "expect": word["expect"], "got": got, "as_itself": as_itself}
     d = speaker_dir(label) / word["id"]
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"take{take}.wav").write_bytes(wav)
-    (d / f"take{take}.json").write_text(json.dumps(record, indent=1, default=list))
-    _log(label, {"event": "take", **record})
+    if label == OWNER_LABEL:
+        (d / f"take{take}.wav").write_bytes(wav)
+        (d / f"take{take}.json").write_text(json.dumps(record, indent=1, default=list))
+        _log(label, {"event": "take", **record})
+        return record
+    kept = {k: record[k] for k in ("speaker", "word_id", "kind", "say", "take", "open",
+                                   "open_alternatives", "pocket")}
+    (d / f"take{take}.wav").unlink(missing_ok=True)
+    (d / f"take{take}.json").write_text(json.dumps(kept, indent=1, default=list))
+    _log(label, {"event": "take", "word_id": word["id"], "take": take})
     return record
 
 
@@ -589,8 +601,8 @@ def mount(app: FastAPI, state: dict, pcm16k) -> None:
             if len(pcm) > seconds * 16000 * 2:
                 raise too_long(seconds)
             with _files:
-                check_limits(label, cfg, len(wav), speaker_dir(label) / w["id"] / f"take{take}.wav")
-                count_usage(label, len(wav))
+                check_limits(label, cfg, speaker_dir(label) / w["id"] / f"take{take}.json")
+                count_usage(label)
         import asyncio
         return await asyncio.to_thread(store_take, w, take, wav, pcm, rt.hearing, vocab,
                                        rt._work, label)
@@ -598,7 +610,8 @@ def mount(app: FastAPI, state: dict, pcm16k) -> None:
     @api.post("/skip")
     def skip(word_id: str, who: dict = Depends(require_speaker)):
         w, _ = word(runtime(), word_id)
-        _log(who["label"], {"event": "skip", "word_id": w["id"], "time": _now()})
+        event = {"event": "skip", "word_id": w["id"]}
+        _log(who["label"], {**event, "time": _now()} if who["label"] == OWNER_LABEL else event)
         return {"status": "skipped"}
 
     app.include_router(page)
