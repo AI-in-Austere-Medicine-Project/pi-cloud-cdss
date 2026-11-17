@@ -72,6 +72,7 @@ def owner(tmp_path, monkeypatch):
     f.write_text(OWNER_TOKEN + "\n")
     monkeypatch.setenv("POCKET_OWNER_TOKEN_FILE", str(f))
     monkeypatch.setenv("POCKET_OWNER_CLIPS", str(tmp_path / "owner-clips"))
+    monkeypatch.setenv("POCKET_CONTRIBUTORS_FILE", str(tmp_path / "contributors.json"))
     monkeypatch.setattr(pw, "LOG_DIR", tmp_path / "pocket-logs")
     return tmp_path / "owner-clips"
 
@@ -106,6 +107,7 @@ def _clip(client, word_id, take=1):
 
 def test_with_no_owner_token_file_the_page_and_its_api_do_not_exist(tmp_path, monkeypatch, runtime):
     monkeypatch.setenv("POCKET_OWNER_TOKEN_FILE", str(tmp_path / "absent"))
+    monkeypatch.setenv("POCKET_CONTRIBUTORS_FILE", str(tmp_path / "absent-contributors.json"))
     app = FastAPI()
     pw.mount(app, require_token=_gate, runtime=runtime)
     c = TestClient(app)
@@ -135,16 +137,16 @@ def test_the_page_is_served_unindexed_and_no_public_page_links_it(client):
 def test_the_page_has_hold_to_talk_three_takes_skip_and_redo():
     import pocket_teach
     html = pocket_teach.PAGE.read_text()
-    for slot in ('id="talk"', 'id="skip"', 'id="redo"', 'id="word"', 'id="owner-token"'):
+    for slot in ('id="talk"', 'id="skip"', 'id="redo"', 'id="word"', 'id="password"'):
         assert slot in html, slot
-    assert "/pocket/teach/clip" in html and "X-Owner-Token" in html
+    assert "/pocket/teach/clip" in html and "X-Teach-Password" in html
     assert 'name="robots" content="noindex' in html
     assert pocket_teach.TAKES == 3
 
 
-def test_clips_are_kept_outside_every_repo():
+def test_clips_are_kept_outside_every_repo(monkeypatch):
     import pocket_teach
-    os.environ.pop("POCKET_OWNER_CLIPS", None)
+    monkeypatch.delenv("POCKET_OWNER_CLIPS", raising=False)   # restored after the test
     d = pocket_teach.clips_dir()
     assert d == pathlib.Path.home() / "pocket-web" / "owner-clips"
     assert SERVER.parent not in d.parents and CHECKOUT not in d.parents
@@ -203,8 +205,8 @@ def test_a_take_stores_the_clip_and_what_vosk_heard(client, hearing, owner):
     assert d["open"] == "keep her" and d["open_alternatives"] == ["keep her"]
     assert d["pocket"] == {"heard": "keppra", "text": "keppra", "decoder": "spelled"}
     assert d["as_itself"] is True
-    assert (owner / "medic-keppra" / "take1.wav").read_bytes() == _wav()
-    assert json.loads((owner / "medic-keppra" / "take1.json").read_text())["open"] == "keep her"
+    assert (owner / "speaker-1" / "medic-keppra" / "take1.wav").read_bytes() == _wav()
+    assert json.loads((owner / "speaker-1" / "medic-keppra" / "take1.json").read_text())["open"] == "keep her"
 
 
 def test_a_take_heard_as_another_word_is_not_as_itself(client, hearing):
@@ -218,7 +220,7 @@ def test_three_takes_redo_overwrites_and_a_fourth_is_refused(client, hearing, ow
         assert _clip(client, "medic-narcan", take).status_code == 200
     hearing.open = "nar can"
     _clip(client, "medic-narcan", 2)                                      # redo take 2
-    assert json.loads((owner / "medic-narcan" / "take2.json").read_text())["open"] == "nar can"
+    assert json.loads((owner / "speaker-1" / "medic-narcan" / "take2.json").read_text())["open"] == "nar can"
     assert _clip(client, "medic-narcan", 4).status_code == 422
     assert _clip(client, "medic-narcan", 0).status_code == 422
     w = next(w for w in _words(client) if w["id"] == "medic-narcan")
@@ -227,7 +229,7 @@ def test_three_takes_redo_overwrites_and_a_fourth_is_refused(client, hearing, ow
 
 def test_skip_is_recorded_and_an_unknown_word_is_refused(client, owner):
     assert client.post("/pocket/teach/skip?word_id=medic-sux", headers=OWNER).status_code == 200
-    lines = [json.loads(x) for x in (owner / "session.jsonl").read_text().splitlines()]
+    lines = [json.loads(x) for x in (owner / "speaker-1" / "session.jsonl").read_text().splitlines()]
     assert lines[-1]["event"] == "skip" and lines[-1]["word_id"] == "medic-sux"
     assert _clip(client, "../../etc").status_code == 404
     assert client.post("/pocket/teach/skip?word_id=nope", headers=OWNER).status_code == 404
