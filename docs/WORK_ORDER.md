@@ -130,7 +130,8 @@ Owner asks outside the lettered items:
 | W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **done**: #206, merged and deployed 2026-11-15 |
 | Site tidy-up (owner, 2026-11-15): the new index; ethics and release-notes pages restyled to it through one `web/site.css`; facts and links checked | **done**: #207; the shared notice wording #209 (owner, 2026-11-16) |
 | Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | done, #210 |
-| Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | **in review** (see the section below) |
+| Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | done, #211 |
+| Teach page: contributor audio not kept (owner, 2026-11-17): a contributor's audio is dropped once decoded, keeping only the text heard, the word and the speaker label; the owner's recordings are kept; limits in takes; the new consent line | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -1327,6 +1328,26 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 - **The word list (136):** every signed drug by its own name where it can be said and by every signed name the bank gives it (50); the eleven medic names; 29 indications (the US spelling where the two sound alike; RSI, TBI and CNS as letters); the five routes as letters and nine as words; the twelve control words; twenty weights and ages. Each word carries what the parser reads in it, typed; a take is "heard as itself" when Pocket's hearing reads the same.
 - **A take** stores the 16 kHz WAV and a JSON record: "open" (Vosk with no grammar, and up to five alternatives: the spellings Vosk actually produces) and "pocket" (Pocket's two-decoder hearing with the pinned grammar, as `/pocket` hears). It holds the decoder lock for one clip, never the testers' talker lease, and writes nothing to the Pocket logs.
 - **Pinned grammar:** `f8f7aa5` does not yet have yes, correct, affirmative, no, negative, stop or wrong (the confirm step is Pocket's open voice branch), so for those words only "open" counts; the page says so.
+
+### Teach page: contributor audio not kept (owner, 2026-11-17)
+
+**Owner:** "Follow-up before I invite anyone: contributor recordings must not be kept. Failing tests first, one PR, do not merge. For a contributor, the audio is deleted as soon as the take has been decoded. Keep only the text the network heard, the word and the speaker label. A test checks that no contributor audio remains on disk after a take. My own owner recordings (speaker-1) are still kept. Limits become counts of takes, since there is no stored size for contributors. Update the status command to match. The page's consent line reads: "Your recording is deleted once it has been processed. Only the text of what the network heard is kept, and it may be used in this open-source project and future AI-AMP projects. No name or other information is requested." The later spelling step uses the kept text from contributors, and my own recordings. Do not touch my real recordings or the live folders during tests."
+
+- **A contributor's take** is decoded from memory (the request body is read in memory, never spooled) and only `take<n>.json` is written. It holds `speaker`, `word_id`, `kind`, `say`, `take`, and what the network heard: `open`, `open_alternatives`, `pocket` {heard, text, decoder}. There is no time, no WAV, and no derived fields. Their `session.jsonl` lines are `event`, `word_id` and `take`. A redo removes any WAV an earlier version left. The page is still told whether the take was heard as itself, but that is not stored.
+- **The owner's takes (speaker-1)** are unchanged: the WAV and the full record.
+- **Limits** are counts of takes: `takes_per_day` 450, `takes_total` 1,500, `clip_seconds` 6, `new_speakers_per_day` 20. The size limits are gone, and `limits mb_per_day=…` is refused. `status` shows "speaker-1 (owner): N takes, audio kept (x MB)" and "speaker-N: N takes, text only".
+- **Consent line**, verbatim as above, in place of the earlier one.
+- **For the spelling step:** `all_takes()` yields every take with `wav` set to the owner's recording, or None for a contributor's text-only take.
+
+**Tests** (failing first, `server/tests/test_pocket_teach_contributors.py`):
+- random-sample audio, three takes and a redo: no WAV under the clips folder, and no file there or new in the temp folder holds any of the audio bytes;
+- a contributor's record has exactly the kept fields;
+- a take that fails to decode leaves no audio;
+- the owner's WAV is kept byte for byte;
+- resume works from the text records;
+- status counts takes.
+
+Every test runs on its own private files (`conftest.py`, #211). The full suite was run with a listing of the real `~/pocket-web` owner clips, contributor file and token taken before and after: unchanged.
 
 ### Teach page contributors (owner, 2026-11-17)
 

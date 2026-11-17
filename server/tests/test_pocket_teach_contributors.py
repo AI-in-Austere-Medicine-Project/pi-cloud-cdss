@@ -340,7 +340,7 @@ def test_the_command_deletes_one_speakers_clips_and_label(client, on, tool, clip
     b, hb = _browser(client)
     _clip(client, ha), _clip(client, hb)
     assert tool("delete", a) == 0
-    assert not (clips / a).exists() and (clips / b / "medic-narcan" / "take1.wav").exists()
+    assert not (clips / a).exists() and (clips / b / "medic-narcan" / "take1.json").exists()
     r = client.get("/pocket/teach/words", headers=ha)
     assert r.status_code == 401                            # that browser's key is gone
     c, _ = _browser(client)
