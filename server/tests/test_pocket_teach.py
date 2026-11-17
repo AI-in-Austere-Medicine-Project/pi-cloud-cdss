@@ -137,9 +137,9 @@ def test_the_page_is_served_unindexed_and_no_public_page_links_it(client):
 def test_the_page_has_hold_to_talk_three_takes_skip_and_redo():
     import pocket_teach
     html = pocket_teach.PAGE.read_text()
-    for slot in ('id="talk"', 'id="skip"', 'id="redo"', 'id="word"', 'id="owner-token"'):
+    for slot in ('id="talk"', 'id="skip"', 'id="redo"', 'id="word"', 'id="password"'):
         assert slot in html, slot
-    assert "/pocket/teach/clip" in html and "X-Owner-Token" in html
+    assert "/pocket/teach/clip" in html and "X-Teach-Password" in html
     assert 'name="robots" content="noindex' in html
     assert pocket_teach.TAKES == 3
 

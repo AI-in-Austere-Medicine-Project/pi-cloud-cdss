@@ -187,12 +187,14 @@ def test_each_browser_gets_the_next_label_and_keeps_it(client, on):
 
 
 def test_no_names_are_collected_and_keys_are_stored_hashed(client, on, clips):
-    _, h = _browser(client)
-    import inspect
     import pocket_teach
-    assert "name" not in inspect.signature(
-        next(r.endpoint for r in client.app.routes if getattr(r, "path", "") == "/pocket/teach/hello")
-    ).parameters
+    r = client.post("/pocket/teach/hello", headers={"X-Teach-Password": PASSWORD},
+                    json={"name": "Jane Medic", "email": "jane@example.org"})
+    h = {"X-Speaker-Key": r.json()["speaker_key"]}
+    _clip(client, {"X-Teach-Password": PASSWORD, **h})
+    for f in clips.rglob("*"):
+        if f.is_file() and f.suffix != ".wav":
+            assert "Jane" not in f.read_text() and "example.org" not in f.read_text(), f
     text = (clips / "speakers.json").read_text()
     assert h["X-Speaker-Key"] not in text
     for s in json.loads(text)["speakers"].values():

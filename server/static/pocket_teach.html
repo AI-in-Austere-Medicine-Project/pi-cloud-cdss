@@ -42,19 +42,21 @@ button:disabled { opacity: .5; cursor: default; }
 #result { font-family: var(--mono); font-size: 13px; line-height: 1.6; text-align: left; }
 #result b.ok { color: var(--green); } #result b.miss { color: var(--red); }
 #tokenrow { display: flex; gap: 8px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--dim); }
-#owner-token { flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+#password { flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--border);
                border-radius: 4px; padding: 6px 8px; font-family: var(--mono); }
 #jump { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px; }
 .small { font-size: 12px; color: var(--dim); line-height: 1.5; }
+#consent { font-size: 14px; line-height: 1.5; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
 </style>
 </head>
 <body>
 <header>
   <h1>POCKET <span>TEACH</span></h1>
-  <span class="meta">Pocket <span id="pocket-version">…</span> · bank <span id="bank-version">…</span> · <span id="progress">…</span></span>
+  <span class="meta"><span id="speaker">not signed in</span> · Pocket <span id="pocket-version">…</span> · bank <span id="bank-version">…</span> · <span id="progress">…</span></span>
 </header>
 <main>
-  <div id="tokenrow">OWNER TOKEN <input id="owner-token" type="password" autocomplete="off"><button id="load" type="button">LOAD</button></div>
+  <p id="consent">Thank you for helping Pocket learn how words are said. Recordings are kept privately to improve speech recognition and can be deleted on request. No names are collected: this browser is given a speaker label (shown above); quote it to have your recordings deleted.</p>
+  <div id="tokenrow">PASSWORD <input id="password" type="password" autocomplete="off"><button id="load" type="button">START</button></div>
 
   <div class="card">
     <div id="kind">…</div>
@@ -64,7 +66,7 @@ button:disabled { opacity: .5; cursor: default; }
   </div>
 
   <button id="talk" type="button" disabled>HOLD TO TALK</button>
-  <div id="note" role="status" aria-live="polite">Enter the owner token and press LOAD.</div>
+  <div id="note" role="status" aria-live="polite">Enter the password and press START.</div>
   <div class="row">
     <button id="prev" type="button" disabled>◀ BACK</button>
     <button id="redo" type="button" disabled>REDO LAST TAKE</button>
@@ -72,7 +74,7 @@ button:disabled { opacity: .5; cursor: default; }
   </div>
   <div class="card" id="result"></div>
   <select id="jump" aria-label="Go to word"></select>
-  <p class="small">Say the word as you would on a call: three takes each, then it moves on. Letters in capitals are said one at a time. Clips stay on the Jetson in ~/pocket-web/owner-clips. "Open" is Vosk with no grammar (the spelling it produces); "Pocket" is Pocket's own hearing with its grammar, as /pocket hears. The pinned grammar does not yet have yes, correct, affirmative, no, negative, stop or wrong, so for those words only "Open" counts.</p>
+  <p class="small">Say the word as you would on a call: three takes each, then it moves on. Letters in capitals are said one at a time. Skip anything you like; when you come back in this browser you carry on where you left off. Keep each recording short: just the word. "Open" is what the recogniser heard with no word list; "Pocket" is what Pocket itself heard. For yes, correct, affirmative, no, negative, stop and wrong, only "Open" counts for now.</p>
 </main>
 
 <script>
@@ -81,24 +83,39 @@ const $ = id => document.getElementById(id);
 const RATE = 16000, MIN_S = 0.3, TAKES_DEFAULT = 3;
 let words = [], at = 0, takes = TAKES_DEFAULT, results = {}, nextTake = 1, lastTake = 0, rec = null, busy = false;
 
-const token = () => $('owner-token').value.trim();
-const hdr = extra => Object.assign({ 'X-Owner-Token': token() }, extra || {});
-try { $('owner-token').value = localStorage.getItem('pocket-owner-token') || ''; } catch (e) {}
+let speakerKey = '';
+const token = () => $('password').value.trim();
+const hdr = extra => Object.assign({ 'X-Teach-Password': token() }, speakerKey ? { 'X-Speaker-Key': speakerKey } : {}, extra || {});
+const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const fetchStored = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+$('password').value = fetchStored('pocket-teach-password') || fetchStored('pocket-owner-token');
+speakerKey = fetchStored('pocket-teach-speaker-key');
+async function detail(r) {
+  try { const d = await r.json(); if (d && typeof d.detail === 'string') return d.detail; } catch (e) {}
+  return 'HTTP ' + r.status;
+}
 
 function note(t, cls) { $('note').textContent = t; $('note').className = cls || ''; }
 
 async function load() {
-  try { localStorage.setItem('pocket-owner-token', token()); } catch (e) {}
-  note('loading the word list…');
+  store('pocket-teach-password', token());
+  note('starting…');
   let r;
+  try { r = await fetch('/pocket/teach/hello', { method: 'POST', headers: hdr() }); } catch (e) { note('Not started: ' + e, 'err'); return; }
+  if (!r.ok) { note(await detail(r), 'err'); return; }
+  const me = await r.json();
+  speakerKey = me.speaker_key || '';
+  store('pocket-teach-speaker-key', speakerKey);
+  $('speaker').textContent = 'you are ' + me.speaker;
+  note('loading the word list…');
   try { r = await fetch('/pocket/teach/words', { headers: hdr() }); } catch (e) { note('Not loaded: ' + e, 'err'); return; }
-  if (!r.ok) { note(r.status === 401 ? 'That is not the owner token.' : 'Not loaded: HTTP ' + r.status, 'err'); return; }
+  if (!r.ok) { note(await detail(r), 'err'); return; }
   const d = await r.json();
   words = d.words; takes = d.takes || TAKES_DEFAULT;
   $('pocket-version').textContent = (d.pocket_commit || '').slice(0, 12);
   $('bank-version').textContent = d.bank_version || '';
   $('jump').innerHTML = words.map((w, i) => `<option value="${i}">${i + 1}. ${w.show} (${w.kind})</option>`).join('');
-  const first = words.findIndex(w => (w.recorded || []).length < takes);
+  const first = words.findIndex(w => (w.recorded || []).length < takes && !w.skipped);
   go(first < 0 ? 0 : first);
   ['talk', 'prev', 'skip'].forEach(id => { $(id).disabled = false; });
 }
@@ -145,9 +162,9 @@ async function send(samples, take) {
   try {
     const r = await fetch(`/pocket/teach/clip?word_id=${encodeURIComponent(w.id)}&take=${take}`,
       { method: 'POST', headers: hdr({ 'Content-Type': 'audio/wav' }), body: wav16k(samples) });
-    if (!r.ok) { note('Not stored: HTTP ' + r.status + ' ' + (await r.text()), 'err'); return; }
+    if (!r.ok) { note((r.status === 429 || r.status === 413 ? '' : 'Not stored: ') + (await detail(r)), 'err'); return; }
     const d = await r.json();
-    w.recorded = Array.from(new Set([...(w.recorded || []), take])).sort();
+    w.recorded = Array.from(new Set([...(w.recorded || []), take])).sort(); w.skipped = false;
     w.marks = Object.assign(w.marks || {}, { [take]: d.as_itself });
     (results[w.id] = results[w.id] || []).push(shown(d));
     if (w.recorded.length >= takes && take === Math.max(...w.recorded) && at < words.length - 1) {
@@ -164,6 +181,7 @@ $('jump').addEventListener('change', e => go(Number(e.target.value)));
 $('redo').addEventListener('click', () => { if (lastTake) { nextTake = lastTake; drawTakes(); note(`Redo take ${lastTake}: hold and say it.`); } });
 $('skip').addEventListener('click', async () => {
   const w = words[at];
+  w.skipped = true;
   try { await fetch('/pocket/teach/skip?word_id=' + encodeURIComponent(w.id), { method: 'POST', headers: hdr() }); } catch (e) {}
   go(at + 1);
 });
