@@ -144,9 +144,9 @@ def test_the_page_has_hold_to_talk_three_takes_skip_and_redo():
     assert pocket_teach.TAKES == 3
 
 
-def test_clips_are_kept_outside_every_repo():
+def test_clips_are_kept_outside_every_repo(monkeypatch):
     import pocket_teach
-    os.environ.pop("POCKET_OWNER_CLIPS", None)
+    monkeypatch.delenv("POCKET_OWNER_CLIPS", raising=False)   # restored after the test
     d = pocket_teach.clips_dir()
     assert d == pathlib.Path.home() / "pocket-web" / "owner-clips"
     assert SERVER.parent not in d.parents and CHECKOUT not in d.parents

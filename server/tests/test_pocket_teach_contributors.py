@@ -233,16 +233,30 @@ def test_each_speaker_resumes_from_their_own_takes_and_skips(client, on):
     assert other["medic-narcan"]["recorded"] == [] and not other["medic-sux"]["skipped"]
 
 
-def test_the_owners_clips_from_before_move_into_speaker_1(clips, on):
+def test_mounting_never_moves_clips_the_migrate_command_does(clips, tool):
+    """The owner's clips from #210 (<clips>/<word_id>/) move into speaker-1 only when the
+    owner runs the command: a server or a test mounting the page must never move the
+    live service's clips from under it (2026-11-17: a test run did)."""
     (clips / "medic-narcan").mkdir(parents=True)
     (clips / "medic-narcan" / "take1.wav").write_bytes(_wav())
     (clips / "medic-narcan" / "take1.json").write_text(json.dumps({"word_id": "medic-narcan", "take": 1}))
     (clips / "session.jsonl").write_text('{"event": "skip", "word_id": "medic-sux"}\n')
     runtime = pw.Runtime.load(hearing=FakeHearing(), synth=lambda t: b"RIFF")
     pw.mount(FastAPI(), require_token=_gate, runtime=runtime)
+    assert (clips / "medic-narcan" / "take1.wav").exists() and not (clips / "speaker-1").exists()
+    assert tool("migrate") == 0
     assert (clips / "speaker-1" / "medic-narcan" / "take1.wav").read_bytes() == _wav()
     assert (clips / "speaker-1" / "session.jsonl").exists()
     assert not (clips / "medic-narcan").exists() and not (clips / "session.jsonl").exists()
+    assert tool("migrate") == 0                          # again: nothing to move
+
+
+def test_no_test_reaches_the_real_private_files():
+    import pocket_teach
+    real = pathlib.Path.home() / "pocket-web"
+    for f in (pocket_teach.clips_dir(), pocket_teach.contributors_file(),
+              pocket_teach.owner_token_file()):
+        assert real not in f.parents and f != real, f
 
 
 # ── limits ──────────────────────────────────────────────────────────────────
