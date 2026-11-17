@@ -1345,6 +1345,8 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 
 **Tests** (failing first): `server/tests/test_pocket_teach_contributors.py` (23) and the per-speaker paths in `test_pocket_teach.py`.
 
+**Replay:** against main (`9947447`), PFC and EMS, each through served, held, gate, log and pipe: every output file byte-identical (`cmp`); 0 changed. The commits after the replay change only the teach module, its command and tests, none of which the replays load.
+
 ### Site tidy-up (owner, 2026-11-15)
 
 **Owner:** "Replace web/index.html with /home/andrew/site-draft/index.html. Check every link on it resolves, and correct any stale fact (version, test count). Restyle the pages that stay on the site (ethics-governance.html and the release-notes pages) to match the new index: same colours, fonts, width and light/dark behaviour, with a "← AI-AMP" link back to the index at the top. Move the shared styles into one CSS file. Do not change any wording on those pages. Old links must keep working." Rulings on the draft's claims (2026-11-15, 2026-11-16): the Pocket line is "about $75 in parts, plus any Bluetooth headset · spoken answer in about two seconds"; EdgeCDSS v5.1.0 and Pocket v1.1 are published releases, and each label links its release.
