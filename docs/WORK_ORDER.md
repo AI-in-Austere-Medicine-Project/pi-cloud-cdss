@@ -1349,6 +1349,8 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 
 Every test runs on its own private files (`conftest.py`, #211). The full suite was run with a listing of the real `~/pocket-web` owner clips, contributor file and token taken before and after: unchanged.
 
+**Replay:** against main (`1474967`), PFC and EMS, each through served, held, gate, log and pipe: every output file byte-identical; 0 changed.
+
 ### Teach page contributors (owner, 2026-11-17)
 
 **Owner:** "Teach page: one shared contributor password instead of per-person tokens. Failing tests first, one PR, do not merge. A single password I set in a private file on the Jetson (start with "pocket-voice"). It opens the teach page only, nothing else on the portal. My owner token still works as before. Each browser is given its own speaker label automatically (speaker-2, speaker-3, and so on), remembered in that browser. No names are collected. Contributors can skip freely and resume where they left off. Limits: a cap on clips and total size per speaker and per day, and a cap on clip length. Over the limit, the page says so politely. A command to turn contributor access on and off, to change the password, and to delete one speaker's clips. A consent line on the page: recordings are kept privately to improve speech recognition and can be deleted on request. Clips stay in the private folder, stored per speaker, never committed. The spelling step and the re-run use every speaker's clips and report per speaker and overall."
