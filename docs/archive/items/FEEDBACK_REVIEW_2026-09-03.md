@@ -290,7 +290,7 @@ this is in `server/main.py:214` and `server/static/index.html`.
   does not. Entries 29 and 43 are unusable as a result. Send a conversation id and
   turn index at minimum; the server already has the history.
 - **The 200-char preview truncates mid-word** and is the only record of what was
-  said. Already logged in `TODO.md`; every entry in §1–§3 above would have been
+  said. Already logged in `docs/archive/v4/TODO_v4.md`; every entry in §1–§3 above would have been
   faster to diagnose with the full text.
 - **No answer metadata on the report.** Model, `validator_result`, `source_mode`,
   sources, latency are all known to the client at feedback time and none are sent.
@@ -298,7 +298,7 @@ this is in `server/main.py:214` and `server/static/index.html`.
   deterministic pre-gate or the generator throws away the most useful bit.
 - **Python `repr` on disk, not JSON.** `str(entry)` produces `'...'`-quoted lines
   that need `ast.literal_eval` and break on any unicode oddity. Already in
-  `TODO.md`; do it with the linkage change.
+  `docs/archive/v4/TODO_v4.md`; do it with the linkage change.
 - **Two free-text fields, one used.** Drop `comment` or give it a UI.
 - **The tag list does not match what medics report.** 15 of 22 flagged entries
   skipped tags entirely. Every theme above would be better served by tags like

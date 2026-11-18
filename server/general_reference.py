@@ -1,7 +1,7 @@
 """
 EdgeCDSS — general medical reference fallback.
 
-Closes F-4 (`TODO.md`) as a deliberate general-knowledge fallback rather than a
+Closes F-4 (`docs/archive/v4/TODO_v4.md`) as a deliberate general-knowledge fallback rather than a
 corpus expansion: the knowledge base is 89 JTS trauma CPGs, and medics bring lab
 values, toxicology, envenomation and drug-preparation questions to it. The
 measured consequence was the highest-frequency complaint in the feedback corpus

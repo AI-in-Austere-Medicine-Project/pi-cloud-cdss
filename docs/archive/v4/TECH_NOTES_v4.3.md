@@ -5,7 +5,7 @@ AI in Austere Medicine Project — August 2026
 - Live portal: https://cdss.arcanekg.com
 - Release notes page: https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html
 - Repository: https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss
-- Full changelog: [CHANGELOG.md](../../../CHANGELOG.md) · Deferred findings and residual risk: [TODO.md](../../../TODO.md)
+- Full changelog: [CHANGELOG.md](../../../CHANGELOG.md) · Deferred findings and residual risk: [docs/archive/v4/TODO_v4.md](TODO_v4.md)
 - Prior release: [TECH_NOTES_v4.1.md](TECH_NOTES_v4.1.md) — superseded by this document. 4.2 shipped without technical notes; the parts of it that changed the pipeline shape are documented here
 - Project overview & research positioning: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 
@@ -223,12 +223,12 @@ Carried forward:
 - Language generation requires connectivity to a hosted model; fully offline on-device inference remains the research goal (Layer 02). **Card answers are the exception** — they need no model at all
 - Knowledge base reflects the JTS CPGs as published, and is trauma-scoped
 
-Introduced or left open by 4.3 — the full list, with residual risk, is in [TODO.md](../../../TODO.md):
+Introduced or left open by 4.3 — the full list, with residual risk, is in [docs/archive/v4/TODO_v4.md](TODO_v4.md):
 
 - **8 of 13 cards are dark.** Four troubleshooting and four device cards are written but unsigned, and the engine treats them as absent, so a ventilator troubleshooting question routes to whatever answered it before the module existed. That is the fence working as designed and it is also a real coverage gap until a clinician signs them
 - **Two configured models are selectable but not usable for sustained traffic.** `available_models()` gates per **provider**, not per model. xAI fails authentication outright so `grok-4` never reaches the dropdown — correct behaviour. Gemini authenticates on the free tier, so both Gemini entries are selectable while the daily cap (20 requests per day per model) makes neither usable for a sustained eval slice. A medic who picks one gets a fail-closed system error once the cap is hit. Per-model availability would require one authenticated call per model on every `/status` poll, which is why it is not done
 - **`grok-4`'s `supports_temperature: false` is a guess made in the safe direction.** A model that rejects the parameter returns 400 on every query; one that accepts it and never sees it samples at its own default. To be confirmed against a credited key
-- **`temp.min` of 35 °C puts Celsius hypothermia outside the plausible band**, so `hypothermia_txa` can only arm from a Fahrenheit reading. Pinned by a test that says so out loud and raised in TODO.md as an owner decision — lowering the bound restores it with no code change
+- **`temp.min` of 35 °C puts Celsius hypothermia outside the plausible band**, so `hypothermia_txa` can only arm from a Fahrenheit reading. Pinned by a test that says so out loud and raised in docs/archive/v4/TODO_v4.md as an owner decision — lowering the bound restores it with no code change
 - **Log schema migration.** Schema 9 entries carry `card_id`, `card_version` and `source: "card"`. Analysis tooling must read a missing `log_schema` as unknown, never as a default, and must not read an absent card field as "not a card answer" on a pre-schema-9 entry
 - **Not everything in the 4.3 window is written up.** Schemas 7 and 8 — glucose capture (whose two plausible unit bands *overlap*, unlike temperature's, so an unlabelled value is read by a documented convention rather than inferred from the number — 32 mg/dL and 32 mmol/L are opposite emergencies), the `ams_stated` patient fact, and `review_suppressed` — now have `CHANGELOG.md` entries. The rest of the round-1 fix PR (F-1, F-2, F-4 through F-7, F-9), the provider grid and the emergency security patch shipped in the same window and do not; their commit messages are the record. The comment block above `LOG_SCHEMA_VERSION` in `server/openai_client.py` remains the authoritative description of the log shape
 
