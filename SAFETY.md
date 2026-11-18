@@ -2,7 +2,7 @@
 
 EdgeCDSS 5.1.0. This is what the system guarantees, what it does not, and how a change to it is made. The order of record is [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md); each item's one-line meaning and status is in [`docs/REFERENCE.md`](docs/REFERENCE.md).
 
-> ⚠️ **Research prototype.** Not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
+> **Research prototype.** Not validated for clinical use. Not for patient care. Simulated scenarios only. Enter no patient information (PHI).
 
 ## How an answer is built
 
@@ -14,7 +14,9 @@ These are enforced in code and pinned by tests. A change that weakens one is not
 
 **Doses**
 - **A dose is served only from a signed contract entry.**
-  - 108 of 118 entries are signed by the program owner, across signing batches 1–3 (2026-10-14 to 2026-10-21; E05 re-signed 2026-10-22).
+  - A server serves one drug set (`CDSS_DRUG_SET`).
+    - The PFC set (the default, the JTS and SMOG bank): 108 of 118 entries are signed by the program owner, across signing batches 1–3 (2026-10-14 to 2026-10-21; E05 re-signed 2026-10-22).
+    - The EMS set: 22 entries, all signed in batch 4 under the owner's rulings (2026-11-12; [`docs/authoring/SIGNING_BATCH4_RULINGS_2026-11-12.md`](docs/authoring/SIGNING_BATCH4_RULINGS_2026-11-12.md)).
   - Each has verbatim source quotes and printed page numbers ([`docs/authoring/SIGNING.md`](docs/authoring/SIGNING.md)).
   - 36 retired entries are kept on record and never serve; 26 of them were retired by the owner on 2026-10-21 because no JTS or SMOG page states their number.
   - An unsigned entry serves nothing, and a drug with no signed entry for the question holds. An uncited value is never served.
@@ -67,7 +69,7 @@ Read these before relying on any served answer.
 - **A card fires only on the phrasings it recognises.** Misspellings beyond the listed ones, and presentations described without the words a trigger reads, reach the model. An active arterial bleed without shock physiology gets no card (v1.1).
 - **Signed content is as good as its source and its signature.** Signing records who said a number is safe and on what page; it is not an independent clinical validation.
 - **Some content is unsigned and holds:**
-  - 10 contract entries: ketorolac ×5, excluded; artemether-lumefantrine, ruled SIGN but tablets cannot be signed; and four infusions, deferred or v1.1.
+  - 10 contract entries (PFC set): ketorolac ×5, excluded; artemether-lumefantrine, ruled SIGN but tablets cannot be signed; and four infusions, deferred or v1.1.
   - Two procedure rows, P1 and P2.
 - **The five vent cards are signed by a role, not a name** ("clinician", 2026-08-22). Their settings are printed for the owner's ruling in [`docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md`](docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md).
 - **Some numbers that are not drug doses are in code, not in a signature:** targets, thresholds, times and limits. They are listed below.

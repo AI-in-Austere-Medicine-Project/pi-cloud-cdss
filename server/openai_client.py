@@ -1,6 +1,7 @@
 """
 EdgeCDSS — AUSTERE-CDS Pipeline
-Version: 4.0.0
+Version: see version.py. The v4.0 and v3.4 notes below are the pipeline's
+baseline, kept as history.
 
 v4.0 — Deterministic-First Architecture
 Major version: consolidates the v3.4.x rebuild into a stable architectural baseline.
@@ -21,7 +22,7 @@ v4.0 defining features:
   - DEBUG_WARN_ONLY env flag: fail-closed logic is never hand-edited to debug
   - normalize_validator_result: UNSAFE without issues -> NEEDS_HUMAN_REVIEW
 
-Architecture per code review recommendations (EdgeCDSS_openai_py_issue_recommendations.docx):
+Architecture per code review recommendations (2026-07; the review is not in this repository):
   1. Structured session state (PatientContext with confirmed vs estimated weight, access_state, route_preference)
   2. Deterministic pre-gates BEFORE any LLM call — missing weight/route returns immediately, skips validator
   3. RAG retrieval + source classification
@@ -34,7 +35,7 @@ Architecture per code review recommendations (EdgeCDSS_openai_py_issue_recommend
 Key design principle: prompts handle formatting and clinical language.
 Python handles gates, weight rules, route selection, calculators, and safety checks.
 
-v3.4 additions (EdgeCDSS_openai_py_issue_recommendations_2.docx):
+v3.4 additions (from the second review):
   - detect_requested_medication_overdose() — pre-generator overdose block
   - Deterministic sepsis-DCR pre-gate
   - FIXED_PREPS system with build_fixed_prep_response()
@@ -8708,7 +8709,7 @@ def _run_pipeline(query: str, chromadb_client,
                    model: Optional[str] = None,
                    state: Optional[dict] = None) -> dict:
     """
-    EdgeCDSS v3.4.1 Pipeline:
+    The pipeline:
     1. Replay structured patient context from conversation history.
     2. Define full_query_history once and use it consistently.
     3. Deterministic pre-gates for high-risk known cases before RAG/LLM.

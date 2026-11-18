@@ -1334,6 +1334,19 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 
 **Owner, rules for both phases:** "No change in behaviour. Never loosen a gate. Never delete or edit signed contracts, signed cards, kit declarations, test expectations, replay data, or protocol_index.json. Signing rulings, incident write-ups and safety findings are the audit trail: archive at most, never delete. Do not rewrite git history. No force-push to main. Do not touch the live checkout, the running service, .env, or anything under ~/pocket-web. Keep LICENSE, NOTICE and the research-prototype notice." After each PR: a link check across README, SAFETY.md, REFERENCE, WORK_ORDER and the site, and the full suite.
 
+**Phase 2d, stale labels (approved list, and owner ruling 5: "SAFETY.md notice: yes, use the shared wording. Also correct its stale counts."):**
+- **`SAFETY.md`:**
+  - the notice is the shared wording;
+  - the dose counts name both drug sets: PFC 108 of 118 signed; EMS 22 signed in batch 4;
+  - the unsigned list says PFC.
+- **`run_tests.sh` banner:** "EdgeCDSS — live clinical suite (29 cases)" (it read "v3.3 — 25 Case").
+- **README:**
+  - the repository tree is the real layout;
+  - test counts read 4,100+ (they read 1,150 and ~3,400);
+  - the 5.0 summary is dropped, since the changelog's 5.0 entry has it in full;
+  - "What's new in 4.3" is renamed "Authored content": it explains how contracts, vial strengths and vent cards work today.
+- **`openai_client.py`:** docstrings point to `version.py` and name no missing review documents. The module keeps its name.
+
 **Phase 2b+, K2 recorded:** #194 is closed without deleting its branch, and K2 is a v1.1 entry waiting on the owner's review.
 
 **Phase 2b, TODO.md into v1.1 (owner ruling 3: "First move its deferred findings into the one canonical list (the v1.1 section of WORK_ORDER), fix the README and FINDINGS references to point there, then archive TODO.md"):**
