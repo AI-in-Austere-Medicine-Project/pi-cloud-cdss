@@ -1334,6 +1334,8 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 
 **Owner, rules for both phases:** "No change in behaviour. Never loosen a gate. Never delete or edit signed contracts, signed cards, kit declarations, test expectations, replay data, or protocol_index.json. Signing rulings, incident write-ups and safety findings are the audit trail: archive at most, never delete. Do not rewrite git history. No force-push to main. Do not touch the live checkout, the running service, .env, or anything under ~/pocket-web. Keep LICENSE, NOTICE and the research-prototype notice." After each PR: a link check across README, SAFETY.md, REFERENCE, WORK_ORDER and the site, and the full suite.
 
+**Phase 2b+, K2 recorded:** #194 is closed without deleting its branch, and K2 is a v1.1 entry waiting on the owner's review.
+
 **Phase 2b, TODO.md into v1.1 (owner ruling 3: "First move its deferred findings into the one canonical list (the v1.1 section of WORK_ORDER), fix the README and FINDINGS references to point there, then archive TODO.md"):**
 - Every open deferred finding in `TODO.md` is now in v1.1, condensed, under "Carried from TODO.md". Each names its heading in the archived full text (`docs/archive/v4/TODO_v4.md`).
 - Statuses are as recorded, except where a later item closed one, now marked: D5a for the response preview, A36 for DP-6, A13 for DP-7, and the signing batches for the owed contracts. The three substring matches are confirmed still in the code.
@@ -2801,6 +2803,15 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05 (**fixed by the E05 relabel**); the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg) (**fixed by the pacing match**).
 - **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked. Since A34 it is offered the IM entry only.
 - **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21). **Fixed by A35** (owner, 2026-10-22). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
+
+**K2, the kit packet: waiting on the owner's review (owner, 2026-11-18: "close it without deleting its branch, and record K2 as a v1.1 item waiting on my review").**
+- **The ask (owner, 2026-10-28):** one page per bank drug with a signed dose, listing the strengths the kit file or SMOG shows, with a SIGN line per strength and a "two strengths stocked" option; Word and PDF; nothing signed.
+- **The work:** PR #194, now closed unmerged. Its branch `k2-kit-packet` is kept (one commit, `07cfece`):
+  - `tools/gen_kit_packet.py`;
+  - `docs/authoring/KIT_PACKET_2026-10-28.docx`, `.pdf` and `KIT_PACKET_SMOG_STRENGTHS_2026-10-28.json`;
+  - `server/tests/test_k2_kit_packet.py`.
+  The packet is a cover plus 25 pages. SMOG CY24 states a vial strength for four drugs: epinephrine 1 and 0.1 mg/mL, calcium chloride and gluconate 10 %, dextrose 50 and 25 %.
+- **Before it can merge:** the branch is 18 commits behind main (2026-11-18), so it needs a rebase, and the packet should be regenerated against today's bank, kit file and signing state (K1 and batch 4 have landed since). Signing stays the owner's act, with `set_concentration.py --sign` or `--single`.
 
 **Carried from `TODO.md` (owner, 2026-11-18: one canonical list).**
 
