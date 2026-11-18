@@ -1334,6 +1334,11 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 
 **Owner, rules for both phases:** "No change in behaviour. Never loosen a gate. Never delete or edit signed contracts, signed cards, kit declarations, test expectations, replay data, or protocol_index.json. Signing rulings, incident write-ups and safety findings are the audit trail: archive at most, never delete. Do not rewrite git history. No force-push to main. Do not touch the live checkout, the running service, .env, or anything under ~/pocket-web. Keep LICENSE, NOTICE and the research-prototype notice." After each PR: a link check across README, SAFETY.md, REFERENCE, WORK_ORDER and the site, and the full suite.
 
+**Phase 2f, private addresses (owner ruling 6: "replace with placeholders everywhere"):**
+- **Docs:** the device's LAN and Tailscale addresses are now `<lan-ip>` and `<tailnet-ip>` (the work order, and the archived P1 record).
+- **Tests:** the P1 harness's insecure origin, and the URL its test expects the note to quote, use `192.0.2.10` (TEST-NET-1, reserved for documentation): still a plain-http, non-local address, so the behaviour tested is the same.
+- **Not changed:** `10.255.255.1` (a non-routable timeout target in `TESTING_LOCAL.md`) and `10.0.0.9` (a made-up log IP in `test_security_patch.py`). Neither is the device's.
+
 **Phase 2d, stale labels (approved list, and owner ruling 5: "SAFETY.md notice: yes, use the shared wording. Also correct its stale counts."):**
 - **`SAFETY.md`:**
   - the notice is the shared wording;
@@ -1562,7 +1567,7 @@ Detail: `docs/archive/items/K3_PED_KETAMINE_DILUTION_2026-10-28.md`.
 
 **Owner:** "Live, two portal findings, one PR: 1. Hold-to-talk does nothing from the owner's Mac. Make every failure visible: a recording indicator while held, the transcript appearing word by word, and an on-screen message for each failure case (microphone permission denied, insecure origin so no microphone, no audio captured, /transcribe error with status). Tell me which case it was from the browser console if you can reproduce it; if the portal is reached over http by IP, say so and document that voice-in needs https or localhost. 2. Remove the Mode brief/detailed control from the portal; it does nothing. Config and tests. PR, do not merge."
 
-**Found:** Chromium against live over `http://192.168.1.126:8000`: not a secure context, `navigator.mediaDevices` undefined; the button never turned red and the only sign was an 11 px grey line. Over localhost and the https tunnel it records. The live access log is not readable from this account, so which address the Mac used is not known. A second silent case: letting go before the microphone opened (the first press, while the browser asks). `voice_mode` was carried to `_run_pipeline` and never read.
+**Found:** Chromium against live over `http://<lan-ip>:8000`: not a secure context, `navigator.mediaDevices` undefined; the button never turned red and the only sign was an 11 px grey line. Over localhost and the https tunnel it records. The live access log is not readable from this account, so which address the Mac used is not known. A second silent case: letting go before the microphone opened (the first press, while the browser asks). `voice_mode` was carried to `_run_pipeline` and never read.
 
 **Done (failing tests first):**
 - Each failure: a red message under the box and one console line `[talk] <case>`; a recording note with seconds and input level while held; the transcript a word at a time (60 ms), the box read-only and SEND waiting until it is in; a suspended AudioContext resumed (Safari).
