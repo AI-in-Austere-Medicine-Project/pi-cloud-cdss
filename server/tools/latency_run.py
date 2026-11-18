@@ -1,4 +1,4 @@
-"""V1 latency baseline (docs/VOICE_LATENCY_BASELINE_2026-10-25.md): post every item to the :8012 worktree server (offline,
+"""V1 latency baseline (docs/archive/items/VOICE_LATENCY_BASELINE_2026-10-25.md): post every item to the :8012 worktree server (offline,
 qwen2.5:3b) and save each response's query_id, so the session log's timings
 can be joined. Usage: latency_run.py <out.json>  (a server on :8012, CDSS_LLM_PROVIDER=local)
 CDSS_LATENCY_BASE (default http://127.0.0.1:8012) and CDSS_ACCESS_TOKEN point it

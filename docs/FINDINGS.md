@@ -102,7 +102,7 @@ the small amount an identifier gives away.
 
 | ID | State | Where it lives |
 |---|---|---|
-| **AE-2** | **open** | Private audit. Remediation appears in `TODO.md` as the hardening it is, without the identifier. |
+| **AE-2** | **open** | Private audit. Remediation appears in the v1.1 section of `WORK_ORDER.md` (API hardening) as the hardening it is, without the identifier. |
 
 No other open security finding is currently tracked here. Adding one means
 adding a row to that table and nothing else — no summary, no severity note
@@ -132,8 +132,8 @@ report and uncitable outside it. They are numbered here.
 | **DP-3** | `build_fixed_prep_response` served push-dose epinephrine at 5-20 mcg against a signed 10-20 mcg, and an infusion rate absent from the bank, from the **earliest** pre-gate — ahead of the weight and route gates, so it won over everything downstream. *(reported as A3)* | fixed, verified |
 | **DP-4** | `build_rsi_response` assembled the RSI bundle from the retired calculators and asserted a fixed source line. *(reported as A4)* | fixed, verified |
 | **DP-5** | `build_allowed_doses`: `if has_loraz or is_seizure` carried the supersede check on the first half only, so a seizure query appended the legacy calculator beside the signed contract entry — two benzodiazepines for one seizure. *(reported as B1)* | fixed, verified |
-| **DP-6** | `detect_requested_medication_overdose` computes its refusal ceilings from hardcoded multipliers and never reads `max_single_dose`, so a refusal can quote a ceiling the bank no longer agrees with. | open — `TODO.md` |
-| **DP-7** | **CLOSED by A13 (#110): safety_rules.json and its generator are removed.** `safety_rules.json` `dose_limits` still mirrored the retired per-kilogram numbers. Nothing serves them, which is why they will rot unnoticed; the file is generated, so the generator is the fix. | open — `TODO.md` |
+| **DP-6** | `detect_requested_medication_overdose` computes its refusal ceilings from hardcoded multipliers and never reads `max_single_dose`, so a refusal can quote a ceiling the bank no longer agrees with. | fixed — A36 (5.1.0): each ceiling is the highest signed single dose |
+| **DP-7** | **CLOSED by A13 (#110): safety_rules.json and its generator are removed.** `safety_rules.json` `dose_limits` still mirrored the retired per-kilogram numbers. Nothing serves them, which is why they will rot unnoticed; the file is generated, so the generator is the fix. | fixed — A13 (#110) |
 
 **The structural guard protects provenance, not numeric coincidence.** Two doses
 with the same number are indistinguishable in rendered text, so a regression that

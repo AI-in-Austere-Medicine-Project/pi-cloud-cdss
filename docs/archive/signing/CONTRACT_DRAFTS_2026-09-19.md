@@ -2,7 +2,7 @@
 
 This is follow-up (b) to #70. These are the signed contracts the free-text dose check asks for. **Nothing here is signed.** Every entry is `signoff: false`, `reviewed_by: PENDING_CLINICAL_SIGNOFF`, and invisible to the serving path. The bank still serves 47 entries, as before. You sign.
 
-This page is a reading guide. The canonical text is in `server/drug_contracts.json`: each entry carries its verbatim quotes and page references in `extraction_notes`, and the full entry is rendered in [`DRUG_CONTRACT_WORKSHEET.md`](DRUG_CONTRACT_WORKSHEET.md), which is regenerated from the file.
+This page is a reading guide. The canonical text is in `server/drug_contracts.json`: each entry carries its verbatim quotes and page references in `extraction_notes`, and the full entry is rendered in [`DRUG_CONTRACT_WORKSHEET.md`](../../authoring/DRUG_CONTRACT_WORKSHEET.md), which is regenerated from the file.
 
 ## How the citations were checked
 - **Source documents:** every page is from the local corpus PDFs in `server/data/jts_protocols/`: SMOG CY24 and the JTS CPGs named below.
@@ -95,7 +95,7 @@ A re-check of every quote against its PDF page found five citation errors and si
 - **Tiering.** Every provenance and conflict note is in `extraction_notes`, so the worksheet shows it and a medic does not. Every caution on an entry is serve-tier, except the standard "states no maximum" sentences. Check the serve budget on each entry you sign: `test_the_serve_tier_stays_within_budget` runs on servable entries only.
 
 ## How to sign
-The full procedure is in [`SIGNING.md`](SIGNING.md). In short:
+The full procedure is in [`SIGNING.md`](../../authoring/SIGNING.md). In short:
 
 Conflict entries (#4-#6) need an `adjudication` note written into the entry first. The fence refuses to serve a `SOURCE_CONFLICT` entry without one. Then:
 

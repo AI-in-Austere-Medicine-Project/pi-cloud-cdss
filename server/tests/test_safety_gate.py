@@ -190,7 +190,7 @@ def test_unrelated_co_occurring_issue_defeats_the_override():
 def test_pediatric_override_sc5_gap_is_pinned():
     """The pediatric-weight override still fires with unrelated issues present.
 
-    This is the SC-5 item on TODO.md, deliberately NOT fixed in v4.1. Pinned so
+    This is the SC-5 item in docs/WORK_ORDER.md v1.1, deliberately NOT fixed in v4.1. Pinned so
     the behaviour is a recorded decision rather than an accident, and so the day
     SC-5 lands this test fails and has to be updated on purpose.
 

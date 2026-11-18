@@ -1,6 +1,6 @@
 # Signing batch 1, analgesia: draft entries for review (2026-10-14)
 
-The owner asked for (2026-10-14): ketamine (IV/IM/IN analgesia, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen and ketorolac. For each entry: a verbatim quote, the CPG ID, the printed page, indication, population and route; anything that can't be quoted verbatim stays marked incomplete. **Nothing here is signed.** Every entry below has `signoff: false` and is invisible to the serving path. Signing is the owner's act, by [`SIGNING.md`](SIGNING.md).
+The owner asked for (2026-10-14): ketamine (IV/IM/IN analgesia, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen and ketorolac. For each entry: a verbatim quote, the CPG ID, the printed page, indication, population and route; anything that can't be quoted verbatim stays marked incomplete. **Nothing here is signed.** Every entry below has `signoff: false` and is invisible to the serving path. Signing is the owner's act, by [`SIGNING.md`](../../authoring/SIGNING.md).
 
 Every quote was checked against its cited page: `server/tests/test_contracts_analgesia_batch1b.py` reads the PDFs (with `JTS_PDF_DIR` and `NASEMSO_PDF` set), SMOG one column at a time. A quote leaves text out only where it shows `…`; `[sic]` marks a printed typo kept on purpose. Every page is the printed page; in these four documents the printed page and the PDF page are the same.
 

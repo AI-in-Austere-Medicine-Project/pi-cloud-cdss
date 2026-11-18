@@ -5,7 +5,7 @@ Under CDSS_LLM_PROVIDER=local the validator was whatever CDSS_LLM_MODEL named,
 so a bench of a distilled generator also swapped the validator. edgecdss-v1 and
 edgecdss-v3 answered the validator prompt with a field card (20 and 19 of 23
 calls on main b8902c1), every one held as unreadable since A19, and the bench
-measured nothing about the generator (docs/DISTILL_BENCH_edgecdss-v3.md).
+measured nothing about the generator (docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v3.md).
 
 Owner, 2026-10-10: CDSS_VALIDATOR_MODEL names the offline validator, default
 qwen2.5:3b; the generator and the validator are configured independently. With

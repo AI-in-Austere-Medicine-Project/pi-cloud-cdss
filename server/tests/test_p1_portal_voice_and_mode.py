@@ -72,7 +72,7 @@ def test_the_transcript_appears_word_by_word(scenario, start):
 def test_http_by_ip_says_voice_needs_https_or_localhost():
     out = _ptt("insecure")
     assert out["calls"] == [] and out["noteErr"]
-    assert "https or localhost" in out["note"] and "http://192.168.1.126:8000" in out["note"]
+    assert "https or localhost" in out["note"] and "http://192.0.2.10:8000" in out["note"]
     assert _case(out) == "insecure-origin"
     assert out["disabled"] is False and not out["heldRec"] and "RECORDING" not in out["button"]
 

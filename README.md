@@ -10,7 +10,7 @@ Part of the [AI in Austere Medicine Project (AI-AMP)](https://github.com/AI-in-A
 
 **Current release: 5.1.0** — what changed: [What's new in 5.1](#whats-new-in-51) and the [work order](docs/WORK_ORDER.md) · 5.0.0: [changelog entry](CHANGELOG.md#500--2026-10-12) · [`SAFETY.md`](SAFETY.md): what the system guarantees and what it does not · [work order](docs/WORK_ORDER.md) and [one-line reference](docs/REFERENCE.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
-Previous release: 4.3.0 — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/TECH_NOTES_v4.3.md)
+Previous release: 4.3.0 — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/archive/v4/TECH_NOTES_v4.3.md)
 
 ---
 
@@ -21,6 +21,25 @@ EdgeCDSS is a self-hosted clinical decision support system for austere, remote, 
 The entire system — knowledge base, retrieval engine, safety gates, web interface, feedback system, and audit logs — runs on a single **NVIDIA Jetson Orin Nano** at the point of care. Public access flows through an outbound-only Cloudflare Tunnel. The deployment is network agnostic: satellite, broadband, Wi-Fi, Ethernet, or LTE/5G.
 
 **Try it:** the live portal is at **https://cdss.arcanekg.com** (demo access token is pre-filled in the interface).
+
+### Research and commitments
+
+The design philosophy behind EdgeCDSS reflects current research supporting retrieval-grounded generation ([Lewis et al., 2020](https://arxiv.org/abs/2005.11401)) and human-supervised clinical AI ([Sutton et al., 2020](https://www.nature.com/articles/s41746-020-0221-9)) rather than autonomous large language model (LLM)-based decision making. Recent evaluations of LLM clinical knowledge ([Singhal et al., 2023](https://www.nature.com/articles/s41586-023-06291-2)) and of LLM inference on low-power edge hardware ([arXiv, 2025](https://arxiv.org/html/2511.07425v1)) inform the boundaries this architecture is built around, with risk management guided by the [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework).
+
+Rather than treating an LLM as the source of clinical reasoning, EdgeCDSS combines deterministic clinical logic, retrieval from authoritative clinical guidelines, structured validation, and constrained language generation within a transparent and auditable architecture.
+
+The AI in Austere Medicine Project is committed to:
+
+- Developing in the open under the MIT License.
+- Publishing significant architectural changes.
+- Publicly documenting data collection practices.
+- Collecting only the minimum data necessary for research and operation.
+- Discouraging the submission of PHI, PII, or real patient information.
+- Supporting responsible vulnerability disclosure.
+- Encouraging independent review and community participation.
+- Publishing limitations and known issues alongside project updates whenever practical.
+- Maintaining human oversight in all clinical decision-making.
+- Improving the project through testing, evidence, and community feedback.
 
 ## What's new in 5.1
 
@@ -37,18 +56,7 @@ The entire system — knowledge base, retrieval engine, safety gates, web interf
   - The tension-pneumothorax card's TXA line, which its cited quote did not state, is removed and the card re-signed (A37).
 - **For the owner's ruling:** the vent card settings (signed by a role, not a name) and the non-drug numbers written in code. Both are listed in [`SAFETY.md`](SAFETY.md).
 
-## What's new in 5.0
-
-5.0 is the safety release: 110 changes since 4.3, nearly all to the layer between the model and the medic. The full list is in the [changelog](CHANGELOG.md#500--2026-10-12); what it adds up to is in [`SAFETY.md`](SAFETY.md).
-
-- **Only signed content serves a dose.** 69 of 109 contract entries are signed by the program owner, each with verbatim source quotes. Cautions never state another drug's dose.
-- **Deterministic cards** for haemorrhagic shock and junctional bleeding, severe TBI, tension pneumothorax (from a signed needle-decompression procedure, JTS ID74), active seizure (any phrasing, common misspellings) and hypothermic arrest.
-- **Every dose the model writes is checked** against the signed value: by value, unit, indication and route, wherever it appears in the answer.
-- **Harmful advice with no dose in it holds:** oral intake with depressed consciousness, a contraindicated procedure, an answer to an actively bleeding patient with no step that controls the bleeding.
-- **Offline operation** on the device's own model (`qwen2.5:3b`), with its own validator setting.
-- **Distilled models are research only.** Three were trained and benched; none is adopted.
-
-## What's new in 4.3
+## Authored content
 
 Until 4.3 a response had two possible sources: a JTS guideline passage, or a general
 medical reference fallback labelled as such — both of them retrieval over text somebody
@@ -137,7 +145,7 @@ every response, the multi-provider model grid, an emergency security patch, and 
 cover both releases.
 
 Full detail in [`CHANGELOG.md`](CHANGELOG.md); what each release knowingly deferred, and the
-residual risk of each deferral, in [`TODO.md`](TODO.md).
+residual risk of each deferral, in the v1.1 section of the [work order](docs/WORK_ORDER.md#v11-owner-2026-10-11-everything-on-the-found-list-not-in-the-v10-scope).
 
 ## Architecture
 
@@ -176,29 +184,38 @@ AI is restricted to language generation, retrieval support, and semantic validat
 
 ```
 pi-cloud-cdss/
-├── START-HERE/
-│   └── FIRST_TIME_GUIDE.md      ← New here? Start with this
-├── server/                      The entire system (runs on the Jetson)
-│   ├── main.py                  FastAPI app: /query /speak /feedback + web portal
-│   ├── openai_client.py         Deterministic-first pipeline, gates, validator
-│   ├── embeddings.py            ChromaDB client (local embeddings)
-│   ├── clinical_router.py       Query → protocol routing
-│   ├── static/index.html        Web portal (served at the API root)
-│   ├── tools/                   CLIs, not imported by the server:
-│   │                            set_contract.py / set_concentration.py (signing),
-│   │                            gen_*.py (authoring worksheets), ingest_jts.py
-│   │                            (PDF → chunks), build_protocol_index.py
-│   ├── tests/                   Offline regression suite (1,150 tests, ~11s)
-│   ├── run_tests.sh             24-case live-endpoint clinical suite
-│   └── run_unit_tests.sh        Runs the offline suite
-├── client/
-│   ├── cdss_client.py           Voice client for edge devices
-│   └── requirements.txt         Voice client dependencies
-├── web/                         Project website (GitHub Pages)
-├── docs/                        Current documentation + archive of prior versions
-├── publications/                Articles and papers written by the project
-├── jetson_cdss_setup_v2.sh      One-script Jetson deployment
-└── requirements-server.txt      Server dependencies
+├── START-HERE/FIRST_TIME_GUIDE.md   ← New here? Start with this
+├── server/                          The entire system (runs on the Jetson)
+│   ├── main.py                      FastAPI app: /query /speak /transcribe /feedback + portal
+│   ├── openai_client.py             The pipeline: pre-gates, cards, dose build, checks, validator
+│   ├── providers.py, providers.json Model registry and dispatch
+│   ├── drug_contracts.py, .json     The signed dose bank (PFC and EMS sets)
+│   ├── drug_concentrations.py       Vial strengths: the kit's declared concentrations
+│   ├── procedure_contracts.py, .json Signed contraindicated procedures
+│   ├── vent_module.py, vent_*.json  Ventilator cards
+│   ├── *_card.json                  Other signed cards (junctional, needle decompression)
+│   ├── vitals.py, vitals_rules.json Vital signs and their cautions
+│   ├── brief.py, spoken.py          The brief, and what the listen button says
+│   ├── stt.py, tts.py               Speech in (whisper.cpp) and out (Kokoro), on the device
+│   ├── clinical_router.py           Query → protocol routing (protocol_index.json)
+│   ├── embeddings.py                ChromaDB client (local embeddings)
+│   ├── general_reference.py         The labelled general-reference fallback
+│   ├── pocket_web.py, pocket_teach.py  Pocket on the web, and its teach page
+│   ├── static/                      The portal, /pocket and /pocket/teach pages
+│   ├── tools/                       CLIs, not imported by the server: signing
+│   │                                (set_contract.py, set_concentration.py), worksheets,
+│   │                                ingest, replay_compare.py, latency, Pocket install
+│   ├── tests/                       Offline regression suite (4,100+ tests)
+│   ├── run_tests.sh                 29-case live-endpoint clinical suite
+│   └── run_unit_tests.sh            Runs the offline suite
+├── client/                          Thin text client (being removed: the owner retired it, 2026-11-18)
+├── tools/                           Distillation (D5/D6), bench guards, the signing-packet generator
+├── scripts/                         Backup of deployment state; JTS guideline fetch
+├── web/                             Project website (GitHub Pages)
+├── docs/                            Current documentation (index: docs/README.md) and docs/archive/
+├── publications/                    Articles and papers written by the project
+├── jetson_cdss_setup_v2.sh          One-script Jetson setup
+└── requirements-server.txt, requirements-pocket.txt
 ```
 
 ## Quick start
@@ -246,7 +263,7 @@ In local mode the portal is local-only: the picker offers exactly the on-device 
 **Test it:**
 
 ```bash
-cd server && ./run_unit_tests.sh   # ~3,400 offline tests, 3-5 minutes — no network, no API key, no ChromaDB
+cd server && ./run_unit_tests.sh   # 4,100+ offline tests, about 5 minutes — no network, no API key, no ChromaDB
 bash server/run_tests.sh           # 29 clinical cases against a running endpoint
 ```
 
@@ -423,7 +440,7 @@ measured.
 
 ## Validation status
 
-- Offline regression suite: **~3,400 tests** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it, committed failing before the fix
+- Offline regression suite: **4,100+ tests** (`server/run_unit_tests.sh`) — no network, no API key, no ChromaDB. Every fix since v4.1 is pinned by a test built from the log line that exposed it, committed failing before the fix
 - Automated clinical suite: **29 cases** (`server/run_tests.sh`) against a running endpoint — pediatric weight gates, P1 safety blocks (sepsis-DCR, WPW, pediatric overdose, TXA-in-sepsis), RSI protocols, grounded scenarios
 - Every safety change is replayed against the stored answers (served, held, live logs, the full pipeline): 0 newly released is required, and every movement is read and signed off by the owner
 - A signed 30-scenario evaluation set ([`docs/EVALUATION_SET_30.md`](docs/EVALUATION_SET_30.md)); benchmark counts are advisory, and a model ships only when every served answer has been read
@@ -437,15 +454,11 @@ measured.
 |---|---|
 | [`SAFETY.md`](SAFETY.md) | What the system guarantees, what it does not, and how a change is made safely |
 | [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 5.0 entry |
-| [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md) · [`docs/REFERENCE.md`](docs/REFERENCE.md) | The work order of record, and the one-line meaning and status of every item |
-| [`FINDINGS.md`](FINDINGS.md) | The finding-identifier legend — what `F-`, `S-`, `AE-` and `DP-` mean, where each canonical list lives, and what states a finding can be in |
-| [`TODO.md`](TODO.md) | Roadmap, and every audit finding a release knowingly deferred with its residual risk |
-| [`docs/TECH_NOTES_v4.3.md`](docs/TECH_NOTES_v4.3.md) | **Current** technical notes — architecture, changes in 4.3, testing, known limitations |
-| [`docs/TECH_NOTES_v4.1.md`](docs/TECH_NOTES_v4.1.md) | 4.1 technical notes (superseded; kept as the record of what 4.1 claimed) |
-| [`docs/TECH_NOTES_v4.0.md`](docs/TECH_NOTES_v4.0.md) | 4.0 technical notes (superseded; kept as the record of what 4.0 claimed) |
-| [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | Research positioning, design principles, references |
-| [`docs/authoring/`](docs/authoring/) | Generated authoring worksheets for the clinician signing dose contracts and vent cards — re-run `server/tools/gen_*.py`, never hand-edit |
-| [`docs/EdgeCDSS_v4_Technology.pdf`](docs/EdgeCDSS_v4_Technology.pdf) | Technology explainer |
+| [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md) · [`docs/REFERENCE.md`](docs/REFERENCE.md) | The work order of record, and the one-line meaning and status of every item. Its v1.1 section is the one list of open and deferred findings, with their residual risk |
+| [`docs/FINDINGS.md`](docs/FINDINGS.md) | The finding-identifier legend — what `F-`, `S-`, `AE-` and `DP-` mean, where each canonical list lives, and what states a finding can be in |
+| [`docs/README.md`](docs/README.md) | Index of the current documentation |
+| [`docs/authoring/`](docs/authoring/) | Signing: the process (`SIGNING.md`), kit declarations, and the generated worksheets for the clinician (re-run `server/tools/gen_*.py`, never hand-edit) |
+| [`docs/archive/`](docs/archive/README.md) | History: releases 1.0–4.3 (technical notes, the v4 explainer), past benchmarks, finished item records, signing drafts |
 | [`publications/`](publications/) | Articles and papers written by the project |
 | [Ethics & Governance](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/ethics-governance.html) | Data privacy, responsible AI, governance |
 

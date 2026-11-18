@@ -1,6 +1,6 @@
 # Review packet: the 20 contract drafts, 2026-09-24
 
-This is the review packet for the 20 dose entries drafted on 2026-09-19 (see [`CONTRACT_DRAFTS_2026-09-19.md`](CONTRACT_DRAFTS_2026-09-19.md)). **None is signed.** How to review and sign one is in [`SIGNING.md`](SIGNING.md).
+This is the review packet for the 20 dose entries drafted on 2026-09-19 (see [`CONTRACT_DRAFTS_2026-09-19.md`](CONTRACT_DRAFTS_2026-09-19.md)). **None is signed.** How to review and sign one is in [`SIGNING.md`](../../authoring/SIGNING.md).
 
 For each entry the packet gives:
 - **the entry as drafted**, from `server/drug_contracts.json`;
@@ -9,7 +9,7 @@ For each entry the packet gives:
 
 **How it was checked**
 - Every quote was re-extracted from its PDF page on 2026-09-24. It was not copied from the entry's notes.
-- Every page number is the number printed on the page, and each was checked. Where the PDF's own page differs, it follows in parentheses, per the [citation convention](SIGNING.md#citation-convention).
+- Every page number is the number printed on the page, and each was checked. Where the PDF's own page differs, it follows in parentheses, per the [citation convention](../../authoring/SIGNING.md#citation-convention).
 - SMOG drug pages print ADULT and PEDIATRIC side by side. Those are quoted one column at a time.
 - No entry sets an age limit, so the age band is the population alone.
 - The conflicts come from the entries' notes plus a search of all 89 corpus PDFs and NASEMSO v3.0 for other doses of each drug. The Military Working Dog (canine) protocols are excluded.

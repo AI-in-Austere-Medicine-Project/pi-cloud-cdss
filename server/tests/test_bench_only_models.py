@@ -3,7 +3,7 @@
 Owner, 2026-10-27: "Take edgecdss-v3 off the live picker (bench only; config,
 with a test) so qwen + Kokoro + whisper share the GPU." Live at 17:31 UTC an
 edgecdss-v3 answer with qwen2.5:3b loaded as its validator left no GPU memory
-for Kokoro (docs/VOICE_WARMUP_GPU_2026-10-27.md, memory budget).
+for Kokoro (docs/archive/items/VOICE_WARMUP_GPU_2026-10-27.md, memory budget).
 
 providers.json marks the entry "bench_only": it is not on the menu, and a
 request that names it (a portal menu cached before this change) is answered

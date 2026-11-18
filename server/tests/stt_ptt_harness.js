@@ -81,7 +81,7 @@ async function main() {
     console: { log() {}, error() {}, warn(...a) { warned.push(a.map(String).join(' ')); } },
     isSecureContext: SCENARIO !== 'insecure',
     location: SCENARIO === 'insecure'
-      ? { protocol: 'http:', host: '192.168.1.126:8000', hostname: '192.168.1.126', origin: 'http://192.168.1.126:8000' }
+      ? { protocol: 'http:', host: '192.0.2.10:8000', hostname: '192.0.2.10', origin: 'http://192.0.2.10:8000' }
       : { protocol: 'https:', host: 'cdss.example', hostname: 'cdss.example', origin: 'https://cdss.example' },
     document: {
       getElementById: id => (byId[id] = byId[id] || el(id)),

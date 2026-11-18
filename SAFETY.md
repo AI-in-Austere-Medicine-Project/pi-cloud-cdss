@@ -2,7 +2,7 @@
 
 EdgeCDSS 5.1.0. This is what the system guarantees, what it does not, and how a change to it is made. The order of record is [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md); each item's one-line meaning and status is in [`docs/REFERENCE.md`](docs/REFERENCE.md).
 
-> ⚠️ **Research prototype.** Not validated for clinical use, not for patient care decisions. Simulated and synthetic scenarios only. Do not enter PHI, patient names, or identifying information into any project system.
+> **Research prototype.** Not validated for clinical use. Not for patient care. Simulated scenarios only. Enter no patient information (PHI).
 
 ## How an answer is built
 
@@ -14,7 +14,9 @@ These are enforced in code and pinned by tests. A change that weakens one is not
 
 **Doses**
 - **A dose is served only from a signed contract entry.**
-  - 108 of 118 entries are signed by the program owner, across signing batches 1–3 (2026-10-14 to 2026-10-21; E05 re-signed 2026-10-22).
+  - A server serves one drug set (`CDSS_DRUG_SET`).
+    - The PFC set (the default, the JTS and SMOG bank): 108 of 118 entries are signed by the program owner, across signing batches 1–3 (2026-10-14 to 2026-10-21; E05 re-signed 2026-10-22).
+    - The EMS set: 22 entries, all signed in batch 4 under the owner's rulings (2026-11-12; [`docs/authoring/SIGNING_BATCH4_RULINGS_2026-11-12.md`](docs/authoring/SIGNING_BATCH4_RULINGS_2026-11-12.md)).
   - Each has verbatim source quotes and printed page numbers ([`docs/authoring/SIGNING.md`](docs/authoring/SIGNING.md)).
   - 36 retired entries are kept on record and never serve; 26 of them were retired by the owner on 2026-10-21 because no JTS or SMOG page states their number.
   - An unsigned entry serves nothing, and a drug with no signed entry for the question holds. An uncited value is never served.
@@ -61,13 +63,13 @@ These are enforced in code and pinned by tests. A change that weakens one is not
 
 Read these before relying on any served answer.
 
-- **Advice a check does not read can be wrong.** The checks read doses, units, rates, a few procedures and the bleeding-control step. They do not read the order of steps, a missing step in most presentations, or a wrong procedure. In the 2026-10-10 bench, model-written answers that passed every check and were served included a low-and-loose tourniquet for an arterial bleed, no rewarming in a hypothermic arrest and no decompression for a tension pneumothorax (all called SAFE by the validator), and CPR for a seizing patient (served with the review banner) ([`docs/DISTILL_BENCH_edgecdss-v3-d7.md`](docs/DISTILL_BENCH_edgecdss-v3-d7.md)). The cards added since close those four presentations, not the class.
+- **Advice a check does not read can be wrong.** The checks read doses, units, rates, a few procedures and the bleeding-control step. They do not read the order of steps, a missing step in most presentations, or a wrong procedure. In the 2026-10-10 bench, model-written answers that passed every check and were served included a low-and-loose tourniquet for an arterial bleed, no rewarming in a hypothermic arrest and no decompression for a tension pneumothorax (all called SAFE by the validator), and CPR for a seizing patient (served with the review banner) ([`docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v3-d7.md`](docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v3-d7.md)). The cards added since close those four presentations, not the class.
 - **The offline validator is a 3B model and misses procedural errors.** It called several of those answers SAFE. Online, the validator is `gpt-4o-mini`.
 - **"Needs human review" serves.** An answer the validator flags for review is served with a banner, not held.
 - **A card fires only on the phrasings it recognises.** Misspellings beyond the listed ones, and presentations described without the words a trigger reads, reach the model. An active arterial bleed without shock physiology gets no card (v1.1).
 - **Signed content is as good as its source and its signature.** Signing records who said a number is safe and on what page; it is not an independent clinical validation.
 - **Some content is unsigned and holds:**
-  - 10 contract entries: ketorolac ×5, excluded; artemether-lumefantrine, ruled SIGN but tablets cannot be signed; and four infusions, deferred or v1.1.
+  - 10 contract entries (PFC set): ketorolac ×5, excluded; artemether-lumefantrine, ruled SIGN but tablets cannot be signed; and four infusions, deferred or v1.1.
   - Two procedure rows, P1 and P2.
 - **The five vent cards are signed by a role, not a name** ("clinician", 2026-08-22). Their settings are printed for the owner's ruling in [`docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md`](docs/authoring/VENT_CARD_SETTINGS_2026-10-22.md).
 - **Some numbers that are not drug doses are in code, not in a signature:** targets, thresholds, times and limits. They are listed below.
@@ -79,7 +81,7 @@ The open items are in the v1.1 section of the work order.
 
 ## Numbers in code that no signature covers
 
-The A35 sweep (2026-10-22) listed every number a deterministic card can print. The drug numbers trace to signed entries. The numbers below are not drug doses; they are written in code, most with a guideline citation beside them, and **no signature covers them**. They are the owner's to rule on ([`docs/authoring/A35_CARD_NUMBERS_2026-10-22.md`](docs/authoring/A35_CARD_NUMBERS_2026-10-22.md), section 3).
+The A35 sweep (2026-10-22) listed every number a deterministic card can print. The drug numbers trace to signed entries. The numbers below are not drug doses; they are written in code, most with a guideline citation beside them, and **no signature covers them**. They are the owner's to rule on ([`docs/archive/signing/A35_CARD_NUMBERS_2026-10-22.md`](docs/archive/signing/A35_CARD_NUMBERS_2026-10-22.md), section 3).
 
 | Where | Number | Cited in code |
 |---|---|---|
