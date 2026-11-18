@@ -110,6 +110,10 @@ def test_the_logged_answer_is_labelled_jts_and_cites_id61(monkeypatch):
     assert len(lines) == 1 and "CPG ID61" in lines[0], lines
     assert "ID61" in r["response"]  # run_tests.sh B1's pass string
     before, after = LOGGED_ANSWER.split("**SOURCE**")[0], r["response"].split("**SOURCE**")[0]
+    # Med sweep PR 3's brief tidy also rewrites this answer's "Draw 50 mcg
+    # fentanyl IV" as the signed line; B1 itself changes only SOURCE.
+    ctx = oc.rebuild_patient_context_from_history(QUERY)
+    before = oc.tidy_dose_lines(before, oc.build_allowed_doses(QUERY, ctx))
     assert after.endswith(before), "only the SOURCE line may change"
 
 

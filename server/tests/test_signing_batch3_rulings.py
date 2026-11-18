@@ -437,7 +437,7 @@ NEW_CLASSES = {
     CEFTRI_TBI_PEDS: "penetrating CNS injury",
     CEFTRI_COVID: "pneumonia",
     "procedural sedation (incl. cardioversion, transcutaneous pacing)": "pacing / cardioversion",  # its own class since the pacing match (2026-10-22)
-    "procedural / conscious sedation": "sedation",
+    "procedural / conscious sedation": "procedural sedation",  # its own class since med sweep PR 3 (owner, 2026-10-30)
     "post-intubation sedation bolus": "sedation",
     "sedation / anxiolysis": "sedation",
 }
@@ -474,7 +474,7 @@ BEFORE = [
     ('opioid-induced respiratory depression', 'opioid overdose'),
     ('organophosphate or carbamate poisoning', 'poisoning'),
     ('post-intubation sedation — repeated bolus (no infusion pump)', 'sedation'),
-    ('procedural sedation', 'sedation'),
+    ('procedural sedation', 'procedural sedation'),  # its own class since med sweep PR 3 (owner, 2026-10-30)
     ('prolonged sedation infusion', 'sedation'),
     ('refractory seizure (benzodiazepine-refractory)', 'seizure'),
     ('sepsis', 'sepsis'),

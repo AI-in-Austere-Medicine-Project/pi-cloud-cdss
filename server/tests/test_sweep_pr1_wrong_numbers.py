@@ -292,7 +292,10 @@ def test_the_2026_10_27_propofol_template_line_stays_held():
     ctx = oc.PatientContext(confirmed_weight_kg=80.0, is_pediatric=False)
     doses = oc.build_allowed_doses(q, ctx)
     issues = oc.run_deterministic_checks(q, text, ctx, doses, current_query=q).issues
-    assert any('propofol for "sedation"' in i for i in issues), issues
+    # Med sweep PR 3: with signed rates built, propofol's sedation infusion
+    # is built and the label check passes "sedation"; the unfilled template
+    # line holds it instead.
+    assert any("unfilled dose template" in i and "propofol" in i for i in issues), issues
 
 
 def test_the_hold_names_the_specific_indication_not_the_generic_one():
