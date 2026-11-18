@@ -1,6 +1,6 @@
 # Signing batch 2, sedation and antibiotics: draft entries for review (2026-10-16)
 
-The owner asked for (2026-10-16): midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin and ceftriaxone. Each entry gives a proposed dose, route, maximum and repeat, with a verbatim quote and the printed page for every figure. Entries are flagged where the sources disagree, or where no JTS/SMOG page states a number. **Nothing here is signed.** Every entry below has `signoff: false` and is invisible to the serving path. Signing is the owner's act, by [`SIGNING.md`](SIGNING.md).
+The owner asked for (2026-10-16): midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin and ceftriaxone. Each entry gives a proposed dose, route, maximum and repeat, with a verbatim quote and the printed page for every figure. Entries are flagged where the sources disagree, or where no JTS/SMOG page states a number. **Nothing here is signed.** Every entry below has `signoff: false` and is invisible to the serving path. Signing is the owner's act, by [`SIGNING.md`](../../authoring/SIGNING.md).
 
 **How the quotes were checked.** `server/tests/test_contracts_batch2_drafts.py` reads each cited PDF page (set `JTS_PDF_DIR`) and checks every quote against it. SMOG is read one column at a time. A quote leaves text out only where it shows `…`. Every page is the printed page. In every document cited here, the printed page and the PDF page are the same; each cited page's footer was checked.
 
@@ -28,7 +28,7 @@ Ruled by Andrew Azelton, signer. Signed by AI-AIM for him with `tools/set_contra
 | 12. ceftriaxone · sepsis · adult · IV | **Signed**: 2 g every 24 h, ID91 p.40 primary, ID83 p.8 noted; the infusion speed in WATCH only. **Relabelled "sepsis"** (was "severe bacterial infection / sepsis") |
 | 13. ceftriaxone · sepsis · peds · IV | **Cannot be signed; hold.** Relabelled "sepsis" with the adult entry |
 
-The 12 candidate indications and the midazolam-seizure and vancomycin discrepancies below are v1.1 items, listed in [`UNSIGNED_CONTRACTS_2026-10-08.md`](../UNSIGNED_CONTRACTS_2026-10-08.md).
+The 12 candidate indications and the midazolam-seizure and vancomycin discrepancies below are v1.1 items, listed in [`UNSIGNED_CONTRACTS_2026-10-08.md`](../../UNSIGNED_CONTRACTS_2026-10-08.md).
 
 **Changed in signing.**
 - **Entry 7's serve tier** was 7 lines and 847 characters, over the 5-line, 500-character budget (`test_the_serve_tier_stays_within_budget`). It was tightened to 5 lines and 499 characters without dropping an instruction: the adjust and onset lines merged, the visual-only remark went with the flag, and SMOG's 1 mg/mL mix note moved to the entry's notes (the start line names ID61's 3 mg/mL mix). It was re-signed after the edit.

@@ -132,6 +132,7 @@ Owner asks outside the lettered items:
 | Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | done, #210 |
 | Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | done, #211 |
 | Teach page: contributor audio not kept (owner, 2026-11-17): a contributor's audio is dropped once decoded, keeping only the text heard, the word and the speaker label; the owner's recordings are kept; limits in takes; the new consent line | **in review** (see the section below) |
+| Repository deep clean (owner, 2026-11-18): Phase 1 audit (report outside the repo); Phase 2 in small PRs, one theme each: docs archive and layout, TODO's deferred findings into v1.1, K2 recorded, generated and duplicate files, stale labels and the safety notice, private addresses, dead code and the thin client, cloud providers removed (last) | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
 **Merge order (owner, 2026-09-25):** #87 now; #85 and #86 after the owner reads them. Done: all three merged 2026-09-26.
@@ -521,7 +522,7 @@ Newly held, each read:
 
 **Replay** (main bc2e6c1 against A22): byte-identical in all five corpora (served 1,268, held 125, pipeline 788, D5b teacher 274, live logs 1,654). The change is in how the local model is called, which no replay exercises; the probe is the evidence.
 
-**Notes added** to `docs/LOCAL_LLM_BENCHMARK.md` (D1 and earlier local arms), `docs/MULTI_MODEL_BENCHMARK_2026-09-25.md` (run 3) and `docs/DISTILL_BENCH_edgecdss-v1.md` (v1: trained on full prompts, served cut ones).
+**Notes added** to `docs/LOCAL_LLM_BENCHMARK.md` (D1 and earlier local arms), `docs/MULTI_MODEL_BENCHMARK_2026-09-25.md` (run 3) and `docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v1.md` (v1: trained on full prompts, served cut ones).
 
 **Also affected, not changed here:** cdss-eval's `serve.py` records local token usage by wrapping the OpenAI client, which local calls no longer use; the D2a bench needs it to read the native call's counts (a cdss-eval change). The D6 bench's `bench_remote.sh` calls `/api/generate` with no num_ctx, so it would load the model at the default context (and reload it under the server); it needs the same option before the next D6 bench.
 
@@ -686,7 +687,7 @@ Newly held, each read:
 - `_THORACIC_TRAUMA_RE` reads "pneumo" as well as "pneumothorax". The rule is unchanged: two tension signs, or one with chest trauma; the name alone is a question, not a presentation.
 - The card's lines are in `server/needle_decompression_card.json`, each with verbatim ID74 quotes (p.5, p.8). The builder renders the file; the pre-gate serves it only when signed. **Unsigned, a tension presentation holds** with a line that names no unsigned content (the junctional precedent, owner #139). This pull request merges only signed.
 - The drafted card is the old card **word for word**. ID74 26 Dec 2018 is the current edition (jts.health.mil checked 2026-10-11; the PDF is byte-identical to the corpus copy). The WATCH reassessment line ("Breathing, SpO2, BP and breath sounds after decompression; recurrence.") is kept on the owner's ruling (2026-10-11) and cited to SMOG CY24 p.22 ("Goal: SPO2>90%; Improved RR; Equal rise/fall"; "Needle Thoracostomy may need to be repeated"), ID74 p.5 (hypotension and decreased perfusion; breath sounds) and ID74 p.8 (repeat); no SpO2 target written.
-- For signing: [`docs/authoring/NEEDLE_DECOMPRESSION_PROCEDURE_2026-10-11.md`](authoring/NEEDLE_DECOMPRESSION_PROCEDURE_2026-10-11.md).
+- For signing: [`docs/archive/signing/NEEDLE_DECOMPRESSION_PROCEDURE_2026-10-11.md`](archive/signing/NEEDLE_DECOMPRESSION_PROCEDURE_2026-10-11.md).
 
 **Tests:** `server/tests/test_a29_needle_decompression.py`, committed failing first (the four "pneumo" phrasings failed; the card tests could not load the procedure). The pipeline now has 23 deterministic pre-gates (docstrings updated). Unsigned, the suite shows the 10 tension-card tests that expect the card, as designed; on a signed rehearsal the full suite passes (2,709 passed, 54 skipped, 3 xfailed).
 
@@ -851,7 +852,7 @@ Eight existing tests pinned IN fentanyl as offered to an IV question. They are u
 - Drug numbers only: doses, rates, volumes, concentrations and recipes. Non-drug numbers are listed, not changed.
 - The overdose ceilings keep their check and drop their number.
 
-**The list:** [`docs/authoring/A35_CARD_NUMBERS_2026-10-22.md`](authoring/A35_CARD_NUMBERS_2026-10-22.md). It covers every number by card, its signed entry or source, and what changed.
+**The list:** [`docs/archive/signing/A35_CARD_NUMBERS_2026-10-22.md`](archive/signing/A35_CARD_NUMBERS_2026-10-22.md). It covers every number by card, its signed entry or source, and what changed.
 
 **What changed:**
 - **Ketamine analgesia card:**
@@ -1215,7 +1216,7 @@ A changed row that neither side can judge is listed as unjudged and never counte
 - **2. GPU, else CPU:** `tts._load_engine` asks for CUDA, then reads back what the session got. A load or synthesis failure ends on the CPU with the reason. `CDSS_KOKORO_DEVICE`; `/status voice_device`.
 - **3. Spoken brief:** `spoken.py`, `spoken_brief` on `/query`, spoken by the portal. A hold is one of three sentences. Doses come from the code-made dose line; drug names from the index. A card adds one WATCH line. A model answer is heard only through the templates.
 
-**Timing** (`docs/VOICE_FIRST_AUDIO_V3_2026-10-26.md`; same 21 texts):
+**Timing** (`docs/archive/items/VOICE_FIRST_AUDIO_V3_2026-10-26.md`; same 21 texts):
 
 | | First audio median / p90 | Audio end median / p90 |
 |---|---|---|
@@ -1328,6 +1329,20 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 - **The word list (136):** every signed drug by its own name where it can be said and by every signed name the bank gives it (50); the eleven medic names; 29 indications (the US spelling where the two sound alike; RSI, TBI and CNS as letters); the five routes as letters and nine as words; the twelve control words; twenty weights and ages. Each word carries what the parser reads in it, typed; a take is "heard as itself" when Pocket's hearing reads the same.
 - **A take** stores the 16 kHz WAV and a JSON record: "open" (Vosk with no grammar, and up to five alternatives: the spellings Vosk actually produces) and "pocket" (Pocket's two-decoder hearing with the pinned grammar, as `/pocket` hears). It holds the decoder lock for one clip, never the testers' talker lease, and writes nothing to the Pocket logs.
 - **Pinned grammar:** `f8f7aa5` does not yet have yes, correct, affirmative, no, negative, stop or wrong (the confirm step is Pocket's open voice branch), so for those words only "open" counts; the page says so.
+
+### Repository deep clean (owner, 2026-11-18)
+
+**Owner, rules for both phases:** "No change in behaviour. Never loosen a gate. Never delete or edit signed contracts, signed cards, kit declarations, test expectations, replay data, or protocol_index.json. Signing rulings, incident write-ups and safety findings are the audit trail: archive at most, never delete. Do not rewrite git history. No force-push to main. Do not touch the live checkout, the running service, .env, or anything under ~/pocket-web. Keep LICENSE, NOTICE and the research-prototype notice." After each PR: a link check across README, SAFETY.md, REFERENCE, WORK_ORDER and the site, and the full suite.
+
+**Phase 2a, docs archive and layout:**
+- `docs/archive/` gains `v4/` (the 4.0, 4.1 and 4.3 technical notes, the v4 explainer, the project overview), `benchmarks/` (four distillation benches), `items/` (twelve finished item records) and `signing/` (six draft batches and packets). It has a one-page index, and `docs/README.md` is the short index of current docs.
+- `FINDINGS.md` moves into `docs/`. The project overview's research positioning and commitments now sit in the README.
+- **Kept in place**, because a signed entry, a signed file or a test opens them by path:
+  - `A6_CONTRAINDICATED_PROCEDURES_DESIGN.md` (named in `procedure_contracts.json`);
+  - `UNSIGNED_CONTRACTS_2026-10-08.md`, `MULTI_MODEL_BENCHMARK_2026-09-25.md` and `authoring/VENT_CARD_SETTINGS_2026-10-22.md` (opened by tests);
+  - `authoring/CAUTION_DOSE_EDITS_2026-10-11.md` and `authoring/KETAMINE_SECOND_LINE_SEIZURE_EVIDENCE.md` (named in signed entries in `drug_contracts.json`).
+- `jetson_cdss_setup_v2.sh` stays at the top level: it copies `requirements-server.txt` from its own folder, so moving it would change what it installs.
+- Every relative link to a moved file was recomputed from its new place; the site's three release-notes pages link the archived notes. Code changes are path text in three docstrings and comments only.
 
 ### Teach page: contributor audio not kept (owner, 2026-11-17)
 
@@ -1495,7 +1510,7 @@ Every link resolved: 14 on the draft and 3 release links, all 200. Discussions a
 
 **Done (failing tests first):** a "(kit vial)" draw line is spoken "..., from your kit." (`spoken.DRAW_KIT`); a stated vial is spoken as before. 40 pipe rows' spoken briefs gain only those words; answers unchanged.
 
-Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
+Detail: `docs/archive/items/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
 
 ### K3: a kit-vial volume under 0.5 mL from the signed dilution (owner, 2026-10-28)
 
@@ -1520,7 +1535,7 @@ Detail: `docs/K1_KETAMINE_SINGLE_VIAL_2026-10-28.md`.
 - Ruling 3: the :8012 process was this session's S2 test server (PID 2213160); stopped.
 - Suite 3,811 passed; harness 29/29; replay 0 newly held, 0 newly released, 13 pipe rows drawn from the dilution with mg unchanged, 1 newly dosing row is a new live log question.
 
-Detail: `docs/K3_PED_KETAMINE_DILUTION_2026-10-28.md`.
+Detail: `docs/archive/items/K3_PED_KETAMINE_DILUTION_2026-10-28.md`.
 
 ### P1: hold to talk shows every failure; no MODE control (owner, 2026-10-29)
 
@@ -1534,7 +1549,7 @@ Detail: `docs/K3_PED_KETAMINE_DILUTION_2026-10-28.md`.
 - Voice in needs https or localhost: documented in the P1 doc and REFERENCE (S1, P1).
 - Suite 3,829 passed; harness 29/29; replay vs main f9119c3: all five sets byte-identical, 0 newly held, 0 newly released.
 
-Detail: `docs/P1_PORTAL_VOICE_MODE_2026-10-29.md`.
+Detail: `docs/archive/items/P1_PORTAL_VOICE_MODE_2026-10-29.md`.
 
 ### S1: speech in (owner, 2026-10-27)
 
@@ -1548,7 +1563,7 @@ Detail: `docs/P1_PORTAL_VOICE_MODE_2026-10-29.md`.
 - **Release to transcript** (20 harness questions spoken by Kokoro, qwen and Kokoro resident): **293 ms median, 331 ms p90**, max 412 ms, all on the GPU. Word error rate 0.22 median; drug names misheard in 11 of 20 ("Cephasolin", "artisanite", "propofil").
 - **Memory, all three resident:** whisper adds about 0.26 GB. 5.5 GB used of 7.5 at rest, 6.0 GB during a model answer; no spill, no fallback, swap unchanged.
 
-**Owner to decide:** the misheard drug names (a vocabulary prompt or small.en). **Not measured:** a human voice, a field microphone. Detail: `docs/SPEECH_IN_S1_2026-10-27.md`.
+**Owner to decide:** the misheard drug names (a vocabulary prompt or small.en). **Not measured:** a human voice, a field microphone. Detail: `docs/archive/items/SPEECH_IN_S1_2026-10-27.md`.
 
 ### V3 follow-up: voice warm-up, GPU retry, V1 on live (owner, 2026-10-27)
 
@@ -1561,7 +1576,7 @@ Detail: `docs/P1_PORTAL_VOICE_MODE_2026-10-29.md`.
 - **GPU retry:** a GPU synthesis failure finishes that sentence on a CPU model, loaded once and kept, and the next call tries the GPU again.
 - **Fallback report:** `/status voice_device` has `last_fallback` {reason, at} and `gpu_fallbacks`.
 - **V1 on live** (main `25b7233`, Kokoro resident on the GPU, no other traffic): model answers **10.52 s median**, 15.16 s p90, against V1's 12.54 / 16.19 s. **No slowdown.** Retrieval 0.46 → 0.17 s.
-- **Memory budget** (`docs/VOICE_WARMUP_GPU_2026-10-27.md`): qwen + Kokoro on the GPU is about 5.7 GB of 7.5, and fits. qwen + edgecdss-v3 + Kokoro is about 8.1–8.8 GB, and spills: the 17:31 UTC live GPU failure.
+- **Memory budget** (`docs/archive/items/VOICE_WARMUP_GPU_2026-10-27.md`): qwen + Kokoro on the GPU is about 5.7 GB of 7.5, and fits. qwen + edgecdss-v3 + Kokoro is about 8.1–8.8 GB, and spills: the 17:31 UTC live GPU failure.
 
 **Not measured:** a listen synthesising on the GPU while qwen generates. Under steady memory pressure, each sentence now pays the failed GPU attempt.
 
@@ -1585,7 +1600,7 @@ Detail: `docs/P1_PORTAL_VOICE_MODE_2026-10-29.md`.
 - **Replay vs main efdf0e5:** served 1,738, held 308, gate 1,408, live logs 3,827, pipeline 831. 0 changed in every one.
 - **Suite:** 3,615 passed. 1 failed: the corpus alias count, which fails the same way on main.
 
-**Timing** (`docs/VOICE_LOCAL_KOKORO_2026-10-25.md`; 20 batch 2/3 answers and the magnesium hold, offline):
+**Timing** (`docs/archive/items/VOICE_LOCAL_KOKORO_2026-10-25.md`; 20 batch 2/3 answers and the magnesium hold, offline):
 - **Text sent → first audio:** median 17.0 s, p90 34.3 s.
 - **Clip length:** median 22.7 s, p90 46.0 s.
 - **Text sent → audio end:** median 39.7 s, p90 80.3 s.
@@ -1610,7 +1625,7 @@ Detail: `docs/P1_PORTAL_VOICE_MODE_2026-10-29.md`.
 - **Replay vs main 44ed010:** served 1,738, held 308, gate 1,408, live logs 3,765, pipeline 829. 0 changed in every one.
 - **Suite:** 3,611 passed. 1 failed: the corpus alias count, which fails the same way on main.
 
-**The baseline:** `docs/VOICE_LATENCY_BASELINE_2026-10-25.md`. 51 items, offline, qwen2.5:3b generator and validator, one warm pass.
+**The baseline:** `docs/archive/items/VOICE_LATENCY_BASELINE_2026-10-25.md`. 51 items, offline, qwen2.5:3b generator and validator, one warm pass.
 - **Deterministic answers** (26): total median 62 ms, p90 89 ms.
 - **Model answers** (25): total median 12.5 s, p90 16.2 s. Generation, first to last token, is the largest part (median 7.1 s), then the validator (3.3 s), then the wait to the first token (1.6 s). Retrieval is 0.46 s.
 - **The three slowest** are batch 3 dose questions, 16–18.5 s each: artesunate, cefazolin for a penetrating brain injury, paediatric ceftriaxone.
@@ -1686,7 +1701,7 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 - Tests for the schema.
 
 
-(The instrument findings are §7 of docs/FEEDBACK_REVIEW_2026-09-03.md, with the corpus caveats in §0; §5 there is patient context.)
+(The instrument findings are §7 of docs/archive/items/FEEDBACK_REVIEW_2026-09-03.md, with the corpus caveats in §0; §5 there is patient context.)
 
 **What changed:**
 - **Session id:** the client keeps one id per tab session in `sessionStorage` (`edgecdss.session.v1`); storage that is missing or throws falls back to a page-load id. Sent with every `/query` (`session_id`, logged, never branched on) and every report. `device_id` is unchanged.
@@ -1824,7 +1839,7 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 
 **Owner, 2026-10-14:** "Signing batch 1, analgesia: ketamine (IV/IM/IN analgesia, adult and paediatric), fentanyl (IV, IN), morphine, acetaminophen, ketorolac. Draft each entry with verbatim quote, CPG ID, printed page, indication, population, route; leave anything you can't quote verbatim marked incomplete. Also check the live hold log for the last 7 days and list which drugs held most often, so batch 2 is the next most useful. One PR, no signatures yet."
 
-**What changed:** 15 unsigned entries in `drug_contracts.json` (`signoff: false`, `PENDING_CLINICAL_SIGNOFF`; none servable). The review packet with every quote is [`authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md`](authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md).
+**What changed:** 15 unsigned entries in `drug_contracts.json` (`signoff: false`, `PENDING_CLINICAL_SIGNOFF`; none servable). The review packet with every quote is [`authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md`](archive/signing/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md).
 - **Ketamine (5):** IM adult|peds 0.25 mg/kg (NASEMSO p.94); IM and IN adult 0.5–0.75 mg/kg for breakthrough pain (JTS ID61 p.11); IM paediatric 0.5 mg/kg (SMOG p.127); IN paediatric **incomplete** (no source states it).
 - **Fentanyl:** nothing new. IV paediatric, IN and the adult JTS fixed dose are signed; the adult IV per-kg entries stay retired (owner, 2026-09-24).
 - **Morphine (1):** IM paediatric 0.1 mg/kg (NASEMSO p.94); SMOG p.141 says IM is no longer recommended.
@@ -1912,7 +1927,7 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 
 **Owner, 2026-10-16:** "Next item: analgesia/sedation signing batch 2. Draft the authoring doc the same way as batch 1 (docs/authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md): one entry per drug with proposed dose, route, max, repeat, verbatim source quote and printed page number for midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin and ceftriaxone. Do not sign anything. Flag any entry where the sources disagree or no JTS/SMOG page states a number."
 
-**What changed:** the eight entries the bank held open for these drugs, filled in and still unsigned (`signoff: false`, `PENDING_CLINICAL_SIGNOFF`; none servable). Ketamine's sedation infusion and rocuronium's redose are split adult/peds, because the sources dose children differently. Three dose conflicts are kept two-sided, as in batch 1. That makes 13 entries; the bank now has 77 of 129 signed, unchanged. The review packet, with every quote and the owner questions, is [`docs/authoring/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md`](authoring/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md).
+**What changed:** the eight entries the bank held open for these drugs, filled in and still unsigned (`signoff: false`, `PENDING_CLINICAL_SIGNOFF`; none servable). Ketamine's sedation infusion and rocuronium's redose are split adult/peds, because the sources dose children differently. Three dose conflicts are kept two-sided, as in batch 1. That makes 13 entries; the bank now has 77 of 129 signed, unchanged. The review packet, with every quote and the owner questions, is [`docs/archive/signing/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md`](archive/signing/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md).
 - **Midazolam (4):**
   - procedural sedation, adult IV: 1–4 mg (JTS ID61 p.9), against SMOG's 2.5–5 mg (p.140);
   - ventilated infusion, adult IV: 0.05–0.1 mg/kg/hr (SMOG p.140), against JTS ID29's fixed 1–6 mg/hr (p.25). No titration step or mix in any source.
@@ -2531,7 +2546,7 @@ Commit under `tools/distill/`:
 - `d6.py report` requires the tag's score to equal the base's, and it fails when there is no base score. `RT_BASE=N/M` states the base score for a bench dir from before both arms ran; the doc marks it "stated, not measured".
 - Tests: `server/tests/test_d6_rt_bar.py`.
 
-**First bench of `edgecdss-v1`** ([`DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md); run `20261001T180545Z` on c45b210; an earlier run at 17:27Z on 86ddc82 agrees on every point below):
+**First bench of `edgecdss-v1`** ([`DISTILL_BENCH_edgecdss-v1.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-v1.md); run `20261001T180545Z` on c45b210; an earlier run at 17:27Z on 86ddc82 agrees on every point below):
 
 | | `qwen2.5:3b` (before) | `edgecdss-v1` (after) |
 |---|---|---|
@@ -2604,7 +2619,7 @@ The over-320 count on the v1 source (255 rows, answer only, `Qwen/Qwen2.5-3B-Ins
 - Cost: **$7.74 actual** (claude-opus-5: 255 calls, 887,686 in / 129,513 out; gpt-4o-mini: 255 calls, 387,073 in / 17,511 out), against $7.32 expected and the $26.46 ceiling. The teacher's input is higher than the estimate's characters/4 (887k against 554k): the estimate's ratio undercounts Opus tokens; the output, 508 tokens per answer against v1's 698, more than made up for it.
 - Found and fixed on the way (failing test first): the builder's check wrapper did not take A23's `current_query`, so on today's tree every teacher answer raised inside the pipeline. The dataset is gitignored and not committed; the manifest is in `data/distill-v3/manifest.json`.
 
-**v3 bench (2026-10-09, [`DISTILL_BENCH_edgecdss-v3.md`](DISTILL_BENCH_edgecdss-v3.md)): fails the bar.** Trained on the v3 dataset (205 train / 16 valid; 300 iters, lr 1e-4, batch 1; val loss 2.880 → 0.625), shipped as `edgecdss-v3` (93a43d964fff), benched on main `b8902c1`. v1 was rerun on the same snapshot for the comparison (its 2026-10-01 doc ran before A22, D2 and D3).
+**v3 bench (2026-10-09, [`DISTILL_BENCH_edgecdss-v3.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-v3.md)): fails the bar.** Trained on the v3 dataset (205 train / 16 valid; 300 iters, lr 1e-4, batch 1; val loss 2.880 → 0.625), shipped as `edgecdss-v3` (93a43d964fff), benched on main `b8902c1`. v1 was rerun on the same snapshot for the comparison (its 2026-10-01 doc ran before A22, D2 and D3).
 
 | | `qwen2.5:3b` (2 passes) | `edgecdss-v1` | `edgecdss-v3` |
 |---|---|---|---|
@@ -2677,7 +2692,7 @@ Both are served with the human-review banner, not as SAFE.
 
 **Owner, 2026-10-10:** "separate validator model setting for offline mode (CDSS_VALIDATOR_MODEL, default qwen2.5:3b). Generator and validator must be independently configurable. Failing test first; replay unchanged since default behavior is unchanged. Then re-bench v3 as generator with qwen as validator; that's the real comparison." Default `qwen2.5:3b` means production behaviour is unchanged (owner, 2026-10-10).
 
-**Why:** under `CDSS_LLM_PROVIDER=local`, `providers.validator_model()` returned the generator model. A distilled tag benched as the generator was also its own validator, and answered the validator prompt with a field card: `edgecdss-v1` 20 of 23 calls, `edgecdss-v3` 19 of 23 on `b8902c1`. Since A19 that holds, so the v3 bench measured nothing about v3's answers (v1 bench finding 1; [`DISTILL_BENCH_edgecdss-v3.md`](DISTILL_BENCH_edgecdss-v3.md)).
+**Why:** under `CDSS_LLM_PROVIDER=local`, `providers.validator_model()` returned the generator model. A distilled tag benched as the generator was also its own validator, and answered the validator prompt with a field card: `edgecdss-v1` 20 of 23 calls, `edgecdss-v3` 19 of 23 on `b8902c1`. Since A19 that holds, so the v3 bench measured nothing about v3's answers (v1 bench finding 1; [`DISTILL_BENCH_edgecdss-v3.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-v3.md)).
 
 **What changed:**
 - `providers.validator_model()`, offline: `CDSS_VALIDATOR_MODEL`, else `qwen2.5:3b`, independent of `CDSS_LLM_MODEL`. A cloud model named there (the same `.env` line serves the cloud path) is not used offline: warned, `qwen2.5:3b`. Cloud unchanged.
@@ -2689,7 +2704,7 @@ Both are served with the human-review banner, not as SAFE.
 - Served, gate, live-log, held and pipeline replays (1,711, 1,366, 2,036, 296 and 797 rows): **byte-identical. 0 newly held, 0 newly released.**
 - Routing replay (new, `route_replay.py`): every stored row that records a model (2,996; 172 live), with the provider and model it ran under, asked which validator each tree picks. **119 change, all distilled bench tags' own bench rows** (`edgecdss-d6check` 25, `edgecdss-v1` 71, `edgecdss-v3` 23), from the tag to `qwen2.5:3b`. 0 live rows change; all 853 local `qwen2.5:3b` rows and every cloud row route as before.
 
-**v3 re-bench (2026-10-10, [`DISTILL_BENCH_edgecdss-v3-d7.md`](DISTILL_BENCH_edgecdss-v3-d7.md)):** `edgecdss-v3` as generator, `qwen2.5:3b` validating both arms, on the D7 branch head `b98bb2e`.
+**v3 re-bench (2026-10-10, [`DISTILL_BENCH_edgecdss-v3-d7.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-v3-d7.md)):** `edgecdss-v3` as generator, `qwen2.5:3b` validating both arms, on the D7 branch head `b98bb2e`.
 
 | | `qwen2.5:3b` | `edgecdss-v3` (validator `qwen2.5:3b`) |
 |---|---|---|
@@ -2712,10 +2727,10 @@ Each D6 `make bench` run writes `docs/DISTILL_BENCH_<tag>.md` and is linked here
 
 **Bench counts are advisory (owner, 2026-10-10).** A distilled model ships only when the owner has read every served answer and found none clinically wrong. `run_tests.sh` equal to the base, the served/held counts, specifics present, answer length and latency are measurements; none of them is the ship decision.
 
-- [`docs/DISTILL_BENCH_edgecdss-d6check.md`](DISTILL_BENCH_edgecdss-d6check.md): dry-run data, toolchain proof only, not a model result.
-- [`docs/DISTILL_BENCH_edgecdss-v1.md`](DISTILL_BENCH_edgecdss-v1.md): v1, trained on the D5b dataset (255 rows). `run_tests.sh` 28/29, equal to the base. Not shippable as the offline model while the validator is the same model (see D6, first bench of `edgecdss-v1`).
-- [`docs/DISTILL_BENCH_edgecdss-v3.md`](DISTILL_BENCH_edgecdss-v3.md): v3, trained on the v3 dataset (221 rows re-answered under the current prompt). `run_tests.sh` 28/29 against the base's 29/29: **fails the bar**. Includes v1 rerun on the same snapshot (D6, v3 bench).
-- [`docs/DISTILL_BENCH_edgecdss-v3-d7.md`](DISTILL_BENCH_edgecdss-v3-d7.md): v3 re-benched as the generator with `qwen2.5:3b` as validator (D7). `run_tests.sh` 29/29, equal to the base: **the bar holds**. Served answers read: several of v3's are clinically wrong and passed the validator (D7).
+- [`docs/archive/benchmarks/DISTILL_BENCH_edgecdss-d6check.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-d6check.md): dry-run data, toolchain proof only, not a model result.
+- [`docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v1.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-v1.md): v1, trained on the D5b dataset (255 rows). `run_tests.sh` 28/29, equal to the base. Not shippable as the offline model while the validator is the same model (see D6, first bench of `edgecdss-v1`).
+- [`docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v3.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-v3.md): v3, trained on the v3 dataset (221 rows re-answered under the current prompt). `run_tests.sh` 28/29 against the base's 29/29: **fails the bar**. Includes v1 rerun on the same snapshot (D6, v3 bench).
+- [`docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v3-d7.md`](archive/benchmarks/DISTILL_BENCH_edgecdss-v3-d7.md): v3 re-benched as the generator with `qwen2.5:3b` as validator (D7). `run_tests.sh` 29/29, equal to the base: **the bar holds**. Served answers read: several of v3's are clinically wrong and passed the validator (D7).
 
 ## Findings placement (benchmark run 3, docs/MULTI_MODEL_BENCHMARK_2026-09-25.md)
 

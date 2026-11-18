@@ -1,6 +1,6 @@
 # EdgeCDSS — Development Roadmap
 
-Current release: **4.0.0** (see CHANGELOG.md and docs/TECH_NOTES_v4.0.md).
+Current release: **4.0.0** (see CHANGELOG.md and docs/archive/v4/TECH_NOTES_v4.0.md).
 v4.1 is in progress on branch `v4.1-audit` — see CHANGELOG.md [4.1.0].
 Completed v3-era roadmap items are preserved in git history and CHANGELOG.md.
 
@@ -240,7 +240,7 @@ deliberately did NOT touch.
         epinephrine (cardiac arrest), dextrose (oral, neonatal IV), atropine
         and levetiracetam have `signoff: false` entries with JTS/SMOG
         citations and verified page numbers. See
-        `docs/authoring/CONTRACT_DRAFTS_2026-09-19.md`. The rest of this item
+        `docs/archive/signing/CONTRACT_DRAFTS_2026-09-19.md`. The rest of this item
         stands until they are signed.
       - **No signed dose at all.** Any number for these is held.
         - `tranexamic acid` (bank entry, 0 servable): TXA 1-2 g stated four times
@@ -304,7 +304,7 @@ deliberately did NOT touch.
         `web-0wfzq4`): query "500mg / 10ml", held with "Response recommends
         100 mg ketamine IV for sedation without confirming the presence of an
         infusion pump." Medic: "Strange it held on this - its a safe dose to
-        give." Not in `docs/FEEDBACK_REVIEW_2026-09-03.md` (covers 0–47); the
+        give." Not in `docs/archive/items/FEEDBACK_REVIEW_2026-09-03.md` (covers 0–47); the
         earlier turns were never captured, so the 100 mg came from the
         generated path and can't be replayed exactly.
       - Holes the override opened (each must stay blocked under any fix):
@@ -453,7 +453,7 @@ deliberately did NOT touch.
         "2 months" → block; then "4 months" → dose. 5 kg, no age → dose as
         today.
 
-- [ ] **Post-intubation TBI management card.** `docs/FEEDBACK_REVIEW_2026-09-03.md`
+- [ ] **Post-intubation TBI management card.** `docs/archive/items/FEEDBACK_REVIEW_2026-09-03.md`
       §1, priority entry 9 — "asked for 3 times; does not exist". Entries 0, 26
       and 38 all wanted the same thing: BP targets, sedation, vent targets,
       EtCO2 goals for a patient whose tube is already in. Entry 0 asked for it
@@ -494,7 +494,7 @@ deliberately did NOT touch.
 
 ### Retrieval (scoped for the eval-harness phase — do not tune thresholds ad hoc)
 Measured 2026-08-21 against the live 8,559-chunk corpus, re-embedded with the
-same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/RETRIEVAL_DIAGNOSIS_2026-08-21.md`.
+same all-MiniLM-L6-v2 the server uses. Numbers and method in `docs/archive/items/RETRIEVAL_DIAGNOSIS_2026-08-21.md`.
 - [ ] **Content gap: no human field heat-injury CPG in the corpus** (found 2026-09-24, A1).
       With the canine documents filtered out of human retrieval, "heat stroke
       management in the field" falls from JTS_GROUNDED (0.661, on the MWD Heat

@@ -59,6 +59,6 @@ The continuity is as telling as the change: ZERO MATH, dual-domain attribution, 
 
 ---
 
-*Documents in this archive: the Proof of Concept report (May 2026), the v2.1 Field Evaluation Report (the WPW finding), and the v3.0 Goals & Technology document. Current documentation: [`docs/TECH_NOTES_v4.1.md`](../TECH_NOTES_v4.1.md).*
+*Documents in this archive: the Proof of Concept report (May 2026), the v2.1 Field Evaluation Report (the WPW finding), and the v3.0 Goals & Technology document. Current documentation: [`docs/archive/v4/TECH_NOTES_v4.1.md`](v4/TECH_NOTES_v4.1.md).*
 
 *Research prototype — not validated for clinical use. AI in Austere Medicine Project.*

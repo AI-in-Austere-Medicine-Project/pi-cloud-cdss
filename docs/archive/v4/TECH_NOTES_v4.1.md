@@ -5,7 +5,7 @@ AI in Austere Medicine Project — August 2026
 - Live portal: https://cdss.arcanekg.com
 - Release notes page: https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.1.html
 - Repository: https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss
-- Full changelog: [CHANGELOG.md](../CHANGELOG.md) · Deferred findings and residual risk: [TODO.md](../TODO.md)
+- Full changelog: [CHANGELOG.md](../../../CHANGELOG.md) · Deferred findings and residual risk: [TODO.md](../../../TODO.md)
 - Prior release: [TECH_NOTES_v4.0.md](TECH_NOTES_v4.0.md) — superseded by this document
 - Project overview & research positioning: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 
@@ -95,7 +95,7 @@ Carried from 4.0:
 - Language generation requires connectivity to a cloud model; fully offline on-device inference is a research goal (Project 02)
 - Knowledge base reflects the JTS CPGs as published
 
-Introduced or left open by 4.1 — the full list, with the residual risk of each, is in [TODO.md](../TODO.md):
+Introduced or left open by 4.1 — the full list, with the residual risk of each, is in [TODO.md](../../../TODO.md):
 
 - **Helpfulness regression.** A provider asking about status epilepticus with no weight on file now receives a safety hold where a weight-free protocol answer would serve them better. Fail-closed is the intended trade; this is a real cost of it and is being watched in post-release feedback
 - **Weight corrections trip the boundary detector.** Correcting a weight on the same patient clears the context. The detector cannot distinguish a correction from a new patient. Accepted because the reset is announced; the alternative is trusting the older weight, which is the S-1 defect
