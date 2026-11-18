@@ -65,7 +65,7 @@ run_test() {
 }
 
 echo "================================================"
-echo "EdgeCDSS v3.3 — 25 Case Test Suite"
+echo "EdgeCDSS — live clinical suite (29 cases)"
 echo "================================================"
 echo ""
 
