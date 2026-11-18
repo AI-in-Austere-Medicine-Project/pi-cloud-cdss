@@ -130,10 +130,6 @@ LEGACY_CALCULATOR_DRUGS = ("ketamine", "rocuronium", "succinylcholine",
                            "lorazepam")
 
 
-class ContractError(ValueError):
-    """A contract file that cannot be trusted. Raised at load, never at serve."""
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # SCHEMA
 # ─────────────────────────────────────────────────────────────────────────────

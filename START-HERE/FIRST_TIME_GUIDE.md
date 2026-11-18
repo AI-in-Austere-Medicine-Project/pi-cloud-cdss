@@ -102,16 +102,10 @@ python tools/build_protocol_index.py     # builds the clinical router index
 
 ---
 
-## Path 3 — The Voice Client (edge devices)
-
-`client/cdss_client.py` is a voice interface for small field devices (Radxa Zero, Raspberry Pi): push-to-talk in, the response printed, pointed at any EdgeCDSS server. It does not speak: its ElevenLabs path was deleted, and voice is the server's own `/speak`. It has its own dependencies (`pip install -r client/requirements.txt`) and reads the server URL and token from `.env`. It is under active development — check `TODO.md` for current status before relying on it.
-
----
-
 ## Frequently Asked Questions
 
 **Do I need to know how to code?**
-No. Path 1 is a webpage. Paths 2–3 are copy-paste terminal commands this guide covers completely.
+No. Path 1 is a webpage. Path 2 is copy-paste terminal commands this guide covers completely.
 
 **Is this safe to use for patient care?**
 No — and this matters. Research prototype, for training, simulation, and evaluation only. Not FDA approved, not clinically validated, not a substitute for your training and protocols. Never enter real patient information.

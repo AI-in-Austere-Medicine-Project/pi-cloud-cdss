@@ -15,7 +15,7 @@ The most valuable contribution is clinical expertise.
 - Regional and national protocol sets for international deployment contexts
 
 ### Hardware Testing
-- Test cdss_client.py on new edge hardware platforms
+- Test the portal and Pocket on new edge hardware platforms
 - Document performance, latency, and power consumption
 - Jetson Orin Nano local LLM integration is a priority
 
@@ -31,7 +31,7 @@ git clone https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss.git
 cd pi-cloud-cdss
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -r client/requirements.txt
+pip install -r requirements-server.txt
 cp .env.example server/.env   # the server reads server/.env, not the repo root
 ```
 

@@ -173,6 +173,6 @@ def test_the_pipeline_takes_no_voice_mode():
 def test_no_client_sends_voice_mode():
     root = HERE.parent.parent
     for rel in ("server/run_tests.sh", "server/tools/latency_run.py",
-                "server/tools/tts_latency_run.py", "client/cdss_client.py",
+                "server/tools/tts_latency_run.py",
                 "server/tests/client_render_harness.js"):
         assert "voice_mode" not in (root / rel).read_text(encoding="utf-8"), rel

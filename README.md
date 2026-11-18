@@ -191,9 +191,6 @@ pi-cloud-cdss/
 │   ├── tests/                   Offline regression suite (1,150 tests, ~11s)
 │   ├── run_tests.sh             24-case live-endpoint clinical suite
 │   └── run_unit_tests.sh        Runs the offline suite
-├── client/
-│   ├── cdss_client.py           Voice client for edge devices
-│   └── requirements.txt         Voice client dependencies
 ├── web/                         Project website (GitHub Pages)
 ├── docs/                        Current documentation + archive of prior versions
 ├── publications/                Articles and papers written by the project
