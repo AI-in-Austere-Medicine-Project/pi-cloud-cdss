@@ -10,11 +10,11 @@ The live service's access log is not readable from this account (the journal nee
 
 | Reached as | `isSecureContext` | `navigator.mediaDevices` | What the press did |
 |---|---|---|---|
-| `http://192.168.1.126:8000` (LAN IP) | false | `undefined` | The button never turned red. One 11 px grey line under the box: "No microphone: Cannot read properties of undefined (reading 'getUserMedia'). Type the question instead." No `/transcribe` call. |
+| `http://<lan-ip>:8000` (LAN IP) | false | `undefined` | The button never turned red. One 11 px grey line under the box: "No microphone: Cannot read properties of undefined (reading 'getUserMedia'). Type the question instead." No `/transcribe` call. |
 | `http://localhost:8000` | true | object | Recorded; `/transcribe` 200 |
 | `https://cdss.arcanekg.com` (the tunnel) | true | object | Recorded; `/transcribe` 200 |
 
-The device is also reachable over plain http at its Tailscale address (`http://100.87.238.76:8000`), which is the same case as the LAN IP. **Over http by IP the browser gives the page no microphone at all**: a page gets `navigator.mediaDevices` only in a secure context, https or localhost. That is the only way found to make the press "do nothing" that can be seen: the button stays grey, and the message is easy to miss. `/status speech_in` on live is available.
+The device is also reachable over plain http at its Tailscale address (`http://<tailnet-ip>:8000`), which is the same case as the LAN IP. **Over http by IP the browser gives the page no microphone at all**: a page gets `navigator.mediaDevices` only in a secure context, https or localhost. That is the only way found to make the press "do nothing" that can be seen: the button stays grey, and the message is easy to miss. `/status speech_in` on live is available.
 
 A second silent case was in the code: the first press on a site, when the browser asks for the microphone. The medic lets go to answer the prompt, the recording is dropped, and nothing is said.
 
