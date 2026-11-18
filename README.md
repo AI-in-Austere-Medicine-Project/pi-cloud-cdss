@@ -10,7 +10,7 @@ Part of the [AI in Austere Medicine Project (AI-AMP)](https://github.com/AI-in-A
 
 **Current release: 5.1.0** — what changed: [What's new in 5.1](#whats-new-in-51) and the [work order](docs/WORK_ORDER.md) · 5.0.0: [changelog entry](CHANGELOG.md#500--2026-10-12) · [`SAFETY.md`](SAFETY.md): what the system guarantees and what it does not · [work order](docs/WORK_ORDER.md) and [one-line reference](docs/REFERENCE.md) · [Project site](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/)
 
-Previous release: 4.3.0 — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/TECH_NOTES_v4.3.md)
+Previous release: 4.3.0 — [GitHub release](https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss/releases/tag/v4.3.0) · [4.3 release notes](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html) · [4.3 technical notes](docs/archive/v4/TECH_NOTES_v4.3.md)
 
 ---
 
@@ -21,6 +21,25 @@ EdgeCDSS is a self-hosted clinical decision support system for austere, remote, 
 The entire system — knowledge base, retrieval engine, safety gates, web interface, feedback system, and audit logs — runs on a single **NVIDIA Jetson Orin Nano** at the point of care. Public access flows through an outbound-only Cloudflare Tunnel. The deployment is network agnostic: satellite, broadband, Wi-Fi, Ethernet, or LTE/5G.
 
 **Try it:** the live portal is at **https://cdss.arcanekg.com** (demo access token is pre-filled in the interface).
+
+### Research and commitments
+
+The design philosophy behind EdgeCDSS reflects current research supporting retrieval-grounded generation ([Lewis et al., 2020](https://arxiv.org/abs/2005.11401)) and human-supervised clinical AI ([Sutton et al., 2020](https://www.nature.com/articles/s41746-020-0221-9)) rather than autonomous large language model (LLM)-based decision making. Recent evaluations of LLM clinical knowledge ([Singhal et al., 2023](https://www.nature.com/articles/s41586-023-06291-2)) and of LLM inference on low-power edge hardware ([arXiv, 2025](https://arxiv.org/html/2511.07425v1)) inform the boundaries this architecture is built around, with risk management guided by the [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework).
+
+Rather than treating an LLM as the source of clinical reasoning, EdgeCDSS combines deterministic clinical logic, retrieval from authoritative clinical guidelines, structured validation, and constrained language generation within a transparent and auditable architecture.
+
+The AI in Austere Medicine Project is committed to:
+
+- Developing in the open under the MIT License.
+- Publishing significant architectural changes.
+- Publicly documenting data collection practices.
+- Collecting only the minimum data necessary for research and operation.
+- Discouraging the submission of PHI, PII, or real patient information.
+- Supporting responsible vulnerability disclosure.
+- Encouraging independent review and community participation.
+- Publishing limitations and known issues alongside project updates whenever practical.
+- Maintaining human oversight in all clinical decision-making.
+- Improving the project through testing, evidence, and community feedback.
 
 ## What's new in 5.1
 
@@ -438,14 +457,11 @@ measured.
 | [`SAFETY.md`](SAFETY.md) | What the system guarantees, what it does not, and how a change is made safely |
 | [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 5.0 entry |
 | [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md) · [`docs/REFERENCE.md`](docs/REFERENCE.md) | The work order of record, and the one-line meaning and status of every item |
-| [`FINDINGS.md`](FINDINGS.md) | The finding-identifier legend — what `F-`, `S-`, `AE-` and `DP-` mean, where each canonical list lives, and what states a finding can be in |
+| [`docs/FINDINGS.md`](docs/FINDINGS.md) | The finding-identifier legend — what `F-`, `S-`, `AE-` and `DP-` mean, where each canonical list lives, and what states a finding can be in |
 | [`TODO.md`](TODO.md) | Roadmap, and every audit finding a release knowingly deferred with its residual risk |
-| [`docs/TECH_NOTES_v4.3.md`](docs/TECH_NOTES_v4.3.md) | **Current** technical notes — architecture, changes in 4.3, testing, known limitations |
-| [`docs/TECH_NOTES_v4.1.md`](docs/TECH_NOTES_v4.1.md) | 4.1 technical notes (superseded; kept as the record of what 4.1 claimed) |
-| [`docs/TECH_NOTES_v4.0.md`](docs/TECH_NOTES_v4.0.md) | 4.0 technical notes (superseded; kept as the record of what 4.0 claimed) |
-| [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) | Research positioning, design principles, references |
-| [`docs/authoring/`](docs/authoring/) | Generated authoring worksheets for the clinician signing dose contracts and vent cards — re-run `server/tools/gen_*.py`, never hand-edit |
-| [`docs/EdgeCDSS_v4_Technology.pdf`](docs/EdgeCDSS_v4_Technology.pdf) | Technology explainer |
+| [`docs/README.md`](docs/README.md) | Index of the current documentation |
+| [`docs/authoring/`](docs/authoring/) | Signing: the process (`SIGNING.md`), kit declarations, and the generated worksheets for the clinician (re-run `server/tools/gen_*.py`, never hand-edit) |
+| [`docs/archive/`](docs/archive/README.md) | History: releases 1.0–4.3 (technical notes, the v4 explainer), past benchmarks, finished item records, signing drafts |
 | [`publications/`](publications/) | Articles and papers written by the project |
 | [Ethics & Governance](https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/ethics-governance.html) | Data privacy, responsible AI, governance |
 

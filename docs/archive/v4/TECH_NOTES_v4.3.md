@@ -5,7 +5,7 @@ AI in Austere Medicine Project — August 2026
 - Live portal: https://cdss.arcanekg.com
 - Release notes page: https://ai-in-austere-medicine-project.github.io/pi-cloud-cdss/web/release-notes-4.3.html
 - Repository: https://github.com/AI-in-Austere-Medicine-Project/pi-cloud-cdss
-- Full changelog: [CHANGELOG.md](../CHANGELOG.md) · Deferred findings and residual risk: [TODO.md](../TODO.md)
+- Full changelog: [CHANGELOG.md](../../../CHANGELOG.md) · Deferred findings and residual risk: [TODO.md](../../../TODO.md)
 - Prior release: [TECH_NOTES_v4.1.md](TECH_NOTES_v4.1.md) — superseded by this document. 4.2 shipped without technical notes; the parts of it that changed the pipeline shape are documented here
 - Project overview & research positioning: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 
@@ -223,7 +223,7 @@ Carried forward:
 - Language generation requires connectivity to a hosted model; fully offline on-device inference remains the research goal (Layer 02). **Card answers are the exception** — they need no model at all
 - Knowledge base reflects the JTS CPGs as published, and is trauma-scoped
 
-Introduced or left open by 4.3 — the full list, with residual risk, is in [TODO.md](../TODO.md):
+Introduced or left open by 4.3 — the full list, with residual risk, is in [TODO.md](../../../TODO.md):
 
 - **8 of 13 cards are dark.** Four troubleshooting and four device cards are written but unsigned, and the engine treats them as absent, so a ventilator troubleshooting question routes to whatever answered it before the module existed. That is the fence working as designed and it is also a real coverage gap until a clinician signs them
 - **Two configured models are selectable but not usable for sustained traffic.** `available_models()` gates per **provider**, not per model. xAI fails authentication outright so `grok-4` never reaches the dropdown — correct behaviour. Gemini authenticates on the free tier, so both Gemini entries are selectable while the daily cap (20 requests per day per model) makes neither usable for a sustained eval slice. A medic who picks one gets a fail-closed system error once the cap is hit. Per-model availability would require one authenticated call per model on every `/status` poll, which is why it is not done

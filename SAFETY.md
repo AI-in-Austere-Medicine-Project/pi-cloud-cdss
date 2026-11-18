@@ -61,7 +61,7 @@ These are enforced in code and pinned by tests. A change that weakens one is not
 
 Read these before relying on any served answer.
 
-- **Advice a check does not read can be wrong.** The checks read doses, units, rates, a few procedures and the bleeding-control step. They do not read the order of steps, a missing step in most presentations, or a wrong procedure. In the 2026-10-10 bench, model-written answers that passed every check and were served included a low-and-loose tourniquet for an arterial bleed, no rewarming in a hypothermic arrest and no decompression for a tension pneumothorax (all called SAFE by the validator), and CPR for a seizing patient (served with the review banner) ([`docs/DISTILL_BENCH_edgecdss-v3-d7.md`](docs/DISTILL_BENCH_edgecdss-v3-d7.md)). The cards added since close those four presentations, not the class.
+- **Advice a check does not read can be wrong.** The checks read doses, units, rates, a few procedures and the bleeding-control step. They do not read the order of steps, a missing step in most presentations, or a wrong procedure. In the 2026-10-10 bench, model-written answers that passed every check and were served included a low-and-loose tourniquet for an arterial bleed, no rewarming in a hypothermic arrest and no decompression for a tension pneumothorax (all called SAFE by the validator), and CPR for a seizing patient (served with the review banner) ([`docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v3-d7.md`](docs/archive/benchmarks/DISTILL_BENCH_edgecdss-v3-d7.md)). The cards added since close those four presentations, not the class.
 - **The offline validator is a 3B model and misses procedural errors.** It called several of those answers SAFE. Online, the validator is `gpt-4o-mini`.
 - **"Needs human review" serves.** An answer the validator flags for review is served with a banner, not held.
 - **A card fires only on the phrasings it recognises.** Misspellings beyond the listed ones, and presentations described without the words a trigger reads, reach the model. An active arterial bleed without shock physiology gets no card (v1.1).
@@ -79,7 +79,7 @@ The open items are in the v1.1 section of the work order.
 
 ## Numbers in code that no signature covers
 
-The A35 sweep (2026-10-22) listed every number a deterministic card can print. The drug numbers trace to signed entries. The numbers below are not drug doses; they are written in code, most with a guideline citation beside them, and **no signature covers them**. They are the owner's to rule on ([`docs/authoring/A35_CARD_NUMBERS_2026-10-22.md`](docs/authoring/A35_CARD_NUMBERS_2026-10-22.md), section 3).
+The A35 sweep (2026-10-22) listed every number a deterministic card can print. The drug numbers trace to signed entries. The numbers below are not drug doses; they are written in code, most with a guideline citation beside them, and **no signature covers them**. They are the owner's to rule on ([`docs/archive/signing/A35_CARD_NUMBERS_2026-10-22.md`](docs/archive/signing/A35_CARD_NUMBERS_2026-10-22.md), section 3).
 
 | Where | Number | Cited in code |
 |---|---|---|

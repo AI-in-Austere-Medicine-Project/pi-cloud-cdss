@@ -21,7 +21,7 @@ The v5.1.0 freeze (owner, 2026-10-21/22): the signing batches finished, and ever
 
 ### No calculator: every number on a card is signed (#177)
 
-- **A35:** ketamine for pain IM serves the signed adult IM entry (0.5–1.0 mg/kg, max 100 mg) or holds. The legacy calculators, the prep card's own recipes and the epinephrine drip's bag are gone; a role with no signed entry holds. The list: [`docs/authoring/A35_CARD_NUMBERS_2026-10-22.md`](docs/authoring/A35_CARD_NUMBERS_2026-10-22.md).
+- **A35:** ketamine for pain IM serves the signed adult IM entry (0.5–1.0 mg/kg, max 100 mg) or holds. The legacy calculators, the prep card's own recipes and the epinephrine drip's bag are gone; a role with no signed entry holds. The list: [`docs/archive/signing/A35_CARD_NUMBERS_2026-10-22.md`](docs/archive/signing/A35_CARD_NUMBERS_2026-10-22.md).
 - **A36:** a requested ketamine, rocuronium or succinylcholine dose above the highest signed single dose for this patient (population, route, weight, age band) holds. This replaces the unsigned 2 / 1.2 / 2 mg/kg ceilings, and the hold names no number. A signed dose, such as ketamine 4 mg/kg IM for agitation, is no longer held as an overdose.
 - **A37:** the tension-pneumothorax card no longer says "TXA within 3 hours", which its cited quote (ID74 p.5) does not state. Re-signed 2026-10-22.
 - **A38:** the seizure card chooses its benzodiazepine among the signed entries on the available route. A child with no IV gets IM midazolam 0.2 mg/kg; an adult with no IV still holds.
