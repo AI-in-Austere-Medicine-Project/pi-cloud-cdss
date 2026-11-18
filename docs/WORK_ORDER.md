@@ -130,6 +130,7 @@ Owner asks outside the lettered items:
 | W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **done**: #206, merged and deployed 2026-11-15 |
 | Site tidy-up (owner, 2026-11-15): the new index; ethics and release-notes pages restyled to it through one `web/site.css`; facts and links checked | **done**: #207; the shared notice wording #209 (owner, 2026-11-16) |
 | Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | done, #210 |
+| Repository clean, dead code (owner, 2026-11-18): the thin client and its 3 tests retired; two unused error classes deleted; `contract_status()` kept by the 2026-08-26 ruling | **in review** (see the section below) |
 | Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | done, #211 |
 | Teach page: contributor audio not kept (owner, 2026-11-17): a contributor's audio is dropped once decoded, keeping only the text heard, the word and the speaker label; the owner's recordings are kept; limits in takes; the new consent line | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
@@ -1317,6 +1318,18 @@ A changed row that neither side can judge is listed as unjudged and never counte
 **Found:** the first packet called the epinephrine and norepinephrine pages scanned images; they have a text layer (the packet was regenerated). Both checks report more than the signable entries need, listed in the rulings record for the owner.
 
 **Stacked on the set branch** (itself on #199): rebase onto main after both merge.
+
+### Repository clean: dead code and the thin client (owner, 2026-11-18)
+
+**Owner:** "Thin client: retire it and its 3 tests. I use the web portal." Approved from the Phase 1 audit: "delete the 3 unused definitions".
+
+- **The thin client is retired:**
+  - `client/cdss_client.py`, `client/requirements.txt`, and `server/tests/test_client_no_cloud_voice.py` (its 3 tests) are removed;
+  - `test_p1_portal_voice_and_mode.py` no longer lists the client's source among the files it reads;
+  - README's layout, CONTRIBUTING (its setup step installed the client's requirements, and now installs `requirements-server.txt`) and the first-time guide's "Path 3" no longer point at it.
+  The failing-first test, `test_thin_client_retired.py`, checks the folder is gone and no current doc points at it.
+- **Unused definitions deleted:** `drug_contracts.ContractError` and `vent_module.CardError`, classes nothing raises or catches.
+- **Kept, for the owner:** `drug_contracts.contract_status()`. Its docstring records the owner's ruling of 2026-08-26: "INTENTIONALLY UNCALLED … kept as the reporting surface for /status … A dead-code sweep will find it — this note is the answer, so it is not deleted". The audit missed that note.
 
 ### Pocket vocabulary session: the teach page (owner, 2026-11-16)
 

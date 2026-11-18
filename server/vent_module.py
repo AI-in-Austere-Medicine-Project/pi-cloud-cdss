@@ -120,10 +120,6 @@ _FAMILY_SCHEMA = {
 }
 
 
-class CardError(ValueError):
-    """A card file that cannot be trusted. Raised at load, never at serve."""
-
-
 def _load(filename: str) -> dict:
     path = _DIR / filename
     try:
