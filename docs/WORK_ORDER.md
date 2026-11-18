@@ -1925,7 +1925,7 @@ The caution table's oral-route rules (`vitals_rules.json`, group `oral_route_asp
 
 ### Signing batch 2, sedation and antibiotics (owner, 2026-10-16; v1.1)
 
-**Owner, 2026-10-16:** "Next item: analgesia/sedation signing batch 2. Draft the authoring doc the same way as batch 1 (docs/archive/signing/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md): one entry per drug with proposed dose, route, max, repeat, verbatim source quote and printed page number for midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin and ceftriaxone. Do not sign anything. Flag any entry where the sources disagree or no JTS/SMOG page states a number."
+**Owner, 2026-10-16:** "Next item: analgesia/sedation signing batch 2. Draft the authoring doc the same way as batch 1 (docs/authoring/ANALGESIA_BATCH1_DRAFTS_2026-10-14.md): one entry per drug with proposed dose, route, max, repeat, verbatim source quote and printed page number for midazolam sedation, rocuronium redose, ketamine sedation infusion, cefazolin and ceftriaxone. Do not sign anything. Flag any entry where the sources disagree or no JTS/SMOG page states a number."
 
 **What changed:** the eight entries the bank held open for these drugs, filled in and still unsigned (`signoff: false`, `PENDING_CLINICAL_SIGNOFF`; none servable). Ketamine's sedation infusion and rocuronium's redose are split adult/peds, because the sources dose children differently. Three dose conflicts are kept two-sided, as in batch 1. That makes 13 entries; the bank now has 77 of 129 signed, unchanged. The review packet, with every quote and the owner questions, is [`docs/archive/signing/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md`](archive/signing/SEDATION_ANTIBIOTIC_BATCH2_DRAFTS_2026-10-16.md).
 - **Midazolam (4):**

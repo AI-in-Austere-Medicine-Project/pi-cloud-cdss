@@ -1,6 +1,6 @@
 # Archive
 
-These documents are the record of what was claimed, measured or ruled at the time. They are kept unchanged. Rulings, incidents and safety findings are never deleted. What is current is in [../README.md](../README.md).
+These documents are the record of what was claimed, measured or ruled at the time. They are kept as written; only their links were updated when they moved. Rulings, incidents and safety findings are never deleted. What is current is in [../README.md](../README.md).
 
 | Folder | What it holds |
 |---|---|
