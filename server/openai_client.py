@@ -6621,7 +6621,7 @@ _PREGNANT_RE = re.compile(r"\bpregnan\w*|\bweeks?\s+(?:pregnant|gestation)|\bpos
 SAFETY_OVERRIDES = (
     # NOTE: requires_sole_issue=False preserves v4.0 behaviour — this branch
     # dismisses the block even when unrelated issues co-occur. That is the
-    # SC-5 gap on TODO.md, deliberately NOT changed here. Under SC-3 its
+    # SC-5 gap (docs/WORK_ORDER.md v1.1), deliberately NOT changed here. Under SC-3 its
     # consequence is bounded: the co-occurring issue is now preserved in the
     # log and banner-flagged rather than discarded.
     SafetyOverride(

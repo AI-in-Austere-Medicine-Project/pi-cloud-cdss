@@ -1,7 +1,7 @@
 """
 EdgeCDSS — the validator's invented equipment preconditions.
 
-See TODO.md, "Safety gate": "Validator invents equipment preconditions and
+See docs/WORK_ORDER.md v1.1 (safety gate; full text in docs/archive/v4/TODO_v4.md, "Safety gate"): "Validator invents equipment preconditions and
 blocks contract-signed doses." Field report: server/feedback.log line 49
 (entry 48), "500mg / 10ml", held for "without confirming the presence of an
 infusion pump".
@@ -36,7 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import openai_client as oc  # noqa: E402
 
 FALSE_BLOCK = pytest.mark.xfail(strict=True, reason=(
-    "TODO.md Safety gate: validator invents an equipment precondition and the "
+    "docs/WORK_ORDER.md v1.1, safety gate: validator invents an equipment precondition and the "
     "gate blocks a contract-signed dose"))
 
 

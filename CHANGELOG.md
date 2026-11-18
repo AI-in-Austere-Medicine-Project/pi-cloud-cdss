@@ -645,7 +645,7 @@ and it found eight other things first.
 
 Three findings are **deliberately not fixed here** and remain open: **F-5**
 (retrieval delivers general knowledge for 63 in-corpus questions — the largest
-measured gap, already scoped in TODO.md and now with a score to optimise
+measured gap, already scoped in docs/archive/v4/TODO_v4.md and now with a score to optimise
 against), **F-10** (a dose proposed in the query is neither confirmed nor
 corrected), and **F-11** (vitals cautions fired zero times in 160 turns, which
 is a gap in the scenario bank rather than a finding about the system).
@@ -1104,7 +1104,7 @@ that fails if a second copy appears.
   being in shock.
 - Fourth specimen of this failure class, after the F-2 alias table,
   `FIXED_PREP_TERMS` and the vitals labels. Two more found and reported but not
-  fixed here — see TODO.md.
+  fixed here — see docs/archive/v4/TODO_v4.md.
 
 ### Retrieval — diagnosed, not tuned
 - Burn queries fell through to general reference. Measured against the live
@@ -1117,7 +1117,7 @@ that fails if a second copy appears.
   `JTS_GROUNDED` is really cosine ≥ 0.675, and `max(0.0, …)` made every genuinely
   terrible retrieval print as a small positive number. Instrumentation only — no
   threshold moved.
-- Full diagnosis and the scoped follow-ups are in TODO.md.
+- Full diagnosis and the scoped follow-ups are in docs/archive/v4/TODO_v4.md.
 
 ### From the merged PRs
 - **#23 — Temperature capture and derived MAP.** `fever of 104` is a
@@ -1213,7 +1213,7 @@ that fails if a second copy appears.
   hypothermia outside the plausible band, so `temp 33` is rejected and
   `hypothermia_txa` can only arm from a Fahrenheit reading (93-94.9F is
   33.9-34.9C). Pinned by a test that says so out loud, noted in
-  `vitals_rules.json`, and raised in TODO.md as an owner decision — lowering
+  `vitals_rules.json`, and raised in docs/archive/v4/TODO_v4.md as an owner decision — lowering
   `temp.min` restores it with no code change.
 
 ### Fixed — the context strip could take the answer down with it

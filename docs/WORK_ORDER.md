@@ -1334,6 +1334,12 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 
 **Owner, rules for both phases:** "No change in behaviour. Never loosen a gate. Never delete or edit signed contracts, signed cards, kit declarations, test expectations, replay data, or protocol_index.json. Signing rulings, incident write-ups and safety findings are the audit trail: archive at most, never delete. Do not rewrite git history. No force-push to main. Do not touch the live checkout, the running service, .env, or anything under ~/pocket-web. Keep LICENSE, NOTICE and the research-prototype notice." After each PR: a link check across README, SAFETY.md, REFERENCE, WORK_ORDER and the site, and the full suite.
 
+**Phase 2b, TODO.md into v1.1 (owner ruling 3: "First move its deferred findings into the one canonical list (the v1.1 section of WORK_ORDER), fix the README and FINDINGS references to point there, then archive TODO.md"):**
+- Every open deferred finding in `TODO.md` is now in v1.1, condensed, under "Carried from TODO.md". Each names its heading in the archived full text (`docs/archive/v4/TODO_v4.md`).
+- Statuses are as recorded, except where a later item closed one, now marked: D5a for the response preview, A36 for DP-6, A13 for DP-7, and the signing batches for the owed contracts. The three substring matches are confirmed still in the code.
+- Roadmap entries and closed items are listed as not carried, with the reason.
+- README and `FINDINGS.md` (AE-2, DP-6, DP-7) point to v1.1. The equipment-precondition xfail reason and two SC-5 comments name v1.1. Labels only: no assertion changed.
+
 **Phase 2a, docs archive and layout:**
 - `docs/archive/` gains `v4/` (the 4.0, 4.1 and 4.3 technical notes, the v4 explainer, the project overview), `benchmarks/` (four distillation benches), `items/` (twelve finished item records) and `signing/` (six draft batches and packets). It has a one-page index, and `docs/README.md` is the short index of current docs.
 - `FINDINGS.md` moves into `docs/`. The project overview's research positioning and commitments now sit in the README.
@@ -2795,6 +2801,75 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **Signed in batch 3 but not reached on their main path** (signing batch 3 live harness, 2026-10-21; nothing wrong served, owner to place): the push-dose prep card narrows epinephrine entries by the word "shock" in the label, so "push dose epinephrine for hypotension" refuses instead of serving E05 (**fixed by the E05 relabel**); the haemorrhagic-shock pre-gate answers "calcium chloride dose" after 4 units with TXA only; a rate entry (E06 epinephrine for refractory shock, E18 propofol infusion) is not offered to the generator, so "propofol infusion rate for sedation" held (the label check read induction) and "epinephrine infusion rate" in shock held on a 1 mg answer. Midazolam for pacing served the ID61 1 mg (same class as E13's 2.5–5 mg) (**fixed by the pacing match**).
 - **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked. Since A34 it is offered the IM entry only.
 - **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21). **Fixed by A35** (owner, 2026-10-22). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
+
+**Carried from `TODO.md` (owner, 2026-11-18: one canonical list).**
+
+These are the deferred findings and their residual risks from the 4.x roadmap. Each is condensed; the full text, with its evidence, is in [`docs/archive/v4/TODO_v4.md`](archive/v4/TODO_v4.md) under the heading named in brackets. Status is as recorded there unless a later item is named. "Not re-checked" means nobody has looked at the code for it since.
+
+- **SAFE gate questions drop validator objections** [v4.1, found during implementation]: `is_safe_gate_response()` returns SAFE with no issues for whitelisted gate questions. Not re-checked.
+- **The 200-character response preview limits every audit** [same]: **fixed by D5a (#111)**. The log carries the full `response` and `held_response`.
+- **Knowledge-base scope** [v4.1, deferred by owner decision]: still open:
+  - curated corpus expansion (DKA, angioedema, tropical infectious disease, dysrhythmia);
+  - measuring whether the general fallback moved the "it just denies anything" complaint rate;
+  - Q-1, the generator's own non-medical refusal.
+- **SC-9**: a second `patient_is_known_or_possible_pediatric` copy gates `SEIZURE_PEDIATRIC`; an elderly seizure patient with no confirmed weight is paediatric-gated. Not re-checked.
+- **SC-7 (full)**: `ALLOWED_ACTIONS` text reaches the prompt without passing the contract. Guarded by a meta-test, not fixed.
+- **S-3**: a status-epilepticus question with no weight gets a hold, where a weight-free protocol answer would serve. Accept, or widen the trigger; **needs an owner decision**.
+- **SC-4**: the "monitor" and "fluid" overrides are tautological. Reduced by SC-3 to banners.
+- **SC-5**: the paediatric-weight override doesn't verify weight ownership. Largely superseded by SC-1, and pinned by `test_pediatric_override_sc5_gap_is_pinned`.
+- **SC-8**: within one patient, the generator can echo a dose from a prior turn.
+- **T-4**: validator non-determinism. Tests may pin what the gate does with a verdict, never the verdict.
+- **Measurement owed** [v4.1]:
+  - whether Q-3 improved retrieval and not just alias matching (re-run the 135 logged queries);
+  - the DKA vent card (a clinical call).
+- **Vitals** [Vitals, carried forward]:
+  - the caution table (six rules) is not clinically signed off;
+  - measure the caution rate before widening it;
+  - staleness is displayed but not enforced;
+  - the built-in fallback band in `vitals.py` is still 35 °C / 93 °F;
+  - no structured vitals entry.
+- **Parsing** [Clinical parsing fixes]:
+  - a bare mid-sentence "im" must not select IM. Not re-checked.
+  - the overdose detector: "succs" and a lorazepam ceiling. The ceilings are signed since A36; "succs" and lorazepam not re-checked.
+  - "MAP 90" reads as shock on the word, not the value.
+  - substrings: `is_cico_query` "cric" matches *cricoid*; the ketamine analgesia context "ket " matches *blanket*; `is_analg` "arm" matches *warm*, *harm*, *alarm*. **All three still in the code (2026-11-18).**
+  - the ketamine dose-candidate condition is a tautology.
+- **Dose provenance** [Dose provenance]:
+  - DP-6, ceilings that never read the bank: **fixed by A36 (5.1.0)**;
+  - DP-7, `safety_rules.json`: **fixed by A13 (#110)**;
+  - signed contracts owed for the free-text holds: superseded by signing batches 1–4, whose open drafts are listed above.
+- **Safety gate** [Safety gate]: the validator invents equipment preconditions and blocks contract-signed doses (`server/tests/test_equipment_precondition.py`: two strict xfails, four holes that must stay blocked). A fix must key on the signed indication and fail closed.
+- **Cards owed** [Deterministic cards owed]:
+  - a weight-only infant guard for ketamine (< 5 kg, age unknown: ask the age). Not re-checked.
+  - a post-intubation TBI management card. A2 (#84) is the severe-TBI card; post-intubation management not re-checked.
+- **API hardening** (the hardening that answers AE-2; see `FINDINGS.md`):
+  - real rate limiting (`rate_limit_remaining` is still hardcoded);
+  - /feedback authentication and field caps;
+  - an admin token for /feedback/summary;
+  - restricted CORS origins (`allow_origins=["*"]` today);
+  - LLM calls off the event loop;
+  - 503 on an empty knowledge base.
+- **Retrieval** [Retrieval]:
+  - no human field heat-injury CPG (snake envenomation the same);
+  - narrative dilution of multi-topic queries;
+  - measure the router before simplifying it;
+  - a HIGH-confidence route can't reach its document;
+  - PDF ligature corruption (re-ingest with NFKC);
+  - `classify_retrieval` clamps at zero.
+- **Brief first** [Brief first, follow-ups]:
+  - the owner's review of the brief's "critical" rule and folded headings;
+  - new portal screenshots;
+  - the validator's own max_tokens stop is not flagged;
+  - the notice is not spoken;
+  - truncation rates on haiku-4-5 and gpt-4o unmeasured. That last one ends with the cloud providers' removal.
+  - logging `brief`.
+  - The voice item is not re-checked against the rule that voice speaks only the brief.
+
+Not carried, because they are roadmap rather than findings, or are closed:
+- docs owed for 4.2.0 (superseded by 5.x);
+- the research items (the cross-model harness, field deployment, the scored 30-set runner, feedback tooling);
+- "Project 02: EdgeCDSS Offline" (done as C2/C3 and the local default);
+- the thin-client items (client retired, owner 2026-11-18).
 
 **The found list:**
 

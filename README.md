@@ -156,7 +156,7 @@ every response, the multi-provider model grid, an emergency security patch, and 
 cover both releases.
 
 Full detail in [`CHANGELOG.md`](CHANGELOG.md); what each release knowingly deferred, and the
-residual risk of each deferral, in [`TODO.md`](TODO.md).
+residual risk of each deferral, in the v1.1 section of the [work order](docs/WORK_ORDER.md#v11-owner-2026-10-11-everything-on-the-found-list-not-in-the-v10-scope).
 
 ## Architecture
 
@@ -456,9 +456,8 @@ measured.
 |---|---|
 | [`SAFETY.md`](SAFETY.md) | What the system guarantees, what it does not, and how a change is made safely |
 | [`CHANGELOG.md`](CHANGELOG.md) | Full release history, including the complete 5.0 entry |
-| [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md) · [`docs/REFERENCE.md`](docs/REFERENCE.md) | The work order of record, and the one-line meaning and status of every item |
+| [`docs/WORK_ORDER.md`](docs/WORK_ORDER.md) · [`docs/REFERENCE.md`](docs/REFERENCE.md) | The work order of record, and the one-line meaning and status of every item. Its v1.1 section is the one list of open and deferred findings, with their residual risk |
 | [`docs/FINDINGS.md`](docs/FINDINGS.md) | The finding-identifier legend — what `F-`, `S-`, `AE-` and `DP-` mean, where each canonical list lives, and what states a finding can be in |
-| [`TODO.md`](TODO.md) | Roadmap, and every audit finding a release knowingly deferred with its residual risk |
 | [`docs/README.md`](docs/README.md) | Index of the current documentation |
 | [`docs/authoring/`](docs/authoring/) | Signing: the process (`SIGNING.md`), kit declarations, and the generated worksheets for the clinician (re-run `server/tools/gen_*.py`, never hand-edit) |
 | [`docs/archive/`](docs/archive/README.md) | History: releases 1.0–4.3 (technical notes, the v4 explainer), past benchmarks, finished item records, signing drafts |

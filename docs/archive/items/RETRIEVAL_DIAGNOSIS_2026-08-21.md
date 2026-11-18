@@ -119,7 +119,7 @@ deploy rather than a patch.
 ## What was changed here
 
 Only the log line, so the next person reads a cosine instead of a clamped score.
-Everything else is scoped in TODO.md under *Retrieval*, for the eval-harness
+Everything else is scoped in docs/archive/v4/TODO_v4.md under *Retrieval*, for the eval-harness
 phase where a routing change can actually be scored:
 
 - query construction for multi-topic narratives (clause splitting, multi-query,
