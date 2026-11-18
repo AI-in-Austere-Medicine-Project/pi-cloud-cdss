@@ -2802,7 +2802,7 @@ Placed in 5.0.0 and done: the caution rule (#155, #156), the hypothermic-arrest 
 - **"versed dose IM" is answered rather than asked** (signing batch 3 replay, A1-WT-013): the which-indication question counts the stated route's entries, and adult IM midazolam now has one (U12, sedation / anxiolysis). The one newly released row of batch 3. Owner to rule whether a single-route entry should still be asked. Since A34 it is offered the IM entry only.
 - **"ketamine for pain IM" gets the legacy calculator's 2 mg/kg** (found in the A34 live harness, 2026-10-21). **Fixed by A35** (owner, 2026-10-22). The ketamine analgesia pre-gate looks up the signed analgesia entry by "moderate to severe pain" (`ANALGESIA_INDICATIONS`), and the adult bank's IM pain entry is "breakthrough pain — IM/IN (prolonged field care)" (0.5 mg/kg, 40 mg at 80 kg). Finding none, the card serves the legacy IM calculator: "ketamine IM: 160 mg … Indication: dissociative analgesia (IM — no IV access)", with a SOURCE line that says the bank holds no IM analgesia entry.
 
-**Carried from `docs/archive/v4/TODO_v4.md` (owner, 2026-11-18: one canonical list).**
+**Carried from `TODO.md` (owner, 2026-11-18: one canonical list).**
 
 These are the deferred findings and their residual risks from the 4.x roadmap. Each is condensed; the full text, with its evidence, is in [`docs/archive/v4/TODO_v4.md`](archive/v4/TODO_v4.md) under the heading named in brackets. Status is as recorded there unless a later item is named. "Not re-checked" means nobody has looked at the code for it since.
 
