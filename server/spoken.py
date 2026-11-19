@@ -444,7 +444,7 @@ def _which_indication(response: str):
     one openai_client.which_indication_question writes from INDICATION_CLASSES:
     the options are matched against that fixed list and the question must
     rebuild from them word for word."""
-    from openai_client import INDICATION_CLASSES, INDICATION_QUESTION_PREFIX
+    from openai_client import INDICATION_CLASSES, INDICATION_QUESTION_PREFIX, REFRACTORY_SEIZURE_OPTION
     text = response.strip()
     if not text.startswith(INDICATION_QUESTION_PREFIX) or not text.endswith("?"):
         return None
@@ -452,7 +452,9 @@ def _which_indication(response: str):
     if not sep:
         return None
     words, taken = [], []
-    for w in sorted({w for _n, w, _l, _c in INDICATION_CLASSES}, key=len, reverse=True):
+    # The fixed list, and the one option worded per drug (owner, 2026-11-19).
+    options = {w for _n, w, _l, _c in INDICATION_CLASSES} | {REFRACTORY_SEIZURE_OPTION}
+    for w in sorted(options, key=len, reverse=True):
         for m in re.finditer(re.escape(w), tail):
             if not any(m.start() < b and a < m.end() for a, b in taken):
                 taken.append((m.start(), m.end()))
