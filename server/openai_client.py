@@ -1788,6 +1788,11 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
         question = which_indication_question(combined_ctx, ctx)
         if question:
             return "ASK", question
+        # No question because one indication is signed (owner, 2026-11-19):
+        # remembered for this turn, so _finalise can state it.
+        single = single_unstated_indication(combined_ctx, ctx)
+        if single:
+            ctx._single_signed_indication = single
 
     # Pain severity (owner, #164 review): asked, never inferred. After weight
     # and route, which gate the milligrams; outside the dose-request test,
@@ -2310,6 +2315,41 @@ def _option_word(cls: str, word: str, offered) -> str:
         if mine and all(i.startswith("refractory seizure") for i in mine):
             return REFRACTORY_SEIZURE_OPTION
     return word
+
+
+def single_unstated_indication(history: str, ctx: PatientContext) -> Optional[tuple]:
+    """(drug, indication) when the request states no indication for a drug it
+    names and the drug's offered doses carry exactly one indication, so no
+    indication question is asked; None otherwise."""
+    if drug_contracts is None:
+        return None
+    low = history.lower()
+    stated = stated_indication_classes(history)
+    signed = drug_contracts.servable_entries()
+    offers = build_allowed_doses(history, ctx)
+    for drug in drug_contracts.resolve_drugs(low):
+        if stated & {indication_class(e["indication"]) for e in signed.get(drug, [])}:
+            continue
+        indications = list(dict.fromkeys(d.indication for d in offers if d.drug == drug))
+        if len(indications) == 1:
+            return drug, indications[0]
+    return None
+
+
+def state_single_indication(text: str, drug: str, indication: str) -> str:
+    """Owner, 2026-11-19: "If the indication question is skipped, the answer must
+    state the indication, same rule as the route line." Unchanged if no line
+    names the drug or a line naming it already gives an indication."""
+    lines = text.split("\n")
+    naming = [i for i, l in enumerate(lines) if drug in l.lower()]
+    if not naming or any("indication" in lines[i].lower() or indication.lower() in lines[i].lower()
+                         for i in naming):
+        return text
+    first = naming[0]
+    bullet = "- " if lines[first].lstrip().startswith("- ") else ""
+    lines.insert(first + 1, f"{bullet}Indication: {indication} (the only signed indication for "
+                            f"{drug} in this set; none was stated).")
+    return "\n".join(lines)
 
 
 def which_indication_question(history: str, ctx: PatientContext) -> Optional[str]:
@@ -8774,6 +8814,9 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     single = getattr(ctx, "_single_signed_route", None)
     if single and result.get("validator_result") != "UNSAFE":
         result["response"] = state_single_route(result.get("response", ""), *single)
+    single = getattr(ctx, "_single_signed_indication", None)
+    if single and result.get("validator_result") != "UNSAFE":
+        result["response"] = state_single_indication(result.get("response", ""), *single)
 
     if result.get("source_mode") not in GATED_SOURCE_MODES:
         cautions = vitals_mod.conflicts(
