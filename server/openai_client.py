@@ -3470,9 +3470,14 @@ def served_source_line(served: List[DoseCandidate], legacy_label: str) -> str:
 def jts_contract_citations(response_text: str,
                            allowed_doses: Optional[List[DoseCandidate]],
                            patient_ctx: Optional[PatientContext] = None,
-                           query: Optional[str] = None) -> list:
+                           query: Optional[str] = None,
+                           require_jts: bool = True) -> list:
     """The served contract entries' citations, or [] unless every served dose
-    is from a JTS-cited signed contract entry."""
+    is from a signed contract entry with a JTS citation. With `require_jts`
+    False, an EMS entry's own citation also counts (owner, 2026-11-19: "when a
+    served answer's dose comes from a signed EMS entry, the SOURCE line must
+    name that entry's signed source"); a PFC entry still needs a JTS citation
+    (B1: a NASEMSO-only dose stays general)."""
     if not allowed_doses or drug_contracts is None:
         return []
     served = [(drug_s, [float(mg_s)]) for _v, _c, drug_s, mg_s
@@ -3497,7 +3502,8 @@ def jts_contract_citations(response_text: str,
                 return []
             entry_cites = [src.get("citation") for src in entry.get("sources") or []
                            if src.get("citation")]
-            if not any(c.startswith("JTS") for c in entry_cites):
+            jts_needed = require_jts or entry.get("set") != "EMS"
+            if not entry_cites or (jts_needed and not any(c.startswith("JTS") for c in entry_cites)):
                 return []
             cites.extend(entry_cites)
     return list(dict.fromkeys(cites))
@@ -9627,11 +9633,14 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         if not use_general and not outcome.blocked:
             cites = jts_contract_citations(
                 response_text, indication_matched(full_query_history, allowed_doses),
-                patient_ctx, full_query_history)
+                patient_ctx, full_query_history, require_jts=False)
             if cites:
                 final_response = with_contract_source_line(
                     final_response, cites, assessment.source_mode == "JTS_GROUNDED")
-                assessment.source_mode = "JTS_GROUNDED"
+                # JTS_GROUNDED only when every cited source is a JTS one: an EMS
+                # entry's formulary is a signed source, not a JTS guideline.
+                if all(c.startswith("JTS") for c in cites):
+                    assessment.source_mode = "JTS_GROUNDED"
         # Severity advisory (owner, #164 review): after the gate, served answers
         # only, like every label above. Soft: the verdict and the doses stand.
         advisory = (None if outcome.blocked
