@@ -205,21 +205,32 @@ KETAMINE_Q = "80 kg adult, ketamine dose IV"
 REFRACTORY = "refractory seizure (benzodiazepine already given)"
 
 
+def _ketamine_question():
+    """The indication question, after the vial question where the kit asks it."""
+    hist, r = [], run(KETAMINE_Q)
+    hist.append({"query": KETAMINE_Q, "response": r["response"]})
+    if r["response"].startswith("Which ketamine do you have"):
+        vial = r["response"].split("—", 1)[1].split("(")[0].strip()
+        r = run(vial, hist)
+        hist.append({"query": vial, "response": r["response"]})
+    return r["response"], hist
+
+
 def test_the_ketamine_question_offers_refractory_seizure(card_only):
-    asked = run(KETAMINE_Q)["response"]
+    asked, _ = _ketamine_question()
     assert asked.startswith(oc.INDICATION_QUESTION_PREFIX + "ketamine"), asked
     assert REFRACTORY in asked and ", seizure or" not in asked and "seizure, " not in asked, asked
 
 
 def test_the_refractory_option_reaches_the_signed_ketamine_entry(card_only):
-    asked = run(KETAMINE_Q)["response"]
-    r = run(REFRACTORY, [{"query": KETAMINE_Q, "response": asked}])
+    _, hist = _ketamine_question()
+    r = run(REFRACTORY, hist)
     give = [l for l in r["response"].splitlines() if "ketamine IV" in l and "160 mg" in l]
     assert give, r["response"][:600]
     assert "Indication: refractory seizure (benzodiazepine-refractory)" in r["response"]
 
 
 def test_plain_seizure_still_goes_to_the_seizure_card(card_only):
-    asked = run(KETAMINE_Q)["response"]
-    r = run("seizure", [{"query": KETAMINE_Q, "response": asked}])
+    _, hist = _ketamine_question()
+    r = run("seizure", hist)
     assert r["response"].startswith("**ACTIVE SEIZURE**") and "lorazepam" in r["response"], r["response"][:300]

@@ -2265,6 +2265,22 @@ def other_indication_issues(response_text: str, other: list, query: str,
     return list(dict.fromkeys(issues))
 
 
+REFRACTORY_SEIZURE_OPTION = "refractory seizure (benzodiazepine already given)"
+
+
+def _option_word(cls: str, word: str, offered) -> str:
+    """The option as offered (owner, 2026-11-19): a drug signed for seizure only
+    as refractory to benzodiazepines (ketamine) offers "refractory seizure
+    (benzodiazepine already given)". That answer reaches its signed entry
+    through the seizure card's second line; plain "seizure" is the card's
+    benzodiazepine first line."""
+    if cls == "seizure":
+        mine = [d.indication.lower() for d in offered if indication_class(d.indication) == cls]
+        if mine and all(i.startswith("refractory seizure") for i in mine):
+            return REFRACTORY_SEIZURE_OPTION
+    return word
+
+
 def which_indication_question(history: str, ctx: PatientContext) -> Optional[str]:
     """The question to ask when a named drug would be offered in more than one
     class and the history states none of them; None otherwise."""
@@ -2292,7 +2308,8 @@ def which_indication_question(history: str, ctx: PatientContext) -> Optional[str
                     or (ctx.route_preference == "IV" and d.route == "IO")]
         classes = {indication_class(d.indication) for d in (on_route or mine)}
         if len(classes) > 1:
-            words = [w for name, w, _l, _c in INDICATION_CLASSES if name in classes]
+            words = [_option_word(name, w, on_route or mine)
+                     for name, w, _l, _c in INDICATION_CLASSES if name in classes]
             return (f"{INDICATION_QUESTION_PREFIX}{drug} — "
                     f"{', '.join(words[:-1])} or {words[-1]}?")
     return None
