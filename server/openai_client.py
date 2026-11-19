@@ -9,7 +9,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 26 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 27 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -1566,6 +1566,38 @@ def _needs_weight_to_dose(text: str, ctx: PatientContext) -> bool:
     return per_kg and not any(d.drug in named for d in build_allowed_doses(text, ctx))
 
 
+def _has_child_entry(drug: str, ctx: PatientContext) -> bool:
+    """A servable entry of this drug, in the active set, for a child of this age."""
+    for e in drug_contracts.servable_entries().get(drug, []):
+        if "peds" not in (e.get("population") or ""):
+            continue
+        if drug_contracts.age_exclusion(e, ctx.age_years) is not None:
+            continue
+        band = drug_contracts._age_band(e)
+        if band is not None and ctx.age_years is not None and not band[0] <= ctx.age_years < band[1]:
+            continue
+        return True
+    return False
+
+
+def drugs_with_no_child_entry(text: str, ctx: PatientContext) -> list:
+    """Owner, 2026-11-19: "Child with no child entry for that drug in the active
+    set: hold at once ... Never ask for a weight first." The signed drugs the
+    request names, when none of them has a child entry; empty when any does (a
+    weight could then dose) or nothing signed is named (A39 holds that)."""
+    named = [d for d in drug_contracts.resolve_drugs(text)
+             if drug_contracts.servable_entries().get(d)]
+    if not named or any(_has_child_entry(d, ctx) for d in named):
+        return []
+    return named
+
+
+def no_child_entry_hold_issue(drugs: list) -> str:
+    names = " or ".join(drugs)
+    return (f"No signed dose of {names} for a child. EdgeCDSS has no signed paediatric "
+            f"entry for {names}, so it gives no dose: use local protocol or medical control.")
+
+
 def _fixed_dose_waits_for_adult(text: str, ctx: PatientContext) -> bool:
     """Something would be offered for this request once an adult is established."""
     return bool(build_allowed_doses(text, dc_replace(ctx, adult_confirmed=True)))
@@ -1589,7 +1621,7 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
              answered_pending: bool = False) -> tuple:
     """
     Deterministic pre-gate before any LLM call.
-    Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
+    Returns: ("ASK", response) | ("BLOCK", response) | ("HOLD", issue) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
     `cue_query` is the turn indication cues are read from (severity_cue_query).
     `prior_queries` and `request_query` are scope_request's: drugs this turn
@@ -1605,6 +1637,13 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
     )
 
     if current_or_pending_med_request:
+        # A child, and no child entry for any drug named (owner, 2026-11-19):
+        # hold now. Before the weight questions, which no weight could answer.
+        if ctx.is_pediatric and drug_contracts is not None:
+            no_child = drugs_with_no_child_entry(combined_ctx, ctx)
+            if no_child:
+                return "HOLD", no_child_entry_hold_issue(no_child)
+
         # Hedged weight gate (F-1). Before the paediatric ask because it is the
         # more specific question: the session HAS a number and needs it stood
         # behind, which is not the same request as "tell me a weight".
@@ -8584,7 +8623,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    twenty-six early returns before retrieval — count them with the source_mode
+    twenty-seven early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -9243,6 +9282,13 @@ def _run_pipeline(query: str, chromadb_client,
             last_response=_last_response,
             cue_query=cue_query, request_query=request_query,
             answered_pending=answered_pending)
+        if gate_action == "HOLD":
+            # A safety hold, not a question (owner, 2026-11-19): the child rule.
+            print(f"🛑 PRE-GATE [HOLD]: {gate_response}")
+            return {"response": build_safety_hold([gate_response], ""),
+                    "sources": [], "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "UNSAFE", "validator_issues": [gate_response],
+                    "patient_context": patient_ctx.to_dict()}
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
             # The "Vial math" chip lands on the which-vial question, and only
