@@ -1340,6 +1340,69 @@ def state_single_route(text: str, drug: str, route: str) -> str:
     return "\n".join(lines)
 
 
+CHEST_PAIN_RE = re.compile(r"(?<!no )(?<!denies )(?<!without )(?<!not )\bchest\s+pain\b", re.IGNORECASE)
+
+
+def _general_pain_drugs_served(text: str, ctx: "PatientContext") -> list:
+    """The drugs whose served dose (each canonical GIVE line, and each dose the
+    free-text check accepted) matches a general pain entry's offered dose
+    within 5%. A general pain entry is a pain entry _signed_for_asked keeps
+    (not EMS aspirin's cardiac chest pain)."""
+    request = getattr(ctx, "_request_text", None)
+    if not request or drug_contracts is None:
+        return []
+    allowed = build_allowed_doses(request, ctx)
+    by_source = {_contract_source(name, e): e
+                 for name, entries in drug_contracts.servable_entries().items() for e in entries}
+    pain = [d for d in allowed if dose_is_from_contract(d) and "pain" in d.indication.lower()
+            and by_source.get(d.source) is not None
+            and _signed_for_asked(by_source[d.source], ("pain",))]
+    if not pain:
+        return []
+    served = [(drug_s, [float(mg_s)]) for _v, _c, drug_s, mg_s
+              in re.findall(CANONICAL_GIVE_RE, text or "", re.IGNORECASE)]
+    free_text_dose_issues(text, allowed, ctx, request, accepted=served)
+    out = []
+    for drug_s, values in served:
+        words = drug_s.lower().split()
+        for d in pain:
+            if (any(d.drug.lower() in w or w in d.drug.lower() for w in words)
+                    and any(abs(v - d.dose_mg) <= d.dose_mg * 0.05 + 1e-9 for v in values)
+                    and d.drug not in out):
+                out.append(d.drug)
+    return out
+
+
+def chest_pain_caution(text: str, ctx: "PatientContext") -> str:
+    """Owner ruling, 2026-11-19: when chest pain is stated in the conversation
+    and the served dose comes from a general pain entry, a fixed line directly
+    under its GIVE line, naming any stated vital the existing caution rules
+    class as abnormal. Additive only: no dose or verdict changes."""
+    conversation = getattr(ctx, "_conversation_text", None)
+    if not conversation or not CHEST_PAIN_RE.search(conversation):
+        return text
+    drugs = _general_pain_drugs_served(text, ctx)
+    if not drugs:
+        return text
+    findings = ["chest pain"] + vitals_mod.abnormal_stated(ctx.vitals)
+    if len(findings) == 1:
+        said = ("Caution: chest pain was reported for this patient. This is the general pain "
+                "dose and has not been checked against that finding.")
+    else:
+        named = ", ".join(findings[:-1]) + " and " + findings[-1]
+        said = (f"Caution: {named} were reported for this patient. This is the general pain "
+                "dose and has not been checked against those findings.")
+    lines = (text or "").split("\n")
+    give = next((i for i, l in enumerate(lines) if "GIVE" in l), 0)
+    for drug in drugs:
+        at = next((i for i in range(give, len(lines)) if drug in lines[i].lower()), None)
+        if at is None or said in lines[at + 1:at + 2] or ("- " + said) in lines[at + 1:at + 2]:
+            continue
+        bullet = "- " if lines[at].lstrip().startswith("- ") else ""
+        lines.insert(at + 1, bullet + said)
+    return "\n".join(lines)
+
+
 def has_pending_route_sensitive_request(prior_queries: str) -> bool:
     return route_changes_dose(prior_queries or "")
 
@@ -8823,6 +8886,9 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     single = getattr(ctx, "_single_signed_indication", None)
     if single and result.get("validator_result") != "UNSAFE":
         result["response"] = state_single_indication(result.get("response", ""), *single)
+    # Last of the added lines, so it sits directly under the GIVE line.
+    if result.get("validator_result") != "UNSAFE":
+        result["response"] = chest_pain_caution(result.get("response", ""), ctx)
 
     if result.get("source_mode") not in GATED_SOURCE_MODES:
         cautions = vitals_mod.conflicts(
@@ -8950,6 +9016,9 @@ def _run_pipeline(query: str, chromadb_client,
         # previous patient's drug, dose or vitals cannot reach them.
         conversation_history = list((conversation_history or [])[patient_start:])
         prior_queries, full_query_history = build_full_query_history(query, conversation_history)
+        # This patient's whole conversation, before the request is scoped: what
+        # was reported (chest pain) is read from here by _finalise.
+        patient_ctx._conversation_text = full_query_history
         # Owner, 2026-10-24: a pending question clears when this turn names a
         # different drug, negates it, or does not answer it (scope_request).
         # Everything below that reads drugs from the history reads this.
@@ -8957,6 +9026,7 @@ def _run_pipeline(query: str, chromadb_client,
         prior_queries, request_query, answered_pending = scope_request(
             query, prior_queries, _last_response)
         full_query_history = f"{prior_queries} {request_query}".strip()
+        patient_ctx._request_text = full_query_history
         if state is not None:
             # The live context, not its dict form: _finalise needs the
             # VitalReading objects the caution table reads.
