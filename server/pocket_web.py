@@ -52,7 +52,8 @@ MAX_TURNS_KEPT = 500
 FEEDBACK_FILE = "pocket_feedback.jsonl"
 
 # The "How to test" panel: five phrases, said in this order on a fresh session, and
-# what the pinned engine answers (test_pocket_web pins every word).
+# what the pinned engine answers, as shown on screen (its written form; test_pocket_web
+# pins every word).
 EXAMPLES = [
     ("ketamine for agitation iv eighty kilos", "Ketamine, agitation, IV, eighty kilos. Confirm?"),
     ("confirm", "Ketamine one hundred and sixty milligrams. Three point two mils of fifty."),
@@ -315,7 +316,9 @@ class Runtime:
             audio = self.synth(turn.text)
             t2 = time.perf_counter()
         turn_id = uuid.uuid4().hex[:16]
-        answer = {"kind": turn.kind, "say": turn.say, "after": list(turn.after), "text": turn.text}
+        # Two forms (Pocket #10, owner 2026-11-19): "text" is shown (route letters),
+        # "spoken" is what Piper says (routes as words).
+        answer = {"kind": turn.kind, "text": turn.written_text, "spoken": turn.text}
         timings = {"hear_ms": hear_ms, "engine_ms": round((t1 - t0) * 1000, 1),
                    "synth_ms": round((t2 - t1) * 1000, 1)}
         record = {"event": "turn", "time": _now(), "session_id": sid, "turn_id": turn_id,

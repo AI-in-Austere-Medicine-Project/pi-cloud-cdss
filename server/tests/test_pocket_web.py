@@ -527,7 +527,8 @@ def test_the_screen_shows_letters_and_the_voice_says_words(client, phrase):
         assert base64.b64decode(r["audio_wav_b64"]) == fake_synth(r["spoken"])
     _say(client, "new patient")
     first = _say(client, phrase).json()
-    assert BARE_ROUTE.search(first["text"]) and SPOKEN_ROUTE.search(first["spoken"]), first
+    assert BARE_ROUTE.search(first["text"]), first
+    assert SPOKEN_ROUTE.search(first["spoken"]) or "intranasal" in first["spoken"], first
 
 
 @needs_checkout

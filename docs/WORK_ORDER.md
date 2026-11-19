@@ -128,6 +128,7 @@ Owner asks outside the lettered items:
 | EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **done**: #203, merged 2026-11-15 |
 | W1, Pocket on the web for outside testers (owner, 2026-11-15): `/pocket` runs the pinned Pocket code (Vosk with its grammar, its engine and templates, Piper); PFC only; product-pocket logs outside the replay sets; one talker at a time | **done**: #204, merged and deployed 2026-11-15; release → first audio through the tunnel measured (median 471 ms) |
 | W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **done**: #206, merged and deployed 2026-11-15 |
+| W1 pin bump to Pocket's voice work (owner, 2026-11-19): `pocket_pin.json` → Pocket main after #10 (`844cdfe`: #9's confirm step and routes said as words, #10's written form); the page shows the written form (IV, IM, IO, IN, PO, NEB) and plays the spoken one | **in review** (see the section below) |
 | Site tidy-up (owner, 2026-11-15): the new index; ethics and release-notes pages restyled to it through one `web/site.css`; facts and links checked | **done**: #207; the shared notice wording #209 (owner, 2026-11-16) |
 | Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | done, #210 |
 | Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | done, #211 |
@@ -1440,6 +1441,19 @@ Every link resolved: 14 on the draft and 3 release links, all 200. Discussions a
 **Tests** (failing first, `server/tests/test_site.py`, 19): one stylesheet with light and dark, no page-local styles or web fonts; the back link; wording unchanged; every local link resolves; old paths stay; the version matches `version.py`; the notice; each release link; the Pocket line.
 
 **Replay:** against main (`36ec28c`), PFC and EMS, each through served, held, gate, log and pipe: every output file byte-identical (`cmp`); 0 changed. Only `web/` and one test file change.
+
+
+### W1 pin bump: Pocket's voice work (owner, 2026-11-19)
+
+**Owner:** "Route spelling choices: IV = "eye vee"; IM = "eye em"; IO = "eye oh"; IN = "intranasal"; PO = "pee oh"; NEB = "nebuliser". Apply them to every spoken line, finish the Pocket voice PR with the confirm-step changes ... Then give me the EdgeCDSS pin bump so the web page picks it up." Then: "Pocket should return two forms of each answer: the spoken form for the voice, and a written form for display that uses IV, IM, IO, IN, PO and NEB. The page shows the written form and plays the spoken form. Failing test first: no on-screen answer contains "eye vee" or "pee oh", and the audio text still does. One Pocket PR, then the pin bump." Then: "Make one pin bump, not two: point the pin at #10's merge commit, with the page showing the written form and playing the spoken form. Drop the separate bump to #9."
+
+**What changed.** `server/pocket_pin.json` names Pocket `844cdfe` (main after #10, which follows #9). Pocket #9: the confirm step (owner rulings 2026-11-16) and routes said as words. Pocket #10: every turn also carries a written form (`Turn.written_text`) with the route letters. `pocket_web.Runtime.turn` returns `text` = the written form, shown on the page, and `spoken` = the spoken form, which Piper says; the old `say` and `after` fields are gone (nothing read them; the turn and feedback logs record both forms). The "How to test" panel shows the written form, so its five answers are unchanged. The page intro names the confirm words ("confirm", "yes", "correct" or "affirmative"; "no" or "cancel" cancels).
+
+**Tests** (failing first, `server/tests/test_pocket_web.py`): the pin is `844cdfe`; for five route phrases and their "why", "repeat" and dose turns, no on-screen text says "eye vee", "eye em", "eye oh", "pee oh" or "nebuliser", no audio text has a bare route, and the audio is the spoken text; the PO read-back and the heard IM-or-IN question in both forms; the page shows `d.text` and never the spoken field; each confirm word doses through the web, each cancel word says "Cancelled." and no dose follows, two misses cancel. The old test that pinned #5's commit now checks the pin has moved past it; the device-flow test compares `text` with the written form and `spoken` with the spoken one. Run against Pocket installed at the pin in a scratch `POCKET_HOME` (not `~/pocket-web`), with the real Vosk model and Piper voice: the Pocket web and teach tests, 101 passed.
+
+**Replay:** see the PR.
+
+**Deploying** (the owner's step, after merge): `/home/andrew/deploy_pocket.sh`.
 
 
 ### W1 pin bump: Pocket's hearing fixes (owner, 2026-11-15)
