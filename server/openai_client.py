@@ -2756,10 +2756,12 @@ def _pain_entries_by_severity(ctx: PatientContext) -> dict:
             if why:
                 withheld.setdefault(name, why)
             elif (_contract_candidate(name, entry, ctx.dosing_weight_kg) is None
-                  or not ctx.adult_established):
+                  or not (ctx.adult_established or ctx.is_pediatric)):
                 # A per-kg entry with no weight resolves to nothing, and with no
                 # age nothing builds at all (build_allowed_doses): a weight
-                # answers both.
+                # answers both. A child is established as a child, so with a
+                # weight known the entry is offered, not "needs a weight"
+                # (owner, 2026-11-19).
                 unweighed.append(name)
             elif name not in offered:
                 offered.append(name)
