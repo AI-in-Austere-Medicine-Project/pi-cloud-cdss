@@ -192,3 +192,34 @@ def test_no_signed_iv_or_im_route_holds(card_only, monkeypatch):
     r = run("80 kg adult, ketamine for pain")
     assert r["validator_result"] == "UNSAFE", r["response"][:300]
     assert "no signed iv or im dose of ketamine" in r["response"].lower(), r["response"][:300]
+
+
+# ── 4. Ketamine's seizure option names the refractory seizure ───────────────
+# Owner: "Ketamine indication question on PFC: the option reads "refractory seizure
+# (benzodiazepine already given)" and reaches the signed ketamine entry. Plain
+# "seizure" still goes to the seizure card." Found: the option read "seizure", and that
+# answer went to the active-seizure card (lorazepam 4 mg), never to ketamine's signed
+# refractory-seizure entry.
+
+KETAMINE_Q = "80 kg adult, ketamine dose IV"
+REFRACTORY = "refractory seizure (benzodiazepine already given)"
+
+
+def test_the_ketamine_question_offers_refractory_seizure(card_only):
+    asked = run(KETAMINE_Q)["response"]
+    assert asked.startswith(oc.INDICATION_QUESTION_PREFIX + "ketamine"), asked
+    assert REFRACTORY in asked and ", seizure or" not in asked and "seizure, " not in asked, asked
+
+
+def test_the_refractory_option_reaches_the_signed_ketamine_entry(card_only):
+    asked = run(KETAMINE_Q)["response"]
+    r = run(REFRACTORY, [{"query": KETAMINE_Q, "response": asked}])
+    give = [l for l in r["response"].splitlines() if "ketamine IV" in l and "160 mg" in l]
+    assert give, r["response"][:600]
+    assert "Indication: refractory seizure (benzodiazepine-refractory)" in r["response"]
+
+
+def test_plain_seizure_still_goes_to_the_seizure_card(card_only):
+    asked = run(KETAMINE_Q)["response"]
+    r = run("seizure", [{"query": KETAMINE_Q, "response": asked}])
+    assert r["response"].startswith("**ACTIVE SEIZURE**") and "lorazepam" in r["response"], r["response"][:300]
