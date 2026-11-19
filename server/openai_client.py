@@ -1297,6 +1297,33 @@ def query_is_weight_answer(query: str) -> bool:
         r"(?:\s*(?:or so|ish))?", q))
 
 
+_ROUTE_ASK_DRUGS = {"ketamine": "ketamine", "phytomenadione": "vitamin K"}
+
+
+def signed_ask_routes(text: str, ctx: "PatientContext") -> dict:
+    """{drug: [IV, IM] signed for this patient's population} for the drugs the
+    route question is about (owner, 2026-11-19: "offer only the routes signed for
+    this drug and this patient's population"). IO is dosed as IV."""
+    out = {}
+    named = drug_contracts.resolve_drugs(text) if drug_contracts is not None else []
+    for drug in named:
+        if drug not in _ROUTE_ASK_DRUGS:
+            continue
+        pop = "peds" if ctx.is_pediatric else "adult"
+        routes = {("IV" if e.get("route") == "IO" else e.get("route"))
+                  for e in drug_contracts.servable_entries().get(drug, [])
+                  if pop in (e.get("population") or "")}
+        out[drug] = [r for r in ("IV", "IM") if r in routes]
+    return out
+
+
+def no_signed_route_hold_issue(drug: str, ctx: "PatientContext") -> str:
+    name = _ROUTE_ASK_DRUGS.get(drug, drug)
+    who = "a child" if ctx.is_pediatric else "an adult"
+    return (f"No signed IV or IM dose of {name} for {who}. EdgeCDSS has no signed {name} "
+            f"entry on either route for this patient: use local protocol or medical control.")
+
+
 def has_pending_route_sensitive_request(prior_queries: str) -> bool:
     return route_changes_dose(prior_queries or "")
 
@@ -1664,7 +1691,16 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
             "on the vent", "on a vent", "ketamine drip"
         ]) or _has_any_word(combined_ctx, ["roc", "sux", "succs"])
         if route_changes_dose(combined_ctx) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
-            return "ASK", "IV or IM? Do you have access?"
+            # Only the routes signed for this drug and population (owner,
+            # 2026-11-19): two, ask; one, no question, that route is the one
+            # built and read back; none, hold.
+            signed = signed_ask_routes(combined_ctx, ctx)
+            if not signed or any(len(r) == 2 for r in signed.values()):
+                return "ASK", "IV or IM? Do you have access?"
+            for drug, routes in signed.items():
+                if not routes:
+                    return "HOLD", no_signed_route_hold_issue(drug, ctx)
+            ctx.route_preference = next(iter(signed.values()))[0]
 
         # A fixed adult dose waits for an adult (owner, #181 review): no age is
         # not an adult. Before the weight question: either answer serves it.

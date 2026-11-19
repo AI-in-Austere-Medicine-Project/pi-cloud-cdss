@@ -163,8 +163,13 @@ def _ketamine_lines(block):
 
 
 def test_ems_adult_ketamine_is_not_asked_the_route_and_gets_im(ems, model):
-    r = run("80 kg adult, ketamine for pain, severe")
+    q = "80 kg adult, ketamine for pain, severe"
+    r = run(q)
     assert r["response"] != ROUTE_ASK
+    if r["response"].startswith("Which ketamine do you have"):    # the vial: a further question
+        vial = r["response"].split("—", 1)[1].split("(")[0].strip()
+        r = run(vial, [{"query": q, "response": r["response"]}])
+    assert model["prompts"], (r["source_mode"], r["response"][:600])
     lines = _ketamine_lines(_offered_block(model["prompts"][-1]))
     assert lines and all(" IM" in l for l in lines), lines
 
