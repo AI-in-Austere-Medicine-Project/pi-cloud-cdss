@@ -147,3 +147,43 @@ def test_a_drug_with_a_child_entry_still_asks_the_weight(q, card_only):
 
 def test_the_estimated_weight_question_stays_for_a_drug_with_a_child_entry(card_only):
     assert run("child, maybe about 20 kg, morphine dose")["response"] == oc.WEIGHT_CONFIRM_ASK
+
+
+# ── 3. The route question offers only signed routes ─────────────────────────
+# Owner: "Route question: offer only the routes signed for this drug and this
+# patient's population. One signed route: no question, read it back. None: hold."
+# Found: "IV or IM? Do you have access?" is asked for ketamine and vitamin K whatever
+# is signed. EMS ketamine is signed adult IM only; PFC vitamin K adult IV only.
+
+ROUTE_ASK = "IV or IM? Do you have access?"
+
+
+def _ketamine_lines(block):
+    return [l for l in block.splitlines() if l.startswith("- ") and "ketamine" in l.lower()]
+
+
+def test_ems_adult_ketamine_is_not_asked_the_route_and_gets_im(ems, model):
+    r = run("80 kg adult, ketamine for pain, severe")
+    assert r["response"] != ROUTE_ASK
+    lines = _ketamine_lines(_offered_block(model["prompts"][-1]))
+    assert lines and all(" IM" in l for l in lines), lines
+
+
+def test_pfc_adult_vitamin_k_is_not_asked_the_route_and_gets_iv(model):
+    r = run("80 kg adult, vitamin k dose")
+    assert r["response"] != ROUTE_ASK
+    assert "phytomenadione IV" in _offered_block(model["prompts"][-1])
+
+
+def test_pfc_adult_ketamine_still_asks_iv_or_im(card_only):
+    assert run("80 kg adult, ketamine for pain")["response"] == ROUTE_ASK
+
+
+def test_no_signed_iv_or_im_route_holds(card_only, monkeypatch):
+    live = dc.servable_entries
+    monkeypatch.setattr(dc, "servable_entries", lambda *a, **k: {
+        d: ([e for e in es if e.get("route") not in ("IV", "IM", "IO")] if d == "ketamine" else es)
+        for d, es in live(*a, **k).items()})
+    r = run("80 kg adult, ketamine for pain")
+    assert r["validator_result"] == "UNSAFE", r["response"][:300]
+    assert "no signed iv or im dose of ketamine" in r["response"].lower(), r["response"][:300]
