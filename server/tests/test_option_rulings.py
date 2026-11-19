@@ -269,3 +269,27 @@ def test_ems_child_drugless_pain_holds_at_once(ems, card_only):
 
 def test_pfc_child_drugless_pain_still_asks_the_weight(card_only):
     assert run("6 year old, broken femur, pain, what can I give")["response"] == "Need weight in kg before dosing."
+
+
+# ── Beyond the rulings, B: a weight answer is read with its request ─────────
+# Found by the general test: "6 year old, broken femur, pain, what can I give" asks the
+# weight; the bare answer "20 kg" was read on its own, so the pain request was lost and
+# the generator was called with nothing offered. A bare severity answer is already read
+# with the question it answers; a bare weight answer now is too.
+
+CHILD_PAIN = "6 year old, broken femur, pain, what can I give"
+
+
+@pytest.mark.parametrize("weight", ["20 kg", "12 kg"])
+def test_a_weight_answering_the_weight_question_keeps_the_pain_request(weight, card_only):
+    asked = run(CHILD_PAIN)["response"]
+    assert asked == "Need weight in kg before dosing."
+    r = run(weight, [{"query": CHILD_PAIN, "response": asked}])
+    assert r["response"].startswith(oc.PAIN_SEVERITY_QUESTION_PREFIX), r["response"][:300]
+    assert "dosing" in r["response"] and "need a weight" not in r["response"], r["response"]
+
+
+def test_severity_cue_query_reads_a_bare_weight_with_its_question():
+    hist = [{"query": CHILD_PAIN, "response": "Need weight in kg before dosing."}]
+    assert oc.severity_cue_query("20 kg", hist) == f"{CHILD_PAIN}. Weight: 20 kg"
+    assert oc.severity_cue_query("20 kg", [{"query": "x", "response": "Something else."}]) == "20 kg"
