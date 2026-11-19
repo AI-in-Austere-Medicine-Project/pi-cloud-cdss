@@ -7,6 +7,7 @@ Each section is one ruling. The questions are driven turn by turn with the model
 stubbed out; where a turn reaches the generator, the prompt it was given is captured.
 """
 import os
+import re
 import sys
 
 import pytest
@@ -307,3 +308,66 @@ def test_ems_mild_answer_offers_no_dose(ems, model):
     asked = run(FEMUR)["response"]
     run("mild", [{"query": FEMUR, "response": asked}])
     assert "ALLOWED_DOSES: none" in model["prompts"][-1]
+
+
+# ── 3b. A skipped route question: the answer states the route ──────────────
+# Owner: "For the vitamin K row and any other single-route entry: confirm the final
+# answer states the route in words (e.g. "IV") when the route question was skipped. If
+# any does not, add it with a failing test first, same PR." Found: the offered line
+# carries the route ("phytomenadione IV: 10 mg"), but a model line without it
+# ("phytomenadione: 10 mg") passed the checks and was served with no route.
+
+VITAMIN_K = [("vitamin K dose for warfarin reversal", None), ("adult", None)]
+EMS_KETAMINE = "80 kg adult, ketamine for pain, severe"
+
+
+def _answer(model, turns, writes):
+    hist, r = [], None
+    for q in turns:
+        model["prompts"].clear()
+        model["text"] = writes
+        r = run(q, hist)
+        if model["prompts"]:
+            return r
+        hist.append({"query": q, "response": r["response"]})
+    return r
+
+
+def _route_stated(response, drug, route):
+    return any(drug in l.lower() and re.search(rf"\b{route}\b", l) for l in response.splitlines()) \
+        or f"Route: {route}" in response
+
+
+@pytest.mark.parametrize("writes", [
+    "**GIVE**\n- phytomenadione: 10 mg. Indication: warfarin reversal.\n",
+    "Give vitamin K 10 mg slowly for warfarin reversal.\n",
+])
+def test_pfc_vitamin_k_answer_states_iv_when_the_route_was_not_asked(model, writes):
+    r = _answer(model, [q for q, _ in VITAMIN_K], writes)
+    assert r["validator_result"] != "UNSAFE", r["response"][:300]
+    assert "Route: IV (the only signed route for phytomenadione for this patient)." in r["response"], r["response"]
+
+
+def test_pfc_vitamin_k_answer_that_states_iv_is_unchanged(model):
+    writes = "**GIVE**\n- phytomenadione IV: 10 mg. Indication: warfarin reversal.\n"
+    r = _answer(model, [q for q, _ in VITAMIN_K], writes)
+    assert "Route: IV" not in r["response"] and "phytomenadione IV: 10 mg" in r["response"], r["response"]
+
+
+def test_ems_ketamine_answer_states_im_when_the_route_was_not_asked(ems, model):
+    writes = "**GIVE**\n- ketamine: 25 mg. Indication: Pain.\n"
+    hist, q = [], EMS_KETAMINE
+    model["text"] = writes
+    r = run(q)
+    if r["response"].startswith("Which ketamine do you have"):
+        hist = [{"query": q, "response": r["response"]}]
+        q = r["response"].split("—", 1)[1].split("(")[0].strip()
+        r = run(q, hist)
+    assert "Route: IM (the only signed route for ketamine for this patient)." in r["response"], r["response"]
+
+
+def test_no_route_line_when_the_route_was_asked(model):
+    hist = [{"query": "80 kg adult, ketamine for pain", "response": ROUTE_ASK}]
+    model["text"] = "**GIVE**\n- ketamine: 20 mg. Indication: pain.\n"
+    r = run("IV", hist)
+    assert "Route: IV (the only signed route" not in r["response"], r["response"]
