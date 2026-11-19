@@ -104,3 +104,46 @@ def test_pfc_pain_question_unchanged(card_only):
     asked = run(FEMUR)["response"]
     for drug in ("ketamine", "fentanyl", "morphine", "acetaminophen"):
         assert drug in asked, asked
+
+
+# ── 2. A child, and no child entry for the drug: hold at once ───────────────
+# Owner: "Child with no child entry for that drug in the active set: hold at once ("no
+# signed dose of X for a child"). Never ask for a weight first. Same for the
+# estimated-weight question." Found: "Need weight in kg before dosing." was asked for a
+# child whatever the drug, and any weight then offered nothing (PFC artesunate, calcium
+# chloride, ertapenem, moxifloxacin, phytomenadione, propofol, sodium chloride 3%; EMS
+# acetaminophen, aspirin, atropine, dextrose, norepinephrine, ondansetron).
+
+def _child_hold(r, drug):
+    low = r["response"].lower()
+    assert r["validator_result"] == "UNSAFE", r["response"][:300]
+    assert f"no signed dose of {drug} for a child" in low, r["response"][:300]
+    assert "need weight" not in low and oc.WEIGHT_CONFIRM_ASK.lower() not in low
+
+
+@pytest.mark.parametrize("drug", ["artesunate", "ertapenem", "moxifloxacin", "propofol"])
+def test_pfc_child_with_no_child_entry_holds_without_asking_a_weight(drug, card_only):
+    _child_hold(run(f"6 year old child, {drug} dose"), drug)
+
+
+@pytest.mark.parametrize("drug", ["ondansetron", "atropine", "acetaminophen"])
+def test_ems_child_with_no_child_entry_holds_without_asking_a_weight(drug, ems, card_only):
+    _child_hold(run(f"6 year old child, {drug} dose"), drug)
+
+
+def test_an_estimated_weight_is_not_asked_to_be_confirmed_either(card_only):
+    r = run("child, maybe about 20 kg, artesunate dose")
+    _child_hold(r, "artesunate")
+
+
+def test_a_child_with_a_weight_and_no_child_entry_holds(card_only):
+    _child_hold(run("6 year old child 20 kg, ertapenem dose"), "ertapenem")
+
+
+@pytest.mark.parametrize("q", ["6 year old child, ketamine for pain", "6 year old child, morphine dose"])
+def test_a_drug_with_a_child_entry_still_asks_the_weight(q, card_only):
+    assert run(q)["response"] == "Need weight in kg before dosing."
+
+
+def test_the_estimated_weight_question_stays_for_a_drug_with_a_child_entry(card_only):
+    assert run("child, maybe about 20 kg, morphine dose")["response"] == oc.WEIGHT_CONFIRM_ASK
