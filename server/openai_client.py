@@ -2637,6 +2637,16 @@ def severity_cue_query(query: str, conversation_history: Optional[list]) -> str:
     return query
 
 
+def _signed_for_asked(entry: dict, patterns) -> bool:
+    """Owner, 2026-11-19: "A question may only offer a drug whose signed indication
+    matches the one being asked about." The indication lookup matches text, so
+    "pain" found EMS aspirin's "STEMI, suspected ACS, cardiac chest pain". An entry
+    that names its indication class is offered for pain only when that class is a
+    pain class; the PFC entries name none, and their indications are pain itself."""
+    cls = (entry.get("indication_class") or "").lower()
+    return not ("pain" in patterns and cls and "pain" not in cls)
+
+
 def _pain_entries_by_severity(ctx: PatientContext) -> dict:
     """{severity: ([drugs offered], {drug withheld: [triggers]}, [drugs that
     need a weight])} for this patient: what the builder would really offer."""
@@ -2646,6 +2656,8 @@ def _pain_entries_by_severity(ctx: PatientContext) -> dict:
         offered, withheld, unweighed = [], {}, []
         for name, entry in drug_contracts.signed_entries_by_indication(
                 ("pain",), ctx.is_pediatric, ctx.age_years):
+            if not _signed_for_asked(entry, ("pain",)):
+                continue
             if level not in entry_pain_severities(entry["indication"]):
                 continue
             why = vitals_mod.armed_triggers(name, ctx.vitals, flags)
@@ -2739,6 +2751,8 @@ def _indication_only_candidates(query: str, ctx: PatientContext,
     out = []
     for name, entry in drug_contracts.signed_entries_by_indication(
             patterns, ctx.is_pediatric, ctx.age_years):
+        if not _signed_for_asked(entry, patterns):
+            continue
         if vitals_mod.conflicts(f"give {name}", ctx.vitals, flags=flags):
             continue
         # The declared severity selects the set; undeclared, the pre-gate asks.
