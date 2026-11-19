@@ -293,3 +293,17 @@ def test_severity_cue_query_reads_a_bare_weight_with_its_question():
     hist = [{"query": CHILD_PAIN, "response": "Need weight in kg before dosing."}]
     assert oc.severity_cue_query("20 kg", hist) == f"{CHILD_PAIN}. Weight: 20 kg"
     assert oc.severity_cue_query("20 kg", [{"query": "x", "response": "Something else."}]) == "20 kg"
+# ── 6. EMS mild pain stays, labelled as no dose ─────────────────────────────
+# Owner: "EMS severity question: leave "mild" as it is, labelled as no dose." No change;
+# this pins it.
+
+def test_ems_mild_is_offered_and_labelled_no_dose(ems, card_only):
+    asked = run(FEMUR)["response"]
+    mild = [l for l in asked.splitlines() if l.startswith("- mild")][0]
+    assert mild.endswith("→ no dose offered"), mild
+
+
+def test_ems_mild_answer_offers_no_dose(ems, model):
+    asked = run(FEMUR)["response"]
+    run("mild", [{"query": FEMUR, "response": asked}])
+    assert "ALLOWED_DOSES: none" in model["prompts"][-1]
