@@ -442,3 +442,65 @@ def test_pfc_vitamin_k_source_line_unchanged(model):
                 "**GIVE**\n- phytomenadione IV: 10 mg. Indication: warfarin reversal.\n")
     assert _source_line(r["response"]).startswith("**SOURCE**: Signed dose contract — JTS"), r["response"]
     assert r["source_mode"] == "JTS_GROUNDED"
+
+
+# ── Chest pain and a general pain dose: a fixed caution ────────────────────
+# Owner ruling (2026-11-19) on the chest-pain row: "serve with a caution. ... When chest
+# pain is stated in the conversation and the dose served comes from a general pain
+# entry, code adds this fixed line directly under the GIVE line (the model does not
+# write it): "Caution: chest pain was reported for this patient. This is the general
+# pain dose and has not been checked against that finding." If vitals the existing
+# rules already class as abnormal were stated, name them in the same line (e.g. "chest
+# pain and HR 38"). No new thresholds. The line is additive only. It never releases a
+# hold and never changes a dose."
+
+KETAMINE_PAIN_GIVE = ("- ketamine IM: 25 mg. NO VOLUME — confirm concentration to compute volume. "
+                      "Indication: Pain (including prophylactically for electrical therapy) or severe bronchospasm.")
+CHEST_PAIN_ONLY = ("- Caution: chest pain was reported for this patient. This is the general pain dose "
+                   "and has not been checked against that finding.")
+CHEST_PAIN_HR = ("- Caution: chest pain and HR 38 were reported for this patient. This is the general pain "
+                 "dose and has not been checked against those findings.")
+HR_ROW = ([{"query": "70yo male with chest pain, HR 38, BP 104/70", "response": "Recorded. Reassess."}],
+          "he is in pain, what about ketamine")
+
+
+def _line_after(text, line):
+    lines = text.splitlines()
+    return lines[lines.index(line) + 1] if line in lines else None
+
+
+def test_chest_pain_and_an_abnormal_vital_name_both_under_the_give_line(ems, model):
+    model["text"] = f"**GIVE**\n{KETAMINE_PAIN_GIVE}\n"
+    r = run(HR_ROW[1], HR_ROW[0])
+    assert r["validator_result"] != "UNSAFE", r["response"][:300]
+    assert _line_after(r["response"], KETAMINE_PAIN_GIVE) == CHEST_PAIN_HR, r["response"]
+
+
+def test_chest_pain_alone_names_chest_pain(ems, model):
+    model["text"] = f"**GIVE**\n{KETAMINE_PAIN_GIVE}\n"
+    r = run("adult male, 40 years old, chest pain after a fall, ketamine for pain")
+    assert _line_after(r["response"], KETAMINE_PAIN_GIVE) == CHEST_PAIN_ONLY, r["response"]
+
+
+def test_the_caution_never_changes_the_dose_line(ems, model):
+    model["text"] = f"**GIVE**\n{KETAMINE_PAIN_GIVE}\n"
+    r = run(HR_ROW[1], HR_ROW[0])
+    assert KETAMINE_PAIN_GIVE in r["response"].splitlines()
+    assert r["response"].count("25 mg") == 1
+
+
+@pytest.mark.parametrize("hist, q", [
+    ([], "adult male, 40 years old, broken arm, ketamine for pain"),
+    ([], "adult male, 40 years old, no chest pain, broken arm, ketamine for pain"),
+])
+def test_no_caution_without_chest_pain(hist, q, ems, model):
+    model["text"] = f"**GIVE**\n{KETAMINE_PAIN_GIVE}\n"
+    r = run(q, hist)
+    assert "chest pain was reported" not in r["response"] and "were reported" not in r["response"], r["response"]
+
+
+def test_a_held_answer_gets_no_caution_and_stays_held(ems, model):
+    model["text"] = "**GIVE**\n- ketamine IM: 7.5 mg. Indication: Pain.\n"
+    r = run(HR_ROW[1], HR_ROW[0])
+    assert r["validator_result"] == "UNSAFE"
+    assert "were reported for this patient" not in r["response"]
