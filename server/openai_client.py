@@ -1324,6 +1324,22 @@ def no_signed_route_hold_issue(drug: str, ctx: "PatientContext") -> str:
             f"entry on either route for this patient: use local protocol or medical control.")
 
 
+def state_single_route(text: str, drug: str, route: str) -> str:
+    """Owner, 2026-11-19: when the route question was skipped because one route is
+    signed, the answer states it. Unchanged if no line names the drug (no dose of
+    it served) or a line naming it already says the route; otherwise one line,
+    after the first line that names the drug."""
+    names = {drug, _ROUTE_ASK_DRUGS.get(drug, drug).lower()}
+    lines = text.split("\n")
+    naming = [i for i, l in enumerate(lines) if any(n in l.lower() for n in names)]
+    if not naming or any(re.search(rf"\b{route}\b", lines[i]) for i in naming):
+        return text
+    first = naming[0]
+    bullet = "- " if lines[first].lstrip().startswith("- ") else ""
+    lines.insert(first + 1, f"{bullet}Route: {route} (the only signed route for {drug} for this patient).")
+    return "\n".join(lines)
+
+
 def has_pending_route_sensitive_request(prior_queries: str) -> bool:
     return route_changes_dose(prior_queries or "")
 
@@ -1712,6 +1728,10 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
                 if not routes:
                     return "HOLD", no_signed_route_hold_issue(drug, ctx)
             ctx.route_preference = next(iter(signed.values()))[0]
+            # Remembered for this turn only (not a PatientContext field, so it
+            # never reaches to_dict or the next turn): _finalise states the
+            # route in the served answer if no line naming the drug does.
+            ctx._single_signed_route = (next(iter(signed)), ctx.route_preference)
 
         # A fixed adult dose waits for an adult (owner, #181 review): no age is
         # not an adult. Before the weight question: either answer serves it.
@@ -8750,6 +8770,10 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
 
     if ctx is None:
         return result
+
+    single = getattr(ctx, "_single_signed_route", None)
+    if single and result.get("validator_result") != "UNSAFE":
+        result["response"] = state_single_route(result.get("response", ""), *single)
 
     if result.get("source_mode") not in GATED_SOURCE_MODES:
         cautions = vitals_mod.conflicts(
