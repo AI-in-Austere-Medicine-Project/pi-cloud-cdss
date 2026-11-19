@@ -190,7 +190,7 @@ def test_the_how_to_test_panel_says_what_the_engine_says():
     assert [p for p, _ in pw.EXAMPLES] == EXAMPLE_PHRASES
     said = _engine_says(EXAMPLE_PHRASES)
     for (phrase, expect), turn in zip(pw.EXAMPLES, said):
-        assert expect == turn.text, phrase
+        assert expect == turn.written_text, phrase   # the panel shows the written form
     html = pw.PAGE.read_text()
     for phrase, expect in pw.EXAMPLES:
         assert phrase in html and expect in html
@@ -223,8 +223,8 @@ def test_read_back_then_confirm_is_the_device_flow(client):
     for phrase, turn in zip(phrases, engine):
         r = _say(client, phrase).json()
         assert r["kind"] == turn.kind
-        assert r["text"] == turn.text
-        assert r["say"] == turn.say and r["after"] == turn.after
+        assert r["text"] == turn.written_text      # shown: the written form
+        assert r["spoken"] == turn.text            # played: the spoken form
         assert base64.b64decode(r["audio_wav_b64"]) == fake_synth(turn.text)
     assert engine[0].kind == "readback" and engine[1].kind == "dose"
 
@@ -442,7 +442,7 @@ def test_piper_said_it_and_vosk_heard_it(logs):
     heard, text, _ = rt.hearing.hear(pw.pcm16k(pw.resample_wav_16k(wav)))
     turn = rt.session_for("loop").handle(text)
     assert turn.kind == "readback", (heard, turn.text)
-    assert turn.text == "Ketamine, agitation, IV, eighty kilos. Confirm?"
+    assert turn.text == "Ketamine, agitation, eye vee, eighty kilos. Confirm?"   # spoken
 
 
 # ── W1 pin bump: Pocket's hearing fixes (Pocket #5, owner 2026-11-15) ───────
@@ -452,8 +452,9 @@ def test_piper_said_it_and_vosk_heard_it(logs):
 HEARING_FIXES = "f8f7aa5fe80766891175be05d3c6e81b6c9397c3"   # Pocket #5, merged
 
 
-def test_the_pin_is_pockets_hearing_fixes_merge():
-    assert pw.PIN["commit"] == HEARING_FIXES
+def test_the_pin_is_after_pockets_hearing_fixes():
+    """Superseded by the voice pin below; the hearing fixes are in its history."""
+    assert pw.PIN["commit"] != HEARING_FIXES
 
 
 def _hear(client, runtime, heard, sid="tester-a"):
@@ -493,3 +494,80 @@ def test_the_new_route_words_are_heard_through_the_web(client, runtime, heard, r
     drug = "acetaminophen for pain" if route == "PO" else "ketamine for agitation"
     r = _hear(client, runtime, f"{drug} {heard} eighty kilos")
     assert r["parse"]["routes"] == [route], r["text"]
+
+
+# ── W1 pin bump: Pocket's voice work (Pocket #9 and #10, owner 2026-11-19) ──
+# Owner: "Route spelling choices: IV = "eye vee"; IM = "eye em"; IO = "eye oh"; IN =
+# "intranasal"; PO = "pee oh"; NEB = "nebuliser". Apply them to every spoken line ..."
+# Owner: "Pocket should return two forms of each answer: the spoken form for the voice,
+# and a written form for display that uses IV, IM, IO, IN, PO and NEB. The page shows
+# the written form and plays the spoken form. Failing test first: no on-screen answer
+# contains "eye vee" or "pee oh", and the audio text still does." "Make one pin bump,
+# not two: point the pin at #10's merge commit."
+
+VOICE = "844cdfe46becabe5899331f384a27ea5efe68c77"   # Pocket main after #10 (and #9)
+SPOKEN_ROUTE = re.compile(r"(?i)\b(eye vee|eye em|eye oh|pee oh|nebuliser)\b")
+BARE_ROUTE = re.compile(r"(?<![A-Za-z])(IV|IM|IO|IN|PO|NEB)(?![A-Za-z])")
+ROUTE_PHRASES = ["ketamine for agitation iv eighty kilos", "ketamine for agitation io eighty kilos",
+                 "fentanyl for pain in eighty kilos", "epinephrine for anaphylaxis im eighty kilos",
+                 "acetaminophen for pain po seventy kilos"]
+
+
+def test_the_pin_is_pockets_voice_work():
+    assert pw.PIN["commit"] == VOICE
+
+
+@needs_checkout
+@pytest.mark.parametrize("phrase", ROUTE_PHRASES)
+def test_the_screen_shows_letters_and_the_voice_says_words(client, phrase):
+    for said in (phrase, "why", "repeat", "confirm"):
+        r = _say(client, said).json()
+        assert not SPOKEN_ROUTE.search(r["text"]), r["text"]          # on screen
+        assert not BARE_ROUTE.search(r["spoken"]), r["spoken"]        # in the audio
+        assert base64.b64decode(r["audio_wav_b64"]) == fake_synth(r["spoken"])
+    _say(client, "new patient")
+    first = _say(client, phrase).json()
+    assert BARE_ROUTE.search(first["text"]) and SPOKEN_ROUTE.search(first["spoken"]), first
+
+
+@needs_checkout
+def test_the_read_back_on_screen_and_in_the_audio(client):
+    r = _say(client, "acetaminophen for pain po seventy kilos").json()
+    assert r["text"] == "Acetaminophen, pain, PO, seventy kilos. Confirm?"
+    assert r["spoken"] == "Acetaminophen, pain, pee oh, seventy kilos. Confirm?"
+
+
+@needs_checkout
+def test_a_heard_pair_question_on_screen_and_in_the_audio(client, runtime):
+    r = _hear(client, runtime, "fentanyl for pain i n eighty kilos")
+    assert (r["text"], r["spoken"]) == ("IM or IN?", "Eye em or intranasal?")
+
+
+def test_the_page_shows_the_written_form_and_plays_the_audio():
+    html = pw.PAGE.read_text()
+    assert "esc(d.text)" in html and "d.spoken" not in html
+    for _, expect in pw.EXAMPLES:
+        assert not SPOKEN_ROUTE.search(expect), expect
+
+
+@needs_checkout
+@pytest.mark.parametrize("word", ["confirm", "yes", "correct", "affirmative"])
+def test_a_confirm_word_gives_the_dose_through_the_web(client, word):
+    assert _say(client, "ketamine for agitation iv eighty kilos").json()["kind"] == "readback"
+    assert _say(client, word).json()["kind"] == "dose"
+
+
+@needs_checkout
+@pytest.mark.parametrize("word", ["no", "cancel", "negative", "stop", "wrong"])
+def test_a_cancel_word_cancels_through_the_web_and_no_dose_follows(client, word):
+    _say(client, "ketamine for agitation iv eighty kilos")
+    assert _say(client, word).json()["text"] == "Cancelled."
+    assert _say(client, "yes").json()["kind"] != "dose"
+
+
+@needs_checkout
+def test_two_misses_cancel_through_the_web(client):
+    _say(client, "ketamine for agitation iv eighty kilos")
+    assert _say(client, "ok").json()["text"] == "Say confirm or cancel."
+    assert _say(client, "ok").json()["text"] == "Cancelled."
+    assert _say(client, "yes").json()["kind"] != "dose"
