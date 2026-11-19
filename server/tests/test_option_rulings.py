@@ -405,3 +405,40 @@ def test_no_indication_line_when_the_medic_stated_it(ems, model):
         hist = [{"query": "80 kg adult, ketamine for pain, severe", "response": r["response"]}]
         r = run(r["response"].split("—", 1)[1].split("(")[0].strip(), hist)
     assert "the only signed indication" not in r["response"], r["response"]
+
+
+# ── SOURCE line for a signed EMS dose ───────────────────────────────────────
+# Owner: "when a served answer's dose comes from a signed EMS entry, the SOURCE line
+# must name that entry's signed source, as it does for PFC (vitamin K). It currently
+# says "General Evidence-Based Medicine (outside retrieved JTS scope)"." Cause: the
+# SOURCE line was replaced only when every served dose's entry cited JTS; the EMS
+# entries cite the service's formulary.
+
+EMS_SERVED = ("**GIVE**\n- ketamine IM: 25 mg. NO VOLUME — confirm concentration to compute volume. "
+              "Indication: Pain (including prophylactically for electrical therapy) or severe bronchospasm.\n\n"
+              "**SOURCE**: General Evidence-Based Medicine (outside retrieved JTS scope)\n")
+
+
+def _source_line(text):
+    return next(l for l in text.splitlines() if l.startswith("**SOURCE**"))
+
+
+def test_ems_signed_dose_names_its_signed_source(ems, model):
+    model["text"] = EMS_SERVED
+    r = run(IGNORE)
+    assert r["validator_result"] != "UNSAFE", r["response"][:300]
+    cite = dc.servable_entries()["ketamine"][0]["sources"][0]["citation"]
+    assert _source_line(r["response"]) == f"**SOURCE**: Signed dose contract — {cite}", r["response"]
+    assert "General Evidence-Based Medicine" not in r["response"]
+
+
+def test_an_ems_source_is_not_labelled_jts_grounded(ems, model):
+    model["text"] = EMS_SERVED
+    assert run(IGNORE)["source_mode"] != "JTS_GROUNDED"
+
+
+def test_pfc_vitamin_k_source_line_unchanged(model):
+    r = _answer(model, [q for q, _ in VITAMIN_K],
+                "**GIVE**\n- phytomenadione IV: 10 mg. Indication: warfarin reversal.\n")
+    assert _source_line(r["response"]).startswith("**SOURCE**: Signed dose contract — JTS"), r["response"]
+    assert r["source_mode"] == "JTS_GROUNDED"
