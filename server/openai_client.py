@@ -1670,6 +1670,17 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
             no_child = drugs_with_no_child_entry(combined_ctx, ctx)
             if no_child:
                 return "HOLD", no_child_entry_hold_issue(no_child)
+            # The same for a question that names no drug: "what can I give
+            # for pain" with no child pain entry in the set.
+            if not drug_contracts.resolve_drugs(combined_ctx):
+                patterns = indication_only_patterns(f"{prior_queries} {query}".strip(),
+                                                    cue_query if cue_query is not None else query)
+                if patterns and not [
+                        1 for _n, e in drug_contracts.signed_entries_by_indication(
+                            patterns, True, ctx.age_years) if _signed_for_asked(e, patterns)]:
+                    return "HOLD", (f"No signed dose for {' or '.join(patterns)} for a child. "
+                                    "EdgeCDSS has no signed paediatric entry for it: use "
+                                    "local protocol or medical control.")
 
         # Hedged weight gate (F-1). Before the paediatric ask because it is the
         # more specific question: the session HAS a number and needs it stood
