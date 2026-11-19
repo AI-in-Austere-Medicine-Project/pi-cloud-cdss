@@ -170,6 +170,8 @@ Every moved row:
 - naloxone[2] holds on the range;
 - T9 asks the salt.
 
+**Owner sign-off, 2026-11-19 (after merge, #200):** "I sign off the moved rows: the two atropine hold-message rows, the 2026-11-10 log line now held, and the two EMS calcium rows as they are (no dose served)." Follow-up SW3-F1: the two EMS calcium rows now hold at once instead of asking the salt.
+
 ## 11. Found, not changed (for the owner)
 
 - **A post-intubation dose passes for an agitated patient.** On this branch's harness, ketamine[6] ("20 kg 6 year old, combative, need dissociative sedation, ketamine IV") was once served SAFE with a BRIEF line "Post-intubation sedation: Draw 0.2 mL of 50mg/mL ketamine IV (10 mg)". The child was not intubated. "Dissociative sedation" states the sedation class through `sedat\w*`, so A32 accepts the post-intubation entries. Main b881d38 passes the same text, so this is not caused by PR 3. A fix would make "dissociative sedation" yield to agitation, like A32's generic words. It is its own item, for the owner to order.
