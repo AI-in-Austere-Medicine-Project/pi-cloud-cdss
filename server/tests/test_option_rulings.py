@@ -253,3 +253,19 @@ def test_child_pain_question_with_a_weight_names_what_each_level_offers(q, card_
 
 def test_child_pain_question_with_no_weight_is_still_asked_the_weight_first(card_only):
     assert run("6 year old child, pain, what can I give")["response"] == "Need weight in kg before dosing."
+
+
+# ── 2b. A child, a drugless question, and no child entry for it ────────────
+# Found by the general test after ruling 2: EMS signs no child pain entry, so "6 year
+# old, broken femur, pain, what can I give" asked the weight, and any weight then
+# reached the generator with nothing offered. Ruling 2 for a question that names no
+# drug: hold at once.
+
+def test_ems_child_drugless_pain_holds_at_once(ems, card_only):
+    r = run("6 year old, broken femur, pain, what can I give")
+    assert r["validator_result"] == "UNSAFE", r["response"][:300]
+    assert "no signed dose for pain for a child" in r["response"].lower(), r["response"][:300]
+
+
+def test_pfc_child_drugless_pain_still_asks_the_weight(card_only):
+    assert run("6 year old, broken femur, pain, what can I give")["response"] == "Need weight in kg before dosing."
