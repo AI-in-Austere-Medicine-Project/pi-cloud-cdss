@@ -234,3 +234,22 @@ def test_plain_seizure_still_goes_to_the_seizure_card(card_only):
     _, hist = _ketamine_question()
     r = run("seizure", hist)
     assert r["response"].startswith("**ACTIVE SEIZURE**") and "lorazepam" in r["response"], r["response"][:300]
+
+
+# ── 5. The child pain question with a weight known ─────────────────────────
+# Owner: "PFC child pain question: fix the label so it does not say "no dose offered,
+# need a weight" when a weight is already known." Found: with 20 kg or 12 kg given, each
+# level read "no dose offered (... need a weight)", and each still dosed once answered.
+
+@pytest.mark.parametrize("q", ["6 year old child 20 kg, pain, what can I give",
+                               "child 12 kg, broken arm, pain, what can I give"])
+def test_child_pain_question_with_a_weight_names_what_each_level_offers(q, card_only):
+    asked = run(q)["response"]
+    assert asked.startswith(oc.PAIN_SEVERITY_QUESTION_PREFIX), asked[:300]
+    assert "need a weight" not in asked and "needs a weight" not in asked, asked
+    severe = [l for l in asked.splitlines() if l.startswith("- severe")][0]
+    assert "dosing" in severe and "no dose offered" not in severe, severe
+
+
+def test_child_pain_question_with_no_weight_is_still_asked_the_weight_first(card_only):
+    assert run("6 year old child, pain, what can I give")["response"] == "Need weight in kg before dosing."
