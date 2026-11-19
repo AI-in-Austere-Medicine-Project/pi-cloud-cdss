@@ -9,7 +9,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 25 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 26 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -1441,6 +1441,21 @@ _BARE_CALCIUM_RE = re.compile(
     r"(?<!high )(?<!measure )(?<!lab )\bcalcium\b(?!\s*(?:chloride|gluconate|channel|levels?"
     r"|blockers?|is\b|was\b|of \d|[<>=]|\d))", re.IGNORECASE)
 _CALCIUM_SALT_ANSWER_RE = re.compile(r"\b(chloride|gluconate)\b", re.IGNORECASE)
+
+
+CALCIUM_SALTS = ("calcium chloride", "calcium gluconate")
+
+
+def an_answer_can_dose(answers) -> bool:
+    """Owner, 2026-11-19: "a clarifying question is asked only if at least one of
+    its answers leads to a signed dose in the active set." `answers` are the
+    drugs the question offers."""
+    return drug_contracts is not None and any(_is_signed_drug(a) for a in answers)
+
+
+def unsigned_answers(answers) -> list:
+    """The offered answers with no signed entry in the active set, as named."""
+    return [a for a in answers if drug_contracts is None or not _is_signed_drug(a)]
 
 
 def calcium_salt_answer(query: str, last_response: str) -> str:
@@ -8555,7 +8570,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    twenty-five early returns before retrieval — count them with the source_mode
+    twenty-six early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -9181,6 +9196,15 @@ def _run_pipeline(query: str, chromadb_client,
         # Step 2l-00 (med sweep PR 3): "calcium" with no salt. Calcium chloride
         # and calcium gluconate are signed at different doses (1 g and 3 g after
         # massive transfusion), so the salt is asked, as the vial is.
+        if asks_calcium_salt(request_query) and not an_answer_can_dose(CALCIUM_SALTS):
+            # Owner, 2026-11-19: no answer could dose (the EMS set signs neither
+            # salt), so hold now, naming what is not signed, instead of asking.
+            issue = unsigned_drug_hold_issue(unsigned_answers(CALCIUM_SALTS))
+            print("🛑 CALCIUM SALT: neither salt signed in this set")
+            return {"response": build_safety_hold([issue], ""),
+                    "sources": [], "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "UNSAFE", "validator_issues": [issue],
+                    "patient_context": patient_ctx.to_dict()}
         if asks_calcium_salt(request_query):
             print("🚪 CALCIUM SALT ASK")
             return {"response": CALCIUM_SALT_ASK, "sources": [], "source_mode": "PRE_GATE",

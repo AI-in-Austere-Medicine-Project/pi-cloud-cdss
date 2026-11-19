@@ -132,6 +132,7 @@ Owner asks outside the lettered items:
 | Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | done, #210 |
 | Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | done, #211 |
 | Teach page: contributor audio not kept (owner, 2026-11-17): a contributor's audio is dropped once decoded, keeping only the text heard, the word and the speaker label; the owner's recordings are kept; limits in takes; the new consent line | **in review** (see the section below) |
+| SW3-F1, a clarifying question only when an answer can dose (owner, 2026-11-19): asked only if at least one answer leads to a signed dose in the active set; otherwise hold at once, naming what is not signed; the EMS calcium rows hold, the PFC calcium question still asks | **in review** (see the section below) |
 | Repository deep clean (owner, 2026-11-18): Phase 1 audit (report outside the repo); Phase 2 in small PRs, one theme each: docs archive and layout, TODO's deferred findings into v1.1, K2 recorded, generated and duplicate files, stale labels and the safety notice, private addresses, dead code and the thin client, cloud providers removed (last) | **in review** (see the section below) |
 | This work order | **done**: #89, merged |
 
@@ -1329,6 +1330,19 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 - **The word list (136):** every signed drug by its own name where it can be said and by every signed name the bank gives it (50); the eleven medic names; 29 indications (the US spelling where the two sound alike; RSI, TBI and CNS as letters); the five routes as letters and nine as words; the twelve control words; twenty weights and ages. Each word carries what the parser reads in it, typed; a take is "heard as itself" when Pocket's hearing reads the same.
 - **A take** stores the 16 kHz WAV and a JSON record: "open" (Vosk with no grammar, and up to five alternatives: the spellings Vosk actually produces) and "pocket" (Pocket's two-decoder hearing with the pinned grammar, as `/pocket` hears). It holds the decoder lock for one clip, never the testers' talker lease, and writes nothing to the Pocket logs.
 - **Pinned grammar:** `f8f7aa5` does not yet have yes, correct, affirmative, no, negative, stop or wrong (the confirm step is Pocket's open voice branch), so for those words only "open" counts; the page says so.
+
+### SW3-F1: a clarifying question only when an answer can dose (owner, 2026-11-19)
+
+**Owner:** "#200 merged. I sign off the moved rows: the two atropine hold-message rows, the 2026-11-10 log line now held, and the two EMS calcium rows as they are (no dose served). Follow-up, small PR, failing test first: a clarifying question is asked only if at least one of its answers leads to a signed dose in the active set. Otherwise hold at once, naming what is not signed. Fixtures: the two EMS calcium rows hold immediately; the PFC calcium question still asks chloride or gluconate."
+
+**Found.** SW3's salt question (step 2l-00) runs before A39's unsigned-drug hold, so on the EMS set, which signs neither salt, "calcium dose after 4 units" and "calcium dose after the transfusion" were asked "Calcium chloride or calcium gluconate?". Either answer could only reach "no signed dose".
+
+**Fix.** `an_answer_can_dose(answers)`: true when any offered answer has a servable entry in the active set (`_is_signed_drug`, the set `CDSS_DRUG_SET` serves). Before the salt question, if no salt is signed, the turn holds at once with A39's wording, naming the unsigned answers ("Calcium chloride, calcium gluconate: no signed dose. …"), deterministic, before the model. One signed salt is enough to ask. The salt question is the only one that offers drugs as its answers. The other pre-dose questions (indication, vial, route, weight, adult, severity) run after A39, which already holds a drug with no signed entry; whether each of their answers can dose was not audited in this PR.
+
+**Tests** (failing first, `server/tests/test_clarify_signed_only.py`): the two EMS rows hold at once, no model call, naming both salts; on PFC the same rows and "calcium after 4 units of blood" still ask; with one salt removed from the active set it still asks; with both removed it holds on any set.
+
+**Replay:** see the PR.
+
 
 ### Repository deep clean (owner, 2026-11-18)
 
