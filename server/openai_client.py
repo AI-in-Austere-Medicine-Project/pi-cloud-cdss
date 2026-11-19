@@ -2737,6 +2737,14 @@ def severity_cue_query(query: str, conversation_history: Optional[list]) -> str:
             and (last.get("response") or "").startswith(PAIN_SEVERITY_QUESTION_PREFIX)):
         level = SEVERITY_ANSWER_RE.match(query.lower().strip()).group(1)
         return f"{last.get('query') or ''}. Pain severity: {level}"
+    # A bare weight answering the weight question is read with the request it
+    # answers, as a severity answer is (owner, 2026-11-19: every option leads to
+    # a dose, a question, or says no dose): "20 kg" after "6 year old, pain, what
+    # can I give" asks the severity, not the generator with nothing offered.
+    if (query_is_weight_answer(query)
+            and ((last.get("response") or "").startswith("Need weight in kg")
+                 or (last.get("response") or "").startswith(WEIGHT_CONFIRM_ASK))):
+        return f"{last.get('query') or ''}. Weight: {query.strip()}"
     return query
 
 
