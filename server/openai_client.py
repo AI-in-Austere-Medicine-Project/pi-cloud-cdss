@@ -9,7 +9,7 @@ Major version: consolidates the v3.4.x rebuild into a stable architectural basel
 Core principle: Python owns everything that can be computed deterministically;
 the LLM only handles what genuinely requires language understanding.
 
-Pipeline: 26 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
+Pipeline: 27 deterministic pre-gates -> RAG (router-enhanced) -> ALLOWED_DOSES
 contract generator -> deterministic post-checks -> narrow LLM validator ->
 fail-closed safety gate with structured false-positive overrides.
 
@@ -1297,6 +1297,112 @@ def query_is_weight_answer(query: str) -> bool:
         r"(?:\s*(?:or so|ish))?", q))
 
 
+_ROUTE_ASK_DRUGS = {"ketamine": "ketamine", "phytomenadione": "vitamin K"}
+
+
+def signed_ask_routes(text: str, ctx: "PatientContext") -> dict:
+    """{drug: [IV, IM] signed for this patient's population} for the drugs the
+    route question is about (owner, 2026-11-19: "offer only the routes signed for
+    this drug and this patient's population"). IO is dosed as IV."""
+    out = {}
+    named = drug_contracts.resolve_drugs(text) if drug_contracts is not None else []
+    for drug in named:
+        if drug not in _ROUTE_ASK_DRUGS:
+            continue
+        pop = "peds" if ctx.is_pediatric else "adult"
+        routes = {("IV" if e.get("route") == "IO" else e.get("route"))
+                  for e in drug_contracts.servable_entries().get(drug, [])
+                  if pop in (e.get("population") or "")}
+        out[drug] = [r for r in ("IV", "IM") if r in routes]
+    return out
+
+
+def no_signed_route_hold_issue(drug: str, ctx: "PatientContext") -> str:
+    name = _ROUTE_ASK_DRUGS.get(drug, drug)
+    who = "a child" if ctx.is_pediatric else "an adult"
+    return (f"No signed IV or IM dose of {name} for {who}. EdgeCDSS has no signed {name} "
+            f"entry on either route for this patient: use local protocol or medical control.")
+
+
+def state_single_route(text: str, drug: str, route: str) -> str:
+    """Owner, 2026-11-19: when the route question was skipped because one route is
+    signed, the answer states it. Unchanged if no line names the drug (no dose of
+    it served) or a line naming it already says the route; otherwise one line,
+    after the first line that names the drug."""
+    names = {drug, _ROUTE_ASK_DRUGS.get(drug, drug).lower()}
+    lines = text.split("\n")
+    naming = [i for i, l in enumerate(lines) if any(n in l.lower() for n in names)]
+    if not naming or any(re.search(rf"\b{route}\b", lines[i]) for i in naming):
+        return text
+    first = naming[0]
+    bullet = "- " if lines[first].lstrip().startswith("- ") else ""
+    lines.insert(first + 1, f"{bullet}Route: {route} (the only signed route for {drug} for this patient).")
+    return "\n".join(lines)
+
+
+CHEST_PAIN_RE = re.compile(r"(?<!no )(?<!denies )(?<!without )(?<!not )\bchest\s+pain\b", re.IGNORECASE)
+
+
+def _general_pain_drugs_served(text: str, ctx: "PatientContext") -> list:
+    """The drugs whose served dose (each canonical GIVE line, and each dose the
+    free-text check accepted) matches a general pain entry's offered dose
+    within 5%. A general pain entry is a pain entry _signed_for_asked keeps
+    (not EMS aspirin's cardiac chest pain)."""
+    request = getattr(ctx, "_request_text", None)
+    if not request or drug_contracts is None:
+        return []
+    allowed = build_allowed_doses(request, ctx)
+    by_source = {_contract_source(name, e): e
+                 for name, entries in drug_contracts.servable_entries().items() for e in entries}
+    pain = [d for d in allowed if dose_is_from_contract(d) and "pain" in d.indication.lower()
+            and by_source.get(d.source) is not None
+            and _signed_for_asked(by_source[d.source], ("pain",))]
+    if not pain:
+        return []
+    served = [(drug_s, [float(mg_s)]) for _v, _c, drug_s, mg_s
+              in re.findall(CANONICAL_GIVE_RE, text or "", re.IGNORECASE)]
+    free_text_dose_issues(text, allowed, ctx, request, accepted=served)
+    out = []
+    for drug_s, values in served:
+        words = drug_s.lower().split()
+        for d in pain:
+            if (any(d.drug.lower() in w or w in d.drug.lower() for w in words)
+                    and any(abs(v - d.dose_mg) <= d.dose_mg * 0.05 + 1e-9 for v in values)
+                    and d.drug not in out):
+                out.append(d.drug)
+    return out
+
+
+def chest_pain_caution(text: str, ctx: "PatientContext") -> str:
+    """Owner ruling, 2026-11-19: when chest pain is stated in the conversation
+    and the served dose comes from a general pain entry, a fixed line directly
+    under its GIVE line, naming any stated vital the existing caution rules
+    class as abnormal. Additive only: no dose or verdict changes."""
+    conversation = getattr(ctx, "_conversation_text", None)
+    if not conversation or not CHEST_PAIN_RE.search(conversation):
+        return text
+    drugs = _general_pain_drugs_served(text, ctx)
+    if not drugs:
+        return text
+    findings = ["chest pain"] + vitals_mod.abnormal_stated(ctx.vitals)
+    if len(findings) == 1:
+        said = ("Caution: chest pain was reported for this patient. This is the general pain "
+                "dose and has not been checked against that finding.")
+    else:
+        named = ", ".join(findings[:-1]) + " and " + findings[-1]
+        said = (f"Caution: {named} were reported for this patient. This is the general pain "
+                "dose and has not been checked against those findings.")
+    lines = (text or "").split("\n")
+    give = next((i for i, l in enumerate(lines) if "GIVE" in l), 0)
+    for drug in drugs:
+        at = next((i for i in range(give, len(lines)) if drug in lines[i].lower()), None)
+        if at is None or said in lines[at + 1:at + 2] or ("- " + said) in lines[at + 1:at + 2]:
+            continue
+        bullet = "- " if lines[at].lstrip().startswith("- ") else ""
+        lines.insert(at + 1, bullet + said)
+    return "\n".join(lines)
+
+
 def has_pending_route_sensitive_request(prior_queries: str) -> bool:
     return route_changes_dose(prior_queries or "")
 
@@ -1566,6 +1672,38 @@ def _needs_weight_to_dose(text: str, ctx: PatientContext) -> bool:
     return per_kg and not any(d.drug in named for d in build_allowed_doses(text, ctx))
 
 
+def _has_child_entry(drug: str, ctx: PatientContext) -> bool:
+    """A servable entry of this drug, in the active set, for a child of this age."""
+    for e in drug_contracts.servable_entries().get(drug, []):
+        if "peds" not in (e.get("population") or ""):
+            continue
+        if drug_contracts.age_exclusion(e, ctx.age_years) is not None:
+            continue
+        band = drug_contracts._age_band(e)
+        if band is not None and ctx.age_years is not None and not band[0] <= ctx.age_years < band[1]:
+            continue
+        return True
+    return False
+
+
+def drugs_with_no_child_entry(text: str, ctx: PatientContext) -> list:
+    """Owner, 2026-11-19: "Child with no child entry for that drug in the active
+    set: hold at once ... Never ask for a weight first." The signed drugs the
+    request names, when none of them has a child entry; empty when any does (a
+    weight could then dose) or nothing signed is named (A39 holds that)."""
+    named = [d for d in drug_contracts.resolve_drugs(text)
+             if drug_contracts.servable_entries().get(d)]
+    if not named or any(_has_child_entry(d, ctx) for d in named):
+        return []
+    return named
+
+
+def no_child_entry_hold_issue(drugs: list) -> str:
+    names = " or ".join(drugs)
+    return (f"No signed dose of {names} for a child. EdgeCDSS has no signed paediatric "
+            f"entry for {names}, so it gives no dose: use local protocol or medical control.")
+
+
 def _fixed_dose_waits_for_adult(text: str, ctx: PatientContext) -> bool:
     """Something would be offered for this request once an adult is established."""
     return bool(build_allowed_doses(text, dc_replace(ctx, adult_confirmed=True)))
@@ -1589,7 +1727,7 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
              answered_pending: bool = False) -> tuple:
     """
     Deterministic pre-gate before any LLM call.
-    Returns: ("ASK", response) | ("BLOCK", response) | ("CONTINUE", None)
+    Returns: ("ASK", response) | ("BLOCK", response) | ("HOLD", issue) | ("CONTINUE", None)
     ASK and BLOCK skip the validator entirely.
     `cue_query` is the turn indication cues are read from (severity_cue_query).
     `prior_queries` and `request_query` are scope_request's: drugs this turn
@@ -1605,6 +1743,24 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
     )
 
     if current_or_pending_med_request:
+        # A child, and no child entry for any drug named (owner, 2026-11-19):
+        # hold now. Before the weight questions, which no weight could answer.
+        if ctx.is_pediatric and drug_contracts is not None:
+            no_child = drugs_with_no_child_entry(combined_ctx, ctx)
+            if no_child:
+                return "HOLD", no_child_entry_hold_issue(no_child)
+            # The same for a question that names no drug: "what can I give
+            # for pain" with no child pain entry in the set.
+            if not drug_contracts.resolve_drugs(combined_ctx):
+                patterns = indication_only_patterns(f"{prior_queries} {query}".strip(),
+                                                    cue_query if cue_query is not None else query)
+                if patterns and not [
+                        1 for _n, e in drug_contracts.signed_entries_by_indication(
+                            patterns, True, ctx.age_years) if _signed_for_asked(e, patterns)]:
+                    return "HOLD", (f"No signed dose for {' or '.join(patterns)} for a child. "
+                                    "EdgeCDSS has no signed paediatric entry for it: use "
+                                    "local protocol or medical control.")
+
         # Hedged weight gate (F-1). Before the paediatric ask because it is the
         # more specific question: the session HAS a number and needs it stood
         # behind, which is not the same request as "tell me a weight".
@@ -1625,7 +1781,20 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
             "on the vent", "on a vent", "ketamine drip"
         ]) or _has_any_word(combined_ctx, ["roc", "sux", "succs"])
         if route_changes_dose(combined_ctx) and ctx.route_preference == "UNKNOWN" and not is_rsi_or_iv_ctx:
-            return "ASK", "IV or IM? Do you have access?"
+            # Only the routes signed for this drug and population (owner,
+            # 2026-11-19): two, ask; one, no question, that route is the one
+            # built and read back; none, hold.
+            signed = signed_ask_routes(combined_ctx, ctx)
+            if not signed or any(len(r) == 2 for r in signed.values()):
+                return "ASK", "IV or IM? Do you have access?"
+            for drug, routes in signed.items():
+                if not routes:
+                    return "HOLD", no_signed_route_hold_issue(drug, ctx)
+            ctx.route_preference = next(iter(signed.values()))[0]
+            # Remembered for this turn only (not a PatientContext field, so it
+            # never reaches to_dict or the next turn): _finalise states the
+            # route in the served answer if no line naming the drug does.
+            ctx._single_signed_route = (next(iter(signed)), ctx.route_preference)
 
         # A fixed adult dose waits for an adult (owner, #181 review): no age is
         # not an adult. Before the weight question: either answer serves it.
@@ -1682,6 +1851,11 @@ def pre_gate(query: str, ctx: PatientContext, prior_queries: str = "",
         question = which_indication_question(combined_ctx, ctx)
         if question:
             return "ASK", question
+        # No question because one indication is signed (owner, 2026-11-19):
+        # remembered for this turn, so _finalise can state it.
+        single = single_unstated_indication(combined_ctx, ctx)
+        if single:
+            ctx._single_signed_indication = single
 
     # Pain severity (owner, #164 review): asked, never inferred. After weight
     # and route, which gate the milligrams; outside the dose-request test,
@@ -2190,6 +2364,57 @@ def other_indication_issues(response_text: str, other: list, query: str,
     return list(dict.fromkeys(issues))
 
 
+REFRACTORY_SEIZURE_OPTION = "refractory seizure (benzodiazepine already given)"
+
+
+def _option_word(cls: str, word: str, offered) -> str:
+    """The option as offered (owner, 2026-11-19): a drug signed for seizure only
+    as refractory to benzodiazepines (ketamine) offers "refractory seizure
+    (benzodiazepine already given)". That answer reaches its signed entry
+    through the seizure card's second line; plain "seizure" is the card's
+    benzodiazepine first line."""
+    if cls == "seizure":
+        mine = [d.indication.lower() for d in offered if indication_class(d.indication) == cls]
+        if mine and all(i.startswith("refractory seizure") for i in mine):
+            return REFRACTORY_SEIZURE_OPTION
+    return word
+
+
+def single_unstated_indication(history: str, ctx: PatientContext) -> Optional[tuple]:
+    """(drug, indication) when the request states no indication for a drug it
+    names and the drug's offered doses carry exactly one indication, so no
+    indication question is asked; None otherwise."""
+    if drug_contracts is None:
+        return None
+    low = history.lower()
+    stated = stated_indication_classes(history)
+    signed = drug_contracts.servable_entries()
+    offers = build_allowed_doses(history, ctx)
+    for drug in drug_contracts.resolve_drugs(low):
+        if stated & {indication_class(e["indication"]) for e in signed.get(drug, [])}:
+            continue
+        indications = list(dict.fromkeys(d.indication for d in offers if d.drug == drug))
+        if len(indications) == 1:
+            return drug, indications[0]
+    return None
+
+
+def state_single_indication(text: str, drug: str, indication: str) -> str:
+    """Owner, 2026-11-19: "If the indication question is skipped, the answer must
+    state the indication, same rule as the route line." Unchanged if no line
+    names the drug or a line naming it already gives an indication."""
+    lines = text.split("\n")
+    naming = [i for i, l in enumerate(lines) if drug in l.lower()]
+    if not naming or any("indication" in lines[i].lower() or indication.lower() in lines[i].lower()
+                         for i in naming):
+        return text
+    first = naming[0]
+    bullet = "- " if lines[first].lstrip().startswith("- ") else ""
+    lines.insert(first + 1, f"{bullet}Indication: {indication} (the only signed indication for "
+                            f"{drug} in this set; none was stated).")
+    return "\n".join(lines)
+
+
 def which_indication_question(history: str, ctx: PatientContext) -> Optional[str]:
     """The question to ask when a named drug would be offered in more than one
     class and the history states none of them; None otherwise."""
@@ -2217,7 +2442,8 @@ def which_indication_question(history: str, ctx: PatientContext) -> Optional[str
                     or (ctx.route_preference == "IV" and d.route == "IO")]
         classes = {indication_class(d.indication) for d in (on_route or mine)}
         if len(classes) > 1:
-            words = [w for name, w, _l, _c in INDICATION_CLASSES if name in classes]
+            words = [_option_word(name, w, on_route or mine)
+                     for name, w, _l, _c in INDICATION_CLASSES if name in classes]
             return (f"{INDICATION_QUESTION_PREFIX}{drug} — "
                     f"{', '.join(words[:-1])} or {words[-1]}?")
     return None
@@ -2634,7 +2860,25 @@ def severity_cue_query(query: str, conversation_history: Optional[list]) -> str:
             and (last.get("response") or "").startswith(PAIN_SEVERITY_QUESTION_PREFIX)):
         level = SEVERITY_ANSWER_RE.match(query.lower().strip()).group(1)
         return f"{last.get('query') or ''}. Pain severity: {level}"
+    # A bare weight answering the weight question is read with the request it
+    # answers, as a severity answer is (owner, 2026-11-19: every option leads to
+    # a dose, a question, or says no dose): "20 kg" after "6 year old, pain, what
+    # can I give" asks the severity, not the generator with nothing offered.
+    if (query_is_weight_answer(query)
+            and ((last.get("response") or "").startswith("Need weight in kg")
+                 or (last.get("response") or "").startswith(WEIGHT_CONFIRM_ASK))):
+        return f"{last.get('query') or ''}. Weight: {query.strip()}"
     return query
+
+
+def _signed_for_asked(entry: dict, patterns) -> bool:
+    """Owner, 2026-11-19: "A question may only offer a drug whose signed indication
+    matches the one being asked about." The indication lookup matches text, so
+    "pain" found EMS aspirin's "STEMI, suspected ACS, cardiac chest pain". An entry
+    that names its indication class is offered for pain only when that class is a
+    pain class; the PFC entries name none, and their indications are pain itself."""
+    cls = (entry.get("indication_class") or "").lower()
+    return not ("pain" in patterns and cls and "pain" not in cls)
 
 
 def _pain_entries_by_severity(ctx: PatientContext) -> dict:
@@ -2646,16 +2890,20 @@ def _pain_entries_by_severity(ctx: PatientContext) -> dict:
         offered, withheld, unweighed = [], {}, []
         for name, entry in drug_contracts.signed_entries_by_indication(
                 ("pain",), ctx.is_pediatric, ctx.age_years):
+            if not _signed_for_asked(entry, ("pain",)):
+                continue
             if level not in entry_pain_severities(entry["indication"]):
                 continue
             why = vitals_mod.armed_triggers(name, ctx.vitals, flags)
             if why:
                 withheld.setdefault(name, why)
             elif (_contract_candidate(name, entry, ctx.dosing_weight_kg) is None
-                  or not ctx.adult_established):
+                  or not (ctx.adult_established or ctx.is_pediatric)):
                 # A per-kg entry with no weight resolves to nothing, and with no
                 # age nothing builds at all (build_allowed_doses): a weight
-                # answers both.
+                # answers both. A child is established as a child, so with a
+                # weight known the entry is offered, not "needs a weight"
+                # (owner, 2026-11-19).
                 unweighed.append(name)
             elif name not in offered:
                 offered.append(name)
@@ -2739,6 +2987,8 @@ def _indication_only_candidates(query: str, ctx: PatientContext,
     out = []
     for name, entry in drug_contracts.signed_entries_by_indication(
             patterns, ctx.is_pediatric, ctx.age_years):
+        if not _signed_for_asked(entry, patterns):
+            continue
         if vitals_mod.conflicts(f"give {name}", ctx.vitals, flags=flags):
             continue
         # The declared severity selects the set; undeclared, the pre-gate asks.
@@ -3283,9 +3533,14 @@ def served_source_line(served: List[DoseCandidate], legacy_label: str) -> str:
 def jts_contract_citations(response_text: str,
                            allowed_doses: Optional[List[DoseCandidate]],
                            patient_ctx: Optional[PatientContext] = None,
-                           query: Optional[str] = None) -> list:
+                           query: Optional[str] = None,
+                           require_jts: bool = True) -> list:
     """The served contract entries' citations, or [] unless every served dose
-    is from a JTS-cited signed contract entry."""
+    is from a signed contract entry with a JTS citation. With `require_jts`
+    False, an EMS entry's own citation also counts (owner, 2026-11-19: "when a
+    served answer's dose comes from a signed EMS entry, the SOURCE line must
+    name that entry's signed source"); a PFC entry still needs a JTS citation
+    (B1: a NASEMSO-only dose stays general)."""
     if not allowed_doses or drug_contracts is None:
         return []
     served = [(drug_s, [float(mg_s)]) for _v, _c, drug_s, mg_s
@@ -3310,7 +3565,8 @@ def jts_contract_citations(response_text: str,
                 return []
             entry_cites = [src.get("citation") for src in entry.get("sources") or []
                            if src.get("citation")]
-            if not any(c.startswith("JTS") for c in entry_cites):
+            jts_needed = require_jts or entry.get("set") != "EMS"
+            if not entry_cites or (jts_needed and not any(c.startswith("JTS") for c in entry_cites)):
                 return []
             cites.extend(entry_cites)
     return list(dict.fromkeys(cites))
@@ -8570,7 +8826,7 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
     """Everything that must happen to EVERY response, however it was produced.
 
     Two things live here rather than in the RAG path, because the pipeline has
-    twenty-six early returns before retrieval — count them with the source_mode
+    twenty-seven early returns before retrieval — count them with the source_mode
     literals, which is the only definition that cannot drift — and anything
     applied at only one of them covers only one of them:
 
@@ -8623,6 +8879,16 @@ def _finalise(result: dict, ctx: Optional[PatientContext]) -> dict:
 
     if ctx is None:
         return result
+
+    single = getattr(ctx, "_single_signed_route", None)
+    if single and result.get("validator_result") != "UNSAFE":
+        result["response"] = state_single_route(result.get("response", ""), *single)
+    single = getattr(ctx, "_single_signed_indication", None)
+    if single and result.get("validator_result") != "UNSAFE":
+        result["response"] = state_single_indication(result.get("response", ""), *single)
+    # Last of the added lines, so it sits directly under the GIVE line.
+    if result.get("validator_result") != "UNSAFE":
+        result["response"] = chest_pain_caution(result.get("response", ""), ctx)
 
     if result.get("source_mode") not in GATED_SOURCE_MODES:
         cautions = vitals_mod.conflicts(
@@ -8750,6 +9016,9 @@ def _run_pipeline(query: str, chromadb_client,
         # previous patient's drug, dose or vitals cannot reach them.
         conversation_history = list((conversation_history or [])[patient_start:])
         prior_queries, full_query_history = build_full_query_history(query, conversation_history)
+        # This patient's whole conversation, before the request is scoped: what
+        # was reported (chest pain) is read from here by _finalise.
+        patient_ctx._conversation_text = full_query_history
         # Owner, 2026-10-24: a pending question clears when this turn names a
         # different drug, negates it, or does not answer it (scope_request).
         # Everything below that reads drugs from the history reads this.
@@ -8757,6 +9026,7 @@ def _run_pipeline(query: str, chromadb_client,
         prior_queries, request_query, answered_pending = scope_request(
             query, prior_queries, _last_response)
         full_query_history = f"{prior_queries} {request_query}".strip()
+        patient_ctx._request_text = full_query_history
         if state is not None:
             # The live context, not its dict form: _finalise needs the
             # VitalReading objects the caution table reads.
@@ -9229,6 +9499,13 @@ def _run_pipeline(query: str, chromadb_client,
             last_response=_last_response,
             cue_query=cue_query, request_query=request_query,
             answered_pending=answered_pending)
+        if gate_action == "HOLD":
+            # A safety hold, not a question (owner, 2026-11-19): the child rule.
+            print(f"🛑 PRE-GATE [HOLD]: {gate_response}")
+            return {"response": build_safety_hold([gate_response], ""),
+                    "sources": [], "source_mode": "DETERMINISTIC_PRE_GATE",
+                    "validator_result": "UNSAFE", "validator_issues": [gate_response],
+                    "patient_context": patient_ctx.to_dict()}
         if gate_action in ["ASK", "BLOCK"]:
             print(f"🚪 PRE-GATE [{gate_action}]: {gate_response}")
             # The "Vial math" chip lands on the which-vial question, and only
@@ -9426,11 +9703,14 @@ Do not ask IV or IM for RSI unless no IV/IO access is stated.
         if not use_general and not outcome.blocked:
             cites = jts_contract_citations(
                 response_text, indication_matched(full_query_history, allowed_doses),
-                patient_ctx, full_query_history)
+                patient_ctx, full_query_history, require_jts=False)
             if cites:
                 final_response = with_contract_source_line(
                     final_response, cites, assessment.source_mode == "JTS_GROUNDED")
-                assessment.source_mode = "JTS_GROUNDED"
+                # JTS_GROUNDED only when every cited source is a JTS one: an EMS
+                # entry's formulary is a signed source, not a JTS guideline.
+                if all(c.startswith("JTS") for c in cites):
+                    assessment.source_mode = "JTS_GROUNDED"
         # Severity advisory (owner, #164 review): after the gate, served answers
         # only, like every label above. Soft: the verdict and the doses stand.
         advisory = (None if outcome.blocked

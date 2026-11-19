@@ -1049,6 +1049,25 @@ def trigger_text(rule: dict) -> str:
     return " and ".join(parts)
 
 
+def abnormal_stated(readings: dict) -> list:
+    """The stated readings the caution table already classes as abnormal, as
+    "HR 38", in VITAL_ORDER. A reading is abnormal when it arms any rule's
+    threshold, whatever the rule's drugs: no new thresholds (owner, 2026-11-19).
+    Derived readings (MAP from a BP) and patient flags are not named."""
+    found = {}
+    for rule in CAUTIONS:
+        armed = _rule_armed(rule, readings, None)
+        for name, reading in (armed or {}).items():
+            if not getattr(reading, "derived", False):
+                found[name] = reading
+    out = []
+    for name in VITAL_ORDER:
+        if name in found:
+            label = (RANGES.get(name) or {}).get("label", name.upper())
+            out.append(f"{label} {_caution_value(found[name])}")
+    return out
+
+
 def armed_triggers(drug: str, readings: dict, flags: Optional[dict] = None) -> list:
     """The triggers of every armed rule that names this drug: why the vitals
     raise a caution against it, said the way the caution says it."""
