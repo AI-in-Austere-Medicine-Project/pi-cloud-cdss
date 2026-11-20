@@ -133,6 +133,7 @@ Owner asks outside the lettered items:
 | Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | done, #210 |
 | Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | done, #211 |
 | Teach page: contributor audio not kept (owner, 2026-11-17): a contributor's audio is dropped once decoded, keeping only the text heard, the word and the speaker label; the owner's recordings are kept; limits in takes; the new consent line | **in review** (see the section below) |
+| Scope rulings (owner, 2026-11-20): EdgeCDSS answers medications and procedures only. 1. A medication answer is the dose only, written by code from the signed entry. 2. Any other question shows the matching guideline section as written, with its page and the label "Guideline text as written. Not a computed dose." 3. Procedures are signed steps only, read in order by code; unsigned procedures hold, RSI first. PR 0: docs and report-only tools | **PR 0 in review**; PRs 1–4 wait on the owner's rulings b1–b5 and the guideline display |
 | SW3-F1, a clarifying question only when an answer can dose (owner, 2026-11-19): asked only if at least one answer leads to a signed dose in the active set; otherwise hold at once, naming what is not signed; the EMS calcium rows hold, the PFC calcium question still asks | **in review** (see the section below) |
 | SW3-F2, rulings on the clarifying-question option audit (owner, 2026-11-19): a question offers only drugs signed for what is asked; a child with no child entry holds at once; the route question offers only signed routes; ketamine's refractory-seizure option; the child pain label; EMS mild stays labelled; every option leads to a dose, a question or says no dose | **in review** (see the section below) |
 | Vitals (owner, 2026-11-19; after SW3-F2): a. a served dose with a stated vital abnormal by the existing rules gets a fixed factual caution naming it (any drug, both sets, no new thresholds); b. code writes the EVAC line naming an abnormal stated vital, so the model's "No threshold triggers" cannot stand | **next** (see SW3-F2's follow-ups) |
@@ -1333,6 +1334,72 @@ This PR is items 1 and 2 (`server/pocket_teach.py`, `server/static/pocket_teach.
 - **The word list (136):** every signed drug by its own name where it can be said and by every signed name the bank gives it (50); the eleven medic names; 29 indications (the US spelling where the two sound alike; RSI, TBI and CNS as letters); the five routes as letters and nine as words; the twelve control words; twenty weights and ages. Each word carries what the parser reads in it, typed; a take is "heard as itself" when Pocket's hearing reads the same.
 - **A take** stores the 16 kHz WAV and a JSON record: "open" (Vosk with no grammar, and up to five alternatives: the spellings Vosk actually produces) and "pocket" (Pocket's two-decoder hearing with the pinned grammar, as `/pocket` hears). It holds the decoder lock for one clip, never the testers' talker lease, and writes nothing to the Pocket logs.
 - **Pinned grammar:** `f8f7aa5` does not yet have yes, correct, affirmative, no, negative, stop or wrong (the confirm step is Pocket's open voice branch), so for those words only "open" counts; the page says so.
+
+### Scope rulings: medications and procedures only (owner, 2026-11-20)
+
+Owner, 2026-11-20 (verbatim):
+1. "Medication answer = dose only, written by code from the signed entry: drug, dose, route, indication, volume when the vial is known, signed source. No model-written sections (DO THIS, WATCH, DON'T, EVAC, TLDR). All existing holds, gates and clarifying questions stay."
+2. "Any other question = show the matching guideline section as written, with its page reference. No model-written advice."
+3. "Procedures = signed steps only, read in order by code, each dose computed at its step. Unsigned procedures hold. RSI first; I will sign the steps from a packet."
+
+Counting for ruling 2: "a held row that now shows guideline text is counted in its own column, "now shows guideline text", not as released. The display carries a fixed label: "Guideline text as written. Not a computed dose.""
+
+**Replaces:**
+- The "remove EVAC line" PR, stopped before it was opened.
+- The "vitals" PR, which is Not doing (owner); see #224.
+
+**Plan** (approved in outline, 2026-11-20):
+- **PR 0:** docs and report-only tools.
+- **PR 1:** ruling 1, code-written dose answers.
+- **PR 2:** ruling 2, guideline text as written.
+- **PR 3:** ruling 3, signed procedure steps, RSI first.
+- **PR 4:** remove the model calls that are no longer reachable.
+
+**Waiting on the owner's rulings:**
+- **b1:** each of the 18 deterministic cards (keep it; reduce it to its signed dose or steps; replace it with guideline text; or hold).
+- **b2:** the chest-pain caution.
+- **b3:** the validator.
+- **b4:** the other code labels (vitals cautions, general-reference banner, reset notice, B1 SOURCE line).
+- **b5:** the code and tests for checks on model text, which become unreachable.
+- **Guideline display:** stored retrieval pieces, or the index rebuilt by section.
+
+**The RSI signing packet** is kept outside the repo (owner, 2026-11-20).
+
+**PR 0 (no behaviour change; nothing in the serving path imports these):**
+- `server/tools/dose_trace.py`: every dose number in an answer (mg, mcg, g, units, mL, mEq, mmol and their per-kg and per-hour forms; never mmHg, mg/dL, kg, cmH2O or %) must appear in code's own rendering of the signed entries offered for that question (`render_give_line`, `render_range_line`). Tests: `server/tests/test_dose_trace.py`, committed failing first.
+- `server/tools/ruling_split.py`, the newly-released split. Each stored row runs twice through the current pipeline, with only the model replaced:
+  - **"today":** the stored model answer and its stored validator verdict. Eval runs keep both verbatim; live rows rebuild the verdict from the logged result ("live, approximate").
+  - **"ruling":** code's GIVE lines for the doses the checks accept for the question, and the validator returns SAFE.
+  - **What it reports:** a row held today that serves a code-written dose under ruling 1 is newly released, split by why it held: (i) a code check on the model's text, (ii) the validator's verdict, (iii) anything else. A held row with no dose for the question is counted under "now shows guideline text". The trace runs on every served answer. Retrieval is stubbed, as in the pipe replay.
+
+**The split on main `c5c89e2`** (1,510 rows with a stored model answer, 356 without):
+
+| | PFC | EMS |
+|---|---|---|
+| Stops before the model (questions, holds, cards), unchanged | 558 | 558 |
+| Newly released (i), code check on model text | 4 | 3 |
+| Newly released (ii), validator verdict | 0 | 0 |
+| Newly released (iii), anything else | 0 | 0 |
+| Now shows guideline text (held today) | 240 | 241 |
+| Served both, dose now code-written | 1 | 0 |
+| Served both, model text now guideline text | 707 | 708 |
+| Newly held | 0 | 0 |
+| No stored answer: code-written dose / guideline text / before the model | 8 / 169 / 179 | 6 / 188 / 162 |
+| Code-written answers with an untraced number | 0 | 0 |
+| Today's served model answers with an untraced number | 56 of 708 | 56 of 708 |
+
+**What the newly released rows show:**
+- Three are distinct live model answers to one question, "80 kg adult, severe pain from a closed femur fracture, IV access, what can I give". They held for the model's ketamine 7.5 mg, "1–2 mg/kg" and "30–60 mg". Under ruling 1, PFC serves every signed fit (ketamine 20 mg as a dilution, fentanyl 50 mcg, morphine 8 mg) and EMS serves acetaminophen 1 g.
+- The fourth (PFC) is "80kg male, leg amputation … Need fentanyl drip". It held for the model's 0.375 mg. Under ruling 1 it would serve the signed fentanyl 50 mcg IV *bolus* to a drip request.
+- Both are for PR 1's design: a question that fits several drugs (list them, or ask which), and a drip request that must get a signed rate or a hold, never a bolus.
+
+**Today's untraced numbers:** 56 served model answers state a dose-unit number that no signed entry offered for that question. They are mostly fluid and blood amounts: mL 60, mL/hr 36, mL/kg 11, units 9, g 7. Under ruling 2 those answers become guideline text as written.
+
+**How "0 newly released" is proved from PR 1 on:**
+- Every replay row's served doses must trace (0 untraced).
+- Newly released rows must be in (i) only, listed for sign-off. (ii) and (iii) must be 0.
+- "Now shows guideline text" is its own column.
+- The gate replay, log replay and pipe replay continue unchanged.
 
 ### SW3-F2: rulings on the clarifying-question option audit (owner, 2026-11-19)
 
