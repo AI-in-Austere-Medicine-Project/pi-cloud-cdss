@@ -1355,7 +1355,7 @@ Counting for ruling 2: "a held row that now shows guideline text is counted in i
 - **PR 3:** ruling 3, signed procedure steps, RSI first.
 - **PR 4:** remove the model calls that are no longer reachable.
 
-**Waiting on the owner's rulings:**
+**Waiting on the owner's rulings (ruled 2026-11-20, below; b1 row by row):**
 - **b1:** each of the 18 deterministic cards (keep it; reduce it to its signed dose or steps; replace it with guideline text; or hold).
 - **b2:** the chest-pain caution.
 - **b3:** the validator.
@@ -1364,6 +1364,18 @@ Counting for ruling 2: "a held row that now shows guideline text is counted in i
 - **Guideline display:** stored retrieval pieces, or the index rebuilt by section.
 
 **The RSI signing packet** is kept outside the repo (owner, 2026-11-20).
+
+**Rulings b1–b5 and the guideline display** (owner, 2026-11-20, verbatim):
+- "b1. As recommended. Send the card-by-card table; I confirm each row." (Each deterministic card becomes its signed dose (ruling 1), signed steps (ruling 3, holding until signed) or guideline text (ruling 2). The table is sent for confirmation, row by row.)
+- "b2. Keep the chest-pain caution unchanged."
+- "b3. Retire the validator after PRs 1 and 2 land, in PR 4."
+- "b4. Keep existing vitals cautions and the reset notice unchanged. SOURCE line is part of every dose answer and names the signed source for every entry, all sets (this closes the PFC non-JTS item). Replace the general-reference banner with "Guideline text as written. Not a computed dose.""
+- "b5. Leave model-text checks and tests running through PR 4. Archive only on my word. Never delete."
+- "(a) Whole source page of the best match, shown as the page IMAGE rendered from the PDF, with its page reference. List the top three matches as links and add previous/next page buttons. Use extracted text only if a page cannot be rendered. No re-ingest; do not regenerate protocol_index.json."
+
+The PFC non-JTS SOURCE follow-up (SW3-F2) is closed by b4.
+
+Corrections to the plan: the junctional card is signed (Andrew Azelton), and so is the needle-decompression card behind the tension-pneumothorax card. Neither holds today.
 
 **PR 0 (no behaviour change; nothing in the serving path imports these):**
 - `server/tools/dose_trace.py`: every dose number in an answer (mg, mcg, g, units, mL, mEq, mmol and their per-kg and per-hour forms; never mmHg, mg/dL, kg, cmH2O or %) must appear in code's own rendering of the signed entries offered for that question (`render_give_line`, `render_range_line`). Tests: `server/tests/test_dose_trace.py`, committed failing first.
