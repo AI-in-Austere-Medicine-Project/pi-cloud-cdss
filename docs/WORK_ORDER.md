@@ -1375,6 +1375,18 @@ Counting for ruling 2: "a held row that now shows guideline text is counted in i
 
 The PFC non-JTS SOURCE follow-up (SW3-F2) is closed by b4.
 
+**The medic names the drug** (owner, 2026-11-20, verbatim): "The should not have it used as advice 'what should I give for pain' only 'ketaine for pain' is one example. Drug, route, dose in mL based on weight and drug. thats all"
+
+This settles both PR 1 questions raised by the split below: when several drugs fit, nothing is listed, because the medic names the drug; "fentanyl drip" names the drug and gets a signed rate or a hold, never a bolus.
+
+Rulings on the four points it raised (owner, 2026-11-20, verbatim):
+1. "As recommended: "Name the drug to get a dose", then the matching guideline page with its fixed label."
+2. "One dose line, always with indication, vial strength and mg: "ketamine IM for pain: 0.5 mL of 50 mg/mL (25 mg)" then the SOURCE line. Nothing else, except the code-written cautions already ruled in b2 and b4."
+3. "As recommended, plus: do not ask a weight when the signed dose is fixed. If the medic says the vial is unknown, serve the mg with "NO VOLUME" rather than no answer." (As recommended: the existing weight and vial questions are asked; no dose until both are known.)
+4. "As recommended: remove drug lists from questions; keep questions about the patient (weight, age, route, vial, indication)."
+
+Owner: "Accepted: a condition with no drug named shows the guideline page only." The b1 table is revised to match and re-sent for confirmation row by row.
+
 Corrections to the plan: the junctional card is signed (Andrew Azelton), and so is the needle-decompression card behind the tension-pneumothorax card. Neither holds today.
 
 **PR 0 (no behaviour change; nothing in the serving path imports these):**
