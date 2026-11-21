@@ -1,7 +1,7 @@
 {
  "repo": "https://github.com/AI-in-Austere-Medicine-Project/edgecdss-pocket",
- "commit": "fb6e19ec6c0040a7e30b95971f502863527b373e",
- "note": "W1: the Pocket code /pocket runs (Pocket #26, the home menu, help and command lists, on main after #25: #21 hearing fixes, #22 RSI step reader, #23 typed numbers, repeat, start over, failed airway yes or no, #25 the device voice session). Its bank/ is the signed PFC export the committed Vosk grammar was built for; its signed procedures are loaded with it.",
+ "commit": "1a47b5bc5f8eae01f013cc9f6c8e3d548103aec3",
+ "note": "W1: the Pocket code /pocket runs (Pocket main after #26, the home menu, help and command lists; before it #21 hearing fixes, #22 RSI step reader, #23 typed numbers, repeat, start over, failed airway yes or no, #25 the device voice session). Its bank/ is the signed PFC export the committed Vosk grammar was built for; its signed procedures are loaded with it.",
  "vosk_model": {
   "name": "vosk-model-small-en-us-0.15",
   "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",

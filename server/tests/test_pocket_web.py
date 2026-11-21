@@ -648,7 +648,7 @@ def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
 # copy." "Pin bump only, no EdgeCDSS code changes, no replays. Check on the page: "rsi
 # 80kg", "next", "repeat", "failed airway", yes/no, "help", "drugs"."
 
-HOME_MENU = "1242a63f0ed0c0d3787a0e9efc8554ff96b72dd2"   # Pocket #26 (home menu), on main after #25
+HOME_MENU = "1a47b5bc5f8eae01f013cc9f6c8e3d548103aec3"   # Pocket main after #26 (home menu, help and command lists)
 _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml|units?)\b|\d")
 
 
@@ -683,8 +683,10 @@ def test_the_page_lists_come_from_the_signed_bank(client, runtime):
 @needs_checkout
 def test_the_page_help_shows_letters_and_says_words(client):
     r = _say(client, "help").json()
-    assert "ketamine for pain, IV, eighty kilos" in r["text"] and "RSI, eighty kilos" in r["text"]
-    assert "ketamine for pain, eye vee, eighty kilos" in r["spoken"] and "R S I, eighty kilos" in r["spoken"]
+    assert "ketamine for agitation, IV, eighty kilos" in r["text"] and "RSI, eighty kilos" in r["text"]
+    assert "ketamine for agitation, eye vee, eighty kilos" in r["spoken"] and "R S I, eighty kilos" in r["spoken"]
+    example = _say(client, "ketamine for agitation, IV, eighty kilos").json()   # asks nothing first
+    assert (example["kind"], example["text"]) == ("readback", "Ketamine, agitation, IV, eighty kilos. Confirm?")
 
 
 @needs_checkout
@@ -729,7 +731,8 @@ def test_the_page_shows_the_start_up_line_once_when_it_loads():
     assert "s.start_up" in js and "startUpShown" in js
     assert "esc(s.start_up)" in js                       # escaped, as every answer is
     assert re.search(r"if \(s\.available && s\.start_up && !startUpShown\)", js)
-    start = js[js.index("function showStartUp"):js.index("}", js.index("function showStartUp"))]
+    i = html.index("function showStartUp")
+    start = html[i:html.index("}", i)]
     assert "play" not in start.lower() and "Audio" not in start   # text only: no autoplay
 
 
