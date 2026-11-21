@@ -585,8 +585,9 @@ def test_two_misses_cancel_through_the_web(client):
 POCKET_MAIN_25 = "e63248c8ae665f5fc7f876195537b56518564f03"   # Pocket main after #25
 
 
-def test_the_pin_is_pocket_main_after_25():
-    assert pw.PIN["commit"] == POCKET_MAIN_25
+def test_the_pin_is_after_pocket_main_after_25():
+    """Superseded by the home menu pin below; #21 to #25 are in its history."""
+    assert pw.PIN["commit"] != POCKET_MAIN_25
 
 
 @needs_checkout
@@ -638,3 +639,105 @@ def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
     boots = [x for x in lines if x["event"] == "boot"]
     assert len(boots) == 1 and boots[0]["record"]["set"] == "PFC set"
     assert not [x for x in lines if x["event"] == "dose"]
+
+
+
+# ── W1 pin bump: Pocket #26, home menu, help and command lists (owner, 2026-11-21) ──
+# Owner: "The Pocket page shows the same home menu, the drug and procedure lists, and the
+# help text as text on screen. The lists come from the signed bank, not a hand-written
+# copy." "Pin bump only, no EdgeCDSS code changes, no replays. Check on the page: "rsi
+# 80kg", "next", "repeat", "failed airway", yes/no, "help", "drugs"."
+
+HOME_MENU = "1a47b5bc5f8eae01f013cc9f6c8e3d548103aec3"   # Pocket main after #26 (home menu, help and command lists)
+_DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml|units?)\b|\d")
+
+
+def test_the_pin_is_pockets_home_menu():
+    assert pw.PIN["commit"] == HOME_MENU
+
+
+@needs_checkout
+@pytest.mark.parametrize("said", ["home", "drugs", "list drugs", "procedures", "list procedures",
+                                  "help", "what can i say"])
+def test_the_page_shows_the_menu_lists_and_help_as_the_engine_says_them(client, said):
+    r = _say(client, said).json()
+    turn = _engine_says([said])[0]
+    assert (r["kind"], r["text"], r["spoken"]) == ("menu", turn.written_text, turn.text)
+    assert base64.b64decode(r["audio_wav_b64"]) == fake_synth(turn.text)
+    assert not _DOSE_WORDS.search(r["text"]) and not _DOSE_WORDS.search(r["spoken"]), r["text"]
+
+
+@needs_checkout
+def test_the_page_lists_come_from_the_signed_bank(client, runtime):
+    from grammar.vocabulary import build
+    vocab = build(runtime.bank)
+    text = _say(client, "drugs").json()["text"]
+    names = sorted({vocab.listed_name(d) for d in runtime.bank.signed_drugs})
+    assert text == f"Signed drugs: {', '.join(names)}. Say a drug name to begin."
+    assert len(names) == len(runtime.bank.signed_drugs) == 25
+    titles = [p.title for p in runtime.procedures.values()]
+    assert _say(client, "procedures").json()["text"] == (
+        f"Signed procedures: {', '.join(titles)}. Say a procedure name to begin.")
+
+
+@needs_checkout
+def test_the_page_help_shows_letters_and_says_words(client):
+    r = _say(client, "help").json()
+    assert "ketamine for agitation, IV, eighty kilos" in r["text"] and "RSI, eighty kilos" in r["text"]
+    assert "ketamine for agitation, eye vee, eighty kilos" in r["spoken"] and "R S I, eighty kilos" in r["spoken"]
+    example = _say(client, "ketamine for agitation, IV, eighty kilos").json()   # asks nothing first
+    assert (example["kind"], example["text"]) == ("readback", "Ketamine, agitation, IV, eighty kilos. Confirm?")
+
+
+@needs_checkout
+def test_the_owners_checks_on_the_page_in_one_session(client):
+    said = ["rsi 80kg", "next", "repeat", "failed airway", "next", "next", "yes",
+            "failed airway", "next", "next", "no", "help", "drugs", "home", "what can i say"]
+    kinds = [_say(client, p).json()["kind"] for p in said]
+    assert kinds == ["step", "step", "repeat", "step", "step", "ask", "step",
+                     "step", "step", "ask", "step", "menu", "menu", "menu", "menu"]
+    assert _say(client, "log").json()["text"] == "Zero doses logged."
+
+
+@needs_checkout
+def test_home_on_the_page_ends_a_procedure_and_drops_a_read_back(client):
+    _say(client, "rsi 80kg")
+    assert _say(client, "home").json()["text"] == "Pocket ready. Say drugs, procedures, or help."
+    assert _say(client, "next").json()["text"] == "No steps running."
+    _say(client, "ketamine for agitation iv eighty kilos")
+    _say(client, "home")
+    assert _say(client, "yes").json()["kind"] != "dose"
+
+
+
+# Owner: "do the small page change so the start-up menu line shows when the Pocket page
+# loads. Put it with #227."
+
+@needs_checkout
+def test_status_carries_the_engines_own_start_up_line(client, logs):
+    st = client.get("/pocket/status", headers=TOKEN).json()
+    sys.path.insert(0, str(CHECKOUT))
+    from engine.session import boot
+    assert st["start_up"] == boot(CHECKOUT / "bank").announce.written_text
+    assert st["start_up"] == ("Pocket ready. Research prototype, not for patient care. "
+                              "Say drugs, procedures, or help.")
+    assert not logs.exists() or not any(logs.iterdir())    # no tester session, no log line
+    assert client.get("/pocket/status", headers=TOKEN).json()["busy"] is False
+
+
+def test_the_page_shows_the_start_up_line_once_when_it_loads():
+    html = pw.PAGE.read_text()
+    js = html[html.index("async function status()"):]
+    assert "s.start_up" in js and "startUpShown" in js
+    assert "esc(s.start_up)" in js                       # escaped, as every answer is
+    assert re.search(r"if \(s\.available && s\.start_up && !startUpShown\)", js)
+    i = html.index("function showStartUp")
+    start = html[i:html.index("}", i)]
+    assert "play" not in start.lower() and "Audio" not in start   # text only: no autoplay
+
+
+def test_with_pocket_unavailable_status_has_no_start_up_line():
+    app = FastAPI()
+    pw.mount(app, require_token=_gate, runtime=None)
+    st = TestClient(app).get("/pocket/status", headers=TOKEN).json()
+    assert st["available"] is False and "start_up" not in st

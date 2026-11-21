@@ -258,6 +258,10 @@ class Runtime:
     def __init__(self, bank, hearing, synth, commit: str, procedures: Optional[dict] = None):
         self.bank, self.hearing, self.synth, self.commit = bank, hearing, synth, commit
         self.procedures = procedures or {}
+        # The start-up line the page shows on load (owner, 2026-11-21): Pocket's own, from
+        # a session that is never used, so nothing is logged and no tester is holding it.
+        from engine.session import Session
+        self.start_up = Session(bank, log=lambda record: None, procedures=self.procedures).announce.written_text
         self._lease = threading.Lock()
         self._work = threading.RLock()   # hear() holds it across decoding and turn()
         self._holder: Optional[str] = None
@@ -285,7 +289,7 @@ class Runtime:
                 "entries": len(self.bank.entries),
                 "vosk_model": getattr(self.hearing, "model_name", ""),
                 "piper_voice": getattr(self.synth, "voice_name", ""),
-                "busy": self._busy()}
+                "start_up": self.start_up, "busy": self._busy()}
 
     def _busy(self) -> bool:
         with self._lease:
