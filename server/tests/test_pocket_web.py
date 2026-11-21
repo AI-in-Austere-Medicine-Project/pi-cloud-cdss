@@ -648,7 +648,7 @@ def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
 # copy." "Pin bump only, no EdgeCDSS code changes, no replays. Check on the page: "rsi
 # 80kg", "next", "repeat", "failed airway", yes/no, "help", "drugs"."
 
-HOME_MENU = "fb6e19ec6c0040a7e30b95971f502863527b373e"   # Pocket #26 (home menu), on main after #25
+HOME_MENU = "1242a63f0ed0c0d3787a0e9efc8554ff96b72dd2"   # Pocket #26 (home menu), on main after #25
 _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml|units?)\b|\d")
 
 
@@ -705,3 +705,36 @@ def test_home_on_the_page_ends_a_procedure_and_drops_a_read_back(client):
     _say(client, "ketamine for agitation iv eighty kilos")
     _say(client, "home")
     assert _say(client, "yes").json()["kind"] != "dose"
+
+
+
+# Owner: "do the small page change so the start-up menu line shows when the Pocket page
+# loads. Put it with #227."
+
+@needs_checkout
+def test_status_carries_the_engines_own_start_up_line(client, logs):
+    st = client.get("/pocket/status", headers=TOKEN).json()
+    sys.path.insert(0, str(CHECKOUT))
+    from engine.session import boot
+    assert st["start_up"] == boot(CHECKOUT / "bank").announce.written_text
+    assert st["start_up"] == ("Pocket ready. Research prototype, not for patient care. "
+                              "Say drugs, procedures, or help.")
+    assert not logs.exists() or not any(logs.iterdir())    # no tester session, no log line
+    assert client.get("/pocket/status", headers=TOKEN).json()["busy"] is False
+
+
+def test_the_page_shows_the_start_up_line_once_when_it_loads():
+    html = pw.PAGE.read_text()
+    js = html[html.index("async function status()"):]
+    assert "s.start_up" in js and "startUpShown" in js
+    assert "esc(s.start_up)" in js                       # escaped, as every answer is
+    assert re.search(r"if \(s\.available && s\.start_up && !startUpShown\)", js)
+    start = js[js.index("function showStartUp"):js.index("}", js.index("function showStartUp"))]
+    assert "play" not in start.lower() and "Audio" not in start   # text only: no autoplay
+
+
+def test_with_pocket_unavailable_status_has_no_start_up_line():
+    app = FastAPI()
+    pw.mount(app, require_token=_gate, runtime=None)
+    st = TestClient(app).get("/pocket/status", headers=TOKEN).json()
+    assert st["available"] is False and "start_up" not in st
