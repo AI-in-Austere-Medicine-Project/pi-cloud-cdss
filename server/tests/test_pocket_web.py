@@ -572,3 +572,68 @@ def test_two_misses_cancel_through_the_web(client):
     assert _say(client, "ok").json()["text"] == "Say confirm or cancel."
     assert _say(client, "ok").json()["text"] == "Cancelled."
     assert _say(client, "yes").json()["kind"] != "dose"
+
+
+# ── W1 pin bump: Pocket main after #25 (owner, 2026-11-21) ──────────────────
+# Owner: "Update the Pocket page on the portal to current edgecdss-pocket main
+# (includes #21, #22, #23, #25). Pin bump only in pi-cloud-cdss; no EdgeCDSS code
+# changes and no replays. Check that RSI works on the page: "rsi 80kg", "next",
+# "repeat", "failed airway", yes/no. If the page needs a change to handle
+# procedures, include it."
+
+POCKET_MAIN_25 = "e63248c8ae665f5fc7f876195537b56518564f03"   # Pocket main after #25
+
+
+def test_the_pin_is_pocket_main_after_25():
+    assert pw.PIN["commit"] == POCKET_MAIN_25
+
+
+@needs_checkout
+def test_rsi_on_the_page_steps_and_repeats(client):
+    one = _say(client, "rsi 80kg").json()
+    assert one["kind"] == "step"
+    assert one["text"].startswith("Rapid sequence intubation, adult, eighty kilos. Step one of eleven.")
+    two = _say(client, "next").json()
+    assert two["kind"] == "step" and two["text"].startswith("Step two of eleven.")
+    again = _say(client, "repeat").json()
+    assert again["text"] == two["text"] and again["spoken"] == two["spoken"]
+    assert base64.b64decode(again["audio_wav_b64"]) == fake_synth(two["spoken"])
+
+
+@needs_checkout
+@pytest.mark.parametrize("answer, branch", [
+    ("yes", "Step three of three. YES → Surgical airway"),
+    ("no", "Step three of three. NO → Emergency pathway."),
+])
+def test_failed_airway_on_the_page_asks_and_reads_the_answer(client, answer, branch):
+    first = _say(client, "failed airway").json()
+    assert first["text"].startswith("Failed airway, adult") and "Step one of three." in first["text"]
+    _say(client, "next")
+    ask = _say(client, "next").json()
+    assert (ask["kind"], ask["text"]) == ("ask", "Can you mask ventilate? Say yes or no.")
+    r = _say(client, answer).json()
+    assert r["kind"] == "step" and r["text"].startswith(branch), r["text"]
+    assert _say(client, "log").json()["text"] == "Zero doses logged."     # no dose came of it
+
+
+@needs_checkout
+def test_rsi_by_voice_on_the_page(client, runtime):
+    r = _hear(client, runtime, "r s i eighty kilos")
+    assert r["kind"] == "step" and "Step one of eleven." in r["text"]
+
+
+@needs_checkout
+def test_the_page_steps_are_the_engines_own(client):
+    phrases = ["rsi 80kg", "next", "repeat", "start over", "failed airway", "next", "next", "no"]
+    for phrase, turn in zip(phrases, _engine_says(phrases)):
+        r = _say(client, phrase).json()
+        assert (r["kind"], r["text"], r["spoken"]) == (turn.kind, turn.written_text, turn.text), phrase
+
+
+@needs_checkout
+def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
+    _say(client, "rsi 80kg")
+    lines = [json.loads(x) for f in logs.glob("pocket_turns_*.jsonl") for x in f.read_text().splitlines()]
+    boots = [x for x in lines if x["event"] == "boot"]
+    assert len(boots) == 1 and boots[0]["record"]["set"] == "PFC set"
+    assert not [x for x in lines if x["event"] == "dose"]
