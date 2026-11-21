@@ -237,10 +237,13 @@ def test_skip_is_recorded_and_an_unknown_word_is_refused(client, owner):
 
 def test_a_take_does_not_hold_the_testers_lease_or_write_their_logs(client, runtime, hearing):
     runtime.session_for("tester-a")                       # a tester is talking
+    # (a new tester's session logs its start-up line, Pocket #23; the take adds nothing)
+    before = {f.name: f.read_text() for f in pw.LOG_DIR.iterdir()} if pw.LOG_DIR.exists() else {}
     hearing.open = hearing.next = "epi"
     assert _clip(client, "medic-epi").status_code == 200
     assert runtime._holder == "tester-a"
-    assert not pw.LOG_DIR.exists() or not any(pw.LOG_DIR.iterdir())
+    after = {f.name: f.read_text() for f in pw.LOG_DIR.iterdir()} if pw.LOG_DIR.exists() else {}
+    assert after == before
 
 
 def test_the_real_hearing_decodes_open_and_with_pockets_grammar():

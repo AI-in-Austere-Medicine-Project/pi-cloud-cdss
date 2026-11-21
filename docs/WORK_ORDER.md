@@ -128,7 +128,8 @@ Owner asks outside the lettered items:
 | EMS-TEST, a bench-testing set (owner, 2026-11-13): every EMS formulary entry as transcribed, unsigned, status "test"; never served by EdgeCDSS; exported only with `--test` (`bank-ems-test.json`, test:true); Pocket loads it only with POCKET_TEST=1 | **done**: #203, merged 2026-11-15 |
 | W1, Pocket on the web for outside testers (owner, 2026-11-15): `/pocket` runs the pinned Pocket code (Vosk with its grammar, its engine and templates, Piper); PFC only; product-pocket logs outside the replay sets; one talker at a time | **done**: #204, merged and deployed 2026-11-15; release → first audio through the tunnel measured (median 471 ms) |
 | W1 pin bump to Pocket's hearing fixes (owner, 2026-11-15): `pocket_pin.json` → Pocket #5 (`f8f7aa5`); `/pocket/hear` passes `spoken=True`, the typed box does not | **done**: #206, merged and deployed 2026-11-15 |
-| W1 pin bump to Pocket's voice work (owner, 2026-11-19): `pocket_pin.json` → Pocket main after #10 (`844cdfe`: #9's confirm step and routes said as words, #10's written form); the page shows the written form (IV, IM, IO, IN, PO, NEB) and plays the spoken one | **in review** (see the section below) |
+| W1 pin bump to Pocket's voice work (owner, 2026-11-19): `pocket_pin.json` → Pocket main after #10 (`844cdfe`: #9's confirm step and routes said as words, #10's written form); the page shows the written form (IV, IM, IO, IN, PO, NEB) and plays the spoken one | **done**: #222, merged 2026-11-19 |
+| W1 pin bump to Pocket main after #25 (owner, 2026-11-21): `pocket_pin.json` → `e63248c` (#21, #22, #23, #25); RSI and failed airway on the page; the page loads the signed procedures | **in review** (see the section below) |
 | Site tidy-up (owner, 2026-11-15): the new index; ethics and release-notes pages restyled to it through one `web/site.css`; facts and links checked | **done**: #207; the shared notice wording #209 (owner, 2026-11-16) |
 | Pocket vocabulary session (owner, 2026-11-16): a private teach page, `/pocket/teach`, owner token only, unlinked; the word list from the active bank; three takes each with skip and redo; each clip stored with what Vosk heard (open and with Pocket's grammar) in `~/pocket-web/owner-clips`, never committed | done, #210 |
 | Teach page contributors (owner, 2026-11-17): one shared contributor password that opens the teach page only; a speaker label per browser, no names; per-speaker caps per day and in total, a clip-length cap; a command for on/off, the password and deleting a speaker; a consent line; clips stored per speaker | done, #211 |
@@ -1485,6 +1486,19 @@ Every link resolved: 14 on the draft and 3 release links, all 200. Discussions a
 **Tests** (failing first, `server/tests/test_site.py`, 19): one stylesheet with light and dark, no page-local styles or web fonts; the back link; wording unchanged; every local link resolves; old paths stay; the version matches `version.py`; the notice; each release link; the Pocket line.
 
 **Replay:** against main (`36ec28c`), PFC and EMS, each through served, held, gate, log and pipe: every output file byte-identical (`cmp`); 0 changed. Only `web/` and one test file change.
+
+
+### W1 pin bump: Pocket main after #25, procedures on the page (owner, 2026-11-21)
+
+**Owner:** "Update the Pocket page on the portal to current edgecdss-pocket main (includes #21, #22, #23, #25). Pin bump only in pi-cloud-cdss; no EdgeCDSS code changes and no replays. Check that RSI works on the page: "rsi 80kg", "next", "repeat", "failed airway", yes/no. If the page needs a change to handle procedures, include it."
+
+**What changed.** `server/pocket_pin.json` names Pocket `e63248c` (main after #25). The page needed one change for procedures: it builds Pocket's `Session` itself, not through Pocket's `boot()`, so it never loaded the signed procedures and "rsi" was not recognised. `pocket_web.load_pfc_procedures` loads them from the pinned bank as `boot()` does (refused procedures all hold and the doses are unaffected), and each tester's session gets them. Pocket #23's session also logs its start-up record (set, full version, full hash) through the dose log; the page now logs that line as `event: boot`, not `dose`. Nothing else in EdgeCDSS changes; the page HTML is unchanged (step and question turns show as text, like any other answer).
+
+**Tests** (failing first, `server/tests/test_pocket_web.py`): the pin is `e63248c`; "rsi 80kg" reads step one of eleven, "next" step two, "repeat" the same step in both forms and the same audio; "failed airway", "next", "next" asks "Can you mask ventilate? Say yes or no.", and "yes" reads the YES step, "no" the NO step, with no dose logged; "r s i eighty kilos" heard by voice reads step one; eight procedure turns on the page equal the pinned engine's own, in both forms; the start-up record is logged once as `boot` and no `dose` line appears. The #10 pin test now checks the pin has moved past it. The teach test that a take writes no tester logs now compares the logs before and after the take, since a new tester's session logs its start-up line. With the real Vosk model and Piper voice: the Pocket web and teach tests, 108 passed.
+
+**Replay:** none (owner: no replays; no EdgeCDSS code changes).
+
+**Deploying** (the owner's step, after merge): `/home/andrew/deploy_pocket.sh`.
 
 
 ### W1 pin bump: Pocket's voice work (owner, 2026-11-19)
