@@ -158,6 +158,17 @@ def load_pfc_bank(d: pathlib.Path):
     return bank
 
 
+def load_pfc_procedures(d: pathlib.Path, bank) -> dict:
+    """The signed procedures (RSI, failed airway; Pocket #22) shipped with the bank, as
+    Pocket's own boot() loads them: refused procedures all hold, the doses do not."""
+    from engine.procedures import ProceduresRefused, load_procedures
+    try:
+        return load_procedures(d, bank)
+    except ProceduresRefused as e:
+        print(f"⚠️  /pocket: procedures refused, none served: {e}")
+        return {}
+
+
 # ── speech in and out ───────────────────────────────────────────────────────
 
 def pcm16k(wav_bytes: bytes) -> bytes:
@@ -244,8 +255,9 @@ class PiperSynth:
 # ── one talker at a time ────────────────────────────────────────────────────
 
 class Runtime:
-    def __init__(self, bank, hearing, synth, commit: str):
+    def __init__(self, bank, hearing, synth, commit: str, procedures: Optional[dict] = None):
         self.bank, self.hearing, self.synth, self.commit = bank, hearing, synth, commit
+        self.procedures = procedures or {}
         self._lease = threading.Lock()
         self._work = threading.RLock()   # hear() holds it across decoding and turn()
         self._holder: Optional[str] = None
@@ -259,11 +271,12 @@ class Runtime:
         commit = verify_checkout(path)
         _import_pocket(path)
         bank = load_pfc_bank(bank_dir())
+        procedures = load_pfc_procedures(bank_dir(), bank)
         if hearing is None:
             hearing = VoskHearing(vosk_model_dir(), path / "grammar" / "vosk_grammar.json", bank)
         if synth is None:
             synth = PiperSynth(piper_voice_path())
-        return cls(bank, hearing, synth, commit)
+        return cls(bank, hearing, synth, commit, procedures)
 
     def status(self) -> dict:
         return {"available": True, "why": "", "pocket_commit": self.commit,
@@ -287,7 +300,8 @@ class Runtime:
                 raise Busy()
             if self._holder != sid:
                 self._holder = sid
-                self._session = Session(self.bank, log=self._dose_log(sid))
+                self._session = Session(self.bank, log=self._dose_log(sid),
+                                        procedures=self.procedures)
             self._last = now
             return self._session
 
@@ -298,7 +312,10 @@ class Runtime:
 
     def _dose_log(self, sid: str) -> Callable:
         def write(record: dict) -> None:
-            _log({"event": "dose", "time": _now(), "session_id": sid,
+            # Pocket's session logs its start-up line first (set, full version, hash;
+            # Pocket #23), then each dose.
+            event = "boot" if record.get("event") == "boot" else "dose"
+            _log({"event": event, "time": _now(), "session_id": sid,
                   "pocket_commit": self.commit, "bank_version": self.bank.version,
                   "record": record})
         return write

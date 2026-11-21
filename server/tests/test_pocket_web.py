@@ -513,8 +513,9 @@ ROUTE_PHRASES = ["ketamine for agitation iv eighty kilos", "ketamine for agitati
                  "acetaminophen for pain po seventy kilos"]
 
 
-def test_the_pin_is_pockets_voice_work():
-    assert pw.PIN["commit"] == VOICE
+def test_the_pin_is_after_pockets_voice_work():
+    """Superseded by the pin after Pocket #25 below; #9 and #10 are in its history."""
+    assert pw.PIN["commit"] != VOICE
 
 
 @needs_checkout
@@ -607,7 +608,7 @@ def test_rsi_on_the_page_steps_and_repeats(client):
 ])
 def test_failed_airway_on_the_page_asks_and_reads_the_answer(client, answer, branch):
     first = _say(client, "failed airway").json()
-    assert first["text"].startswith("Failed airway, adult") and "Step one of three." in first["text"]
+    assert first["text"].startswith("Failed airway. Step one of three."), first["text"]
     _say(client, "next")
     ask = _say(client, "next").json()
     assert (ask["kind"], ask["text"]) == ("ask", "Can you mask ventilate? Say yes or no.")
