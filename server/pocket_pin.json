@@ -1,7 +1,7 @@
 {
  "repo": "https://github.com/AI-in-Austere-Medicine-Project/edgecdss-pocket",
- "commit": "7858eeb991c849dfc1f1918fb90b3dda7e35e3ce",
- "note": "W1: the Pocket code /pocket runs (Pocket #34, hearing every drug name in both sets, on main after #27 words, #28 power-up, #29-#31 the EMS set, #32 the set chosen on the device; before them #26 home menu and help). /pocket serves its bank/ (the signed PFC set) only; the teach page lists both sets' words (bank/ and bank/ems/).",
+ "commit": "04a820c1ba0d5c2fae05350041c3cee4c7130aaf",
+ "note": "W1: the Pocket code /pocket runs (Pocket main after #34, hearing every drug name in both sets; on main after #27 words, #28 power-up, #29-#31 the EMS set, #32 the set chosen on the device; before them #26 home menu and help). /pocket serves its bank/ (the signed PFC set) only; the teach page lists both sets' words (bank/ and bank/ems/).",
  "vosk_model": {
   "name": "vosk-model-small-en-us-0.15",
   "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",

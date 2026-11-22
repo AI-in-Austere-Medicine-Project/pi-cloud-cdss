@@ -650,7 +650,7 @@ def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
 
 HOME_MENU = "1a47b5bc5f8eae01f013cc9f6c8e3d548103aec3"   # Pocket main after #26 (home menu, help and command lists)
 # Pocket #34 (hearing every drug name in both sets), on main after #27-#32.
-BOTH_SETS = "7858eeb991c849dfc1f1918fb90b3dda7e35e3ce"
+BOTH_SETS = "04a820c1ba0d5c2fae05350041c3cee4c7130aaf"
 _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml|units?)\b|\d")
 
 
