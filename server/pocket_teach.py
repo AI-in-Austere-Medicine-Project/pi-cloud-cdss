@@ -414,7 +414,7 @@ def teach_words(bank, vocab) -> list:
                       "expect": _meaning(kind, say, vocab)})
 
     from grammar.vocabulary import _say_term
-    signed = {e["drug"] for e in bank.entries}
+    signed = {e["drug"] for e in bank.entries} | {x["drug"] for x in getattr(bank, "silent", [])}
     for generic in sorted(signed):
         if _say_term(generic) == generic:     # "sodium chloride 3%" is said by its aliases
             add("drug", generic)
@@ -522,11 +522,15 @@ def mount(app: FastAPI, state: dict, pcm16k) -> None:
         return rt
 
     def words(rt) -> list:
+        """Both sets' words (owner, 2026-11-22: hearing for every drug name in the EMS and
+        PFC sets); /pocket itself still serves the PFC set only."""
         key = rt.bank.hash
         if key not in cache:
+            from engine.bank import load_sets, merge_banks
             from grammar.vocabulary import build
+            both = merge_banks(load_sets().values()) if load_sets() else rt.bank
             cache.clear()
-            cache[key] = (teach_words(rt.bank, build(rt.bank)), build(rt.bank))
+            cache[key] = (teach_words(both, build(both)), build(both))
         return cache[key]
 
     def word(rt, word_id: str):

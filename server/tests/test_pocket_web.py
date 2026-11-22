@@ -426,7 +426,7 @@ def test_the_portal_mounts_the_page_and_gates_the_api():
 def test_the_committed_grammar_is_for_this_model_and_this_bank(logs):
     rt = pw.Runtime.load(synth=fake_synth)  # real Vosk hearing
     g = json.loads((CHECKOUT / "grammar" / "vosk_grammar.json").read_text())
-    assert g["bank_hash"] == rt.bank.hash
+    assert g["bank_hash"] == pw._both_sets(rt.bank).hash        # Pocket #34: both sets' names
     assert rt.status()["vosk_model"] == pw.PIN["vosk_model"]["name"]
 
 
@@ -649,11 +649,13 @@ def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
 # 80kg", "next", "repeat", "failed airway", yes/no, "help", "drugs"."
 
 HOME_MENU = "1a47b5bc5f8eae01f013cc9f6c8e3d548103aec3"   # Pocket main after #26 (home menu, help and command lists)
+# Pocket #34 (hearing every drug name in both sets), on main after #27-#32.
+BOTH_SETS = "7858eeb991c849dfc1f1918fb90b3dda7e35e3ce"
 _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml|units?)\b|\d")
 
 
-def test_the_pin_is_pockets_home_menu():
-    assert pw.PIN["commit"] == HOME_MENU
+def test_the_pin_is_pockets_hearing_for_both_sets():
+    assert pw.PIN["commit"] == BOTH_SETS
 
 
 @needs_checkout
@@ -719,8 +721,8 @@ def test_status_carries_the_engines_own_start_up_line(client, logs):
     sys.path.insert(0, str(CHECKOUT))
     from engine.session import boot
     assert st["start_up"] == boot(CHECKOUT / "bank").announce.written_text
-    assert st["start_up"] == ("Pocket ready. Research prototype, not for patient care. "
-                              "Say drugs, procedures, or help.")
+    assert st["start_up"] == ("Pocket ready. PFC set. Research prototype, not for patient care. "
+                              "Say drugs, procedures, or help.")          # names the set (Pocket #32)
     assert not logs.exists() or not any(logs.iterdir())    # no tester session, no log line
     assert client.get("/pocket/status", headers=TOKEN).json()["busy"] is False
 
