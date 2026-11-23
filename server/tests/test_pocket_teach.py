@@ -4,8 +4,8 @@ Owner: "A private teach page on the portal (owner token only, not linked from th
 public page). It shows one word or phrase, I hold to talk and say it, it stores the
 clip and what Vosk heard, then advances. Three takes each, with skip and redo. Clips
 stay private in ~/pocket-web/owner-clips, never committed. Word list, generated from
-the active bank: every signed drug name and the names medics say (keppra, narcan,
-rocephin, ancef, versed, TXA, roc, sux, epi, levophed, vitamin K), every indication
+the active bank: every signed drug name and the names medics say that name a signed drug
+(narcan, versed, TXA, epi, levophed in the EMS set), every indication
 word, every route as letters and as words, control words (confirm, yes, correct,
 affirmative, no, cancel, negative, stop, wrong, repeat, why, new patient), and 20
 sample weights and ages ("eighty kilos", "two hundred pounds", "six years")."
@@ -162,8 +162,9 @@ def test_the_word_list_is_generated_from_the_active_bank(client, runtime):
     # cannot; "hypertonic saline" is said for it).
     named = {g for w in words if w["kind"] in ("drug", "medic") for g in (w["expect"] or [[]])[0]}
     assert {e["drug"] for e in runtime.bank.entries} <= named
-    assert {"keppra", "narcan", "rocephin", "ancef", "versed", "t x a", "roc", "sux", "epi",
-            "levophed", "vitamin k"} <= said
+    # The medic names that name a signed EMS drug (the one drug list, 2026-11-23).
+    assert {"narcan", "versed", "t x a", "epi", "levophed"} <= said
+    assert not {"keppra", "rocephin", "ancef", "sux"} & said              # PFC drugs, retired
     from grammar.vocabulary import build
     v = build(runtime.bank)
     assert set(v.signed_terms()) - {"txa"} <= said                       # every signed name
@@ -198,15 +199,15 @@ def test_every_word_but_the_new_control_words_means_something_to_pocket(client):
 # ── a take ──────────────────────────────────────────────────────────────────
 
 def test_a_take_stores_the_clip_and_what_vosk_heard(client, hearing, owner):
-    hearing.open, hearing.next = "keep her", "keppra"
-    r = _clip(client, "medic-keppra")
+    hearing.open, hearing.next = "for said", "versed"
+    r = _clip(client, "medic-versed")
     assert r.status_code == 200
     d = r.json()
-    assert d["open"] == "keep her" and d["open_alternatives"] == ["keep her"]
-    assert d["pocket"] == {"heard": "keppra", "text": "keppra", "decoder": "spelled"}
+    assert d["open"] == "for said" and d["open_alternatives"] == ["for said"]
+    assert d["pocket"] == {"heard": "versed", "text": "versed", "decoder": "spelled"}
     assert d["as_itself"] is True
-    assert (owner / "speaker-1" / "medic-keppra" / "take1.wav").read_bytes() == _wav()
-    assert json.loads((owner / "speaker-1" / "medic-keppra" / "take1.json").read_text())["open"] == "keep her"
+    assert (owner / "speaker-1" / "medic-versed" / "take1.wav").read_bytes() == _wav()
+    assert json.loads((owner / "speaker-1" / "medic-versed" / "take1.json").read_text())["open"] == "for said"
 
 
 def test_a_take_heard_as_another_word_is_not_as_itself(client, hearing):
@@ -228,9 +229,9 @@ def test_three_takes_redo_overwrites_and_a_fourth_is_refused(client, hearing, ow
 
 
 def test_skip_is_recorded_and_an_unknown_word_is_refused(client, owner):
-    assert client.post("/pocket/teach/skip?word_id=medic-sux", headers=OWNER).status_code == 200
+    assert client.post("/pocket/teach/skip?word_id=medic-levophed", headers=OWNER).status_code == 200
     lines = [json.loads(x) for x in (owner / "speaker-1" / "session.jsonl").read_text().splitlines()]
-    assert lines[-1]["event"] == "skip" and lines[-1]["word_id"] == "medic-sux"
+    assert lines[-1]["event"] == "skip" and lines[-1]["word_id"] == "medic-levophed"
     assert _clip(client, "../../etc").status_code == 404
     assert client.post("/pocket/teach/skip?word_id=nope", headers=OWNER).status_code == 404
 
@@ -251,7 +252,7 @@ def test_the_real_hearing_decodes_open_and_with_pockets_grammar():
     if not (pw.vosk_model_dir().exists() and importlib.util.find_spec("vosk")):
         pytest.skip("the Vosk model is not installed")
     pw._import_pocket(CHECKOUT)
-    bank = pw.load_pfc_bank(pw.bank_dir())
+    bank = pw.load_served_bank(pw.bank_dir())
     h = pw.VoskHearing(pw.vosk_model_dir(), CHECKOUT / "grammar" / "vosk_grammar.json", bank)
     text, alternatives = h.hear_open(b"\x00\x00" * 8000)
     assert text == "" and isinstance(alternatives, list)

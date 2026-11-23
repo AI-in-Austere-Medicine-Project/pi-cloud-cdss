@@ -7,7 +7,10 @@ Vosk with Pocket's grammar on the Jetson -> Pocket engine -> Pocket's spoken
 templates -> Piper audio back to the browser, with the text shown on screen too.
 Read-back and "confirm" work as on the device. The page shows the Pocket version
 and bank version. Drug set: the public page serves the signed PFC set only. EMS and
-EMS-TEST are never reachable from the web; pin that with a test. Feedback: the same
+EMS-TEST are never reachable from the web; pin that with a test." Superseded for the set
+(owner, 2026-11-23): "Pocket carries one drug list, the EMS set only. ... Web page and teach
+page: EMS list only." The page serves the signed EMS set; PFC and EMS-TEST are refused.
+" Feedback: the same
 "clinically appropriate / flag issue" buttons as the main portal, logged with
 product: pocket, the phrase heard, the parse and the answer. Pocket sessions are
 kept separate and never enter the EdgeCDSS replay sets. One talker at a time; a
@@ -57,8 +60,8 @@ needs_models = pytest.mark.skipif(
     reason="the Vosk model and Piper voice, or the vosk and piper-tts packages, are not "
            "installed (install_pocket.py --models; requirements-pocket.txt)")
 
-EXAMPLE_PHRASES = ["ketamine for agitation iv eighty kilos", "confirm", "new patient",
-                   "magnesium", "acetaminophen for pain po seventy kilos"]
+EXAMPLE_PHRASES = ["fentanyl for pain iv twenty kilos", "confirm", "new patient",
+                   "morphine", "acetaminophen for fever po twenty kilos"]   # the EMS set (Pocket #36)
 
 
 def _gate(x_access_token: str = Header(default="")):
@@ -114,7 +117,7 @@ def _engine_says(phrases):
     """The pinned Pocket engine itself, on its own bank, phrase by phrase."""
     sys.path.insert(0, str(CHECKOUT))
     from engine.session import boot
-    s = boot(CHECKOUT / "bank")
+    s = boot(CHECKOUT / "bank" / "ems")
     return [s.handle(p) for p in phrases]
 
 
@@ -201,9 +204,9 @@ def test_status_shows_the_pocket_version_and_the_bank_version(client):
     st = client.get("/pocket/status", headers=TOKEN).json()
     assert st["available"] is True
     assert st["pocket_commit"] == pw.PIN["commit"]
-    bank = json.loads((CHECKOUT / "bank" / "manifest.json").read_text())
+    bank = json.loads((CHECKOUT / "bank" / "ems" / "manifest.json").read_text())
     assert st["bank_version"] == bank["bank_version"]
-    assert st["set"] == "PFC"
+    assert st["set"] == "EMS"
     assert st["busy"] is False
 
 
@@ -218,7 +221,7 @@ def test_the_api_is_token_gated(client):
 
 @needs_checkout
 def test_read_back_then_confirm_is_the_device_flow(client):
-    phrases = ["ketamine for agitation iv eighty kilos", "confirm"]
+    phrases = ["fentanyl for pain iv eighty kilos", "confirm"]
     engine = _engine_says(phrases)
     for phrase, turn in zip(phrases, engine):
         r = _say(client, phrase).json()
@@ -231,10 +234,10 @@ def test_read_back_then_confirm_is_the_device_flow(client):
 
 @needs_checkout
 def test_heard_audio_goes_through_the_same_engine(client, runtime):
-    runtime.hearing.next = "ketamine for agitation i v eighty kilos"
+    runtime.hearing.next = "fentanyl for pain i v eighty kilos"
     r = client.post("/pocket/hear?session_id=tester-a", content=_wav(),
                     headers={**TOKEN, "Content-Type": "audio/wav"}).json()
-    assert r["heard"] == "ketamine for agitation i v eighty kilos"
+    assert r["heard"] == "fentanyl for pain i v eighty kilos"
     assert r["decoder"] == "spelled"
     assert r["kind"] == "readback" and r["text"].endswith("Confirm?")
     assert r["parse"]["drugs"] and r["parse"]["routes"] == ["IV"]
@@ -263,22 +266,25 @@ def test_an_idle_talker_lets_the_next_one_in_with_a_fresh_session(client, runtim
     """No state crosses testers: a pending read-back is not the next talker's."""
     clock = [1000.0]
     monkeypatch.setattr(pw.time, "monotonic", lambda: clock[0])
-    assert _say(client, "ketamine for agitation iv eighty kilos", "tester-a").json()["kind"] == "readback"
+    assert _say(client, "fentanyl for pain iv eighty kilos", "tester-a").json()["kind"] == "readback"
     clock[0] += pw.LEASE_IDLE_S + 1
     r = _say(client, "confirm", "tester-b")
     assert r.status_code == 200
     assert r.json()["text"] == "Nothing to confirm."
 
 
-# ── PFC only: EMS and EMS-TEST are never reachable from the web ──────────────
+# ── EMS only (owner, 2026-11-23): PFC and EMS-TEST are never reachable from the web ──
 
 def _relabelled(tmp_path, set_name=None, test=False, names=None):
-    """Pocket's PFC bank dir, relabelled and rehashed."""
+    """Pocket's EMS bank dir, relabelled and rehashed."""
     d = tmp_path / "bank"
-    shutil.copytree(CHECKOUT / "bank", d)
+    shutil.copytree(CHECKOUT / "bank" / "ems", d)
     bank = json.loads((d / "bank.json").read_text())
     man = json.loads((d / "manifest.json").read_text())
-    if set_name:
+    if set_name == "UNLABELLED":              # no set named anywhere
+        for x in (bank, man, *bank["entries"]):
+            x.pop("set", None)
+    elif set_name:
         bank["set"] = man["set"] = set_name
         for e in bank["entries"]:
             e["set"] = set_name
@@ -300,8 +306,8 @@ def _relabelled(tmp_path, set_name=None, test=False, names=None):
 
 
 @needs_checkout
-@pytest.mark.parametrize("set_name", ["EMS", "EMS-TEST"])
-def test_an_ems_or_ems_test_bank_is_refused(tmp_path, logs, monkeypatch, set_name):
+@pytest.mark.parametrize("set_name", ["PFC", "EMS-TEST", "UNLABELLED"])
+def test_a_pfc_ems_test_or_unlabelled_bank_is_refused(tmp_path, logs, monkeypatch, set_name):
     d = _relabelled(tmp_path, set_name, test=set_name == "EMS-TEST")
     monkeypatch.setattr(pw, "bank_dir", lambda: d)
     with pytest.raises(pw.Unavailable):
@@ -325,15 +331,22 @@ def test_the_servers_drug_set_setting_does_not_reach_the_web_bank(logs, monkeypa
     monkeypatch.setenv("POCKET_TEST", "1")
     rt = pw.Runtime.load(hearing=FakeHearing(), synth=fake_synth)
     assert rt.bank.test is False
-    assert rt.status()["set"] == "PFC"
+    assert rt.status()["set"] == "EMS"
 
 
 def test_the_web_bank_is_the_pinned_checkouts_own_bank_dir():
-    assert pw.bank_dir() == CHECKOUT / "bank"
+    assert pw.bank_dir() == CHECKOUT / "bank" / "ems"
     src = (SERVER / "pocket_web.py").read_text()
-    assert "bank-ems" not in src            # no EMS bank file is ever named
-    assert pw.SERVED_SET == "PFC"
-    assert {"EMS", "EMS-TEST"} <= set(pw.REFUSED_SETS)
+    assert "bank-ems" not in src and "retired" not in src.split("def load_served_bank")[0]
+    assert pw.SERVED_SET == "EMS"
+    assert {"PFC", "EMS-TEST"} <= set(pw.REFUSED_SETS)
+
+
+@needs_checkout
+def test_the_retired_pfc_bank_is_refused(logs, monkeypatch):
+    monkeypatch.setattr(pw, "bank_dir", lambda: CHECKOUT / "bank" / "retired" / "pfc")
+    with pytest.raises(pw.Unavailable, match="retired"):
+        pw.Runtime.load(hearing=FakeHearing(), synth=fake_synth)
 
 
 @needs_checkout
@@ -365,7 +378,7 @@ def test_the_pocket_log_dir_is_not_where_edgecdss_logs_or_replays_read():
 def test_every_turn_is_logged_with_product_pocket_heard_parse_and_answer(client, runtime, logs):
     runtime.hearing.next = "magnesium"
     client.post("/pocket/hear?session_id=tester-a", content=_wav(), headers=TOKEN)
-    _say(client, "ketamine for agitation iv eighty kilos")
+    _say(client, "fentanyl for pain iv eighty kilos")
     _say(client, "confirm")
     files = sorted(logs.glob("*.jsonl"))
     assert files and not any(f.name.startswith("cdss_session_") for f in files)
@@ -378,7 +391,7 @@ def test_every_turn_is_logged_with_product_pocket_heard_parse_and_answer(client,
     assert turns[1]["parse"]["drugs"] and turns[2]["answer"]["kind"] == "dose"
     assert all(l["pocket_commit"] == pw.PIN["commit"] and l["bank_version"] for l in turns)
     doses = [l for l in lines if l["event"] == "dose"]
-    assert len(doses) == 1 and doses[0]["record"]["drug"] == "ketamine"
+    assert len(doses) == 1 and doses[0]["record"]["drug"] == "fentanyl"
 
 
 @needs_checkout
@@ -387,7 +400,7 @@ def test_feedback_is_logged_with_product_pocket_and_the_turn_it_is_about(client,
                                                                         tmp_path, monkeypatch):
     main_feedback = tmp_path / "feedback.log"
     monkeypatch.setenv("FEEDBACK_LOG", str(main_feedback))
-    turn = _say(client, "ketamine for agitation iv eighty kilos").json()
+    turn = _say(client, "fentanyl for pain iv eighty kilos").json()
     r = client.post("/pocket/feedback", headers=TOKEN, json={
         "session_id": "tester-a", "turn_id": turn["turn_id"], "feedback_type": verdict,
         "severity": "minor" if verdict == "flagged" else "", "issues": ["wrong dose"],
@@ -395,7 +408,7 @@ def test_feedback_is_logged_with_product_pocket_and_the_turn_it_is_about(client,
     assert r.status_code == 200
     (line,) = [json.loads(l) for l in (logs / pw.FEEDBACK_FILE).read_text().splitlines()]
     assert line["product"] == "pocket" and line["feedback_type"] == verdict
-    assert line["phrase"] == "ketamine for agitation iv eighty kilos"
+    assert line["phrase"] == "fentanyl for pain iv eighty kilos"
     assert line["parse"]["drugs"] and line["answer"]["text"] == turn["text"]
     assert line["pocket_commit"] == pw.PIN["commit"]
     assert not main_feedback.exists()
@@ -426,7 +439,7 @@ def test_the_portal_mounts_the_page_and_gates_the_api():
 def test_the_committed_grammar_is_for_this_model_and_this_bank(logs):
     rt = pw.Runtime.load(synth=fake_synth)  # real Vosk hearing
     g = json.loads((CHECKOUT / "grammar" / "vosk_grammar.json").read_text())
-    assert g["bank_hash"] == pw._both_sets(rt.bank).hash        # Pocket #34: both sets' names
+    assert g["bank_hash"] == rt.bank.hash                       # the EMS set's grammar (Pocket #36)
     assert rt.status()["vosk_model"] == pw.PIN["vosk_model"]["name"]
 
 
@@ -438,11 +451,11 @@ def test_piper_said_it_and_vosk_heard_it(logs):
     rt = pw.Runtime.load()
     sys.path.insert(0, str(CHECKOUT))
     from voice import spoken
-    wav = rt.synth(spoken.prompt("ketamine for agitation iv eighty kilos"))
+    wav = rt.synth(spoken.prompt("fentanyl for pain iv eighty kilos"))
     heard, text, _ = rt.hearing.hear(pw.pcm16k(pw.resample_wav_16k(wav)))
     turn = rt.session_for("loop").handle(text)
     assert turn.kind == "readback", (heard, turn.text)
-    assert turn.text == "Ketamine, agitation, eye vee, eighty kilos. Confirm?"   # spoken
+    assert turn.text == "Fentanyl, pain or fever, eye vee, eighty kilos. Confirm?"   # spoken
 
 
 # ── W1 pin bump: Pocket's hearing fixes (Pocket #5, owner 2026-11-15) ───────
@@ -508,7 +521,7 @@ def test_the_new_route_words_are_heard_through_the_web(client, runtime, heard, r
 VOICE = "844cdfe46becabe5899331f384a27ea5efe68c77"   # Pocket main after #10 (and #9)
 SPOKEN_ROUTE = re.compile(r"(?i)\b(eye vee|eye em|eye oh|pee oh|nebuliser)\b")
 BARE_ROUTE = re.compile(r"(?<![A-Za-z])(IV|IM|IO|IN|PO|NEB)(?![A-Za-z])")
-ROUTE_PHRASES = ["ketamine for agitation iv eighty kilos", "ketamine for agitation io eighty kilos",
+ROUTE_PHRASES = ["fentanyl for pain iv eighty kilos", "ketamine for agitation io eighty kilos",
                  "fentanyl for pain in eighty kilos", "epinephrine for anaphylaxis im eighty kilos",
                  "acetaminophen for pain po seventy kilos"]
 
@@ -534,9 +547,9 @@ def test_the_screen_shows_letters_and_the_voice_says_words(client, phrase):
 
 @needs_checkout
 def test_the_read_back_on_screen_and_in_the_audio(client):
-    r = _say(client, "acetaminophen for pain po seventy kilos").json()
-    assert r["text"] == "Acetaminophen, pain, PO, seventy kilos. Confirm?"
-    assert r["spoken"] == "Acetaminophen, pain, pee oh, seventy kilos. Confirm?"
+    r = _say(client, "acetaminophen for fever po twenty kilos").json()
+    assert r["text"] == "Acetaminophen, pain or fever, PO, child, twenty kilos. Confirm?"
+    assert r["spoken"] == "Acetaminophen, pain or fever, pee oh, child, twenty kilos. Confirm?"
 
 
 @needs_checkout
@@ -555,21 +568,21 @@ def test_the_page_shows_the_written_form_and_plays_the_audio():
 @needs_checkout
 @pytest.mark.parametrize("word", ["confirm", "yes", "correct", "affirmative"])
 def test_a_confirm_word_gives_the_dose_through_the_web(client, word):
-    assert _say(client, "ketamine for agitation iv eighty kilos").json()["kind"] == "readback"
+    assert _say(client, "fentanyl for pain iv eighty kilos").json()["kind"] == "readback"
     assert _say(client, word).json()["kind"] == "dose"
 
 
 @needs_checkout
 @pytest.mark.parametrize("word", ["no", "cancel", "negative", "stop", "wrong"])
 def test_a_cancel_word_cancels_through_the_web_and_no_dose_follows(client, word):
-    _say(client, "ketamine for agitation iv eighty kilos")
+    _say(client, "fentanyl for pain iv eighty kilos")
     assert _say(client, word).json()["text"] == "Cancelled."
     assert _say(client, "yes").json()["kind"] != "dose"
 
 
 @needs_checkout
 def test_two_misses_cancel_through_the_web(client):
-    _say(client, "ketamine for agitation iv eighty kilos")
+    _say(client, "fentanyl for pain iv eighty kilos")
     assert _say(client, "ok").json()["text"] == "Say confirm or cancel."
     assert _say(client, "ok").json()["text"] == "Cancelled."
     assert _say(client, "yes").json()["kind"] != "dose"
@@ -637,7 +650,7 @@ def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
     _say(client, "rsi 80kg")
     lines = [json.loads(x) for f in logs.glob("pocket_turns_*.jsonl") for x in f.read_text().splitlines()]
     boots = [x for x in lines if x["event"] == "boot"]
-    assert len(boots) == 1 and boots[0]["record"]["set"] == "PFC set"
+    assert len(boots) == 1 and boots[0]["record"]["set"] == "EMS set"
     assert not [x for x in lines if x["event"] == "dose"]
 
 
@@ -657,8 +670,12 @@ ROUNDING = "92c95f1361d15eda711374be709384632c3cce52"
 _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml|units?)\b|\d")
 
 
-def test_the_pin_is_pockets_rounding_and_label_wording():
-    assert pw.PIN["commit"] == ROUNDING
+# Pocket #36: one drug list, the EMS set only (owner, 2026-11-23).
+ONE_LIST = "d1b385ea904e53f623dc151b888cb5d498c56f32"
+
+
+def test_the_pin_is_pockets_one_drug_list():
+    assert pw.PIN["commit"] == ONE_LIST
 
 
 @needs_checkout
@@ -679,7 +696,7 @@ def test_the_page_lists_come_from_the_signed_bank(client, runtime):
     text = _say(client, "drugs").json()["text"]
     names = sorted({vocab.listed_name(d) for d in runtime.bank.signed_drugs})
     assert text == f"Signed drugs: {', '.join(names)}. Say a drug name to begin."
-    assert len(names) == len(runtime.bank.signed_drugs) == 25
+    assert len(names) == len(runtime.bank.signed_drugs) == 29
     titles = [p.title for p in runtime.procedures.values()]
     assert _say(client, "procedures").json()["text"] == (
         f"Signed procedures: {', '.join(titles)}. Say a procedure name to begin.")
@@ -688,10 +705,10 @@ def test_the_page_lists_come_from_the_signed_bank(client, runtime):
 @needs_checkout
 def test_the_page_help_shows_letters_and_says_words(client):
     r = _say(client, "help").json()
-    assert "ketamine for agitation, IV, eighty kilos" in r["text"] and "RSI, eighty kilos" in r["text"]
-    assert "ketamine for agitation, eye vee, eighty kilos" in r["spoken"] and "R S I, eighty kilos" in r["spoken"]
-    example = _say(client, "ketamine for agitation, IV, eighty kilos").json()   # asks nothing first
-    assert (example["kind"], example["text"]) == ("readback", "Ketamine, agitation, IV, eighty kilos. Confirm?")
+    assert "fentanyl for pain, IV, eighty kilos" in r["text"] and "RSI, eighty kilos" in r["text"]
+    assert "fentanyl for pain, eye vee, eighty kilos" in r["spoken"] and "R S I, eighty kilos" in r["spoken"]
+    example = _say(client, "fentanyl for pain, IV, eighty kilos").json()   # asks nothing first
+    assert (example["kind"], example["text"]) == ("readback", "Fentanyl, pain or fever, IV, eighty kilos. Confirm?")
 
 
 @needs_checkout
@@ -709,7 +726,7 @@ def test_home_on_the_page_ends_a_procedure_and_drops_a_read_back(client):
     _say(client, "rsi 80kg")
     assert _say(client, "home").json()["text"] == "Pocket ready. Say drugs, procedures, or help."
     assert _say(client, "next").json()["text"] == "No steps running."
-    _say(client, "ketamine for agitation iv eighty kilos")
+    _say(client, "fentanyl for pain iv eighty kilos")
     _say(client, "home")
     assert _say(client, "yes").json()["kind"] != "dose"
 
@@ -723,9 +740,9 @@ def test_status_carries_the_engines_own_start_up_line(client, logs):
     st = client.get("/pocket/status", headers=TOKEN).json()
     sys.path.insert(0, str(CHECKOUT))
     from engine.session import boot
-    assert st["start_up"] == boot(CHECKOUT / "bank").announce.written_text
-    assert st["start_up"] == ("Pocket ready. PFC set. Research prototype, not for patient care. "
-                              "Say drugs, procedures, or help.")          # names the set (Pocket #32)
+    assert st["start_up"] == boot(CHECKOUT / "bank" / "ems").announce.written_text
+    assert st["start_up"] == ("Pocket ready. Research prototype, not for patient care. "
+                              "Say drugs, procedures, or help.")          # names no set (Pocket #36)
     assert not logs.exists() or not any(logs.iterdir())    # no tester session, no log line
     assert client.get("/pocket/status", headers=TOKEN).json()["busy"] is False
 
