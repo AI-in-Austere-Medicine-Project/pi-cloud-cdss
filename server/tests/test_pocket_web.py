@@ -651,11 +651,14 @@ def test_the_start_up_record_is_logged_as_boot_not_as_a_dose(client, logs):
 HOME_MENU = "1a47b5bc5f8eae01f013cc9f6c8e3d548103aec3"   # Pocket main after #26 (home menu, help and command lists)
 # Pocket #34 (hearing every drug name in both sets), on main after #27-#32.
 BOTH_SETS = "04a820c1ba0d5c2fae05350041c3cee4c7130aaf"
+# Pocket #35 (volumes rounded by band, strengths said as the label reads, the PFC ketamine
+# dilution cautions not said), on main after #34 (owner, 2026-11-23).
+ROUNDING = "92c95f1361d15eda711374be709384632c3cce52"
 _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml|units?)\b|\d")
 
 
-def test_the_pin_is_pockets_hearing_for_both_sets():
-    assert pw.PIN["commit"] == BOTH_SETS
+def test_the_pin_is_pockets_rounding_and_label_wording():
+    assert pw.PIN["commit"] == ROUNDING
 
 
 @needs_checkout

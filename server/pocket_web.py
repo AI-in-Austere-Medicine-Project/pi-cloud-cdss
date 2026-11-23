@@ -56,7 +56,7 @@ FEEDBACK_FILE = "pocket_feedback.jsonl"
 # pins every word).
 EXAMPLES = [
     ("ketamine for agitation iv eighty kilos", "Ketamine, agitation, IV, eighty kilos. Confirm?"),
-    ("confirm", "Ketamine one hundred and sixty milligrams. Three point two mils of fifty."),
+    ("confirm", "Ketamine one hundred and sixty milligrams. Three point two mils of five hundred per ten."),
     ("new patient", "New patient. Weight and age cleared."),
     ("magnesium", "No signed dose for magnesium."),
     ("acetaminophen for pain po seventy kilos", "Acetaminophen, pain, PO, seventy kilos. Confirm?"),
