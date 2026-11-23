@@ -69,7 +69,7 @@ button.big { background: var(--panel2); color: var(--text); border: 1px solid va
 <body>
 <header>
   <h1>EDGE<span>CDSS</span> POCKET</h1>
-  <span class="statusline">Pocket <span id="pocket-version">…</span> · bank <span id="bank-version">…</span> · set <span id="bank-set">PFC</span> · <span id="avail">connecting…</span></span>
+  <span class="statusline">Pocket <span id="pocket-version">…</span> · bank <span id="bank-version">…</span> · set <span id="bank-set">EMS</span> · <span id="avail">connecting…</span></span>
 </header>
 <main>
   <div class="banner"><strong>Demo &amp; research system — use simulated scenarios only. Do NOT enter PHI or real patient information. Guideline-based support only — not a substitute for clinical judgment.</strong></div>
@@ -78,11 +78,11 @@ button.big { background: var(--panel2); color: var(--text); border: 1px solid va
     <summary>How to test</summary>
     <p>Pocket is the device version of EdgeCDSS: a fixed vocabulary, a read-back, and a dose only after a confirm word ("confirm", "yes", "correct" or "affirmative"); "no" or "cancel" cancels. Hold the button and say each phrase, or type it, in this order. Say "i v", "p o" and "i m" letter by letter.</p>
     <ol>
-      <li><code>ketamine for agitation iv eighty kilos</code><span class="expect">Ketamine, agitation, IV, eighty kilos. Confirm?</span></li>
-      <li><code>confirm</code><span class="expect">Ketamine one hundred and sixty milligrams. Three point two mils of five hundred per ten.</span></li>
+      <li><code>fentanyl for pain iv twenty kilos</code><span class="expect">Fentanyl, pain or fever, IV, child, twenty kilos. Confirm?</span></li>
+      <li><code>confirm</code><span class="expect">Fentanyl twenty micrograms. Zero point four mils of fifty micrograms per mil. Use a one mil syringe.</span></li>
       <li><code>new patient</code><span class="expect">New patient. Weight and age cleared.</span></li>
-      <li><code>magnesium</code><span class="expect">No signed dose for magnesium.</span></li>
-      <li><code>acetaminophen for pain po seventy kilos</code><span class="expect">Acetaminophen, pain, PO, seventy kilos. Confirm?</span></li>
+      <li><code>morphine</code><span class="expect">No signed dose for morphine.</span></li>
+      <li><code>acetaminophen for fever po twenty kilos</code><span class="expect">Acetaminophen, pain or fever, PO, child, twenty kilos. Confirm?</span></li>
     </ol>
     <p>One tester at a time: if someone else is talking you will see "busy, try again". Use the buttons under each answer to say whether it was clinically appropriate or to flag an issue.</p>
   </details>
@@ -136,7 +136,7 @@ async function status() {
     const s = await r.json();
     $('pocket-version').textContent = (s.pocket_commit || '').slice(0, 12);
     $('bank-version').textContent = s.bank_version || '—';
-    $('bank-set').textContent = s.set || 'PFC';
+    $('bank-set').textContent = s.set || 'EMS';
     $('avail').textContent = s.available ? (s.busy ? 'in use' : 'ready') : 'unavailable: ' + s.why;
     if (s.available && s.start_up && !startUpShown) { startUpShown = true; showStartUp(esc(s.start_up)); }
   } catch (e) { $('avail').textContent = 'offline'; }

@@ -231,11 +231,11 @@ def test_each_speaker_resumes_from_their_own_takes_and_skips(client, on):
     b, hb = _browser(client)
     for take in (1, 2, 3):
         _clip(client, ha, take=take)
-    client.post("/pocket/teach/skip?word_id=medic-sux", headers=ha)
+    client.post("/pocket/teach/skip?word_id=medic-versed", headers=ha)
     words = {w["id"]: w for w in client.get("/pocket/teach/words", headers=ha).json()["words"]}
-    assert words["medic-narcan"]["recorded"] == [1, 2, 3] and words["medic-sux"]["skipped"]
+    assert words["medic-narcan"]["recorded"] == [1, 2, 3] and words["medic-versed"]["skipped"]
     other = {w["id"]: w for w in client.get("/pocket/teach/words", headers=hb).json()["words"]}
-    assert other["medic-narcan"]["recorded"] == [] and not other["medic-sux"]["skipped"]
+    assert other["medic-narcan"]["recorded"] == [] and not other["medic-versed"]["skipped"]
 
 
 def test_mounting_never_moves_clips_the_migrate_command_does(clips, tool):
@@ -283,7 +283,7 @@ def test_over_the_total_take_cap_per_speaker_the_page_is_told_politely(client, o
     assert tool("limits", "takes_total=1") == 0
     _, h = _browser(client)
     assert _clip(client, h).status_code == 200
-    r = _clip(client, h, word_id="medic-sux")
+    r = _clip(client, h, word_id="medic-versed")
     assert r.status_code == 429 and "thank you" in r.json()["detail"].lower()
 
 
