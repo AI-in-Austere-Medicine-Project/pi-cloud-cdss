@@ -158,3 +158,22 @@ def test_a_word_with_three_takes_records_no_more():
 def test_a_tap_on_another_word_while_recording_does_not_cut_the_take():
     r = _run("busy_other")
     assert [(s["word_id"], s["take"]) for s in r["sent"]] == [("drug-ketamine", 1)]
+
+
+def test_routes_and_commands_pocket_misses_are_recorded_first(tmp_path, monkeypatch, client):
+    """Pocket's hearing check for routes, procedures and commands (Pocket #38,
+    voice/dryrun_words.json): a word it missed in any voice is starred, as a drug name its
+    dry run missed is. The pinned checkout carries the file from the pin after #38."""
+    from voice.tools import dryrun_drugs
+    (tmp_path / "voice").mkdir()
+    shutil.copy(dryrun_drugs.ROOT / "voice" / "dryrun_drugs.json", tmp_path / "voice" / "dryrun_drugs.json")
+    rows = [{"word": "no", "kind": "command", "voice": "am_liam", "ok": False},
+            {"word": "iv", "kind": "route", "voice": "am_liam", "ok": False},
+            {"word": "confirm", "kind": "command", "voice": "am_liam", "ok": True}]
+    (tmp_path / "voice" / "dryrun_words.json").write_text(json.dumps({"rows": rows}))
+    monkeypatch.setattr(dryrun_drugs, "ROOT", tmp_path)
+    words = {w["say"]: w for w in _words(client)}
+    assert words["no"]["record_first"] and words["no"]["why_first"] == "missed in Pocket's dry run"
+    assert words["i v"]["record_first"]                          # "iv" is said as its letters
+    assert not words["confirm"]["record_first"]
+    assert words["amio"]["record_first"]                         # the drug names' dry run still counts
