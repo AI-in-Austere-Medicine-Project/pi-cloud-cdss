@@ -674,8 +674,63 @@ _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml
 ONE_LIST = "9f1194a452517325d9288539f8f8be7fe3620ee5"
 
 
-def test_the_pin_is_pockets_one_drug_list():
-    assert pw.PIN["commit"] == ONE_LIST
+def test_the_pin_is_after_pockets_one_drug_list():
+    """Superseded by the RSI rulings pin below; #36 is in its history."""
+    assert pw.PIN["commit"] != ONE_LIST
+
+
+# ── W1 pin bump: Pocket main after #41-#43, the RSI rulings and PL/OLMC (owner, 2026-11-23) ──
+# Owner: RSI 6 and 6b use the formulary doses (EMS-130, EMS-201, individually read);
+# rocuronium is the only paralytic; "hold the whole procedure for a child, with 'No signed
+# RSI steps for a child.'"; "Pocket ignores provider levels (PL) and online medical control
+# (OLMC) ... never says them."
+
+RSI_RULINGS = "11370bc09a20403600cc1a2ae6148d129756c3e7"   # Pocket main after #43, #41, #42
+_ADULT_DOSES = ["rsi 80kg", "next", "next", "next", "next", "next", "ketamine", "confirm",
+                "next", "rocuronium", "confirm", "succinylcholine"]
+
+
+def test_the_pin_is_pocket_main_after_the_rsi_rulings():
+    assert pw.PIN["commit"] == RSI_RULINGS
+
+
+@needs_checkout
+def test_adult_rsi_on_the_page_gives_the_formulary_fixed_doses(client):
+    said = {p: _say(client, p).json() for p in _ADULT_DOSES[:8]}
+    assert said["confirm"]["text"] == "Ketamine two hundred milligrams. Two mils of one hundred per mil."
+    _say(client, "next")
+    _say(client, "rocuronium")
+    roc = _say(client, "confirm").json()
+    assert (roc["kind"], roc["text"]) == ("dose", "Rocuronium one hundred milligrams. Ten mils of ten per mil.")
+    sux = _say(client, "succinylcholine").json()
+    assert (sux["kind"], sux["text"]) == ("hold", "No signed dose for succinylcholine.")
+
+
+@needs_checkout
+def test_the_page_rsi_doses_are_the_engines_own(client):
+    for phrase, turn in zip(_ADULT_DOSES, _engine_says(_ADULT_DOSES)):
+        r = _say(client, phrase).json()
+        assert (r["kind"], r["text"], r["spoken"]) == (turn.kind, turn.written_text, turn.text), phrase
+
+
+@needs_checkout
+@pytest.mark.parametrize("said", ["rsi 20kg", "rsi child", "rsi five years eighteen kilos"])
+def test_child_rsi_on_the_page_holds_whole(client, said):
+    r = _say(client, said).json()
+    assert (r["kind"], r["text"]) == ("hold", "No signed RSI steps for a child.")
+    assert _say(client, "next").json()["text"] == "No steps running."
+    assert _say(client, "log").json()["text"] == "Zero doses logged."
+
+
+@needs_checkout
+@pytest.mark.parametrize("said", ["fentanyl for pain iv 80kg", "epinephrine for anaphylaxis im 80kg",
+                                  "ketamine for rsi iv 80kg"])
+def test_the_page_never_says_a_provider_level_or_olmc(client, said):
+    """On the #36 pin, "why" after fentanyl's dose quoted its provider-level line."""
+    for p in (said, "confirm", "why"):
+        r = _say(client, p).json()
+        for text in (r["text"], r["spoken"]):
+            assert not re.search(r"(?i)provider level|\bOLMC\b|online medical control|ALS/BLS", text), text
 
 
 @needs_checkout

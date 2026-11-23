@@ -1,7 +1,7 @@
 {
  "repo": "https://github.com/AI-in-Austere-Medicine-Project/edgecdss-pocket",
- "commit": "9f1194a452517325d9288539f8f8be7fe3620ee5",
- "note": "W1: the Pocket code /pocket runs (Pocket main after #36, one drug list, the EMS set only (owner, 2026-11-23); the PFC set retired, kept unchanged in bank/retired/pfc/ and never loaded; before it #35 volumes rounded by band and strengths said as the label reads, #33 no dilution, #29-#31 the EMS set signed, #26 home menu and help). /pocket serves bank/ems (the signed EMS set) only; the teach page lists its words.",
+ "commit": "11370bc09a20403600cc1a2ae6148d129756c3e7",
+ "note": "W1: the Pocket code /pocket runs (Pocket main after #43, #41 and #42, 2026-11-23: #43 the owner rule that provider levels and online medical control are never said or gated; #41 RSI holds whole for a child, \"No signed RSI steps for a child.\"; #42 RSI steps 6 and 6b say the formulary's fixed doses, ketamine 200 mg and rocuronium 100 mg IV/IO, succinylcholine not offered; before them #39 the hearing check for routes, procedures and commands, #40 owner-clip tests, #36 one drug list, the EMS set only). /pocket serves bank/ems (the signed EMS set) only.",
  "vosk_model": {
   "name": "vosk-model-small-en-us-0.15",
   "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
