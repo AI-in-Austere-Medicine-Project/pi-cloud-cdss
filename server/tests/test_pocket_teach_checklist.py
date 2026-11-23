@@ -161,9 +161,9 @@ def test_a_tap_on_another_word_while_recording_does_not_cut_the_take():
 
 
 def test_routes_and_commands_pocket_misses_are_recorded_first(tmp_path, monkeypatch, client):
-    """Pocket's hearing check for routes, procedures and commands (Pocket #38,
+    """Pocket's hearing check for routes, procedures and commands (Pocket #39,
     voice/dryrun_words.json): a word it missed in any voice is starred, as a drug name its
-    dry run missed is. The pinned checkout carries the file from the pin after #38."""
+    dry run missed is. The pinned checkout carries the file from the pin after #39."""
     from voice.tools import dryrun_drugs
     (tmp_path / "voice").mkdir()
     shutil.copy(dryrun_drugs.ROOT / "voice" / "dryrun_drugs.json", tmp_path / "voice" / "dryrun_drugs.json")

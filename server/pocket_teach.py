@@ -447,7 +447,7 @@ def _shaky(vocab) -> dict:
               or (pair and r["heard_as"] == pair))
         if not ok:
             out[LETTERS.get(r["name"], r["name"])] = "missed in Pocket's dry run"
-    # Routes, procedures and commands (Pocket #38, voice/dryrun_words.json), when the
+    # Routes, procedures and commands (Pocket #39, voice/dryrun_words.json), when the
     # pinned checkout carries the check.
     try:
         words = json.loads((dryrun_drugs.ROOT / "voice" / "dryrun_words.json").read_text())["rows"]
