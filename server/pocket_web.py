@@ -8,8 +8,8 @@ commit pocket_pin.json pins (tools/install_pocket.py), on the Jetson:
       -> Piper -> audio back to the browser, the text shown on screen too.
 
 What it never does:
-  - serve any set but the signed PFC one. The bank is the pinned checkout's own
-    bank/ directory, loaded as a signed bank (never as a test bank, whatever
+  - serve any set but the signed EMS one (owner, 2026-11-23: one drug list, the
+    EMS set only). The bank is the pinned checkout's own bank/ems directory, loaded as a signed bank (never as a test bank, whatever
     POCKET_TEST says), and refused if it, or any entry in it, names another set.
     No request names a set or a bank: the request models forbid unknown fields.
     CDSS_DRUG_SET does not reach it.
@@ -43,8 +43,8 @@ _DIR = pathlib.Path(__file__).resolve().parent
 PIN = json.loads((_DIR / "pocket_pin.json").read_text())
 PAGE = _DIR / "static" / "pocket.html"
 
-SERVED_SET = "PFC"
-REFUSED_SETS = ("EMS", "EMS-TEST")
+SERVED_SET = "EMS"
+REFUSED_SETS = ("PFC", "EMS-TEST")
 LEASE_IDLE_S = 60.0
 MAX_AUDIO_S = 15.0
 RATE = 16000
@@ -55,11 +55,11 @@ FEEDBACK_FILE = "pocket_feedback.jsonl"
 # what the pinned engine answers, as shown on screen (its written form; test_pocket_web
 # pins every word).
 EXAMPLES = [
-    ("ketamine for agitation iv eighty kilos", "Ketamine, agitation, IV, eighty kilos. Confirm?"),
-    ("confirm", "Ketamine one hundred and sixty milligrams. Three point two mils of five hundred per ten."),
+    ("fentanyl for pain iv twenty kilos", "Fentanyl, pain or fever, IV, child, twenty kilos. Confirm?"),
+    ("confirm", "Fentanyl twenty micrograms. Zero point four mils of fifty micrograms per mil. Use a one mil syringe."),
     ("new patient", "New patient. Weight and age cleared."),
-    ("magnesium", "No signed dose for magnesium."),
-    ("acetaminophen for pain po seventy kilos", "Acetaminophen, pain, PO, seventy kilos. Confirm?"),
+    ("morphine", "No signed dose for morphine."),
+    ("acetaminophen for fever po twenty kilos", "Acetaminophen, pain or fever, PO, child, twenty kilos. Confirm?"),
 ]
 
 
@@ -82,7 +82,7 @@ def checkout_dir() -> pathlib.Path:
 
 
 def bank_dir() -> pathlib.Path:
-    return checkout_dir() / "bank"
+    return checkout_dir() / "bank" / "ems"      # Pocket's one drug list (Pocket #36)
 
 
 def vosk_model_dir() -> pathlib.Path:
@@ -139,20 +139,10 @@ def _import_pocket(path: pathlib.Path) -> None:
         sys.path.insert(0, p)
 
 
-def _both_sets(bank):
-    """Every set in the pinned checkout, merged, as Pocket's grammar is built (Pocket #34);
-    the bank alone for a checkout that has no sets."""
-    try:
-        from engine.bank import load_sets, merge_banks
-    except ImportError:
-        return bank
-    sets = load_sets()
-    return merge_banks(sets.values()) if len(sets) > 1 else bank
-
-
-def load_pfc_bank(d: pathlib.Path):
-    """The signed PFC bank, or Unavailable. Loaded as a signed bank (test=False), so
-    a test bank is refused by Pocket itself; any other set is refused here."""
+def load_served_bank(d: pathlib.Path):
+    """The signed EMS bank, or Unavailable. Loaded as a signed bank (test=False), so a test
+    bank, and the retired PFC bank, are refused by Pocket itself; a bank not labelled the
+    EMS set, or labelled another set too, is refused here."""
     from engine.bank import BankRefused, load_bank
     try:
         bank = load_bank(d, test=False)
@@ -163,13 +153,13 @@ def load_pfc_bank(d: pathlib.Path):
     except (OSError, ValueError):
         raise Unavailable("bank refused: no readable manifest") from None
     sets = {manifest.get("set"), *(e.get("set") for e in bank.entries)} - {None}
-    if bank.test or sets - {SERVED_SET} or set(REFUSED_SETS) & sets:
+    if bank.test or sets != {SERVED_SET} or set(REFUSED_SETS) & sets:
         raise Unavailable(f"bank refused: the web serves the signed {SERVED_SET} set only, "
                           f"this bank is {', '.join(sorted(map(str, sets))) or 'unlabelled'}")
     return bank
 
 
-def load_pfc_procedures(d: pathlib.Path, bank) -> dict:
+def load_served_procedures(d: pathlib.Path, bank) -> dict:
     """The signed procedures (RSI, failed airway; Pocket #22) shipped with the bank, as
     Pocket's own boot() loads them: refused procedures all hold, the doses do not."""
     from engine.procedures import ProceduresRefused, load_procedures
@@ -223,15 +213,14 @@ class VoskHearing:
         if not pathlib.Path(model_dir).exists():
             raise Unavailable(f"no Vosk model at {model_dir} (install_pocket.py --models)")
         g = json.loads(pathlib.Path(grammar_path).read_text())
-        heard_bank = _both_sets(bank)        # Pocket's grammar hears both sets (2026-11-22)
-        if g.get("bank_hash") != heard_bank.hash:
+        if g.get("bank_hash") != bank.hash:     # Pocket's grammar is the EMS set's (Pocket #36)
             raise Unavailable("Pocket's grammar is for another bank")
         if g.get("model_am_sha256") != model_id(model_dir)["model_am_sha256"]:
             raise Unavailable("Pocket's grammar is for another Vosk model")
         vosk.SetLogLevel(-1)
         self.model_name = pathlib.Path(model_dir).name
         self._vosk, self._model = vosk, vosk.Model(str(model_dir))
-        self._hearing = Hearing(self._model, g, build(heard_bank))
+        self._hearing = Hearing(self._model, g, build(bank))
 
     def hear(self, pcm: bytes) -> tuple:
         u = self._hearing.start()
@@ -286,8 +275,8 @@ class Runtime:
         path = checkout_dir()
         commit = verify_checkout(path)
         _import_pocket(path)
-        bank = load_pfc_bank(bank_dir())
-        procedures = load_pfc_procedures(bank_dir(), bank)
+        bank = load_served_bank(bank_dir())
+        procedures = load_served_procedures(bank_dir(), bank)
         if hearing is None:
             hearing = VoskHearing(vosk_model_dir(), path / "grammar" / "vosk_grammar.json", bank)
         if synth is None:

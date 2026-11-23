@@ -1,7 +1,7 @@
 {
  "repo": "https://github.com/AI-in-Austere-Medicine-Project/edgecdss-pocket",
- "commit": "92c95f1361d15eda711374be709384632c3cce52",
- "note": "W1: the Pocket code /pocket runs (Pocket main after #35, volumes rounded by band and strengths said as the label reads, the PFC ketamine dilution cautions not said; before it #34 hearing every drug name in both sets, #27 words, #28 power-up, #29-#31 the EMS set, #32 the set chosen on the device, #33 no dilution, #26 home menu and help). /pocket serves its bank/ (the signed PFC set) only; the teach page lists both sets' words (bank/ and bank/ems/).",
+ "commit": "d1b385ea904e53f623dc151b888cb5d498c56f32",
+ "note": "W1: the Pocket code /pocket runs (Pocket #36, one drug list, the EMS set only (owner, 2026-11-23); the PFC set retired, kept unchanged in bank/retired/pfc/ and never loaded; before it #35 volumes rounded by band and strengths said as the label reads, #33 no dilution, #29-#31 the EMS set signed, #26 home menu and help). /pocket serves bank/ems (the signed EMS set) only; the teach page lists its words.",
  "vosk_model": {
   "name": "vosk-model-small-en-us-0.15",
   "url": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
