@@ -671,7 +671,7 @@ _DOSE_WORDS = re.compile(r"(?i)\b(milligrams?|micrograms?|grams?|mg|mcg|mils?|ml
 
 
 # Pocket #36: one drug list, the EMS set only (owner, 2026-11-23).
-ONE_LIST = "d1b385ea904e53f623dc151b888cb5d498c56f32"
+ONE_LIST = "9f1194a452517325d9288539f8f8be7fe3620ee5"
 
 
 def test_the_pin_is_pockets_one_drug_list():
