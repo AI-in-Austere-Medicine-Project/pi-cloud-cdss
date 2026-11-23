@@ -134,10 +134,12 @@ def test_the_page_is_served_unindexed_and_no_public_page_links_it(client):
         assert "/pocket/teach" not in page.read_text(), page.name
 
 
-def test_the_page_has_hold_to_talk_three_takes_skip_and_redo():
+def test_the_page_is_the_checklist_with_a_password_and_three_takes():
+    """Hold-to-talk, skip and redo (2026-11-16) are replaced by the checklist page (owner,
+    2026-11-23): tests/test_pocket_teach_checklist.py."""
     import pocket_teach
     html = pocket_teach.PAGE.read_text()
-    for slot in ('id="talk"', 'id="skip"', 'id="redo"', 'id="word"', 'id="password"'):
+    for slot in ('id="list"', 'id="password"', 'id="bar"', 'id="progress"'):
         assert slot in html, slot
     assert "/pocket/teach/clip" in html and "X-Teach-Password" in html
     assert 'name="robots" content="noindex' in html
@@ -155,28 +157,27 @@ def test_clips_are_kept_outside_every_repo(monkeypatch):
 # ── the word list ───────────────────────────────────────────────────────────
 
 def test_the_word_list_is_generated_from_the_active_bank(client, runtime):
+    """Pocket's own words (owner, 2026-11-23: "built from the bank, not typed by hand"):
+    each signed drug's names as Pocket's dry run lists them, its routes, procedures and
+    commands. Indications and sample weights are no longer on the page."""
+    from grammar.vocabulary import CONTROLS, PROCEDURE_TERMS, ROUTES
+    from voice.tools import dryrun_drugs
     words = _words(client)
     said = {w["say"] for w in words}
-    by_kind = lambda k: {w["say"] for w in words if w["kind"] == k}  # noqa: E731
-    # Every signed drug, by its own name where that can be said ("sodium chloride 3%"
-    # cannot; "hypertonic saline" is said for it).
+    by_kind = lambda k: [w["say"] for w in words if w["kind"] == k]  # noqa: E731
     named = {g for w in words if w["kind"] in ("drug", "medic") for g in (w["expect"] or [[]])[0]}
     assert {e["drug"] for e in runtime.bank.entries} <= named
-    # The medic names that name a signed EMS drug (the one drug list, 2026-11-23).
-    assert {"narcan", "versed", "t x a", "epi", "levophed"} <= said
+    assert {pocket_teach_letters(r["name"]) for r in dryrun_drugs.names()} == set(by_kind("drug") + by_kind("medic"))
     assert not {"keppra", "rocephin", "ancef", "sux"} & said              # PFC drugs, retired
-    from grammar.vocabulary import build
-    v = build(runtime.bank)
-    assert set(v.signed_terms()) - {"txa"} <= said                       # every signed name
-    classes = {c for c in v.class_terms if not ("aem" in c and c.replace("aem", "em") in v.class_terms)}
-    assert classes - {"r s i", "rsi"} <= by_kind("indication") and "r s i" in by_kind("indication")
-    assert {"i v", "i o", "i m", "i n", "p o"} <= by_kind("route")
-    assert {"intravenous", "intramuscular", "intraosseous", "intranasal", "by mouth",
-            "oral", "in the vein"} <= by_kind("route")
-    assert by_kind("control") == {"confirm", "yes", "correct", "affirmative", "no", "cancel",
-                                  "negative", "stop", "wrong", "repeat", "why", "new patient"}
-    samples = by_kind("sample")
-    assert len(samples) == 20 and {"eighty kilos", "two hundred pounds", "six years"} <= samples
+    assert set(by_kind("route")) == {pocket_teach_letters(r.replace(" ", "")) if len(r) == 3 and r[1] == " " else pocket_teach_letters(r) for r in ROUTES}
+    assert by_kind("procedure") == ["r s i", *PROCEDURE_TERMS]
+    assert by_kind("control") == list(CONTROLS)
+    assert not by_kind("indication") and not by_kind("sample")
+
+
+def pocket_teach_letters(word):
+    import pocket_teach
+    return pocket_teach.LETTERS.get(word, word)
 
 
 def test_each_word_has_one_safe_id_and_letters_are_shown_as_letters(client):
