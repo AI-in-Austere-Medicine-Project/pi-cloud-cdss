@@ -431,9 +431,10 @@ def teach_words(bank, vocab) -> list:
 
 
 def _shaky(vocab) -> dict:
-    """{said: why} for the words Pocket does not yet hear every time: a name its own
-    synthetic dry run missed in any voice (voice/dryrun_drugs.json in the pinned
-    checkout), or a word any speaker's take was heard as something else."""
+    """{said: why} for the words Pocket does not yet hear every time: a word its own
+    synthetic dry run missed in any voice (voice/dryrun_drugs.json for drug names, and
+    voice/dryrun_words.json for routes, procedures and commands, in the pinned checkout).
+    The endpoint adds words any speaker's take was heard as something else."""
     out = {}
     try:
         from voice.tools import dryrun_drugs
@@ -446,6 +447,15 @@ def _shaky(vocab) -> dict:
               or (pair and r["heard_as"] == pair))
         if not ok:
             out[LETTERS.get(r["name"], r["name"])] = "missed in Pocket's dry run"
+    # Routes, procedures and commands (Pocket #38, voice/dryrun_words.json), when the
+    # pinned checkout carries the check.
+    try:
+        words = json.loads((dryrun_drugs.ROOT / "voice" / "dryrun_words.json").read_text())["rows"]
+    except (NameError, OSError, ValueError, KeyError):
+        words = []
+    for r in words:
+        if not r.get("ok"):
+            out[LETTERS.get(r["word"], r["word"])] = "missed in Pocket's dry run"
     return out
 
 
