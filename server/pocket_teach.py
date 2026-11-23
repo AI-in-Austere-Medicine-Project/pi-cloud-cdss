@@ -55,23 +55,16 @@ _DIR = pathlib.Path(__file__).resolve().parent
 PAGE = _DIR / "static" / "pocket_teach.html"
 TAKES = 3
 
-# The names medics say (owner, 2026-11-16), as the parser spells them.
-MEDIC_NAMES = ("keppra", "narcan", "rocephin", "ancef", "versed", "txa", "roc", "sux", "epi",
-               "levophed", "vitamin k")
 # Said as letters. Shown in capitals, spoken one letter at a time.
 LETTERS = {"txa": "t x a", "rsi": "r s i", "iv": "i v", "io": "i o", "im": "i m",
            "in": "i n", "po": "p o"}
-ROUTE_LETTERS = ("iv", "io", "im", "in", "po")
-ROUTE_WORDS = ("intravenous", "in the vein", "intramuscular", "intraosseous", "intranasal",
-               "by mouth", "oral", "line", "neb")
-CONTROL_WORDS = ("confirm", "yes", "correct", "affirmative", "no", "cancel", "negative",
-                 "stop", "wrong", "repeat", "why", "new patient")
-SAMPLES = ("eighty kilos", "seventy kilos", "sixty five kilos", "ninety kilos",
-           "one hundred kilos", "one hundred and ten kilos", "fifty kilos", "forty kilos",
-           "twenty five kilos", "twelve kilos", "two hundred pounds",
-           "one hundred and fifty pounds", "one hundred eighty pounds", "forty pounds",
-           "six years", "two years", "three years", "ten years", "eighteen months",
-           "nine months")
+# The word list is Pocket's own (owner, 2026-11-23: "built from the bank, not typed by
+# hand"): its signed drug names, routes, procedures and commands. These names were
+# "medic" words on the first teach page (2026-11-16); they keep that kind, so their
+# stored takes keep their ids (medic-narcan, medic-t-x-a, ...).
+LEGACY_MEDIC = frozenset({"keppra", "narcan", "rocephin", "ancef", "versed", "t x a", "roc",
+                          "sux", "epi", "levophed", "vitamin k"})
+GROUPS = ("drugs", "routes", "procedures", "commands")
 
 
 def owner_token_file() -> pathlib.Path:
@@ -388,6 +381,8 @@ def _meaning(kind: str, text: str, vocab) -> object:
         out = list(p.routes)
     elif kind == "control":
         out = list(p.controls)
+    elif kind == "procedure":
+        out = list(p.procedures) or list(p.classes)
     else:
         out = [(p.weight.value, p.weight.unit) if p.weight else None,
                (p.age.value, p.age.unit) if p.age else None]
@@ -396,47 +391,72 @@ def _meaning(kind: str, text: str, vocab) -> object:
 
 
 def teach_words(bank, vocab) -> list:
-    """Every word for the session, generated from the active bank: each signed drug
-    name, the names medics say, each indication, each route as letters and as words,
-    the control words, and twenty sample weights and ages."""
+    """Every word to teach, as the printed checklist groups them (owner, 2026-11-23): each
+    signed drug's names (its generic first, then its common names), then Pocket's routes,
+    procedures and commands. All from the pinned Pocket: its bank and its vocabulary."""
+    from grammar.vocabulary import CONTROLS, MEDIC_NAMES, PROCEDURE_TERMS, ROUTES, _say_term
     items, seen = [], set()
 
-    def add(kind, say, note=""):
+    def add(kind, say, group, **extra):
         say = LETTERS.get(say, say)
         if say in seen:
             return
         seen.add(say)
         show = say.replace(" ", "").upper() if say in LETTERS.values() else say
-        show = re.sub(r"\b(tbi|cns)\b", lambda m: m.group(1).upper(), show)
-        spelled = say in LETTERS.values() or show != say
         items.append({"id": _slug(kind, say), "kind": kind, "say": say, "show": show,
-                      "note": note or ("say the letters" if spelled else ""),
-                      "expect": _meaning(kind, say, vocab)})
+                      "note": "say the letters" if say in LETTERS.values() else "",
+                      "group": group, "expect": _meaning(kind, say, vocab), **extra})
 
-    from grammar.vocabulary import _say_term
-    signed = {e["drug"] for e in bank.entries} | {x["drug"] for x in getattr(bank, "silent", [])}
-    for generic in sorted(signed):
-        if _say_term(generic) == generic:     # "sodium chloride 3%" is said by its aliases
-            add("drug", generic)
-    for name in MEDIC_NAMES:              # only those naming a signed drug of the bank (2026-11-23)
-        meant = _meaning("medic", name, vocab)
-        if meant and all(set(g) <= signed for g in meant):
-            add("medic", name)
-    for term in sorted(vocab.signed_terms()):
-        add("drug", term)
-    for term in sorted(vocab.class_terms):
-        if "aem" in term and term.replace("aem", "em") in vocab.class_terms:
-            continue                          # said the same as its US spelling
-        add("indication", term.replace(" ", "") if term == "r s i" else term)
-    for r in ROUTE_LETTERS:
-        add("route", r)
-    for r in ROUTE_WORDS:
-        add("route", r)
-    for c in CONTROL_WORDS:
-        add("control", c)
-    for s in SAMPLES:
-        add("sample", s)
+    # A drug's names as Pocket's dry run lists them (voice/tools/dryrun_drugs.names):
+    # the bank name, its aliases and the medic forms, each as it is said.
+    names = {}
+    for e in list(bank.entries) + list(getattr(bank, "silent", [])):
+        names.setdefault(e["drug"], [e["drug"]])
+        names[e["drug"]] += [a for a in e.get("aliases") or [] if a not in names[e["drug"]]]
+    for said, generic in MEDIC_NAMES.items():
+        if generic in names:
+            names[generic].append(said)
+    for drug in sorted(names):
+        said = [x for x in dict.fromkeys(_say_term(n) for n in names[drug]) if x]
+        for i, name in enumerate(said):
+            add("medic" if LETTERS.get(name, name) in LEGACY_MEDIC else "drug", name, "drugs",
+                drug=drug, primary=i == 0)
+    for r in ROUTES:
+        add("route", r, "routes")             # "iv" and "i v" are one word, said "i v"
+    for p in ("rsi", *PROCEDURE_TERMS):
+        add("procedure", p, "procedures")
+    for c in CONTROLS:
+        add("control", c, "commands")
     return items
+
+
+def _shaky(vocab) -> dict:
+    """{said: why} for the words Pocket does not yet hear every time: a word its own
+    synthetic dry run missed in any voice (voice/dryrun_drugs.json for drug names, and
+    voice/dryrun_words.json for routes, procedures and commands, in the pinned checkout).
+    The endpoint adds words any speaker's take was heard as something else."""
+    out = {}
+    try:
+        from voice.tools import dryrun_drugs
+        rows = json.loads((dryrun_drugs.ROOT / "voice" / "dryrun_drugs.json").read_text())["rows"]
+    except (ImportError, OSError, ValueError, KeyError):
+        rows = []
+    for r in rows:
+        pair = list(vocab.confusable.get(r["drug"], ()))
+        ok = (r["heard_as"] == [r["drug"]] or (r.get("asks") and r["heard_as"] == r["asks"])
+              or (pair and r["heard_as"] == pair))
+        if not ok:
+            out[LETTERS.get(r["name"], r["name"])] = "missed in Pocket's dry run"
+    # Routes, procedures and commands (Pocket #39, voice/dryrun_words.json), when the
+    # pinned checkout carries the check.
+    try:
+        words = json.loads((dryrun_drugs.ROOT / "voice" / "dryrun_words.json").read_text())["rows"]
+    except (NameError, OSError, ValueError, KeyError):
+        words = []
+    for r in words:
+        if not r.get("ok"):
+            out[LETTERS.get(r["word"], r["word"])] = "missed in Pocket's dry run"
+    return out
 
 
 # ── a take ──────────────────────────────────────────────────────────────────
@@ -530,8 +550,25 @@ def mount(app: FastAPI, state: dict, pcm16k) -> None:
             from grammar.vocabulary import build
             vocab = build(rt.bank)
             cache.clear()
-            cache[key] = (teach_words(rt.bank, vocab), vocab)
-        return cache[key]
+            cache[key] = (teach_words(rt.bank, vocab), vocab, _shaky(vocab))
+        return cache[key][:2]
+
+    def record_first(rt, items, vocab) -> dict:
+        """{word id: why} for the words to record first: not yet heard every time."""
+        why = {w["id"]: cache[rt.bank.hash][2][w["say"]] for w in items if w["say"] in cache[rt.bank.hash][2]}
+        by_id = {w["id"]: w for w in items}
+        for t in all_takes():
+            w = by_id.get(t.get("word_id"))
+            if w is None or w["id"] in why:
+                continue
+            heard = t.get("as_itself")
+            if heard is None:                   # a contributor's take keeps only the text heard
+                text = (t.get("pocket") or {}).get("text", "")
+                heard = (_meaning(w["kind"], text, vocab) == w["expect"]) if w["expect"] is not None \
+                    else text.strip() == w["say"]
+            if heard is False:
+                why[w["id"]] = "a take was heard as something else"
+        return why
 
     def word(rt, word_id: str):
         items, vocab = words(rt)
@@ -567,12 +604,17 @@ def mount(app: FastAPI, state: dict, pcm16k) -> None:
     @api.get("/words")
     def word_list(who: dict = Depends(require_speaker)):
         rt = runtime()
-        items, _ = words(rt)
+        items, vocab = words(rt)
         skips = skipped(who["label"])
+        first = record_first(rt, items, vocab)
+        out = []
+        for w in items:
+            mine = sorted(recorded(w["id"], who["label"]))
+            out.append({**w, "recorded": mine, "skipped": w["id"] in skips,
+                        "record_first": w["id"] in first and len(mine) < TAKES,
+                        "why_first": first.get(w["id"], "")})
         return {"bank_version": rt.bank.version, "pocket_commit": rt.commit, "takes": TAKES,
-                "speaker": who["label"],
-                "words": [{**w, "recorded": sorted(recorded(w["id"], who["label"])),
-                           "skipped": w["id"] in skips} for w in items]}
+                "speaker": who["label"], "groups": list(GROUPS), "words": out}
 
     def too_long(seconds: float) -> HTTPException:
         return HTTPException(status_code=413, detail=(
